@@ -34,7 +34,10 @@ endfunction()
 ############################################################################
 
 function(set_common_properties target_name)
-    target_link_libraries(${target_name} ${Boost_LIBRARIES})
+    target_link_libraries(${target_name} 
+        boost_python
+        ${PYTHON_LIBRARIES}
+        ${Boost_LIBRARIES})
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
     set_property(TARGET ${target_name} PROPERTY PREFIX "")
@@ -60,13 +63,16 @@ function(build_on_linux)
     include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python2.7")
     include_directories(${CMAKE_SOURCE_DIR}/include)
 
-    set(Boost_USE_STATIC_LIBS OFF)
+    set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_MULTHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME OFF)
+    set(Boost_USE_STATIC_RUNTIME ON)
 
     # define the library being built
 
-    add_library(${G_TARGET_NAME} SHARED src/python/pystorm.cpp)
+    add_library(${G_TARGET_NAME} SHARED 
+        src/NetModels/Network.cpp
+        src/python/pystorm.cpp
+        src/PyStormMain.cpp)
 
     # set the properties related to the target 
     # this is a function common to all platforms

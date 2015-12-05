@@ -8,11 +8,23 @@
 namespace PyStorm
 {
 namespace NetModels{
+/// Base class for objects that can be connected via WeightedConnections.
+///
 class ConnectableObject
 {
 public:
+    /// \brief Default constructor
+    ///
     ConnectableObject()
     {
+
+    }
+
+    /// \brief Destructor
+    ///
+    ~ConnectableObject()
+    {
+
     }
 protected:
 };
