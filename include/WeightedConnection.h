@@ -22,6 +22,7 @@ public:
     ///        smart pointer objects then? yes; need to see how this plays
     ///         with boost python)
     ///
+    /// \param name Label given to the connection object
     /// \param src The source of the connection where data flow out of.
     /// \param dest The destination of the connection where data flows into.
     /// \param transform_matrix The transformation matrix. 

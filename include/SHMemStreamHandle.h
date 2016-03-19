@@ -50,7 +50,7 @@ private:
     /// Handle id
     std::string m_handleId;
 
-    static std::vector<SHMemStreamHandle*> m_shMemStreamHandles;
+    static std::vector<SHMemStreamHandle*> g_shMemStreamHandles;
 };
 
 } // namespace PyStorm

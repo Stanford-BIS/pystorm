@@ -2,146 +2,147 @@
 
 namespace PyStorm
 {
-
-PyStormMain::PyStormMain()
-{
-
-}
-
-PyStormMain::~PyStormMain()
-{
-
-}
-
+//////////////////////////////////////////////////////////////////////////////
+//
 // Program functionality
-PyStorm::NetModels::Network* PyStormMain::createNetwork(
+//
+//////////////////////////////////////////////////////////////////////////////
+PyStorm::NetModels::Network* CreateNetwork(
     std::string name)
 {
     assert(!name.empty());
     return new PyStorm::NetModels::Network(name);
 }
 
-PyStorm::Netlist* PyStormMain::createNetlist()
+PyStorm::Netlist* CreateNetlist()
 {
     return new PyStorm::Netlist();
 }
 
-PyStorm::MappedNetwork* PyStormMain::createMappedNetwork(
+PyStorm::MappedNetwork* CreateMappedNetwork(
     PyStorm::NetModels::Network* newNetwork)
 {
     return new PyStorm::MappedNetwork(newNetwork);
 }
 
-void PyStormMain::load(PyStorm::MappedNetwork* mappedNet, 
+void Load(PyStorm::MappedNetwork* mappedNet, 
     PyStorm::LoadBehavior loadBehavior)
 {
 
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
 // Control functionality
+//
+//////////////////////////////////////////////////////////////////////////////
 
-void PyStormMain::resetBrainstorm()
+void ResetBrainstorm()
 {
 }
 
-void PyStormMain::startBrainstorm()
+void StartBrainstorm()
 {
 }
 
-void PyStormMain::stopBrainstorm()
+void stopBrainstorm()
 {
 }
 
-void PyStormMain::startBrainstormCore(uint16_t coreId)
+void startBrainstormCore(uint16_t coreId)
 {
 }
 
-void PyStormMain::stopBrainstormCore(uint16_t coreId)
+void stopBrainstormCore(uint16_t coreId)
 {
 }
 
-PyStorm::BrainstormHWDesc* PyStormMain::getHardwareDescription()
+PyStorm::BrainstormHWDesc* getHardwareDescription()
 {
-    return m_hardwareDesc;
+    return g_hardwareDesc;
 }
 
+//////////////////////////////////////////////////////////////////////////////
+//
 // Data Flow functionality
+//
+//////////////////////////////////////////////////////////////////////////////
 
-PyStorm::StreamHandle* PyStormMain::createStream(
+PyStorm::StreamHandle* createStream(
     std::vector<PyStorm::NetModels::Pool> vecOfPools,
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new PyStorm::StreamHandle();
 }
 
-PyStorm::StreamHandle* PyStormMain::createStream(
+PyStorm::StreamHandle* createStream(
     std::vector<PyStorm::NetModels::Pool> vecOfPools)
 {
     return new PyStorm::StreamHandle();
 }
 
-PyStorm::StreamHandle* PyStormMain::createStream(
+PyStorm::StreamHandle* createStream(
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new StreamHandle();
 }
 
-PyStorm::FileStreamHandle* PyStormMain::createFileStream(std::string fileName,
+PyStorm::FileStreamHandle* createFileStream(std::string fileName,
     std::vector<PyStorm::NetModels::Pool> vecOfPools,
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new PyStorm::FileStreamHandle(fileName);
 }
 
-PyStorm::FileStreamHandle* PyStormMain::createFileStream(std::string fileName,
+PyStorm::FileStreamHandle* createFileStream(std::string fileName,
     std::vector<PyStorm::NetModels::Pool> vecOfPools)
 {
     return new PyStorm::FileStreamHandle(fileName);
 }
 
-PyStorm::FileStreamHandle* PyStormMain::createFileStream(std::string fileName,
+PyStorm::FileStreamHandle* createFileStream(std::string fileName,
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new PyStorm::FileStreamHandle(fileName);
 }
 
-PyStorm::SHMemStreamHandle* PyStormMain::createSHMStream(std::string streamName,
+PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
     std::vector<PyStorm::NetModels::Pool> vecOfPools,
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new PyStorm::SHMemStreamHandle(streamName);
 }
 
-PyStorm::SHMemStreamHandle* PyStormMain::createSHMStream(std::string streamName,
+PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
     std::vector<PyStorm::NetModels::Pool> vecOfPools)
 {
     return new PyStorm::SHMemStreamHandle(streamName);
 }
 
-PyStorm::SHMemStreamHandle* PyStormMain::createSHMStream(std::string streamName,
+PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
     std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new PyStorm::SHMemStreamHandle(streamName);
 }
 
-void PyStormMain::startStreams()
+void startStreams()
 {
 
 }
 
-void PyStormMain::stopStreams()
+void stopStreams()
 {
 
 }
 
-bool PyStormMain::getStreamingStatus()
+bool getStreamingStatus()
 {
     bool status;
 
     return status;
 }
 
-void PyStormMain::runStreams(uint32_t timeInMilliseconds)
+void runStreams(uint32_t timeInMilliseconds)
 {
 
 }

@@ -44,7 +44,7 @@ private:
     std::string m_handleId;
 
     // All stream handles
-    static std::vector<StreamHandle*> m_streamHandles;
+    static std::vector<StreamHandle*> g_streamHandles;
 };
 
 } // namespace PyStorm

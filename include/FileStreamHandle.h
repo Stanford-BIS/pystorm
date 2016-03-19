@@ -71,7 +71,7 @@ private:
     /// Handle id
     std::string m_handleId;
 
-    static std::vector<FileStreamHandle*> m_fileStreamHandles;
+    static std::vector<FileStreamHandle*> g_fileStreamHandles;
 };
 
 } // namespace PyStorm

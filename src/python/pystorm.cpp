@@ -8,13 +8,12 @@
 
 namespace PyStorm
 {
-PyStorm::PyStormMain* g_pystorm_inst;
 
 boost::python::object _CreateStreamWithOneList(
     const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
 {
 
-    g_pystorm_inst->createStream(vecOfPools);
+    CreateStream(vecOfPools);
     return boost::python::object();
 }
 
@@ -22,7 +21,7 @@ boost::python::object _CreateStreamWithOneList(
     const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
-    g_pystorm_inst->createStream(vecOfStateSpaces);
+    CreateStream(vecOfStateSpaces);
     return boost::python::object();
 }
 
@@ -47,7 +46,7 @@ boost::python::object CreateStreamWithTwoLists(
     // in the first parameter and the second parameter
     // then copy the objects to two vectors and call 
     // the method
-    g_pystorm_inst->createStream(vecOfPools, vecOfStateSpaces);
+    CreateStream(vecOfPools, vecOfStateSpaces);
     return boost::python::object();
 }
 
@@ -55,7 +54,7 @@ boost::python::object _CreateFileStreamWithOneList(const std::string& fileName,
     const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
 {
 
-    g_pystorm_inst->createFileStream(fileName, vecOfPools);
+    CreateFileStream(fileName, vecOfPools);
     return boost::python::object();
 }
 
@@ -63,7 +62,7 @@ boost::python::object _CreateFileStreamWithOneList(const std::string& fileName,
     const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
-    g_pystorm_inst->createFileStream(fileName, vecOfStateSpaces);
+    CreateFileStream(fileName, vecOfStateSpaces);
     return boost::python::object();
 }
 
@@ -88,7 +87,7 @@ boost::python::object CreateFileStreamWithTwoLists(const std::string& fileName,
     // in the first parameter and the second parameter
     // then copy the objects to two vectors and call 
     // the method
-    g_pystorm_inst->createFileStream(fileName, vecOfPools, vecOfStateSpaces);
+    CreateFileStream(fileName, vecOfPools, vecOfStateSpaces);
     return boost::python::object();
 }
 
@@ -96,7 +95,7 @@ boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName,
     const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
 {
 
-    g_pystorm_inst->createSHMStream(streamName, vecOfPools);
+    CreateSHMStream(streamName, vecOfPools);
     return boost::python::object();
 }
 
@@ -104,7 +103,7 @@ boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName,
     const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
-    g_pystorm_inst->createSHMStream(streamName, vecOfStateSpaces);
+    CreateSHMStream(streamName, vecOfStateSpaces);
     return boost::python::object();
 }
 
@@ -129,28 +128,28 @@ boost::python::object CreateSHMStreamWithTwoLists(const std::string& streamName,
     // in the first parameter and the second parameter
     // then copy the objects to two vectors and call 
     // the method
-    g_pystorm_inst->createSHMStream(streamName, vecOfPools, vecOfStateSpaces);
+    CreateSHMStream(streamName, vecOfPools, vecOfStateSpaces);
     return boost::python::object();
 }
 
 void StartStreams()
 {
-    g_pystorm_inst->startStreams();
+    StartStreams();
 }
 
 void StopStreams()
 {
-    g_pystorm_inst->stopStreams();
+    StopStreams();
 }
 
 void RunStreams(uint32_t timeInMilliseconds)
 {
-    g_pystorm_inst->runStreams(timeInMilliseconds);
+    RunStreams(timeInMilliseconds);
 }
 
 bool GetStreamingStatus()
 {
-    return g_pystorm_inst->getStreamingStatus();
+    return GetStreamingStatus();
 }
 
 PyStorm::NetModels::WeightedConnection* 
@@ -168,8 +167,6 @@ PyStorm::NetModels::WeightedConnection*
 
 BOOST_PYTHON_MODULE(pystorm)
 {
-    g_pystorm_inst = new PyStorm::PyStormMain();
-
     boost::python::def("CreateStream",CreateStreamWithOneList);
     boost::python::def("CreateStream",CreateStreamWithTwoLists);
 
