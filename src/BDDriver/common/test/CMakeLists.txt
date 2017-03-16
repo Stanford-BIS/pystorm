@@ -1,0 +1,5 @@
+cmake_minimum_required(VERSION 2.8.9)
+project(FOO CXX)
+add_executable(foo foo.cpp ../util.cpp ../Binary.cpp)
+include_directories(../../../)
+SET(CMAKE_CXX_FLAGS "-std=c++11")
