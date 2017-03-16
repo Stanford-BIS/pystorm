@@ -16,6 +16,8 @@ set(INCLUDE_DIRS ${G_BASE_DIR})
 set(HEADER_FILES ${G_BASE_DIR}/BDDriver/Driver.h
                  ${G_BASE_DIR}/BDDriver/DriverIfc/DriverPy.h
                  ${G_BASE_DIR}/BDDriver/Comm/Comm.h
+                 ${G_BASE_DIR}/BDDriver/Comm/PacketGenerator.h
+                 ${G_BASE_DIR}/BDDriver/Comm/CommSoft.h
                  ${G_BASE_DIR}/common/TSQueue.h
 )
 

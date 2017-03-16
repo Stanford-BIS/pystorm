@@ -1,4 +1,4 @@
-#include "Comm.h"
+#include "CommSoft.h"
 
 namespace PyStorm
 {
@@ -7,27 +7,40 @@ namespace BDDriver
 namespace BDComm
 {
 
+
+void CommSoft::ReadPacketsIn()
+{
+    std::unique_ptr<PacketGeneratorCallbackData> cb = 
+        std::unique_ptr<PacketGeneratorCallbackData>(
+        new PacketGeneratorCallbackData());
+    cb->comm = this;
+    m_pg.Read(std::move(cb));
+}
+
+void CommSoft::WritePacketsOut()
+{
+    std::unique_ptr<COMMWordStream> wordstream;
+    bool retValue = m_write_queue.try_pop(std::ref(wordstream));
+    if (true == retValue)
+    {
+        
+        std::unique_ptr<PacketGeneratorCallbackData> cb = 
+            std::unique_ptr<PacketGeneratorCallbackData>(
+            new PacketGeneratorCallbackData());
+        cb->comm = this;
+        cb->buf = std::move(wordstream);
+
+        m_pg.Write(std::move(cb));
+    }
+}
+
 void CommSoft::CommSoftController()
 {
-    std::unique_ptr<COMMWordStream> value;
-    
-    while (CommStreamState::STARTED == getStreamState())
+    while (CommStreamState::STARTED == GetStreamState())
     {
-        // read
-
-        auto retValue = m_read_queue.try_pop(value);
-        if (true == retValue)
-        {
-        //    std::cout << "have value" << std::endl;
-        }
-        else
-        {
-        //    std::cout << "no value" << std::endl;
-        }
-
-        //  write
+        ReadPacketsIn();
+        WritePacketsOut();        
     }
-    std::cout << "out" << std::endl;
 }
 
 
@@ -42,22 +55,21 @@ CommSoft::CommSoft(std::string& read_file_name, std::string& write_file_name) :
 
 CommSoft::~CommSoft()
 {
-    std::cout << "In destructor" << std::endl;
-    stopStreaming();
-    setStreamState(CommStreamState::STOPPED);
+    StopStreaming();
+    SetStreamState(CommStreamState::STOPPED);
     if (m_control_thread.joinable())
         m_control_thread.join();
     
     m_in_stream.close();
     m_out_stream.close();
-    std::cout << "Leaving destructor" << std::endl;
 }
 
-void CommSoft::startStreaming()
+void CommSoft::StartStreaming()
 {
-    std::lock_guard<std::recursive_mutex> lck(m_state_mutex);
-    if (CommStreamState::STOPPED == m_state)
+    if (CommStreamState::STOPPED == GetStreamState())
     {
+        SetStreamState(CommStreamState::STARTED);
+
         if (!m_in_stream.is_open())
         {
             m_in_stream.open(m_in_file_name);
@@ -68,35 +80,25 @@ void CommSoft::startStreaming()
             m_out_stream.open(m_in_file_name);
         }
 
-        setStreamState(CommStreamState::STARTED);
-
         m_control_thread = std::thread(&CommSoft::CommSoftController, this);
     }
 }
 
-void CommSoft::stopStreaming()
+void CommSoft::StopStreaming()
 {
-    std::cout << "In stop streaming" << std::endl;
     {
         std::lock_guard<std::recursive_mutex> lck(m_state_mutex);
-        if (CommStreamState::STARTED == getStreamState())
+        if (CommStreamState::STARTED == GetStreamState())
         {
-            setStreamState(CommStreamState::STOPPED);
+            SetStreamState(CommStreamState::STOPPED);
         }
     }
-
-    // Wait for the thread to join
-    // close the streams
-    // clear the queues
 
     if (m_control_thread.joinable())
         m_control_thread.join();
 
     m_in_stream.close();
     m_out_stream.close();
-
-    std::cout << "Leaving stop streaming" << std::endl;
-    
 }
 
 void CommSoft::Write(std::unique_ptr<COMMWordStream> wordStream)
@@ -106,12 +108,24 @@ void CommSoft::Write(std::unique_ptr<COMMWordStream> wordStream)
 
 std::unique_ptr<COMMWordStream> CommSoft::Read()
 {
-    std::unique_ptr<COMMWordStream> ret_value;
-    m_read_queue.wait_and_pop(ret_value);
-    return ret_value;
+    std::unique_ptr<COMMWordStream> wordstream;
+    auto retValue = m_read_queue.try_pop(wordstream);
+    if (retValue)
+        return wordstream;
+    else
+        return nullptr;
+}
+
+void CommSoft::ReadCallback(std::unique_ptr<PacketGeneratorCallbackData> cb)
+{
+    m_read_queue.push(std::ref(cb->buf));
+}
+
+void CommSoft::WriteCallback(std::unique_ptr<PacketGeneratorCallbackData> cb)
+{
 }
 
 
-}
-}
-}
+} // BDComm namespace
+} // BDDriver namespace
+} // PyStorm namespace
