@@ -7,6 +7,30 @@ namespace BDDriver
 namespace BDComm
 {
 
+void CommSoft::CommSoftController()
+{
+    std::unique_ptr<COMMWordStream> value;
+    
+    while (CommStreamState::STARTED == getStreamState())
+    {
+        // read
+
+        auto retValue = m_read_queue.try_pop(value);
+        if (true == retValue)
+        {
+        //    std::cout << "have value" << std::endl;
+        }
+        else
+        {
+        //    std::cout << "no value" << std::endl;
+        }
+
+        //  write
+    }
+    std::cout << "out" << std::endl;
+}
+
+
 CommSoft::CommSoft(std::string& read_file_name, std::string& write_file_name) :
     m_in_file_name(read_file_name),
     m_out_file_name(write_file_name)
@@ -18,33 +42,63 @@ CommSoft::CommSoft(std::string& read_file_name, std::string& write_file_name) :
 
 CommSoft::~CommSoft()
 {
-    // check that the thread joined
+    std::cout << "In destructor" << std::endl;
+    stopStreaming();
+    setStreamState(CommStreamState::STOPPED);
+    if (m_control_thread.joinable())
+        m_control_thread.join();
     
     m_in_stream.close();
     m_out_stream.close();
+    std::cout << "Leaving destructor" << std::endl;
 }
 
 void CommSoft::startStreaming()
 {
-    std::lock_guard<std::mutex> lck(m_state_mutex);
+    std::lock_guard<std::recursive_mutex> lck(m_state_mutex);
     if (CommStreamState::STOPPED == m_state)
     {
-        // open the streams
-        m_controlThread = std::thread(&CommSoft::CommSoftController,this);
+        if (!m_in_stream.is_open())
+        {
+            m_in_stream.open(m_in_file_name);
+        }
+
+        if (!m_out_stream.is_open())
+        {
+            m_out_stream.open(m_in_file_name);
+        }
+
+        setStreamState(CommStreamState::STARTED);
+
+        m_control_thread = std::thread(&CommSoft::CommSoftController, this);
     }
 }
 
 void CommSoft::stopStreaming()
 {
-    std::lock_guard<std::mutex> lck(m_state_mutex);
-    if (CommStreamState::STARTED == m_state)
+    std::cout << "In stop streaming" << std::endl;
     {
-        m_state = CommStreamState::STOPPED;
-        // check that the thread joined
-        // close the streams
-        // clean up the queues
+        std::lock_guard<std::recursive_mutex> lck(m_state_mutex);
+        if (CommStreamState::STARTED == getStreamState())
+        {
+            setStreamState(CommStreamState::STOPPED);
+        }
     }
+
+    // Wait for the thread to join
+    // close the streams
+    // clear the queues
+
+    if (m_control_thread.joinable())
+        m_control_thread.join();
+
+    m_in_stream.close();
+    m_out_stream.close();
+
+    std::cout << "Leaving stop streaming" << std::endl;
+    
 }
+
 void CommSoft::Write(std::unique_ptr<COMMWordStream> wordStream)
 {
     m_write_queue.push(wordStream);
@@ -57,16 +111,6 @@ std::unique_ptr<COMMWordStream> CommSoft::Read()
     return ret_value;
 }
 
-void CommSoft::CommSoftController()
-{
-    std::cout << "In CommSoftController" << std::endl;
-    // while CommStreamState::STARTED == getStreamState()
-    // {
-    //  read 
-    //      then 
-    //  write
-    // }
-}
 
 }
 }
