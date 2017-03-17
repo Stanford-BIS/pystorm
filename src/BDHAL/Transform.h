@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace NetModels{
 /// A matrix representing the transform used in a WeightedConnection.
@@ -86,6 +86,6 @@ private:
 };
 
 } // namespace NetModels
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef TRANSFORM_H

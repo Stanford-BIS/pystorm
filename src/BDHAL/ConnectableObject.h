@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace NetModels{
 /// Base class for objects that can be connected via WeightedConnections.
@@ -30,6 +30,6 @@ protected:
 };
 
 } // namespace NetModels
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef CONNECTABLE_OBJECT_H

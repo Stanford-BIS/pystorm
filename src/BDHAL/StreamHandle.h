@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace PyStorm
+namespace pystorm
 {
 /// Handle used to retrieve a stream of spikes and decoded values from the 
 /// DataFlowController (first mention of this; need to flessh this out in
@@ -47,6 +47,6 @@ private:
     static std::vector<StreamHandle*> g_streamHandles;
 };
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef STREAMHANDLE_H

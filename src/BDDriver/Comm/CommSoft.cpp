@@ -1,10 +1,10 @@
 #include "CommSoft.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
-namespace BDComm
+namespace bdcomm
 {
 
 
@@ -126,6 +126,6 @@ void CommSoft::WriteCallback(std::unique_ptr<PacketGeneratorCallbackData> cb)
 }
 
 
-} // BDComm namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bdcomm namespace
+} // bddriver namespace
+} // pystorm namespace

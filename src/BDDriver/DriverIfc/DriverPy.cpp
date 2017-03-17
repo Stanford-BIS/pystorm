@@ -4,9 +4,9 @@
 
 #include "DriverPy.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
 namespace DriverIfc
 {
@@ -23,5 +23,5 @@ BOOST_PYTHON_MODULE(DriverPy)
 }
 
 } // DriverIfc namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bddriver namespace
+} // pystorm namespace

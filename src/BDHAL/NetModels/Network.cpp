@@ -1,8 +1,8 @@
 #include <Network.h>
 
-namespace PyStorm
+namespace pystorm
 {
-namespace NetModels
+namespace netmodels
 {
 Network::Network(std::string name) :
     m_name(name)

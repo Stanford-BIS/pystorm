@@ -6,9 +6,9 @@
 #include <ConnectableObject.h>
 #include <Transform.h>
 
-namespace PyStorm
+namespace pystorm
 {
-namespace NetModels{
+namespace netmodels{
 /// A projection from one ConnectableObject (i.e. Pool or StateSpace) to
 /// another where the outputs of the first object can be linearly combined
 /// prior to becoming inputs to the second object. This linear combination
@@ -125,7 +125,7 @@ private:
     Transform<uint32_t>* m_transform;
 };
 
-} // namespace NetModels
-} // namespace PyStorm
+} // namespace netmodels
+} // namespace pystorm
 
 #endif // ifndef WEIGHTEDCONNECTION_H

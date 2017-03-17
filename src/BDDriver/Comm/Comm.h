@@ -11,11 +11,11 @@
 
 #include "common/TSQueue.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
-namespace BDComm
+namespace bdcomm
 {
 
 enum class CommStreamState { STARTED=0, STOPPED=1 };
@@ -57,7 +57,7 @@ protected:
 
 };
 
-} // BDComm namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bdcomm namespace
+} // bddriver namespace
+} // pystorm namespace
 #endif

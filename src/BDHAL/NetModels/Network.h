@@ -11,14 +11,14 @@
 #include <vector>
 #include <map>
 
-namespace PyStorm
+namespace pystorm
 {
-namespace NetModels{
+namespace netmodels{
 
 /// A network that represents a Nengo network. The network will be passed
 /// to Neuromorph to be placed and routed and will be passed to a MappedNetwork
 /// object which will track this object as well as other objects that
-/// allow PyStorm to program Brainstorm.
+/// allow pystorm to program Brainstorm.
 /// 
 /// NOTE: As much as possible we want objects to be immutable. Create an 
 /// object and don't change it. One exception will be the transform matrix
@@ -111,7 +111,7 @@ private:
         m_outConnections;
 };
 
-} // namespace NetModels
-} // namespace PyStorm
+} // namespace netmodels
+} // namespace pystorm
 
 #endif // ifndef NETWORK_H

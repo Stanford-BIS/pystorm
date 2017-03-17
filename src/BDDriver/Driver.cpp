@@ -2,7 +2,7 @@
 
 #include "Driver.h"
 
-namespace PyStorm
+namespace pystorm
 {
 namespace BDDriver
 {
@@ -30,4 +30,4 @@ void Driver::testcall(const std::string& msg)
 }
 
 } // BDDriver namespace
-} // PyStorm namespace
+} // pystorm namespace

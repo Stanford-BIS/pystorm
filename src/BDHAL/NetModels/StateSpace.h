@@ -4,9 +4,9 @@
 #include <iostream>
 #include <stdint.h>
 
-namespace PyStorm
+namespace pystorm
 {
-namespace NetModels
+namespace netmodels
 {
 /// A set of numerical values (dimensions) which are weighted projections from 
 /// another Pool or StateSpace. A StateSpace can be connected to another
@@ -58,7 +58,7 @@ private:
     uint32_t    m_dims;
 };
 
-} // namespace NetModels
-} // namespace PyStorm
+} // namespace netmodels
+} // namespace pystorm
 
 #endif // ifndef STATESPACE_H

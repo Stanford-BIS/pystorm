@@ -3,7 +3,7 @@
 
 #include <memory>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace BDDriver
 {
@@ -27,6 +27,6 @@ protected:
 };
 
 } // BDDriver namespace
-} // PyStorm namespace
+} // pystorm namespace
 
 #endif

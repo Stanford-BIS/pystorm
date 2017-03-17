@@ -16,9 +16,9 @@
 #include <BrainstormHWDesc.h>
 #include <Netlist.h>
 
-/// \file PyStormMain.h
+/// \file pystormMain.h
 
-namespace PyStorm
+namespace pystorm
 {
 // Enum types
 enum class LoadBehavior { POOLS_ONLY, ALL_OBJECTS };
@@ -36,7 +36,7 @@ extern ProgramStatus*    g_programStatus;
 //
 // Program functionality
 //
-// The following functions allow PyStorm users to program Brainstorm
+// The following functions allow pystorm users to program Brainstorm
 //
 //////////////////////////////////////////////////////////////////////////////
 
@@ -47,20 +47,20 @@ extern ProgramStatus*    g_programStatus;
 ///
 /// \return A pointer to an instance of Network
 /// 
-/// NOTE: PyStorm does not hold a reference to this instance until it 
-/// is passed to PyStorm via the load method. The load method actually
+/// NOTE: pystorm does not hold a reference to this instance until it 
+/// is passed to pystorm via the load method. The load method actually
 /// passed an instance of MappedNetwork which holds a reference to 
 /// a Network object.
-PyStorm::NetModels::Network* CreateNetwork(std::string name);
+pystorm::NetModels::Network* CreateNetwork(std::string name);
 
 /// \brief Create an instance of Netlist
 ///
-PyStorm::Netlist* CreateNetlist();
+pystorm::Netlist* CreateNetlist();
 
 /// \brief Create an instance of MappedNetwork
 ///
-PyStorm::MappedNetwork* CreateMappedNetwork(
-    PyStorm::NetModels::Network* newNetwork);
+pystorm::MappedNetwork* CreateMappedNetwork(
+    pystorm::NetModels::Network* newNetwork);
 
 /// \brief Load a MappedNetwork
 ///
@@ -68,20 +68,20 @@ PyStorm::MappedNetwork* CreateMappedNetwork(
 /// \param loadBehavior Indicator of whether all objects or only Pools should
 ///                     be loaded onto Brainstorm
 ///
-/// Loading will first reset PyStorm and Brainstorm (i.e. call 
-/// resetBrainstomr), set the proper data structures in PyStorm and 
+/// Loading will first reset pystorm and Brainstorm (i.e. call 
+/// resetBrainstomr), set the proper data structures in pystorm and 
 /// program Brainstorm. After programming Brainstorm, the chip will not
 /// produce spikes or decoded values until the startBrainstorm method is
-/// called. This allows the user to setup streams and start PyStorms
+/// called. This allows the user to setup streams and start pystorms
 /// streaming functionality before allowing Brainstorm to produce upstream
 /// data.
-void Load(PyStorm::MappedNetwork* mappedNet, PyStorm::LoadBehavior loadBehavior);
+void Load(pystorm::MappedNetwork* mappedNet, pystorm::LoadBehavior loadBehavior);
 
 //////////////////////////////////////////////////////////////////////////////
 //
 // Control functionality
 //
-// The following functions allow PyStorm users to control Brainstorms
+// The following functions allow pystorm users to control Brainstorms
 // behavior. For example, the user can reset Brainstorm as well as 
 // indicate to Brainstorm to start producing spikes and decoded values
 // on specific cores or all cores.
@@ -92,9 +92,9 @@ void Load(PyStorm::MappedNetwork* mappedNet, PyStorm::LoadBehavior loadBehavior)
 ///
 /// This method will stop the chip from producing data (i.e. spikes and 
 /// decoded values), wipe out all data mapped onto the chip and clear any 
-/// data structures stored in PyStorm.
+/// data structures stored in pystorm.
 /// The effect is similar to turning off Brainstorm and shutting down
-/// the process that has loaded PyStorm.
+/// the process that has loaded pystorm.
 ///
 void ResetBrainstorm();
 
@@ -137,7 +137,7 @@ void StopBrainstormCore(uint16_t coreId);
 ///
 /// \return An instance of BrainstormHWDesc
 ///
-PyStorm::BrainstormHWDesc* GetHardwareDescription();
+pystorm::BrainstormHWDesc* GetHardwareDescription();
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -152,9 +152,9 @@ PyStorm::BrainstormHWDesc* GetHardwareDescription();
 ///
 /// \return A StreamHandle to use when retreiving data
 ///
-PyStorm::StreamHandle* CreateStream(
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::StreamHandle* CreateStream(
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Create a stream for a specific set of Pools.
 ///
@@ -162,8 +162,8 @@ PyStorm::StreamHandle* CreateStream(
 ///
 /// \return A StreamHandle to use when retreiving data
 ///
-PyStorm::StreamHandle* CreateStream(
-    std::vector<PyStorm::NetModels::Pool> vecOfPools);
+pystorm::StreamHandle* CreateStream(
+    std::vector<pystorm::NetModels::Pool> vecOfPools);
 
 /// \brief Create a stream for a specific set of StateSpaces.
 ///
@@ -171,8 +171,8 @@ PyStorm::StreamHandle* CreateStream(
 ///
 /// \return A StreamHandle to use when retreiving data
 ///
-PyStorm::StreamHandle* CreateStream(
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::StreamHandle* CreateStream(
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Create a file stream for a specific set of Pools and StateSpaces.
 ///
@@ -185,9 +185,9 @@ PyStorm::StreamHandle* CreateStream(
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a file handle with the given filename.
 ///
-PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::FileStreamHandle* CreateFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Create a file stream for a specific set of Pools and StateSpaces.
 ///
@@ -199,8 +199,8 @@ PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a file handle with the given filename.
 ///
-PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools);
+pystorm::FileStreamHandle* CreateFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools);
 
 /// \brief Create a file stream for a specific set of Pools and StateSpaces.
 ///
@@ -213,8 +213,8 @@ PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a file handle with the given filename.
 ///
-PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::FileStreamHandle* CreateFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Create a shared memory stream for a specific set of Pools and StateSpaces.
 ///
@@ -227,9 +227,9 @@ PyStorm::FileStreamHandle* CreateFileStream(std::string fileName,
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a shared memory segment with the given name.
 ///
-PyStorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Create a shared memory stream for a specific set of Pools and StateSpaces.
 ///
@@ -241,8 +241,8 @@ PyStorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a shared memory segment with the given name.
 ///
-PyStorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools);
+pystorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools);
 
 /// \brief Create a shared memory stream for a specific set of Pools and StateSpaces.
 ///
@@ -255,8 +255,8 @@ PyStorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
 /// When constructing an instancce, the return value will be null if the 
 /// the constructor cannot open a shared memory segment with the given name.
 ///
-PyStorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces);
+pystorm::SHMemStreamHandle* CreateSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces);
 
 /// \brief Start streaming data from Brainstorm
 ///
@@ -277,6 +277,6 @@ bool GetStreamingStatus();
 void RunStreams(uint32_t timeInMilliseconds);
 
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef PYSTORMMAIN_H

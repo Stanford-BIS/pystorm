@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-namespace PyStorm
+namespace pystorm
 {
 /// Netlist that will be used by Neuromorph during synthesis
 ///
@@ -27,6 +27,6 @@ public:
 private:
 };
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef NETLIST_H

@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace PyStorm
+namespace pystorm
 {
 /// Handle to a shared memory location where spikes and decoded values are 
 /// streamed to
@@ -53,6 +53,6 @@ private:
     static std::vector<SHMemStreamHandle*> g_shMemStreamHandles;
 };
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef SHMEMSTREAMHANDLE_H
