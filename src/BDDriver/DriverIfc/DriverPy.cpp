@@ -9,7 +9,7 @@ namespace pystorm
 {
 namespace bddriver
 {
-namespace DriverIfc
+namespace driverifc
 {
 
 void testcall(const std::string& msg)
@@ -23,6 +23,6 @@ BOOST_PYTHON_MODULE(DriverPy)
     boost::python::def("testcall",testcall);
 }
 
-} // DriverIfc namespace
+} // driverifc namespace
 } // bddriver namespace
 } // pystorm namespace

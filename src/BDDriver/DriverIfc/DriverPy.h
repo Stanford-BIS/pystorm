@@ -7,10 +7,10 @@ namespace pystorm
 {
 namespace bddriver
 {
-namespace DriverIfc
+namespace driverifc
 {
 
-} // DriverIfc namespace
+} // driverifc namespace
 } // bddriver  namespace
 } // pystorm
 
