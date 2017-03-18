@@ -14,7 +14,6 @@ namespace DriverIfc
 
 void testcall(const std::string& msg)
 {
-    Driver my_driver_test();
     Driver::getInstance().testcall(msg);
 }
 
