@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace NetModels
 {
@@ -59,6 +59,6 @@ private:
 };
 
 } // namespace NetModels
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef STATESPACE_H

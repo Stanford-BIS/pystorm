@@ -2,17 +2,19 @@
 #include <boost/python.hpp>
 
 
+#include "BDDriver/Driver.h"
 #include "DriverPy.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
 namespace DriverIfc
 {
 
 void testcall(const std::string& msg)
 {
+    Driver my_driver_test();
     Driver::getInstance().testcall(msg);
 }
 
@@ -23,5 +25,5 @@ BOOST_PYTHON_MODULE(DriverPy)
 }
 
 } // DriverIfc namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bddriver namespace
+} // pystorm namespace

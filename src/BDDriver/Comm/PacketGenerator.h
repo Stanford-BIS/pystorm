@@ -14,11 +14,11 @@
 #include "common/TSQueue.h"
 #include "Comm.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
-namespace BDComm
+namespace bdcomm
 {
 
 class PacketGeneratorClientIfc;
@@ -57,11 +57,11 @@ public:
         {
         const char * testdata = "Good morning america.";         
         unsigned char * buffer = (unsigned char *) testdata;                        
-        PyStorm::BDDriver::BDComm::COMMWordStream::size_type size = strlen((const char *) buffer);
+        pystorm::bddriver::bdcomm::COMMWordStream::size_type size = strlen((const char *) buffer);
                                                                                     
-        std::unique_ptr<PyStorm::BDDriver::BDComm::COMMWordStream> wordstream =     
-            std::unique_ptr<PyStorm::BDDriver::BDComm::COMMWordStream>(             
-                new PyStorm::BDDriver::BDComm::COMMWordStream(buffer, buffer + size));
+        std::unique_ptr<pystorm::bddriver::bdcomm::COMMWordStream> wordstream =     
+            std::unique_ptr<pystorm::bddriver::bdcomm::COMMWordStream>(             
+                new pystorm::bddriver::bdcomm::COMMWordStream(buffer, buffer + size));
 
         cb->buf = std::move(wordstream);
         cb->comm->ReadCallback(std::move(cb));
@@ -82,7 +82,7 @@ public:
     }
 };
 
-} // BDComm namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bdcomm namespace
+} // bddriver namespace
+} // pystorm namespace
 #endif

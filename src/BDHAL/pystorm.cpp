@@ -4,13 +4,13 @@
 #include <WeightedConnection.h>
 #include <ConnectableObject.h>
 #include <Network.h>
-#include <PyStormMain.h>
+#include <pystormMain.h>
 
-namespace PyStorm
+namespace pystorm
 {
 
 boost::python::object _CreateStreamWithOneList(
-    const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
+    const std::vector<pystorm::NetModels::Pool>& vecOfPools)
 {
 
     CreateStream(vecOfPools);
@@ -18,7 +18,7 @@ boost::python::object _CreateStreamWithOneList(
 }
 
 boost::python::object _CreateStreamWithOneList(
-    const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
+    const std::vector<pystorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
     CreateStream(vecOfStateSpaces);
@@ -28,7 +28,7 @@ boost::python::object _CreateStreamWithOneList(
 boost::python::object CreateStreamWithOneList( 
     const boost::python::list& listOfObjects)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
     // add logic to first determine what type of objects were passed
     // should be list of StateSpaces or list of Pools
     // then copy the objects to a vecto and call one of the overloaded functions
@@ -39,8 +39,8 @@ boost::python::object CreateStreamWithTwoLists(
     const boost::python::list& listOfObjects1,
     const boost::python::list& listOfObjects2)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces;
 
     // add logic to first determine what type of objects were passed
     // in the first parameter and the second parameter
@@ -51,7 +51,7 @@ boost::python::object CreateStreamWithTwoLists(
 }
 
 boost::python::object _CreateFileStreamWithOneList(const std::string& fileName, 
-    const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
+    const std::vector<pystorm::NetModels::Pool>& vecOfPools)
 {
 
     CreateFileStream(fileName, vecOfPools);
@@ -59,7 +59,7 @@ boost::python::object _CreateFileStreamWithOneList(const std::string& fileName,
 }
 
 boost::python::object _CreateFileStreamWithOneList(const std::string& fileName, 
-    const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
+    const std::vector<pystorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
     CreateFileStream(fileName, vecOfStateSpaces);
@@ -69,7 +69,7 @@ boost::python::object _CreateFileStreamWithOneList(const std::string& fileName,
 boost::python::object CreateFileStreamWithOneList(const std::string& fileName, 
     const boost::python::list& listOfObjects)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
     // add logic to first determine what type of objects were passed
     // should be list of StateSpaces or list of Pools
     // then copy the objects to a vecto and call one of the overloaded functions
@@ -80,8 +80,8 @@ boost::python::object CreateFileStreamWithTwoLists(const std::string& fileName,
     const boost::python::list& listOfObjects1,
     const boost::python::list& listOfObjects2)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces;
 
     // add logic to first determine what type of objects were passed
     // in the first parameter and the second parameter
@@ -92,7 +92,7 @@ boost::python::object CreateFileStreamWithTwoLists(const std::string& fileName,
 }
 
 boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName, 
-    const std::vector<PyStorm::NetModels::Pool>& vecOfPools)
+    const std::vector<pystorm::NetModels::Pool>& vecOfPools)
 {
 
     CreateSHMStream(streamName, vecOfPools);
@@ -100,7 +100,7 @@ boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName,
 }
 
 boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName, 
-    const std::vector<PyStorm::NetModels::StateSpace> & vecOfStateSpaces)
+    const std::vector<pystorm::NetModels::StateSpace> & vecOfStateSpaces)
 {
 
     CreateSHMStream(streamName, vecOfStateSpaces);
@@ -110,7 +110,7 @@ boost::python::object _CreateSHMStreamWithOneList(const std::string& streamName,
 boost::python::object CreateSHMStreamWithOneList(const std::string& streamName, 
     const boost::python::list& listOfObjects)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
     // add logic to first determine what type of objects were passed
     // should be list of StateSpaces or list of Pools
     // then copy the objects to a vecto and call one of the overloaded functions
@@ -121,8 +121,8 @@ boost::python::object CreateSHMStreamWithTwoLists(const std::string& streamName,
     const boost::python::list& listOfObjects1,
     const boost::python::list& listOfObjects2)
 {
-    std::vector<PyStorm::NetModels::Pool> vecOfPools;
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces;
+    std::vector<pystorm::NetModels::Pool> vecOfPools;
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces;
 
     // add logic to first determine what type of objects were passed
     // in the first parameter and the second parameter
@@ -152,18 +152,18 @@ bool GetStreamingStatus()
     return GetStreamingStatus();
 }
 
-PyStorm::NetModels::WeightedConnection* 
-    (PyStorm::NetModels::Network::*createWeightedConnection_1) (
-    std::string name, PyStorm::NetModels::ConnectableObject* in_object, 
-    PyStorm::NetModels::ConnectableObject* out_object) = 
-        &PyStorm::NetModels::Network::createWeightedConnection;
+pystorm::NetModels::WeightedConnection* 
+    (pystorm::NetModels::Network::*createWeightedConnection_1) (
+    std::string name, pystorm::NetModels::ConnectableObject* in_object, 
+    pystorm::NetModels::ConnectableObject* out_object) = 
+        &pystorm::NetModels::Network::createWeightedConnection;
 
-PyStorm::NetModels::WeightedConnection* 
-    (PyStorm::NetModels::Network::*createWeightedConnection_2) (
-    std::string name, PyStorm::NetModels::ConnectableObject* in_object, 
-    PyStorm::NetModels::ConnectableObject* out_object, 
-    PyStorm::NetModels::Transform<uint32_t>* transformMatrix) = 
-        &PyStorm::NetModels::Network::createWeightedConnection;
+pystorm::NetModels::WeightedConnection* 
+    (pystorm::NetModels::Network::*createWeightedConnection_2) (
+    std::string name, pystorm::NetModels::ConnectableObject* in_object, 
+    pystorm::NetModels::ConnectableObject* out_object, 
+    pystorm::NetModels::Transform<uint32_t>* transformMatrix) = 
+        &pystorm::NetModels::Network::createWeightedConnection;
 
 BOOST_PYTHON_MODULE(pystorm)
 {
@@ -181,32 +181,32 @@ BOOST_PYTHON_MODULE(pystorm)
     boost::python::def("RunStreams",RunStreams);
     boost::python::def("GetStreamingStatus",GetStreamingStatus);
 
-    boost::python::class_<PyStorm::NetModels::Pool>("Pool",
+    boost::python::class_<pystorm::NetModels::Pool>("Pool",
         boost::python::init<std::string, uint32_t>())
-        .def("GetName",&PyStorm::NetModels::Pool::getName)
-        .def("GetNumNeurons",&PyStorm::NetModels::Pool::getNumNeurons)
+        .def("GetName",&pystorm::NetModels::Pool::getName)
+        .def("GetNumNeurons",&pystorm::NetModels::Pool::getNumNeurons)
     ;
 
-    boost::python::class_<PyStorm::NetModels::StateSpace>("StateSpace",
+    boost::python::class_<pystorm::NetModels::StateSpace>("StateSpace",
         boost::python::init<std::string, uint32_t>())
-        .def("GetName",&PyStorm::NetModels::StateSpace::getName)
-        .def("GetNumDims",&PyStorm::NetModels::StateSpace::getNumDims)
+        .def("GetName",&pystorm::NetModels::StateSpace::getName)
+        .def("GetNumDims",&pystorm::NetModels::StateSpace::getNumDims)
     ;
 
-    boost::python::class_<PyStorm::NetModels::WeightedConnection>
+    boost::python::class_<pystorm::NetModels::WeightedConnection>
         ("WeightedConnection",boost::python::init<std::string, 
-        PyStorm::NetModels::ConnectableObject*, 
-        PyStorm::NetModels::ConnectableObject*,
-        PyStorm::NetModels::Transform<uint32_t>* >())
-        .def("GetName",&PyStorm::NetModels::StateSpace::getName)
+        pystorm::NetModels::ConnectableObject*, 
+        pystorm::NetModels::ConnectableObject*,
+        pystorm::NetModels::Transform<uint32_t>* >())
+        .def("GetName",&pystorm::NetModels::StateSpace::getName)
     ;
 
-    boost::python::class_<PyStorm::NetModels::Network>("Network",
+    boost::python::class_<pystorm::NetModels::Network>("Network",
         boost::python::init<std::string>())
-        .def("GetName",&PyStorm::NetModels::Network::getName)
-        .def("CreatePool",&PyStorm::NetModels::Network::createPool, 
+        .def("GetName",&pystorm::NetModels::Network::getName)
+        .def("CreatePool",&pystorm::NetModels::Network::createPool, 
             boost::python::return_internal_reference<>())
-        .def("CreateStateSpace",&PyStorm::NetModels::Network::createStateSpace, 
+        .def("CreateStateSpace",&pystorm::NetModels::Network::createStateSpace, 
             boost::python::return_internal_reference<>())
         .def("CreateWeightedConnection", createWeightedConnection_1,
             boost::python::return_internal_reference<>())
@@ -214,29 +214,29 @@ BOOST_PYTHON_MODULE(pystorm)
             boost::python::return_internal_reference<>())
     ;
 
-    boost::python::class_<PyStorm::StreamHandle>("StreamHandle",
+    boost::python::class_<pystorm::StreamHandle>("StreamHandle",
         boost::python::init<>())
-        .def("Close", &PyStorm::StreamHandle::close)
-        .def("GetHandleId", &PyStorm::StreamHandle::getHandleId, 
+        .def("Close", &pystorm::StreamHandle::close)
+        .def("GetHandleId", &pystorm::StreamHandle::getHandleId, 
             boost::python::return_internal_reference<>())
-        .def("CloseAll", &PyStorm::StreamHandle::closeAll)
+        .def("CloseAll", &pystorm::StreamHandle::closeAll)
     ;
 
-    boost::python::class_<PyStorm::FileStreamHandle>("FileStreamHandle",
+    boost::python::class_<pystorm::FileStreamHandle>("FileStreamHandle",
         boost::python::init<std::string>())
-        .def("Flush", &PyStorm::FileStreamHandle::flush)
-        .def("Close", &PyStorm::FileStreamHandle::close)
-        .def("GetHandleId", &PyStorm::FileStreamHandle::getHandleId, 
+        .def("Flush", &pystorm::FileStreamHandle::flush)
+        .def("Close", &pystorm::FileStreamHandle::close)
+        .def("GetHandleId", &pystorm::FileStreamHandle::getHandleId, 
             boost::python::return_internal_reference<>())
-        .def("CloseAll", &PyStorm::FileStreamHandle::closeAll)
+        .def("CloseAll", &pystorm::FileStreamHandle::closeAll)
     ;
 
-    boost::python::class_<PyStorm::SHMemStreamHandle>("SHMemStreamHandle",
+    boost::python::class_<pystorm::SHMemStreamHandle>("SHMemStreamHandle",
         boost::python::init<std::string>())
-        .def("Close", &PyStorm::SHMemStreamHandle::close)
-        .def("GetHandleId", &PyStorm::SHMemStreamHandle::getHandleId, 
+        .def("Close", &pystorm::SHMemStreamHandle::close)
+        .def("GetHandleId", &pystorm::SHMemStreamHandle::getHandleId, 
             boost::python::return_internal_reference<>())
-        .def("CloseAll", &PyStorm::SHMemStreamHandle::closeAll)
+        .def("CloseAll", &pystorm::SHMemStreamHandle::closeAll)
     ;
 }
 }

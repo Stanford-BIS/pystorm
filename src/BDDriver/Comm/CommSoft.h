@@ -15,11 +15,11 @@
 #include "Comm.h"
 #include "PacketGenerator.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
-namespace BDComm
+namespace bdcomm
 {
 
 class CommSoft : public Comm, PacketGeneratorClientIfc
@@ -68,7 +68,7 @@ protected:
 
 };
 
-} // BDComm namespace
-} // BDDriver namespace
-} // PyStorm namespace
+} // bdcomm namespace
+} // bddriver namespace
+} // pystorm namespace
 #endif

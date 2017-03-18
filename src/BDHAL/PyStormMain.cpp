@@ -1,32 +1,32 @@
-#include <PyStormMain.h>
+#include <pystormMain.h>
 
-namespace PyStorm
+namespace pystorm
 {
 //////////////////////////////////////////////////////////////////////////////
 //
 // Program functionality
 //
 //////////////////////////////////////////////////////////////////////////////
-PyStorm::NetModels::Network* CreateNetwork(
+pystorm::NetModels::Network* CreateNetwork(
     std::string name)
 {
     assert(!name.empty());
-    return new PyStorm::NetModels::Network(name);
+    return new pystorm::NetModels::Network(name);
 }
 
-PyStorm::Netlist* CreateNetlist()
+pystorm::Netlist* CreateNetlist()
 {
-    return new PyStorm::Netlist();
+    return new pystorm::Netlist();
 }
 
-PyStorm::MappedNetwork* CreateMappedNetwork(
-    PyStorm::NetModels::Network* newNetwork)
+pystorm::MappedNetwork* CreateMappedNetwork(
+    pystorm::NetModels::Network* newNetwork)
 {
-    return new PyStorm::MappedNetwork(newNetwork);
+    return new pystorm::MappedNetwork(newNetwork);
 }
 
-void Load(PyStorm::MappedNetwork* mappedNet, 
-    PyStorm::LoadBehavior loadBehavior)
+void Load(pystorm::MappedNetwork* mappedNet, 
+    pystorm::LoadBehavior loadBehavior)
 {
 
 }
@@ -57,7 +57,7 @@ void stopBrainstormCore(uint16_t coreId)
 {
 }
 
-PyStorm::BrainstormHWDesc* getHardwareDescription()
+pystorm::BrainstormHWDesc* getHardwareDescription()
 {
     return g_hardwareDesc;
 }
@@ -68,61 +68,61 @@ PyStorm::BrainstormHWDesc* getHardwareDescription()
 //
 //////////////////////////////////////////////////////////////////////////////
 
-PyStorm::StreamHandle* createStream(
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::StreamHandle* createStream(
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
-    return new PyStorm::StreamHandle();
+    return new pystorm::StreamHandle();
 }
 
-PyStorm::StreamHandle* createStream(
-    std::vector<PyStorm::NetModels::Pool> vecOfPools)
+pystorm::StreamHandle* createStream(
+    std::vector<pystorm::NetModels::Pool> vecOfPools)
 {
-    return new PyStorm::StreamHandle();
+    return new pystorm::StreamHandle();
 }
 
-PyStorm::StreamHandle* createStream(
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::StreamHandle* createStream(
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
     return new StreamHandle();
 }
 
-PyStorm::FileStreamHandle* createFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::FileStreamHandle* createFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
-    return new PyStorm::FileStreamHandle(fileName);
+    return new pystorm::FileStreamHandle(fileName);
 }
 
-PyStorm::FileStreamHandle* createFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools)
+pystorm::FileStreamHandle* createFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools)
 {
-    return new PyStorm::FileStreamHandle(fileName);
+    return new pystorm::FileStreamHandle(fileName);
 }
 
-PyStorm::FileStreamHandle* createFileStream(std::string fileName,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::FileStreamHandle* createFileStream(std::string fileName,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
-    return new PyStorm::FileStreamHandle(fileName);
+    return new pystorm::FileStreamHandle(fileName);
 }
 
-PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::SHMemStreamHandle* createSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
-    return new PyStorm::SHMemStreamHandle(streamName);
+    return new pystorm::SHMemStreamHandle(streamName);
 }
 
-PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::Pool> vecOfPools)
+pystorm::SHMemStreamHandle* createSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::Pool> vecOfPools)
 {
-    return new PyStorm::SHMemStreamHandle(streamName);
+    return new pystorm::SHMemStreamHandle(streamName);
 }
 
-PyStorm::SHMemStreamHandle* createSHMStream(std::string streamName,
-    std::vector<PyStorm::NetModels::StateSpace> vecOfStateSpaces)
+pystorm::SHMemStreamHandle* createSHMStream(std::string streamName,
+    std::vector<pystorm::NetModels::StateSpace> vecOfStateSpaces)
 {
-    return new PyStorm::SHMemStreamHandle(streamName);
+    return new pystorm::SHMemStreamHandle(streamName);
 }
 
 void startStreams()

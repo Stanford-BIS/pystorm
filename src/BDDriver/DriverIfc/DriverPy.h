@@ -3,15 +3,15 @@
 
 #include "BDDriver/Driver.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
 namespace DriverIfc
 {
 
 } // DriverIfc namespace
-} // BDDriver  namespace
-} // PyStorm
+} // bddriver  namespace
+} // pystorm
 
 #endif

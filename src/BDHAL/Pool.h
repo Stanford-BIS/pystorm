@@ -8,7 +8,7 @@
 
 #include <ConnectableObject.h>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace NetModels{
 /// A Pool of neurons
@@ -62,6 +62,6 @@ private:
 };
 
 } // namespace NetModels
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef POOL_H

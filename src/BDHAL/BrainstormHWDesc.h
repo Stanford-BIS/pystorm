@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-namespace PyStorm
+namespace pystorm
 {
 /// Brainstorms hardware description containing access to data that can
 /// be used by Neuromorph 
@@ -28,6 +28,6 @@ public:
 private:
 };
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef BRAINSTORMHWDESC_H

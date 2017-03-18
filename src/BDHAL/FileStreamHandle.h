@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-namespace PyStorm
+namespace pystorm
 {
 /// Handle to a file where spikes or decdoed values are streamed to
 ///
@@ -74,6 +74,6 @@ private:
     static std::vector<FileStreamHandle*> g_fileStreamHandles;
 };
 
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef FILESTREAMHANDLE_H

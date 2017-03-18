@@ -19,7 +19,9 @@ Binary::Binary(const std::vector<std::string>& field_names,
                const std::vector<uint64_t>& values,
                const std::vector<uint8_t>& widths)
 {
-  assert(field_names.size() == values.size() && field_names.size() == widths.size() && "vector lengths must match");
+  assert(field_names.size() == values.size() 
+    && field_names.size() == widths.size() 
+    && "vector lengths must match");
 
   values_ = values;
   widths_ = widths;

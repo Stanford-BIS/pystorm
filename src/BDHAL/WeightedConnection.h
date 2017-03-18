@@ -6,7 +6,7 @@
 #include <ConnectableObject.h>
 #include <Transform.h>
 
-namespace PyStorm
+namespace pystorm
 {
 namespace NetModels{
 /// A projection from one ConnectableObject (i.e. Pool or StateSpace) to
@@ -126,6 +126,6 @@ private:
 };
 
 } // namespace NetModels
-} // namespace PyStorm
+} // namespace pystorm
 
 #endif // ifndef WEIGHTEDCONNECTION_H

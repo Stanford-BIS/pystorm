@@ -3,9 +3,9 @@
 
 #include <memory>
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
 /**
  * \class Driver is a singleton; There should only be one instance of this.
@@ -14,7 +14,7 @@ namespace BDDriver
 class Driver
 {
 public:
-    // Return a global instance of BDDriver
+    // Return a global instance of bddriver
     static Driver& getInstance();
 
     // Just a test call
@@ -26,7 +26,7 @@ protected:
     ~Driver();
 };
 
-} // BDDriver namespace
-} // PyStorm namespace
+} // bddriver namespace
+} // pystorm namespace
 
 #endif

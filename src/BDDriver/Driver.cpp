@@ -2,9 +2,9 @@
 
 #include "Driver.h"
 
-namespace PyStorm
+namespace pystorm
 {
-namespace BDDriver
+namespace bddriver
 {
 
 Driver& Driver::getInstance()
@@ -29,5 +29,5 @@ void Driver::testcall(const std::string& msg)
     std::cout << msg << std::endl;
 }
 
-} // BDDriver namespace
-} // PyStorm namespace
+} // bddriver namespace
+} // pystorm namespace
