@@ -37,6 +37,9 @@ class Comm
 public:
     virtual void StartStreaming() = 0;
     virtual void StopStreaming() = 0;
+    virtual void Write(std::unique_ptr<COMMWordStream> wordStream) = 0;
+    virtual std::unique_ptr<COMMWordStream> Read() = 0;
+
     CommStreamState GetStreamState()
     {
         return m_state;
@@ -46,9 +49,6 @@ public:
     {
         m_state = new_state;
     };
-
-    virtual void Write(std::unique_ptr<COMMWordStream> wordStream) = 0;
-    virtual std::unique_ptr<COMMWordStream> Read() = 0;
 
 protected:
 

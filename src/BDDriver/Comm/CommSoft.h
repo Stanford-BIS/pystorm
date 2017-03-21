@@ -4,7 +4,6 @@
 #include <vector>
 #include <deque>
 #include <iostream>
-#include <fstream>
 #include <thread>
 #include <mutex>
 #include <memory>
@@ -13,7 +12,7 @@
 
 #include "common/TSQueue.h"
 #include "Comm.h"
-#include "PacketGenerator.h"
+#include "Emulator.h"
 
 namespace pystorm
 {
@@ -22,27 +21,51 @@ namespace bddriver
 namespace bdcomm
 {
 
-class CommSoft : public Comm, PacketGeneratorClientIfc
+class CommSoft : public Comm, EmulatorClientIfc
 {
 public:
-    CommSoft(std::string& read_file_name, std::string& write_file_name);
+    CommSoft(std::string& in_file_name, std::string& out_file_name);
     ~CommSoft();
     CommSoft(const CommSoft&) = delete;
 
     // Comm interface
 
+    /* StartStreaming
+     *
+     * Tells Comm's software emulator to start streaming packets to Comm
+     *
+     */ 
     virtual void StartStreaming();
 
+    /* StopStreaming
+     *
+     * Tells Comm's software emulator to stop streaming packets to Comm
+     *
+     */ 
     virtual void StopStreaming();
 
+    /* Write
+     * 
+     * Moves a unique ptr to a CommWordStream to the Comm class
+     * This is a non-blocking call, therefore, the stream is not
+     * guaranteed to have been sent to the software simulator when
+     * the method call returns.
+     */
     virtual void Write(std::unique_ptr<COMMWordStream> wordStream);
 
+    /* Read
+     * 
+     * Moves a unique ptr to a CommWordStream or returns nullptr
+     * This is a non-blocking call, therefore, the stream is not
+     * guaranteed to have been sent to the software simulator when
+     * the method call returns.
+     */
     virtual std::unique_ptr<COMMWordStream> Read();
 
-    // PacketGeneratorCallbackIfc interface
+    // EmulatorCallbackIfc interface
 
-    virtual void ReadCallback(std::unique_ptr<PacketGeneratorCallbackData> cb);
-    virtual void WriteCallback(std::unique_ptr<PacketGeneratorCallbackData> cb);
+    virtual void ReadCallback(std::unique_ptr<EmulatorCallbackData> cb);
+    virtual void WriteCallback(std::unique_ptr<EmulatorCallbackData> cb);
 
 protected:
     void CommSoftController();
@@ -53,18 +76,12 @@ protected:
     // Read packets from write queue and place them into file
     void WritePacketsOut();
 
-    std::string   m_in_file_name;
-    std::string   m_out_file_name;
-
-    std::ofstream m_out_stream;
-    std::ifstream m_in_stream;
-
     TSQueue<std::unique_ptr<COMMWordStream> > m_read_queue;
     TSQueue<std::unique_ptr<COMMWordStream> > m_write_queue;
 
     std::thread m_control_thread;
 
-    PacketGenerator m_pg;
+    std::unique_ptr<Emulator> m_emulator;
 
 };
 
