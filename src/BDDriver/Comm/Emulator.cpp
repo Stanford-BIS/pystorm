@@ -68,20 +68,22 @@ Emulator::~Emulator()
 
 void Emulator::Read(std::unique_ptr<EmulatorCallbackData> cb)
 {
-
-    if ((m_word_streams.size() - 1) == m_current_word_stream_pos)
+    if (m_word_streams.size() > 0)
     {
-        m_current_word_stream_pos = 0;
+        if ((m_word_streams.size() - 1) == m_current_word_stream_pos)
+        {
+            m_current_word_stream_pos = 0;
+        }
+
+        auto wordstream =
+            std::unique_ptr<pystorm::bddriver::bdcomm::COMMWordStream>(             
+            new pystorm::bddriver::bdcomm::COMMWordStream());
+
+        *wordstream = m_word_streams.at(m_current_word_stream_pos);
+
+        cb->buf = std::move(wordstream);
+        cb->comm->ReadCallback(std::move(cb));
     }
-
-    auto wordstream =
-        std::unique_ptr<pystorm::bddriver::bdcomm::COMMWordStream>(             
-        new pystorm::bddriver::bdcomm::COMMWordStream());
-
-    *wordstream = m_word_streams.at(m_current_word_stream_pos);
-
-    cb->buf = std::move(wordstream);
-    cb->comm->ReadCallback(std::move(cb));
 }
 
 void Emulator::Write(std::unique_ptr<EmulatorCallbackData> cb)
