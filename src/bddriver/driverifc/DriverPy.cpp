@@ -2,7 +2,7 @@
 #include <boost/python.hpp>
 
 
-#include "BDDriver/Driver.h"
+#include "bddriver/Driver.h"
 #include "DriverPy.h"
 
 namespace pystorm

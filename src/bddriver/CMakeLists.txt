@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(BDDriver CXX)
+project(bddriver CXX)
 
 ############################################################################
 #
@@ -13,18 +13,18 @@ set(G_TARGET_NAME "DriverPy")
 
 set(INCLUDE_DIRS ${G_BASE_DIR})
 
-set(HEADER_FILES ${G_BASE_DIR}/BDDriver/Driver.h
-                 ${G_BASE_DIR}/BDDriver/DriverIfc/DriverPy.h
-                 ${G_BASE_DIR}/BDDriver/Comm/Comm.h
-                 ${G_BASE_DIR}/BDDriver/Comm/Emulator.h
-                 ${G_BASE_DIR}/BDDriver/Comm/CommSoft.h
+set(HEADER_FILES ${G_BASE_DIR}/bddriver/Driver.h
+                 ${G_BASE_DIR}/bddriver/driverifc/DriverPy.h
+                 ${G_BASE_DIR}/bddriver/comm/Comm.h
+                 ${G_BASE_DIR}/bddriver/comm/Emulator.h
+                 ${G_BASE_DIR}/bddriver/comm/CommSoft.h
                  ${G_BASE_DIR}/common/TSQueue.h
 )
 
-set(SRC_FILES ${G_BASE_DIR}/BDDriver/Driver.cpp
-              ${G_BASE_DIR}/BDDriver/DriverIfc/DriverPy.cpp
-              ${G_BASE_DIR}/BDDriver/Comm/CommSoft.cpp
-              ${G_BASE_DIR}/BDDriver/Comm/Emulator.cpp
+set(SRC_FILES ${G_BASE_DIR}/bddriver/Driver.cpp
+              ${G_BASE_DIR}/bddriver/driverifc/DriverPy.cpp
+              ${G_BASE_DIR}/bddriver/comm/CommSoft.cpp
+              ${G_BASE_DIR}/bddriver/comm/Emulator.cpp
 )
 
 ############################################################################
