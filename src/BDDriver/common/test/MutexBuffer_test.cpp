@@ -34,7 +34,7 @@ void ConsumeNxM(bddriver::MutexBuffer<unsigned int> * buf, unsigned int N, unsig
     cout << "recv: ";
     while (num_of_M != M) {
       unsigned int num_needed = M - num_of_M;
-      unsigned int num_popped = buf->PopN(data, num_needed);
+      unsigned int num_popped = buf->Pop(data, num_needed);
       num_of_M += num_popped;
       cout << num_popped << ":";
     }

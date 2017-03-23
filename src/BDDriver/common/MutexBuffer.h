@@ -17,11 +17,11 @@ class MutexBuffer {
 
     // fast array interface
     void Push(const T * input, unsigned int input_len);
-    unsigned int PopN(T * copy_to, unsigned int max_to_pop);
+    unsigned int Pop(T * copy_to, unsigned int max_to_pop);
 
     // vector interface, extra allocation
     void Push(const std::vector<T> & input);
-    std::vector<T> PopNVect(unsigned int max_to_pop);
+    std::vector<T> PopVect(unsigned int max_to_pop);
 
   private:
     T * vals_;
