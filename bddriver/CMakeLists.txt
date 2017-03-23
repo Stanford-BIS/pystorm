@@ -7,24 +7,24 @@ project(bddriver CXX)
 # Global variables 
 #
 ############################################################################
-set(G_BASE_DIR "../")
+set(G_BASE_DIR "src")
 
 set(G_TARGET_NAME "DriverPy")
 
 set(INCLUDE_DIRS ${G_BASE_DIR})
 
-set(HEADER_FILES ${G_BASE_DIR}/bddriver/Driver.h
-                 ${G_BASE_DIR}/bddriver/driverifc/DriverPy.h
-                 ${G_BASE_DIR}/bddriver/comm/Comm.h
-                 ${G_BASE_DIR}/bddriver/comm/Emulator.h
-                 ${G_BASE_DIR}/bddriver/comm/CommSoft.h
+set(HEADER_FILES ${G_BASE_DIR}/Driver.h
+                 ${G_BASE_DIR}/driverifc/DriverPy.h
+                 ${G_BASE_DIR}/comm/Comm.h
+                 ${G_BASE_DIR}/comm/Emulator.h
+                 ${G_BASE_DIR}/comm/CommSoft.h
                  ${G_BASE_DIR}/common/TSQueue.h
 )
 
-set(SRC_FILES ${G_BASE_DIR}/bddriver/Driver.cpp
-              ${G_BASE_DIR}/bddriver/driverifc/DriverPy.cpp
-              ${G_BASE_DIR}/bddriver/comm/CommSoft.cpp
-              ${G_BASE_DIR}/bddriver/comm/Emulator.cpp
+set(SRC_FILES ${G_BASE_DIR}/Driver.cpp
+              ${G_BASE_DIR}/driverifc/DriverPy.cpp
+              ${G_BASE_DIR}/comm/CommSoft.cpp
+              ${G_BASE_DIR}/comm/Emulator.cpp
 )
 
 ############################################################################
