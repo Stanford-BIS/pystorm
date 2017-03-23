@@ -16,9 +16,7 @@ set(LIB_BASE_DIR ${PROJECT_SOURCE_DIR}/../lib)
 
 set(INCLUDE_DIRS 
     ${SRC_BASE_DIR}
-    ${SRC_BASE_DIR}/bddriver
-    ${SRC_BASE_DIR}/bddriver/comm
-    ${SRC_BASE_DIR}/bddriver/common
+    ${SRC_BASE_DIR}/comm
     ${SRC_BASE_DIR}/common
 )
 
@@ -53,7 +51,7 @@ set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}_test)
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
-    ${PROJECT_SOURCE_DIR}/bddriver/comm/emulator_test.cpp
+    ${PROJECT_SOURCE_DIR}/comm/emulator_test.cpp
 )
 
 add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
