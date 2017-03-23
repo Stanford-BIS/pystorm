@@ -46,6 +46,6 @@ class MutexBuffer {
 } // pystorm
 
 // we have defined a template class. We must include the implementation
-#include "BDDriver/common/MutexBuffer.cpp"
+#include "bddriver/common/MutexBuffer.cpp"
 
 #endif

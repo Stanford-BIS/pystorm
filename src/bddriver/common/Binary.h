@@ -6,7 +6,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "BDDriver/common/util.h"
+#include "bddriver/common/util.h"
 
 namespace pystorm {
 
