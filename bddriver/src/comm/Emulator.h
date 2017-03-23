@@ -68,6 +68,7 @@ public:
      */
     void Stop();
 
+    Emulator();
 protected:
     void Init();
 

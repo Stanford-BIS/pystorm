@@ -34,11 +34,13 @@ set(SRC_FILES ${G_BASE_DIR}/bddriver/Driver.cpp
 ############################################################################
 function(check_multiplatform_system_dependencies)
     # Boost python must 
-    find_package(Boost 1.58.0 COMPONENTS python)
+    find_package(Boost 1.58.0 COMPONENTS python-py35)
 
     if(NOT Boost_FOUND)
             message(FATAL_ERROR "Unable to find correct Boost version.")
     endif()
+
+    find_package(PythonLibs REQUIRED)
     
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
@@ -53,7 +55,7 @@ endfunction()
 
 function(set_common_properties target_name)
     target_link_libraries(${target_name} 
-        boost_python
+        boost_python-py35
         ${PYTHON_LIBRARIES}
         ${Boost_LIBRARIES})
 
@@ -80,7 +82,7 @@ function(build_on_linux)
 
     # setup build environment variables
 
-    include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python2.7")
+    include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")
     include_directories(${CMAKE_SOURCE_DIR}/include)
     include_directories(${INCLUDE_DIRS})
 
