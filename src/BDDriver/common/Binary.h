@@ -12,29 +12,26 @@ namespace pystorm {
 
 class Binary {
   public:
+    // single field
+    Binary(uint64_t value, uint8_t width);
     // construct values_ from uints
-    Binary(const std::vector<std::string>& field_names,
-         const std::vector<uint64_t>& values,
-         const std::vector<uint8_t>& widths);
+    Binary(const std::vector<uint64_t>& values,
+           const std::vector<uint8_t>& widths);
     // concatenate other Binarys to make Binary
     Binary(const std::vector<Binary>& binarys);
 
-    inline uint64_t FieldValue(const std::string& str) { return value_map_[str]; }
-    inline uint8_t FieldWidth(const std::string& str) { return width_map_[str]; }
-    inline unsigned int TotalWidth() { return total_width_; }
+    uint64_t TotalWidth() const; 
 
     // pack values into a single uint64_t
-    inline uint64_t AsUint() { return util::PackUint(values_, widths_); }
+    inline uint64_t AsUint() const { return util::PackUint(values_, widths_); }
     // return values as a string    
-    inline std::string AsString() { return util::UintAsString(AsUint(), total_width_); }
+    inline std::string AsString() const { return util::UintAsString(AsUint(), TotalWidth()); }
+    // unpack into different-width fields
+    inline std::vector<uint64_t> Unpack(std::vector<uint8_t> field_widths) const { return util::UnpackUint(AsUint(), field_widths); }
 
   private:
-    std::vector<std::string> field_names_;
     std::vector<uint64_t> values_;
     std::vector<uint8_t> widths_;
-    std::unordered_map<std::string, uint64_t> value_map_;
-    std::unordered_map<std::string, uint8_t> width_map_;
-    unsigned int total_width_;
 
 }; // Binary
 
