@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 2.8.9)
-project(FOO CXX)
-add_executable(foo foo.cpp ../util.cpp ../Binary.cpp)
+cmake_minimum_required(VERSION 3.1)
+project(TEST CXX)
 include_directories(../../../)
-SET(CMAKE_CXX_FLAGS "-std=c++11")
+SET(CMAKE_CXX_FLAGS "-std=c++11 -lpthread")
+
+add_executable(MutexBuffer_test MutexBuffer_test.cpp)
+
+add_executable(Binary_test Binary_test.cpp ../util.cpp ../Binary.cpp)
