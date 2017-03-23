@@ -60,7 +60,7 @@ void MutexBuffer<T>::Push(const std::vector<T>& input)
 }
 
 template<class T>
-unsigned int MutexBuffer<T>::PopN(T * copy_to, unsigned int max_to_pop)
+unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop)
 // copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
 {
   std::unique_lock<std::mutex> lock(pop_mutex_);
@@ -94,12 +94,12 @@ unsigned int MutexBuffer<T>::PopN(T * copy_to, unsigned int max_to_pop)
 
 
 template<class T>
-std::vector<T> MutexBuffer<T>::PopNVect(unsigned int max_to_pop)
+std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop)
 {
   std::vector<T> output;
   output.reserve(max_to_pop);
 
-  unsigned int num_popped = PopN(&output[0]);
+  unsigned int num_popped = Pop(&output[0]);
   output.resize(num_popped);
 
   return output;
