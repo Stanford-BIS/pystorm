@@ -1,14 +1,14 @@
-#include "BDDriver/Encoder/Encoder.h"
+#include "bddriver/Encoder/Encoder.h"
 
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
 #include <string>
 
-#include "BDDriver/common/BDPars.h"
-#include "BDDriver/common/HWLoc.h"
-#include "BDDriver/common/Binary.h"
-#include "BDDriver/common/MutexBuffer.h"
+#include "bddriver/common/BDPars.h"
+#include "bddriver/common/HWLoc.h"
+#include "bddriver/common/Binary.h"
+#include "bddriver/common/MutexBuffer.h"
 
 namespace pystorm {
 namespace bddriver {
