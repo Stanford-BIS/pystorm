@@ -32,7 +32,7 @@ void MutexBuffer<T>::Push(const T * input, unsigned int input_len)
 {
   assert(input_len < capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
 
-  std::unique_lock<std::mutex> lock(push_mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
 
   // wait for the queue to have enough room for the input
   //cout << "about to try the lock" << endl;
@@ -49,7 +49,7 @@ void MutexBuffer<T>::Push(const T * input, unsigned int input_len)
   count_ += input_len;
 
   // let the consumer know it's time to wake up
-  push_mutex_.unlock();
+  mutex_.unlock();
   just_pushed_.notify_all();
 }
 
@@ -63,7 +63,7 @@ template<class T>
 unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop)
 // copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
 {
-  std::unique_lock<std::mutex> lock(pop_mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
 
   // wait for the queue to have something to output
   just_pushed_.wait(lock, [this]{ return !IsEmpty(); });
@@ -86,7 +86,7 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop)
   count_ -= num_popped;
 
   // notify the producer that they may wake up
-  pop_mutex_.unlock();
+  mutex_.unlock();
   just_popped_.notify_all();
 
   return num_popped;

@@ -30,10 +30,12 @@ class MutexBuffer {
     unsigned int back_;
     unsigned int count_;
 
-    // XXX dual mutexes didn't really help because we still need both locks
-    // to check the empty/almost full state
-    std::mutex push_mutex_;
-    std::mutex pop_mutex_;
+    // XXX originally I designed this with two locks to allow concurrent push/pop
+    // (which should be possible--a completely lockless circular buffer is supposedly even possible!)
+    // the way I implemented it originally (probably) had a race conditions when
+    // the front/back catches the back/front. I reverted to a single mutex because I wasn't confident.
+    // if performance is an issue, we can explore having multiple locks again.
+    std::mutex mutex_;
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
 
