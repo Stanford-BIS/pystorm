@@ -1,7 +1,7 @@
 #ifndef DRIVERPY_H
 #define DRIVERPY_H   
 
-#include "BDDriver/Driver.h"
+#include "bddriver/Driver.h"
 
 namespace pystorm
 {
