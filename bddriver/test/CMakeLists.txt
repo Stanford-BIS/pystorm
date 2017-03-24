@@ -11,8 +11,9 @@ endif()
 #-------------------
 # Set global variables
 #-------------------
-set(SRC_BASE_DIR "../src") 
-set(LIB_BASE_DIR ${PROJECT_SOURCE_DIR}/../lib)
+set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src) 
+set(INC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include) 
+set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 
 set(INCLUDE_DIRS 
     ${SRC_BASE_DIR}
@@ -32,15 +33,14 @@ add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 #-------------------
 
 find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs 3.5 REQUIRED)
 
 if(NOT Boost_FOUND)                                                         
     message(FATAL_ERROR "Unable to find correct Boost version.")        
 endif()              
 
 include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")         
-include_directories(${CMAKE_SOURCE_DIR}/include)                            
-include_directories(${INCLUDE_DIRS})                                        
+include_directories(${INC_BASE_DIR})                                        
                                                                             
 #-------------------
 # Build Test
@@ -55,22 +55,19 @@ set(TEST_SRC_FILES
 )
 
 add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
+
 add_dependencies(${PROJECT_TEST_NAME} googletest)
 
 
 target_link_libraries(${PROJECT_TEST_NAME}
     ${GTEST_LIBS_DIR}/libgtest.a
     ${GTEST_LIBS_DIR}/libgtest_main.a
-    )
-
-target_link_libraries( ${PROJECT_TEST_NAME} ${LIB_BASE_DIR}/DriverPy )
-target_link_libraries( ${PROJECT_TEST_NAME} ${CMAKE_THREAD_LIBS_INIT} )
-
-target_link_libraries(${PROJECT_TEST_NAME}                                        
+    ${CMAKE_THREAD_LIBS_INIT} 
+    ${LIB_BASE_DIR}/DriverPy 
     boost_python-py35
     ${PYTHON_LIBRARIES}                                                     
     boost_system
 )
-#    ${Boost_LIBRARIES})            
+
 
 set_property(TARGET ${PROJECT_TEST_NAME} PROPERTY CXX_STANDARD 11)
