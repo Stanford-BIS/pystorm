@@ -49,7 +49,7 @@ void MutexBuffer<T>::Push(const T * input, unsigned int input_len)
   count_ += input_len;
 
   // let the consumer know it's time to wake up
-  mutex_.unlock();
+  lock.unlock();
   just_pushed_.notify_all();
 }
 
@@ -86,7 +86,7 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop)
   count_ -= num_popped;
 
   // notify the producer that they may wake up
-  mutex_.unlock();
+  lock.unlock();
   just_popped_.notify_all();
 
   return num_popped;

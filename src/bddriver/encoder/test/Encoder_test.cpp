@@ -1,4 +1,5 @@
 #include <unistd.h> // usleep
+#include <chrono>
 
 #include <iostream>
 #include <thread>
@@ -24,7 +25,7 @@ void ProduceNxM(MutexBuffer<EncInput> * buf, EncInput * vals, unsigned int N, un
     }
 
     buf->Push(data, M);
-    cout << "pushed " << data[0].second.AsUint() << endl;
+    //cout << "pushed " << data[0].second.AsUint() << endl;
   }
 }
 
@@ -35,19 +36,19 @@ void ConsumeNxM(MutexBuffer<EncOutput> * buf, unsigned int N, unsigned int M)
   unsigned int num_of_M = 0;
   for (unsigned int i = 0; i < N; i++) {
 
-    cout << "recv: ";
+    //cout << "recv: ";
     while (num_of_M != M) {
       unsigned int num_needed = M - num_of_M;
       unsigned int num_popped = buf->Pop(data, num_needed);
       num_of_M += num_popped;
-      cout << num_popped << ":";
+      //cout << num_popped << ":";
     }
     num_of_M = 0;
 
     for (unsigned int j = 0; j < M; j++) {
-      cout << data[j].AsUint() << ",";
+      //cout << data[j].AsUint() << ",";
     }
-    cout << endl;
+    //cout << endl;
   }
 }
 
@@ -61,12 +62,9 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
   for (unsigned int i = 0; i < N; i++) {
     // chip id 0, leaf "softleaf", payload N
     vals.push_back(std::make_pair(HWLoc(0, "softleaf"), Binary(i, 32)));
-    cout << "in " << i << " : " ;
-    cout << vals[i].second.AsUint() << endl;
     std::vector<uint64_t> foo = {1};
     std::vector<uint8_t> bar = {2};
     Binary someBin = Binary(foo, bar);
-    cout << "foo" << someBin.AsUint() << endl;
   }
 
   return vals;
@@ -74,20 +72,19 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
 
 int main () {
 
-  unsigned int N = 1000;
-  unsigned int M = 4;
+  unsigned int N = 100000;
+  unsigned int M = 100;
 
-  MutexBuffer<EncInput> buf_in(32);
-  MutexBuffer<EncOutput> buf_out(32);
+  MutexBuffer<EncInput> buf_in(10000);
+  MutexBuffer<EncOutput> buf_out(10000);
 
   BDPars pars("foo.yaml");
   Encoder enc(&pars, &buf_in, &buf_out, M);
 
 
   std::vector<EncInput> input_vals = MakeEncInput(N);
-  for (unsigned int i = 0; i < N; i++) {
-    cout << "in " << i << " : " << input_vals[i].second.AsUint() << endl;
-  }
+
+  auto t0 = std::chrono::high_resolution_clock::now();
 
   std::thread producer(ProduceNxM, &buf_in, &input_vals[0], N, M);
   std::thread consumer(ConsumeNxM, &buf_out, N, M);
@@ -95,14 +92,20 @@ int main () {
   // this was for debugging
   //std::thread producer(Foo);
   //std::thread consumer(Foo);
-
   
   
   producer.join();
   cout << "producer joined" << endl;
   consumer.join();
   cout << "consumer joined" << endl;
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  cout << N*M << " entries took " << diff << "us" << endl;
+  cout << static_cast<double>(N*M) / diff * 1000000.0 << " entries/s" << endl;
+
   enc.Stop();
+  // XXX this won't happen, the encoder is hung waiting
   cout << "encoder joined" << endl;
 
   return 0;
