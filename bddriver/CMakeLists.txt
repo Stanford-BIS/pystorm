@@ -34,7 +34,7 @@ function(check_multiplatform_system_dependencies)
             message(FATAL_ERROR "Unable to find correct Boost version.")
     endif()
 
-    find_package(PythonLibs REQUIRED)
+    find_package(PythonLibs 3.5 REQUIRED)
     
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
