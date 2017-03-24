@@ -63,17 +63,14 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
     // unpack data
     HWLoc destination = inputs[i].first;
     Binary payload = inputs[i].second;
-    cout << "encoder input: " << payload.AsUint() << endl;
 
     // look up route for this leaf_name
     const Binary * leaf_route = pars_->LeafRoute(*destination.LeafName());
-    cout << "leaf route: " << leaf_route->AsUint() << endl;
 
     // XXX this is where you would do something with the chip id
 
     // encoder horn
     Binary horn_encoded = EncodeHorn(*leaf_route, payload);
-    cout << "encoder_output: " << horn_encoded.AsUint() << endl;
 
     // XXX this is where you would encode the FPGA
     
@@ -88,7 +85,7 @@ Binary Encoder::EncodeHorn(const Binary& route, const Binary& payload) const
 
   //const std::vector<Binary> to_concat = {route, payload};
   Binary encoded = Binary({route, payload});
-  cout << "encoding: " << payload.AsString() << " & " << route.AsString() << " = " << encoded.AsUint() << endl;
+  //cout << "encoding: " << payload.AsString() << " & " << route.AsString() << " = " << encoded.AsUint() << endl;
   return encoded;
 }
 

@@ -1,3 +1,5 @@
+#include <unistd.h> // usleep
+
 #include <iostream>
 #include <thread>
 
@@ -72,7 +74,7 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
 
 int main () {
 
-  unsigned int N = 4;
+  unsigned int N = 1000;
   unsigned int M = 4;
 
   MutexBuffer<EncInput> buf_in(32);
@@ -93,11 +95,15 @@ int main () {
   // this was for debugging
   //std::thread producer(Foo);
   //std::thread consumer(Foo);
+
+  
   
   producer.join();
+  cout << "producer joined" << endl;
   consumer.join();
-
+  cout << "consumer joined" << endl;
   enc.Stop();
+  cout << "encoder joined" << endl;
 
   return 0;
 
