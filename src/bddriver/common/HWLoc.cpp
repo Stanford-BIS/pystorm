@@ -1,9 +1,9 @@
-namespace pystorm {
-namespace bddriver {
-
 #include "bddriver/common/HWLoc.h"
 
 #include <string>
+
+namespace pystorm {
+namespace bddriver {
 
 HWLoc::HWLoc(unsigned int chip_id, const std::string& leaf_name)
 { 

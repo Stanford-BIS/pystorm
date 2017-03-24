@@ -17,9 +17,8 @@ using std::endl;
 
 Binary::Binary(uint64_t value, uint8_t width)
 {
-  std::vector<uint64_t> value_v = {value};
-  std::vector<uint8_t> width_v = {width};
-  Binary(value_v, width_v);
+  values_ = {value};
+  widths_ = {width};
 }
 
 Binary::Binary(const std::vector<uint64_t>& values,
@@ -35,16 +34,15 @@ Binary::Binary(const std::vector<uint64_t>& values,
 
 Binary::Binary(const std::vector<Binary>& binarys)
 {
-  std::vector<uint64_t> all_values;
-  std::vector<uint8_t> all_widths;
+  values_.clear();
+  widths_.clear();
   for (auto& el : binarys) {
     for (unsigned int idx = 0; idx < el.values_.size(); idx++) {
-      all_values.push_back(el.values_[idx]);
-      all_widths.push_back(el.widths_[idx]);
+      values_.push_back(el.values_[idx]);
+      widths_.push_back(el.widths_[idx]);
     }
   }
 
-  Binary(all_values, all_widths);
 }
 
 uint64_t Binary::TotalWidth() const

@@ -12,8 +12,7 @@ namespace pystorm {
 
 class Binary {
   public:
-    // needed sometimes, e.g. calling new with no argument
-    Binary(); 
+    Binary() { }
     // single field
     Binary(uint64_t value, uint8_t width);
     // construct values_ from uints

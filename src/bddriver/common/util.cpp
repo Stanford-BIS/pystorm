@@ -21,17 +21,21 @@ uint64_t PackUint(const std::vector<uint64_t>& vals, const std::vector<uint8_t>&
   uint64_t value = 0;
   uint8_t width = 0;
 
-  for (int idx = 0; idx < vals.size(); idx++) {
+  for (unsigned int idx = 0; idx < vals.size(); idx++) {
 
+    // important that all operands used are 64b
+   
     uint64_t field_val = vals[idx];
     uint64_t field_width = widths[idx];
 
-    assert(field_val < (1 << field_width) && "packed element value exceeds value allowed by packed element width");
+    uint64_t one = 1;
+
+    assert(field_val < (one << field_width) && "packed element value exceeds value allowed by packed element width");
 
     value = value | field_val << width;
 
     width += field_width;
-    assert(width < 64 && "total width of packed elements exceeds 64");
+    assert(width <= 64 && "total width of packed elements exceeds 64");
   }
   return value;
 }

@@ -1,12 +1,13 @@
 #ifndef BDPARS_H
 #define BDPARS_H
 
-namespace pystorm {
-namespace bddriver {
-
 #include <string>
 #include <unordered_map>
-#include <pair>
+
+#include "bddriver/common/Binary.h"
+
+namespace pystorm {
+namespace bddriver {
 
 class BDPars {
   public:
@@ -14,10 +15,10 @@ class BDPars {
     BDPars(std::string bd_yaml);
 
     // funnel/horn queries
-    inline Binary * LeafRoute(const std::string& leaf) const { return &leaf_routes_[leaf]; };
+    inline const Binary * LeafRoute(const std::string& leaf) const { return &leaf_routes_.at(leaf); }
 
     // field width queries
-    inline uint8_t Width(const std::string& field) const { return widths_[field]; }
+    inline uint8_t Width(const std::string& field) const { return widths_.at(field); }
 
   private:
     unsigned int num_cores;
