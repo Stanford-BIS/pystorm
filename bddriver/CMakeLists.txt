@@ -7,24 +7,24 @@ project(bddriver CXX)
 # Global variables 
 #
 ############################################################################
-set(G_BASE_DIR "../")
+set(G_BASE_DIR "src")
 
 set(G_TARGET_NAME "DriverPy")
 
 set(INCLUDE_DIRS ${G_BASE_DIR})
 
-set(HEADER_FILES ${G_BASE_DIR}/bddriver/Driver.h
-                 ${G_BASE_DIR}/bddriver/driverifc/DriverPy.h
-                 ${G_BASE_DIR}/bddriver/comm/Comm.h
-                 ${G_BASE_DIR}/bddriver/comm/Emulator.h
-                 ${G_BASE_DIR}/bddriver/comm/CommSoft.h
+set(HEADER_FILES ${G_BASE_DIR}/Driver.h
+                 ${G_BASE_DIR}/driverifc/DriverPy.h
+                 ${G_BASE_DIR}/comm/Comm.h
+                 ${G_BASE_DIR}/comm/Emulator.h
+                 ${G_BASE_DIR}/comm/CommSoft.h
                  ${G_BASE_DIR}/common/TSQueue.h
 )
 
-set(SRC_FILES ${G_BASE_DIR}/bddriver/Driver.cpp
-              ${G_BASE_DIR}/bddriver/driverifc/DriverPy.cpp
-              ${G_BASE_DIR}/bddriver/comm/CommSoft.cpp
-              ${G_BASE_DIR}/bddriver/comm/Emulator.cpp
+set(SRC_FILES ${G_BASE_DIR}/Driver.cpp
+              ${G_BASE_DIR}/driverifc/DriverPy.cpp
+              ${G_BASE_DIR}/comm/CommSoft.cpp
+              ${G_BASE_DIR}/comm/Emulator.cpp
 )
 
 ############################################################################
@@ -34,11 +34,13 @@ set(SRC_FILES ${G_BASE_DIR}/bddriver/Driver.cpp
 ############################################################################
 function(check_multiplatform_system_dependencies)
     # Boost python must 
-    find_package(Boost 1.58.0 COMPONENTS python)
+    find_package(Boost 1.58.0 COMPONENTS python-py35)
 
     if(NOT Boost_FOUND)
             message(FATAL_ERROR "Unable to find correct Boost version.")
     endif()
+
+    find_package(PythonLibs REQUIRED)
     
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
@@ -53,7 +55,7 @@ endfunction()
 
 function(set_common_properties target_name)
     target_link_libraries(${target_name} 
-        boost_python
+        boost_python-py35
         ${PYTHON_LIBRARIES}
         ${Boost_LIBRARIES})
 
@@ -80,7 +82,7 @@ function(build_on_linux)
 
     # setup build environment variables
 
-    include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python2.7")
+    include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")
     include_directories(${CMAKE_SOURCE_DIR}/include)
     include_directories(${INCLUDE_DIRS})
 

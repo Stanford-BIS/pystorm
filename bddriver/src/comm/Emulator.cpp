@@ -22,16 +22,22 @@ Emulator::Emulator(std::string& in_file_name, std::string& out_file_name):
     m_in_file_name(in_file_name),
     m_out_file_name(out_file_name)
 {
-    m_in_stream = std::ifstream(m_out_file_name);                               
-    m_out_stream = std::ofstream(m_out_file_name);    
     m_current_word_stream_pos = 0;
     Init();
+}
+
+Emulator::Emulator():
+    m_in_file_name(""),
+    m_out_file_name("")
+{
 }
 
 void Emulator::Init()
 {
     // reading the infile, build a vector of streams that would get returned 
     // when a read call is made to the emulator.
+    m_in_stream = std::ifstream(m_out_file_name);                               
+    m_out_stream = std::ofstream(m_out_file_name);    
     BuildInputStream();
 }
 
