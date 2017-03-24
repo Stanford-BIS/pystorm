@@ -1,7 +1,7 @@
 #include <iostream>
 #include <thread>
 
-#include "bddriver/common/MutexBuffer.h"
+#include "common/MutexBuffer.h"
 
 using std::cout;
 using std::endl;

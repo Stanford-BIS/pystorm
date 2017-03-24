@@ -2,8 +2,8 @@
 #include <iostream>
 #include <vector>
 
-#include "bddriver/common/util.h"
-#include "bddriver/common/Binary.h"
+#include "common/util.h"
+#include "common/Binary.h"
 
 using std::cout;
 using std::endl;

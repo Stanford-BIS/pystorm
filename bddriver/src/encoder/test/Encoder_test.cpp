@@ -4,8 +4,8 @@
 #include <iostream>
 #include <thread>
 
-#include "bddriver/common/MutexBuffer.h"
-#include "bddriver/encoder/Encoder.h"
+#include "common/MutexBuffer.h"
+#include "encoder/Encoder.h"
 
 using std::cout;
 using std::endl;

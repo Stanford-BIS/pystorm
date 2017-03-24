@@ -1,4 +1,4 @@
-#include "bddriver/common/HWLoc.h"
+#include "common/HWLoc.h"
 
 #include <string>
 

@@ -7,10 +7,10 @@
 #include <unordered_map>
 #include <thread>
 
-#include "bddriver/common/BDPars.h"
-#include "bddriver/common/HWLoc.h"
-#include "bddriver/common/Binary.h"
-#include "bddriver/common/MutexBuffer.h"
+#include "common/BDPars.h"
+#include "common/HWLoc.h"
+#include "common/Binary.h"
+#include "common/MutexBuffer.h"
 
 namespace pystorm {
 namespace bddriver {

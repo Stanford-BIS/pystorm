@@ -1,5 +1,5 @@
-#include "bddriver/common/util.h"
-#include "bddriver/common/Binary.h"
+#include "common/util.h"
+#include "common/Binary.h"
 
 #include <assert.h>
 #include <iostream>

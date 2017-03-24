@@ -1,4 +1,4 @@
-#include "bddriver/common/Binary.h"
+#include "common/Binary.h"
 
 #include <assert.h>
 #include <iostream>
@@ -8,7 +8,7 @@
 #include <vector>
 #include <unordered_map>
 
-#include "bddriver/common/util.h"
+#include "common/util.h"
 
 namespace pystorm {
 

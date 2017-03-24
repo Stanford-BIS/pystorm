@@ -1,4 +1,4 @@
-#include "bddriver/common/BDPars.h"
+#include "common/BDPars.h"
 
 #include <string>
 #include <unordered_map>
