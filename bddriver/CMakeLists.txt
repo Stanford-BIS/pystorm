@@ -7,25 +7,19 @@ project(bddriver CXX)
 # Global variables 
 #
 ############################################################################
-set(G_BASE_DIR "src")
 
-set(G_TARGET_NAME "DriverPy")
+set(TARGET_NAME "DriverPy")
 
-set(INCLUDE_DIRS ${G_BASE_DIR})
+set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-set(HEADER_FILES ${G_BASE_DIR}/Driver.h
-                 ${G_BASE_DIR}/driverifc/DriverPy.h
-                 ${G_BASE_DIR}/comm/Comm.h
-                 ${G_BASE_DIR}/comm/Emulator.h
-                 ${G_BASE_DIR}/comm/CommSoft.h
-                 ${G_BASE_DIR}/common/TSQueue.h
-)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
-set(SRC_FILES ${G_BASE_DIR}/Driver.cpp
-              ${G_BASE_DIR}/driverifc/DriverPy.cpp
-              ${G_BASE_DIR}/comm/CommSoft.cpp
-              ${G_BASE_DIR}/comm/Emulator.cpp
-)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/comm)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/common)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/decoder)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/driverifc)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/encoder)
 
 ############################################################################
 #
@@ -83,7 +77,7 @@ function(build_on_linux)
     # setup build environment variables
 
     include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")
-    include_directories(${CMAKE_SOURCE_DIR}/include)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
     include_directories(${INCLUDE_DIRS})
 
     set(Boost_USE_STATIC_LIBS ON)
@@ -92,7 +86,7 @@ function(build_on_linux)
 
     # define the library being built
 
-    add_library(${G_TARGET_NAME} SHARED 
+    add_library(${TARGET_NAME} SHARED 
         ${HEADER_FILES}
         ${SRC_FILES}
         )
@@ -100,7 +94,7 @@ function(build_on_linux)
     # set the properties related to the target 
     # this is a function common to all platforms
 
-    set_common_properties(${G_TARGET_NAME})
+    set_common_properties(${TARGET_NAME})
 
 endfunction()
 

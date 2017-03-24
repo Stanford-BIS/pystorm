@@ -1,0 +1,11 @@
+set(HEADER_FILES
+    ${HEADER_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Driver.h
+    PARENT_SCOPE
+)
+
+set(SRC_FILES
+    ${SRC_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Driver.cpp
+    PARENT_SCOPE
+)

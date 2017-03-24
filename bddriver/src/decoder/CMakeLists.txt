@@ -1,0 +1,11 @@
+set(HEADER_FILES
+    ${HEADER_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Decoder.h
+    PARENT_SCOPE
+)
+
+set(SRC_FILES
+    ${SRC_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Decoder.cpp
+    PARENT_SCOPE
+)
