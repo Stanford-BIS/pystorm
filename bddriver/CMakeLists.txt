@@ -28,15 +28,11 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/)
 #
 ############################################################################
 function(check_multiplatform_system_dependencies)
-    # Boost python must 
-    find_package(Boost 1.58.0 COMPONENTS python-py35)
-
-    if(NOT Boost_FOUND)
-            message(FATAL_ERROR "Unable to find correct Boost version.")
-    endif()
-
+    find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
     find_package(PythonLibs 3.5 REQUIRED)
-    
+    find_package(Threads REQUIRED)                                                  
+    find_package(GTest REQUIRED)                                                    
+
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
     endif()

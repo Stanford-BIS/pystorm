@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_TEST_NAME bddriver_test)
 project(${PROJECT_TEST_NAME} C CXX)
 
-find_package(Threads REQUIRED)
-
 if(CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-Wall -ansi -Wno-deprecated -pthread)
 endif()
@@ -25,6 +23,7 @@ set(INCLUDE_DIRS
 # Install and build external dependencies 
 #-------------------
 
+find_package(Threads REQUIRED)
 find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
 find_package(PythonLibs 3.5 REQUIRED)
 
