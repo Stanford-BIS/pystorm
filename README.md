@@ -58,10 +58,12 @@ The following diagram illustrates the structure
     └── docker                  
 
 # Build
+
 The module bddriver is currently buildable by cd'ing to the 
 `pystorm/bddriver` directory and running the `build_driver.sh` script.
 
 # Dependencies
+
 Pystorm was built and is dependent on the following software packages:
 
     Ubuntu 16.04 
@@ -73,6 +75,7 @@ Pystorm was built and is dependent on the following software packages:
     libusb 1.0
 
 # Docker
+
 Docker can be used to build and test Pystorm. The folder `docker` has a 
 Docker file (named `Dockerfile`) and shell script that can be used to build 
 an image and build/test Pystorm on it.
