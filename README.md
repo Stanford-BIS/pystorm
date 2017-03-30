@@ -87,9 +87,4 @@ Docker.
     cd <your_docker_directory>
     git clone git@github.com:Stanford-BIS/pystorm.git
     sudo docker build -t <your_build_name> .
-    sudo docker images 
-    sudo docker run --rm -t <image_id_of_your_build>
-
-Note that the fifth command will give a list of images known to the Docker
-engine which includes the just-built image. The just-built image has an
-image id that is used in the last command.
+    sudo docker run --rm -t <your_build_name>:latest
