@@ -1,0 +1,21 @@
+image: jjaguayo/ubuntu-pystorm:latest
+
+stages:
+- build
+- test
+
+variables:
+    CONTAINER_TEST_IMAGE: new_build_$CI_COMMIT_SHA
+
+before_script:
+
+build:
+    stage: build
+    script:
+        - docker build -t $CONTAINER_TEST_IMAGE
+
+test:
+    stage: test
+    script:
+        - docker run -t $CONTAINER_TEST_IMAGE /run_test.sh
+
