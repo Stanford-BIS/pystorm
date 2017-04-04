@@ -11,6 +11,7 @@
 #include "common/util.h"
 
 namespace pystorm {
+namespace bddriver {
 
 using std::cout;
 using std::endl;
@@ -55,4 +56,5 @@ uint64_t Binary::TotalWidth() const
 }
 
 
+} // bddriver
 } // pystorm

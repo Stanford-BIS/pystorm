@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
-set(PROJECT_TEST_NAME bddriver_test)
-project(${PROJECT_TEST_NAME} C CXX)
+set(PROJECT_NAME_STR bddriver)
+project(${PROJECT_NAME_STR} C CXX)
+
+find_package(Threads REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
     add_definitions(-Wall -ansi -Wno-deprecated -pthread)
@@ -23,7 +25,13 @@ set(INCLUDE_DIRS
 # Install and build external dependencies 
 #-------------------
 
-find_package(Threads REQUIRED)
+set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
+add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
+
+#-------------------
+# Install and build external dependencies 
+#-------------------
+
 find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
 find_package(PythonLibs 3.5 REQUIRED)
 
@@ -39,8 +47,7 @@ include_directories(${INC_BASE_DIR})
 #-------------------
 enable_testing()
 
-find_package(GTest REQUIRED)
-
+set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}_test)
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
@@ -49,11 +56,12 @@ set(TEST_SRC_FILES
 
 add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
 
-#add_dependencies(${PROJECT_TEST_NAME} googletest)
+add_dependencies(${PROJECT_TEST_NAME} googletest)
 
 
 target_link_libraries(${PROJECT_TEST_NAME}
-    ${GTEST_BOTH_LIBRARIES}
+    ${GTEST_LIBS_DIR}/libgtest.a
+    ${GTEST_LIBS_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
     ${LIB_BASE_DIR}/DriverPy 
     boost_python-py35

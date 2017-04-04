@@ -9,7 +9,7 @@
 #include <string>
 
 namespace pystorm {
-namespace util {
+namespace bddriver {
 
 using std::cout;
 using std::endl;
@@ -83,5 +83,5 @@ std::string UintAsString(uint64_t value, uint8_t width)
   return str;
 }
 
-} // util
+} // bddriver
 } // pystorm

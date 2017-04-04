@@ -9,6 +9,7 @@
 #include "common/util.h"
 
 namespace pystorm {
+namespace bddriver {
 
 class Binary {
   public:
@@ -24,11 +25,11 @@ class Binary {
     uint64_t TotalWidth() const; 
 
     // pack values into a single uint64_t
-    inline uint64_t AsUint() const { return util::PackUint(values_, widths_); }
+    inline uint64_t AsUint() const { return PackUint(values_, widths_); }
     // return values as a string    
-    inline std::string AsString() const { return util::UintAsString(AsUint(), TotalWidth()); }
+    inline std::string AsString() const { return UintAsString(AsUint(), TotalWidth()); }
     // unpack into different-width fields
-    inline std::vector<uint64_t> Unpack(std::vector<uint8_t> field_widths) const { return util::UnpackUint(AsUint(), field_widths); }
+    inline std::vector<uint64_t> Unpack(std::vector<uint8_t> field_widths) const { return UnpackUint(AsUint(), field_widths); }
 
   private:
     std::vector<uint64_t> values_;
@@ -36,6 +37,7 @@ class Binary {
 
 }; // Binary
 
+} // bddriver
 } // pystorm
 
 #endif
