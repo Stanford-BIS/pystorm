@@ -16,12 +16,12 @@ class MutexBuffer {
     ~MutexBuffer();
 
     // fast array interface
-    void Push(const T * input, unsigned int input_len);
-    unsigned int Pop(T * copy_to, unsigned int max_to_pop);
+    bool Push(const T * input, unsigned int input_len, unsigned int try_for_us=0);
+    unsigned int Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us=0);
 
     // vector interface, extra allocation
-    void Push(const std::vector<T> & input);
-    std::vector<T> PopVect(unsigned int max_to_pop);
+    bool Push(const std::vector<T> & input, unsigned int try_for_us=0);
+    std::vector<T> PopVect(unsigned int max_to_pop, unsigned int try_for_us=0);
 
   private:
     T * vals_;
@@ -34,13 +34,15 @@ class MutexBuffer {
     // (which should be possible--a completely lockless circular buffer is supposedly even possible!)
     // the way I implemented it originally (probably) had a race conditions when
     // the front/back catches the back/front. I reverted to a single mutex because I wasn't confident.
-    // if performance is an issue, we can explore having multiple locks again.
+    // if performance is an issue, we can explore different locking schemes again
     std::mutex mutex_;
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
 
     bool IsEmpty(); 
     bool HasRoomFor(unsigned int size);
+    void PushData(const T * input, unsigned int input_len);
+    unsigned int PopData(T * copy_to, unsigned int max_to_pop);
 
 };
 

@@ -12,7 +12,7 @@ using namespace pystorm;
 using namespace bddriver;
 using namespace std;
 
-void ProduceN(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, unsigned int N, unsigned int M)
+void ProduceN(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 // push M elements N times
 {
   unsigned int data[M];
@@ -24,11 +24,14 @@ void ProduceN(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, un
       data[j] = vals[i*M + j];
     }
 
-    buf->Push(data, M);
+    bool success = false;
+    while (!success) {
+      success = buf->Push(data, M, try_for_us);
+    }
   }
 }
 
-void ProduceNxM(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, unsigned int N, unsigned int M)
+void ProduceNxM(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 // push M elements N times
 {
   unsigned int data[M];
@@ -40,11 +43,14 @@ void ProduceNxM(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, 
       data[j] = vals[i];
     }
 
-    buf->Push(data, M);
+    bool success = false;
+    while (!success) {
+      success = buf->Push(data, M, try_for_us);
+    }
   }
 }
 
-void ConsumeNxM(bddriver::MutexBuffer<unsigned int> * buf, vector<unsigned int> * vals, unsigned int N, unsigned int M)
+void ConsumeNxM(bddriver::MutexBuffer<unsigned int> * buf, vector<unsigned int> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 {
   unsigned int data[M];
 
@@ -53,7 +59,7 @@ void ConsumeNxM(bddriver::MutexBuffer<unsigned int> * buf, vector<unsigned int> 
 
     while (num_of_M != M) {
       unsigned int num_needed = M - num_of_M;
-      unsigned int num_popped = buf->Pop(data, num_needed);
+      unsigned int num_popped = buf->Pop(data, num_needed, try_for_us);
       num_of_M += num_popped;
     }
     num_of_M = 0;
@@ -103,8 +109,25 @@ TEST_F(MutexBufferFixture, Test1to1)
 {
   vector<unsigned int> consumed;
 
-  producer0 = std::thread(ProduceNxM, buf, vals0, N, M);
-  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N, M);
+  producer0 = std::thread(ProduceNxM, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N; i++) {
+    for(unsigned int j = 0; j < M; j++) {
+      ASSERT_EQ(consumed[i*M + j], vals0[i]);
+    }
+  }
+}
+
+TEST_F(MutexBufferFixture, Test1to1WithTimeout)
+{
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceNxM, buf, vals0, N, M, 1000);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N, M, 1000);
 
   producer0.join();
   consumer0.join();
@@ -127,8 +150,8 @@ TEST_F(MutexBufferFixture, Test1to1OddSizes)
     vals_prod[i] = 0;
   }
 
-  producer0 = std::thread(ProduceN, buf, &vals_prod[0], N*MCons, MProd);
-  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N*MProd, MCons);
+  producer0 = std::thread(ProduceN, buf, &vals_prod[0], N*MCons, MProd, 0);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N*MProd, MCons, 0);
 
   producer0.join();
   consumer0.join();
@@ -145,10 +168,10 @@ TEST_F(MutexBufferFixture, Test2to1)
   vector<unsigned int> consumed;
 
   // probably closest to the actual use case
-  producer0 = std::thread(ProduceNxM, buf, vals0, N, M);
-  producer1 = std::thread(ProduceNxM, buf, vals1, N, M);
+  producer0 = std::thread(ProduceNxM, buf, vals0, N, M, 0);
+  producer1 = std::thread(ProduceNxM, buf, vals1, N, M, 0);
 
-  consumer0 = std::thread(ConsumeNxM, buf, &consumed, 2*N, M);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed, 2*N, M, 0);
 
   producer0.join();
   producer1.join();
@@ -178,11 +201,11 @@ TEST_F(MutexBufferFixture, Test2to2)
   vector<unsigned int> consumed0;
   vector<unsigned int> consumed1;
 
-  producer0 = std::thread(ProduceNxM, buf, vals0, N, M);
-  producer1 = std::thread(ProduceNxM, buf, vals1, N, M);
+  producer0 = std::thread(ProduceNxM, buf, vals0, N, M, 0);
+  producer1 = std::thread(ProduceNxM, buf, vals1, N, M, 0);
 
-  consumer0 = std::thread(ConsumeNxM, buf, &consumed0, N, M);
-  consumer1 = std::thread(ConsumeNxM, buf, &consumed1, N, M);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed0, N, M, 0);
+  consumer1 = std::thread(ConsumeNxM, buf, &consumed1, N, M, 0);
 
   producer0.join();
   producer1.join();

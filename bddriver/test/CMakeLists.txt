@@ -52,6 +52,8 @@ include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
     ${PROJECT_SOURCE_DIR}/comm/emulator_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
 )
 
 add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
