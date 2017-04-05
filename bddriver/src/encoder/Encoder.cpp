@@ -32,9 +32,9 @@ Encoder::Encoder(const BDPars * pars, MutexBuffer<EncInput> * in_buf, MutexBuffe
 
 void Encoder::RunOnce()
 {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_);
+  unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us);
   Encode(input_chunk_, num_popped, output_chunk_);
-  out_buf_->Push(output_chunk_, num_popped);
+  out_buf_->Push(output_chunk_, num_popped, timeout_us);
 }
 
 void Encoder::Run()

@@ -30,10 +30,10 @@ class Encoder {
 
     std::thread * thread_; // pointer to thread which will be launched with Start()
     
-
     MutexBuffer<EncInput> * in_buf_; // input buffer
     MutexBuffer<EncOutput> * out_buf_; // output buffer
 
+    const unsigned int timeout_us = 1000;
     unsigned int max_chunk_size_; // max chunk size of inputs processed
     EncInput * input_chunk_; // will point to scratch pad memory for inputs
     EncOutput * output_chunk_; // and outputs

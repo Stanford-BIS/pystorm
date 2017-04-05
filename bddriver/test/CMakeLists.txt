@@ -19,6 +19,7 @@ set(INCLUDE_DIRS
     ${SRC_BASE_DIR}
     ${SRC_BASE_DIR}/comm
     ${SRC_BASE_DIR}/common
+    ${SRC_BASE_DIR}/encoder
 )
 
 #-------------------
@@ -54,6 +55,7 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/comm/emulator_test.cpp
     ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
+    ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
 )
 
 add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
