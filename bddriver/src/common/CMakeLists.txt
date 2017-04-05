@@ -3,7 +3,8 @@ set(HEADER_FILES
 #    ${CMAKE_CURRENT_SOURCE_DIR}/BDPars.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Binary.h
 #    ${CMAKE_CURRENT_SOURCE_DIR}/HWLoc.h
-#    ${CMAKE_CURRENT_SOURCE_DIR}/MutexBuffer.h
+# MutexBuffer.cpp is included from here:
+    ${CMAKE_CURRENT_SOURCE_DIR}/MutexBuffer.h 
     ${CMAKE_CURRENT_SOURCE_DIR}/TSQueue.h
     ${CMAKE_CURRENT_SOURCE_DIR}/util.h
     PARENT_SCOPE
@@ -14,7 +15,6 @@ set(SRC_FILES
 #    ${CMAKE_CURRENT_SOURCE_DIR}/BDPars.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Binary.cpp
 #    ${CMAKE_CURRENT_SOURCE_DIR}/HWLoc.cpp
-#    ${CMAKE_CURRENT_SOURCE_DIR}/MutexBuffer.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/util.cpp
     PARENT_SCOPE
 )
