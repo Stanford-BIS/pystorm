@@ -1,4 +1,4 @@
-#include "encoder/Encoder.h"
+#include "Encoder.h"
 
 #include <cstdint>
 #include <vector>

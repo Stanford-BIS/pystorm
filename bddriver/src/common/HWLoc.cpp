@@ -1,4 +1,4 @@
-#include "common/HWLoc.h"
+#include "HWLoc.h"
 
 #include <string>
 

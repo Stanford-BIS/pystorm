@@ -4,7 +4,7 @@
 #include <string>
 #include <unordered_map>
 
-#include "common/Binary.h"
+#include "Binary.h"
 
 namespace pystorm {
 namespace bddriver {

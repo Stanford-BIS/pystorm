@@ -1,5 +1,5 @@
-#include "common/util.h"
-#include "common/Binary.h"
+#include "util.h"
+#include "Binary.h"
 
 #include <assert.h>
 #include <iostream>
