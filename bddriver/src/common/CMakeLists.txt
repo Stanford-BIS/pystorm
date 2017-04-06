@@ -3,8 +3,10 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/BDPars.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Binary.h
     ${CMAKE_CURRENT_SOURCE_DIR}/HWLoc.h
-# MutexBuffer.cpp is included from here:
+    # MutexBuffer.cpp is included from here:
     ${CMAKE_CURRENT_SOURCE_DIR}/MutexBuffer.h 
+    # Xcoder.cpp is included from here:
+    ${CMAKE_CURRENT_SOURCE_DIR}/Xcoder.h
     ${CMAKE_CURRENT_SOURCE_DIR}/TSQueue.h
     ${CMAKE_CURRENT_SOURCE_DIR}/util.h
     PARENT_SCOPE

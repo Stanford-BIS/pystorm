@@ -18,42 +18,11 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
-Encoder::Encoder(const BDPars * pars, MutexBuffer<EncInput> * in_buf, MutexBuffer<EncOutput> * out_buf, unsigned int chunk_size) 
-{
-  pars_ = pars;  
-  in_buf_ = in_buf;
-  out_buf_ = out_buf;
-
-  // allocate s
-  max_chunk_size_ = chunk_size;
-  input_chunk_ = new EncInput[max_chunk_size_];
-  output_chunk_ = new EncOutput[max_chunk_size_];
-}
-
 void Encoder::RunOnce()
 {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us);
+  unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
   Encode(input_chunk_, num_popped, output_chunk_);
-  out_buf_->Push(output_chunk_, num_popped, timeout_us);
-}
-
-void Encoder::Run()
-{
-  while(do_run_) {
-    RunOnce();
-  }
-}
-
-void Encoder::Start()
-{
-  do_run_ = true;
-  thread_ = new std::thread([this]{ this->Run(); });
-}
-
-void Encoder::Stop()
-{
-  do_run_ = false;
-  thread_->join();
+  out_buf_->Push(output_chunk_, num_popped, timeout_us_);
 }
 
 void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs)

@@ -50,6 +50,6 @@ class MutexBuffer {
 } // pystorm
 
 // we have defined a template class. We must include the implementation
-#include "common/MutexBuffer.cpp"
+#include "MutexBuffer.cpp"
 
 #endif
