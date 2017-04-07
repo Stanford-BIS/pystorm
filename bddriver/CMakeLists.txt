@@ -24,12 +24,26 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/)
 
 ############################################################################
 #
+# Check minimum python version (python 3) is installed
+#
+############################################################################
+function(check_minimum_python_version python_version)
+    if(NOT (${python_version} MATCHES "^3.*$"))
+        message(FATAL_ERROR "Python 3 not found")
+    endif()
+endfunction()
+
+############################################################################
+#
 # Check dependencies that must be met for all platforms 
 #
 ############################################################################
+
 function(check_multiplatform_system_dependencies)
-    find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
-    find_package(PythonLibs 3.5 REQUIRED)
+    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
+    find_package(PythonLibs REQUIRED)
+    check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
+
     find_package(Threads REQUIRED)                                                  
     find_package(GTest REQUIRED)                                                    
 
@@ -46,9 +60,13 @@ endfunction()
 
 function(set_common_properties target_name)
     target_link_libraries(${target_name} 
-        boost_python-py35
         ${PYTHON_LIBRARIES}
-        ${Boost_LIBRARIES})
+        ${Boost_LIBRARIES}
+        ${CMAKE_THREADS_LIB_INIT})
+
+    include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+    include_directories(${INCLUDE_DIRS})
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
     set_property(TARGET ${target_name} PROPERTY PREFIX "")
@@ -72,10 +90,6 @@ function(build_on_linux)
     endif()
 
     # setup build environment variables
-
-    include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-    include_directories(${INCLUDE_DIRS})
 
     set(Boost_USE_STATIC_LIBS ON)
     set(Boost_USE_MULTHREADED ON)
