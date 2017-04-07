@@ -1,6 +1,28 @@
 cmake_minimum_required(VERSION 3.0)
-set(PROJECT_NAME_STR bddriver)
-project(${PROJECT_NAME_STR} C CXX)
+set(PROJECT_NAME_STR bddriver_test)
+#project(${PROJECT_NAME_STR} C CXX)
+project(${PROJECT_NAME_STR} CXX)
+
+############################################################################       
+#                                                                               
+# Check minimum python version (python 3) is installed                          
+#                                                                               
+############################################################################       
+function(check_minimum_python_version python_version)                           
+    if(NOT (${python_version} MATCHES "^3.*$"))                                 
+        message(FATAL_ERROR "Python 3 not found")                               
+    endif()                                                                     
+endfunction()   
+
+find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
+
+if(NOT Boost_FOUND)                                                         
+    message(FATAL_ERROR "Unable to find correct Boost version.")        
+endif()              
+
+find_package(PythonLibs REQUIRED)
+
+check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
 
 find_package(Threads REQUIRED)
 
@@ -29,18 +51,7 @@ set(INCLUDE_DIRS
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 
-#-------------------
-# Install and build external dependencies 
-#-------------------
-
-find_package(Boost 1.58.0 COMPONENTS python-py35 REQUIRED)
-find_package(PythonLibs 3.5 REQUIRED)
-
-if(NOT Boost_FOUND)                                                         
-    message(FATAL_ERROR "Unable to find correct Boost version.")        
-endif()              
-
-include_directories(${Boost_INCLUDE_DIRS} "/usr/include/python3.5")         
+include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR})
 include_directories(${INC_BASE_DIR})                                        
                                                                             
 #-------------------
@@ -48,7 +59,6 @@ include_directories(${INC_BASE_DIR})
 #-------------------
 enable_testing()
 
-set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}_test)
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
@@ -58,20 +68,18 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
 )
 
-add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
+add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
-add_dependencies(${PROJECT_TEST_NAME} googletest)
+add_dependencies(${PROJECT_NAME_STR} googletest)
 
-
-target_link_libraries(${PROJECT_TEST_NAME}
+target_link_libraries(${PROJECT_NAME_STR}
     ${GTEST_LIBS_DIR}/libgtest.a
     ${GTEST_LIBS_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
     ${LIB_BASE_DIR}/DriverPy 
-    boost_python-py35
     ${PYTHON_LIBRARIES}                                                     
-    boost_system
+    ${Boost_LIBRARIES}
 )
 
-
-set_property(TARGET ${PROJECT_TEST_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME_STR} PROPERTY PREFIX "")
