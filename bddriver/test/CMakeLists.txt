@@ -27,7 +27,8 @@ check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
 find_package(Threads REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-    add_definitions(-Wall -ansi -Wno-deprecated -pthread)
+  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native)
+  #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
 endif()
 
 #-------------------
@@ -38,10 +39,12 @@ set(INC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
 
 set(INCLUDE_DIRS 
+    ${PROJECT_SOURCE_DIR}
     ${SRC_BASE_DIR}
     ${SRC_BASE_DIR}/comm
     ${SRC_BASE_DIR}/common
     ${SRC_BASE_DIR}/encoder
+    ${SRC_BASE_DIR}/decoder
 )
 
 #-------------------
@@ -62,10 +65,12 @@ enable_testing()
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
+    ${PROJECT_SOURCE_DIR}/test_util/Producer_Consumer.cpp
     ${PROJECT_SOURCE_DIR}/comm/emulator_test.cpp
     ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
+    ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
 )
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})

@@ -43,9 +43,8 @@ function(check_multiplatform_system_dependencies)
     find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
     find_package(PythonLibs REQUIRED)
     check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
-
     find_package(Threads REQUIRED)                                                  
-    find_package(GTest REQUIRED)                                                    
+    #find_package(GTest REQUIRED)                                                    
 
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
@@ -106,6 +105,11 @@ function(build_on_linux)
     # this is a function common to all platforms
 
     set_common_properties(${TARGET_NAME})
+
+    if(CMAKE_COMPILER_IS_GNUCXX)
+      add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native)
+      #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
+    endif()
 
 endfunction()
 
