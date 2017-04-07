@@ -46,7 +46,7 @@ Binary::Binary(const std::vector<Binary>& binarys)
 
 }
 
-uint64_t Binary::TotalWidth() const
+uint64_t Binary::Bitwidth() const
 {
   uint64_t total_width = 0;
   for (auto& width : widths_) {

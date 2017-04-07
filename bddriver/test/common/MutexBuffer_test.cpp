@@ -17,17 +17,33 @@ void ProduceN(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * vals, un
 {
   unsigned int data[M];
 
-  for (unsigned int i = 0; i < N; i++) {
+  unsigned int num_pushed = 0;
+  while (num_pushed < N) {
 
-    // push a bunch of copies of i 
-    for (unsigned int j = 0; j < M; j++) {
-      data[j] = vals[i*M + j];
+    unsigned int num_to_push;
+    if (N - num_pushed > M) {
+      num_to_push = M;
+    } else {
+      num_to_push = N - num_pushed;
     }
+
+    for (unsigned int j = 0; j < num_to_push; j++) {
+      data[j] = vals[num_pushed + j];
+    }
+
+    //cout << "pushing: ";
+    //for (unsigned int j = 0; j < num_to_push; j++) {
+    //  cout << data[j] << ", ";
+    //}
+    //cout << endl;
 
     bool success = false;
     while (!success) {
-      success = buf->Push(data, M, try_for_us);
+      success = buf->Push(data, num_to_push, try_for_us);
     }
+
+    num_pushed += num_to_push;
+
   }
 }
 
@@ -54,19 +70,43 @@ void ConsumeNxM(bddriver::MutexBuffer<unsigned int> * buf, vector<unsigned int> 
 {
   unsigned int data[M];
 
-  unsigned int num_of_M = 0;
-  for (unsigned int i = 0; i < N; i++) {
+  unsigned int N_consumed = 0;
+  while (N_consumed != N*M) {
+    unsigned int num_popped = buf->Pop(data, M, try_for_us);
 
-    while (num_of_M != M) {
-      unsigned int num_needed = M - num_of_M;
-      unsigned int num_popped = buf->Pop(data, num_needed, try_for_us);
-      num_of_M += num_popped;
-    }
-    num_of_M = 0;
-
-    for (unsigned int j = 0; j < M; j++) {
+    //cout << "popping: ";
+    //for (unsigned int i = 0; i < num_popped; i++) {
+    //  cout << data[i] << ", ";
+    //}
+    //cout << ". " << N_consumed + num_popped << " popped" << endl;
+    //
+    for (unsigned int j = 0; j < num_popped; j++) {
       vals->push_back(data[j]);
     }
+
+    N_consumed += num_popped;
+  }
+}
+
+void ConsumeAndCheckN(bddriver::MutexBuffer<unsigned int> * buf, unsigned int * check_vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+{
+  unsigned int data[M];
+
+  unsigned int N_consumed = 0;
+  while (N_consumed != N) {
+    unsigned int num_popped = buf->Pop(data, M, try_for_us);
+
+    //cout << "popping: ";
+    //for (unsigned int i = 0; i < num_popped; i++) {
+    //  cout << data[i] << ", ";
+    //}
+    //cout << ". " << N_consumed + num_popped << " popped" << endl;
+
+    for (unsigned int i = 0; i < num_popped; i++) {
+      ASSERT_EQ(check_vals[N_consumed + i], data[i]);
+    }
+
+    N_consumed += num_popped;
   }
 }
 
@@ -89,9 +129,9 @@ class MutexBufferFixture : public testing::Test
 
     }
 
-    unsigned int buf_depth = 32;
-    unsigned int N = 100; // number of messages
-    unsigned int M = 4; // message chunk size
+    unsigned int buf_depth = 100000;
+    unsigned int N = 10000; // number of messages
+    unsigned int M = 1000; // message chunk size
 
     bddriver::MutexBuffer<unsigned int> * buf;
 
@@ -145,21 +185,62 @@ TEST_F(MutexBufferFixture, Test1to1OddSizes)
 
   unsigned int MProd = 3;
   unsigned int MCons = 5;
-  unsigned int vals_prod[N*MCons*MProd];
-  for (unsigned int i = 0; i < N*MCons*MProd; i++) {
-    vals_prod[i] = 0;
+  unsigned int NTot = N*MProd*MCons;
+
+  unsigned int vals_prod[NTot];
+  for (unsigned int i = 0; i < NTot; i++) {
+    vals_prod[i] = i;
   }
 
-  producer0 = std::thread(ProduceN, buf, &vals_prod[0], N*MCons, MProd, 0);
-  consumer0 = std::thread(ConsumeNxM, buf, &consumed, N*MProd, MCons, 0);
+  producer0 = std::thread(ProduceN, buf, &vals_prod[0], NTot, MProd, 0);
+  consumer0 = std::thread(ConsumeAndCheckN, buf, &vals_prod[0], NTot, MCons, 0);
+
+  producer0.join();
+  consumer0.join();
+}
+
+TEST_F(MutexBufferFixture, Test1to1OddSizesTimeout)
+{
+  vector<unsigned int> consumed;
+
+  unsigned int MProd = 3;
+  unsigned int MCons = 5;
+  unsigned int NTot = N*MProd*MCons;
+
+  unsigned int vals_prod[NTot];
+  for (unsigned int i = 0; i < NTot; i++) {
+    vals_prod[i] = i;
+  }
+
+  producer0 = std::thread(ProduceN, buf, &vals_prod[0], NTot, MProd, 1000);
+  consumer0 = std::thread(ConsumeAndCheckN, buf, &vals_prod[0], NTot, MCons, 1000);
+
+  producer0.join();
+  consumer0.join();
+}
+
+TEST_F(MutexBufferFixture, Test1to1OddSizesCheckAfter)
+{
+  vector<unsigned int> consumed;
+
+  unsigned int MProd = 3;
+  unsigned int MCons = 5;
+  unsigned int NTot = N*MProd*MCons;
+
+  unsigned int vals_prod[NTot];
+  for (unsigned int i = 0; i < NTot; i++) {
+    vals_prod[i] = i;
+  }
+
+  producer0 = std::thread(ProduceN, buf, &vals_prod[0], NTot, MProd, 0);
+  consumer0 = std::thread(ConsumeNxM, buf, &consumed, NTot / MCons, MCons, 0);
 
   producer0.join();
   consumer0.join();
 
-  for(unsigned int i = 0; i < N; i++) {
-    for(unsigned int j = 0; j < M; j++) {
-      ASSERT_EQ(consumed[i*M + j], vals_prod[i]);
-    }
+  ASSERT_EQ(consumed.size(), NTot);
+  for(unsigned int i = 0; i < NTot; i++) {
+    ASSERT_EQ(consumed[i], vals_prod[i]);
   }
 }
 

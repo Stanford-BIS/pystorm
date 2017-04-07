@@ -72,7 +72,7 @@ TEST_F(BinaryFixture, TestAsString)
 
 TEST_F(BinaryFixture, TestBinaryConstructor)
 {
-  EXPECT_EQ(my_bin.TotalWidth(), total_width);
+  EXPECT_EQ(my_bin.Bitwidth(), total_width);
   EXPECT_EQ(my_bin.AsUint(), packed_val);
   EXPECT_EQ(my_bin.AsUint(), my_uint);
 }

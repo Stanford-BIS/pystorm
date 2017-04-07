@@ -34,7 +34,7 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
     Binary payload = inputs[i].second;
 
     // look up route for this leaf_name
-    const Binary * leaf_route = pars_->LeafRoute(*destination.LeafName());
+    const Binary * leaf_route = pars_->HornRoute(*destination.LeafName());
 
     // XXX this is where you would do something with the chip id
 

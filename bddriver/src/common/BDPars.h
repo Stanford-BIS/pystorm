@@ -15,15 +15,22 @@ class BDPars {
     BDPars(std::string bd_yaml);
 
     // funnel/horn queries
-    inline const Binary * LeafRoute(const std::string& leaf) const { return &leaf_routes_.at(leaf); }
+    inline const Binary * HornRoute(const std::string& leaf) const { return &horn_routes_.at(leaf); }
+    inline const Binary * FunnelRoute(const std::string& leaf) const { return &funnel_routes_.at(leaf); }
+
+    // if you need to iterate through them, say
+    inline const std::unordered_map<std::string, Binary> * HornRoutes() const { return &horn_routes_; }
+    inline const std::unordered_map<std::string, Binary> * FunnelRoutes() const { return &funnel_routes_; }
 
     // field width queries
     inline uint8_t Width(const std::string& field) const { return widths_.at(field); }
 
   private:
-    unsigned int num_cores;
+    unsigned int in_bits;
+
     // funnel/horn route tables
-    std::unordered_map<std::string, Binary> leaf_routes_;
+    std::unordered_map<std::string, Binary> horn_routes_;
+    std::unordered_map<std::string, Binary> funnel_routes_;
     // various bit widths used in the HW
     std::unordered_map<std::string, uint8_t> widths_;
 

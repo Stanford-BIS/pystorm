@@ -22,12 +22,12 @@ class Binary {
     // concatenate other Binarys to make Binary
     Binary(const std::vector<Binary>& binarys);
 
-    uint64_t TotalWidth() const; 
+    uint64_t Bitwidth() const; 
 
     // pack values into a single uint64_t
     inline uint64_t AsUint() const { return PackUint(values_, widths_); }
     // return values as a string    
-    inline std::string AsString() const { return UintAsString(AsUint(), TotalWidth()); }
+    inline std::string AsString() const { return UintAsString(AsUint(), Bitwidth()); }
     // unpack into different-width fields
     inline std::vector<uint64_t> Unpack(std::vector<uint8_t> field_widths) const { return UnpackUint(AsUint(), field_widths); }
 

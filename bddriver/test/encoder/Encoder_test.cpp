@@ -3,7 +3,6 @@
 #include "gtest/gtest.h"
 
 #include <unistd.h> // usleep
-#include <exception> // XXX terminate
 #include <chrono>
 
 #include <iostream>
@@ -64,9 +63,6 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
   for (unsigned int i = 0; i < N; i++) {
     // chip id 0, leaf "softleaf", payload N
     vals.push_back(std::make_pair(HWLoc(0, "softleaf"), Binary(i, 32)));
-    std::vector<uint64_t> foo = {1};
-    std::vector<uint8_t> bar = {2};
-    Binary someBin = Binary(foo, bar);
   }
 
   return vals;

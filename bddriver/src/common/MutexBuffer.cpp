@@ -35,12 +35,16 @@ void MutexBuffer<T>::PushData(const T * input, unsigned int input_len)
 {
   // copy the data
   for (unsigned int i = 0; i < input_len; i++) {
-    vals_[back_ + i] = input[i];
+    vals_[(back_ + i) % capacity_] = input[i];
   }
 
   // update queue state
   back_ = (back_ + input_len) % capacity_;
   count_ += input_len;
+  
+  //cout << "pushed data starting with " << vals_[back_ - input_len];
+  //cout << "just pushed, size = " << count_ << endl;
+
 }
 
 template<class T>
@@ -100,13 +104,16 @@ unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop)
   }
 
   // do copy
-  for (unsigned int i = 0; i < max_to_pop; i++) {
+  for (unsigned int i = 0; i < num_popped; i++) {
     copy_to[i] = vals_[(front_ + i) % capacity_];
   }
 
   // update queue state
   front_ = (front_ + num_popped) % capacity_;
   count_ -= num_popped;
+
+  //cout << "popped data starting with " << vals_[front_ - num_popped];
+  //cout << "just popped, size = " << count_ << endl;
 
   return num_popped;
 }
