@@ -1,0 +1,13 @@
+# Dockerfile for GITLAB CI
+FROM jjaguayo/ubuntu-pystorm:latest
+
+COPY $CI_PROJECT_DIR /home/git/pystorm
+
+# These are the commands that a developer would type to build and run
+# the automated tests for PyStorm
+
+RUN cd /home/git/pystorm/bddriver \ 
+    && ./build_driver.sh \
+    && export LD_LIBRARY_PATH=/home/git/pystorm/bddriver/lib \
+    && cd /home/git/pystorm/bddriver/build/test \
+    && ./bddriver_test

@@ -1,21 +1,12 @@
-image: jjaguayo/ubuntu-pystorm:latest
-
-stages:
-- build
-- test
-
-variables:
-    CONTAINER_TEST_IMAGE: new_build_$CI_COMMIT_SHA
-
-before_script:
-
+variables:                                                                      
+    CONTAINER_TEST_IMAGE: new_build_$CI_COMMIT_SHA                              
+                                                                                
+before_script:                                                                  
+                                                                                
 build:
-    stage: build
-    script:
-        - docker build -t $CONTAINER_TEST_IMAGE
-
-test:
-    stage: test
-    script:
-        - docker run -t $CONTAINER_TEST_IMAGE /run_test.sh
-
+    image: docker:latest
+    script:                      
+        - export DOCKER_API_VERSION=1.19
+        - docker build -t $CONTAINER_TEST_IMAGE --file docker/Dockerfile_GITLAB_CI .
+    tags:
+        - docker_roulette
