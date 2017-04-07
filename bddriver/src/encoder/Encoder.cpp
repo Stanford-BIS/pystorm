@@ -22,7 +22,10 @@ void Encoder::RunOnce()
 {
   unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
   Encode(input_chunk_, num_popped, output_chunk_);
-  out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+  bool success = false;
+  while (!success & do_run_) { // if killed, need to stop trying
+    success = out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+  }
 }
 
 void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs)

@@ -23,7 +23,11 @@ void Decoder::RunOnce()
 {
   unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
   Decode(input_chunk_, num_popped, output_chunk_);
-  out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+  bool success = false;
+  while (!success & do_run_) { // if killed, need to stop trying
+    success = out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+  }
+  //num_processed_ += num_popped;
 }
 
 Decoder::Decoder(
@@ -59,6 +63,8 @@ Decoder::Decoder(
     uint64_t route_shifted = it.second.AsUint() << payload_len;
     leaf_routes_.push_back(route_shifted);
   }
+  //num_processed_ = 0;
+
 }
 
 void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs)

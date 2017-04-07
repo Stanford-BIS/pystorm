@@ -34,9 +34,9 @@ void ProduceN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned
 
     //cout << "pushing: ";
     //for (unsigned int j = 0; j < num_to_push; j++) {
-    //  cout << data[j] << ", ";
+    ////  cout << data[j] << ", ";
     //}
-    //cout << endl;
+    //cout << ". " << num_pushed + num_to_push << " pushed" << endl;
 
     bool success = false;
     while (!success) {
@@ -59,10 +59,10 @@ void ConsumeN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, 
 
     //cout << "popping: ";
     //for (unsigned int i = 0; i < num_popped; i++) {
-    //  cout << data[i] << ", ";
+    //  //cout << data[i] << ", ";
     //}
     //cout << ". " << N_consumed + num_popped << " popped" << endl;
-    //
+    
     for (unsigned int j = 0; j < num_popped; j++) {
       vals->push_back(data[j]);
     }

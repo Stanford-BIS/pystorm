@@ -47,7 +47,7 @@ class DecoderFixture : public testing::Test
 
     const unsigned int input_width = 34;
     unsigned int N = 500000;
-    unsigned int M = 100;
+    unsigned int M = 1000;
     unsigned int buf_depth = 10000;
 
     // XXX set this to something meaningful later, compiler flags?
@@ -67,29 +67,29 @@ class DecoderFixture : public testing::Test
 
 TEST_F(DecoderFixture, Test1xDecoder)
 {
-  Decoder enc(pars, buf_in, buf_out, M);
+  Decoder dec(pars, buf_in, buf_out, M);
 
   // start producer/consumer threads
   std::vector<DecOutput> consumed;
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
   consumer = std::thread(ConsumeN<DecOutput>, buf_out, &consumed, N, M, 0);
 
-  // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
+  // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
-  enc.Start();
+  dec.Start();
   
   producer.join();
-  cout << "producer joined" << endl;
+  //cout << "producer joined" << endl;
   consumer.join();
-  cout << "consumer joined" << endl;
+  //cout << "consumer joined" << endl;
 
   auto tend = std::chrono::high_resolution_clock::now();
   auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-  double throughput = static_cast<double>(N*M) / diff; // in million entries/sec
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
   cout << "throughput: " << throughput << " Mwords/s" << endl;
 
-  // eventually, encoder will time out and thread will join
-  enc.Stop();
+  // eventually, decoder will time out and thread will join
+  dec.Stop();
 
   EXPECT_GT(throughput, fastEnough);
 
@@ -97,38 +97,38 @@ TEST_F(DecoderFixture, Test1xDecoder)
 
 }
 
-//TEST_F(DecoderFixture, Test2xDecoder)
-//{
-//  // two identical Decoders in this test
-//  Decoder enc0(pars, buf_in, buf_out, M);
-//  Decoder enc1(pars, buf_in, buf_out, M);
-//
-//  // start producer/consumer threads
-//  std::vector<DecOutput> consumed;
-//  producer = std::thread(ProduceNxM, buf_in, &input_vals[0], N, M, 0);
-//  consumer = std::thread(ConsumeNxM, buf_out, &consumed, N, M, 0);
-//
-//  // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
-//  auto t0 = std::chrono::high_resolution_clock::now();
-//  enc0.Start();
-//  enc1.Start();
-//  
-//  producer.join();
-//  cout << "producer joined" << endl;
-//  consumer.join();
-//  cout << "consumer joined" << endl;
-//
-//  auto tend = std::chrono::high_resolution_clock::now();
-//  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-//  double throughput = static_cast<double>(N*M) / diff; // in million entries/sec
-//  cout << "throughput: " << throughput << " Mwords/s" << endl;
-//
-//  // eventually, encoder will time out and thread will join
-//  enc0.Stop();
-//  enc1.Stop();
-//
-//  // for now, testing speedup
-//  EXPECT_GT(throughput, 2*fastEnough);
-//
-//  // XXX should check output is correct
-//}
+TEST_F(DecoderFixture, Test2xDecoder)
+{
+  // two identical Decoders in this test
+  Decoder dec0(pars, buf_in, buf_out, M);
+  Decoder dec1(pars, buf_in, buf_out, M);
+
+  // start producer/consumer threads
+  std::vector<DecOutput> consumed;
+  producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
+  consumer = std::thread(ConsumeN<DecOutput>, buf_out, &consumed, N, M, 0);
+
+  // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
+  auto t0 = std::chrono::high_resolution_clock::now();
+  dec0.Start();
+  dec1.Start();
+  
+  producer.join();
+  //cout << "producer joined" << endl;
+  consumer.join();
+  //cout << "consumer joined" << endl;
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
+
+  // eventually, decoder will time out and thread will join
+  dec0.Stop();
+  dec1.Stop();
+
+  // for now, testing speedup
+  EXPECT_GT(throughput, 2*fastEnough);
+
+  // XXX should check output is correct
+}

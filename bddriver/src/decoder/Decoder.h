@@ -28,6 +28,9 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
         unsigned int timeout_us=1000
     );
 
+    // for testing
+    //unsigned int num_processed_;
+
   private:
 
     void RunOnce();
