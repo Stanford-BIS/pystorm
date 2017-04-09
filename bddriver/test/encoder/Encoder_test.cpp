@@ -8,54 +8,12 @@
 #include <iostream>
 #include <thread>
 
+#include "test_util/Producer_Consumer.cpp"
+
 using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
-
-void ProduceNxM(MutexBuffer<EncInput> * buf, EncInput * vals, unsigned int N, unsigned int M, unsigned int wait_for_us)
-// push M elements N times
-{
-  EncInput data[M];
-
-  for (unsigned int i = 0; i < N; i++) {
-
-    // push a bunch of copies of i 
-    for (unsigned int j = 0; j < M; j++) {
-      data[j] = vals[i];
-    }
-
-    bool success = false;
-    while (!success) {
-      success = buf->Push(data, M, wait_for_us);
-    }
-    //cout << "pushed " << data[0].second.AsUint() << endl;
-  }
-}
-
-void ConsumeNxM(MutexBuffer<EncOutput> * buf, std::vector<EncOutput> * vals, unsigned int N, unsigned int M, unsigned int wait_for_us)
-{
-  EncOutput data[M];
-
-  unsigned int num_of_M = 0;
-  for (unsigned int i = 0; i < N; i++) {
-
-    //cout << "recv: ";
-    while (num_of_M != M) {
-      unsigned int num_needed = M - num_of_M;
-      unsigned int num_popped = buf->Pop(data, num_needed, wait_for_us);
-      num_of_M += num_popped;
-      //cout << num_popped << ":";
-    }
-    num_of_M = 0;
-
-    for (unsigned int j = 0; j < M; j++) {
-      //cout << data[j].AsUint() << ",";
-      vals->push_back(data[j]);
-    }
-    //cout << endl;
-  }
-}
 
 std::vector<EncInput> MakeEncInput(unsigned int N) {
   std::vector<EncInput> vals;
@@ -81,7 +39,7 @@ class EncoderFixture : public testing::Test
       input_vals = MakeEncInput(N);
     }
 
-    unsigned int N = 1000;
+    unsigned int N = 100000;
     unsigned int M = 100;
     unsigned int buf_depth = 10000;
 
@@ -106,8 +64,8 @@ TEST_F(EncoderFixture, Test1xEncoder)
 
   // start producer/consumer threads
   std::vector<EncOutput> consumed;
-  producer = std::thread(ProduceNxM, buf_in, &input_vals[0], N, M, 0);
-  consumer = std::thread(ConsumeNxM, buf_out, &consumed, N, M, 0);
+  producer = std::thread(ProduceN<EncInput>, buf_in, &input_vals[0], N, M, 0);
+  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N, M, 0);
 
   // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -118,7 +76,8 @@ TEST_F(EncoderFixture, Test1xEncoder)
 
   auto tend = std::chrono::high_resolution_clock::now();
   auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-  double throughput = static_cast<double>(N*M) / diff; // in million entries/sec
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
 
   // eventually, encoder will time out and thread will join
   enc.Stop();
@@ -137,8 +96,8 @@ TEST_F(EncoderFixture, Test2xEncoder)
 
   // start producer/consumer threads
   std::vector<EncOutput> consumed;
-  producer = std::thread(ProduceNxM, buf_in, &input_vals[0], N, M, 0);
-  consumer = std::thread(ConsumeNxM, buf_out, &consumed, N, M, 0);
+  producer = std::thread(ProduceN<EncInput>, buf_in, &input_vals[0], N, M, 0);
+  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N, M, 0);
 
   // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -150,7 +109,8 @@ TEST_F(EncoderFixture, Test2xEncoder)
 
   auto tend = std::chrono::high_resolution_clock::now();
   auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-  double throughput = static_cast<double>(N*M) / diff; // in million entries/sec
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
 
   // eventually, encoder will time out and thread will join
   enc0.Stop();
