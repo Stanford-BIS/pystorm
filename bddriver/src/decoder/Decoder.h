@@ -30,11 +30,11 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
 
     // for testing
     //unsigned int num_processed_;
+    void Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs);
 
   private:
 
     void RunOnce();
-    void Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs);
     std::pair<std::string, Binary> DecodeFunnel(const Binary& payload_route) const;
     Binary DecodeFPGA(/*TODO args*/ const Binary& input) const;
 

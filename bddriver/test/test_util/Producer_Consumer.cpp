@@ -16,8 +16,6 @@ template <class T>
 void ProduceN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 // push M elements N times
 {
-  T data[M];
-
   unsigned int num_pushed = 0;
   while (num_pushed < N) {
 
@@ -28,10 +26,6 @@ void ProduceN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned
       num_to_push = N - num_pushed;
     }
 
-    for (unsigned int j = 0; j < num_to_push; j++) {
-      data[j] = vals[num_pushed + j];
-    }
-
     //cout << "pushing: ";
     //for (unsigned int j = 0; j < num_to_push; j++) {
     ////  cout << data[j] << ", ";
@@ -40,7 +34,7 @@ void ProduceN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned
 
     bool success = false;
     while (!success) {
-      success = buf->Push(data, num_to_push, try_for_us);
+      success = buf->Push(&vals[num_pushed], num_to_push, try_for_us);
     }
 
     num_pushed += num_to_push;
@@ -49,7 +43,24 @@ void ProduceN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned
 }
 
 template <class T>
-void ConsumeN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+void ConsumeN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+{
+  unsigned int N_consumed = 0;
+  while (N_consumed != N) {
+    unsigned int num_popped = buf->Pop(&vals[N_consumed], M, try_for_us);
+
+    //cout << "popping: ";
+    //for (unsigned int i = 0; i < num_popped; i++) {
+    //  //cout << data[i] << ", ";
+    //}
+    //cout << ". " << N_consumed + num_popped << " popped" << endl;
+
+    N_consumed += num_popped;
+  }
+}
+
+template <class T>
+void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 {
   T data[M];
 

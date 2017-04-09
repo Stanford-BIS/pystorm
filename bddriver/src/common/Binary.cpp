@@ -18,8 +18,8 @@ using std::endl;
 
 Binary::Binary(uint64_t value, uint8_t width)
 {
-  values_ = {value};
-  widths_ = {width};
+  value_ = value;
+  width_ = width;
 }
 
 Binary::Binary(const std::vector<uint64_t>& values,
@@ -28,31 +28,30 @@ Binary::Binary(const std::vector<uint64_t>& values,
   assert(values.size() == widths.size() 
     && "vector lengths must match");
 
-  values_ = values;
-  widths_ = widths;
+  value_ = PackUint(values, widths);
+
+  width_ = 0;
+  for (auto& el : widths) {
+    width_ += el;
+  }
 
 }
 
 Binary::Binary(const std::vector<Binary>& binarys)
 {
-  values_.clear();
-  widths_.clear();
+  std::vector<uint64_t> values;
+  std::vector<uint8_t> widths;
   for (auto& el : binarys) {
-    for (unsigned int idx = 0; idx < el.values_.size(); idx++) {
-      values_.push_back(el.values_[idx]);
-      widths_.push_back(el.widths_[idx]);
-    }
+    values.push_back(el.AsUint());
+    widths.push_back(el.Bitwidth());
   }
 
-}
-
-uint64_t Binary::Bitwidth() const
-{
-  uint64_t total_width = 0;
-  for (auto& width : widths_) {
-    total_width += width;
+  value_ = PackUint(values, widths);
+  width_ = 0;
+  for (auto& el : widths) {
+    width_ += el;
   }
-  return total_width;
+
 }
 
 

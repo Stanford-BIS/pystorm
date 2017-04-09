@@ -69,6 +69,8 @@ Decoder::Decoder(
 
 void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs)
 {
+  //HWLoc fooloc(0, "foo");
+  //Binary foobin(0, 1);
   for (unsigned int i = 0; i < num_popped; i++) {
 
     // XXX this is where you would decode the FPGA
@@ -86,6 +88,8 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput
     HWLoc loc(chip_id, leaf_name);
 
     outputs[i] = std::make_pair(loc, payload);
+    
+    //outputs[i] = std::make_pair(fooloc, foobin);
   }
 }
 

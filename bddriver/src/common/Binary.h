@@ -22,18 +22,18 @@ class Binary {
     // concatenate other Binarys to make Binary
     Binary(const std::vector<Binary>& binarys);
 
-    uint64_t Bitwidth() const; 
+    inline uint8_t Bitwidth() const { return width_; }
 
     // pack values into a single uint64_t
-    inline uint64_t AsUint() const { return PackUint(values_, widths_); }
+    inline uint64_t AsUint() const { return value_; }
     // return values as a string    
     inline std::string AsString() const { return UintAsString(AsUint(), Bitwidth()); }
     // unpack into different-width fields
     inline std::vector<uint64_t> Unpack(std::vector<uint8_t> field_widths) const { return UnpackUint(AsUint(), field_widths); }
 
   private:
-    std::vector<uint64_t> values_;
-    std::vector<uint8_t> widths_;
+    uint64_t value_;
+    uint8_t width_;
 
 }; // Binary
 
