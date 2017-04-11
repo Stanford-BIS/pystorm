@@ -1,3 +1,6 @@
+[![Build Status](https://ng-hippocampus.stanford.edu/jenkins/buildStatus/icon?job=Pystorm/master)](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/)
+
+
 Pystorm is a set of software modules allowing Nengo and Nengo_GUI to 
 communicate with Braindrop providing an API that abstracts hardware 
 specific data structures.
