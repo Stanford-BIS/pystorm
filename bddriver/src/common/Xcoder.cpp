@@ -40,6 +40,9 @@ Xcoder<TIN, TOUT>::~Xcoder()
 {
   delete[] input_chunk_;
   delete[] output_chunk_;
+  if (do_run_) {
+    Stop();
+  }
   delete thread_;
 }
 

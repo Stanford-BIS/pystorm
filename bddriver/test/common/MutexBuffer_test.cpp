@@ -1,6 +1,5 @@
 #include "MutexBuffer.h"
 #include "gtest/gtest.h"
-#include "Binary.h"
 
 #include <vector>
 #include <cstdint>
@@ -215,23 +214,25 @@ TEST_F(MutexBufferFixture, Test2to2)
 
 TEST(MutexBufferPerformance, UintThroughput)
 {
-  const unsigned int N = 1000000;
+  const unsigned int N = 100e6;
   const unsigned int M = 1000;
   const unsigned int buf_depth = 100000;
   
-  MutexBuffer<unsigned int> buf(buf_depth);
+  MutexBuffer<uint64_t> buf(buf_depth);
 
-  unsigned int vals[N];
+  uint64_t * vals;
+  vals = new uint64_t[N];
   for (unsigned int i = 0; i < N; i++) {
     vals[i] = i;
   }
 
-  unsigned int consumed[N];
+  uint64_t * consumed;
+  consumed = new uint64_t[N];
 
   auto t0 = std::chrono::high_resolution_clock::now();
 
-  std::thread producer(ProduceN<unsigned int>, &buf, &vals[0], N, M, 0);
-  std::thread consumer(ConsumeN<unsigned int>, &buf, &consumed[0], N, M, 0);
+  std::thread producer(ProduceN<uint64_t>, &buf, &vals[0], N, M, 0);
+  std::thread consumer(ConsumeN<uint64_t>, &buf, &consumed[0], N, M, 0);
 
   producer.join();
   consumer.join();
@@ -242,32 +243,80 @@ TEST(MutexBufferPerformance, UintThroughput)
   cout << "throughput: " << throughput << " Mwords/s" << endl;
 }
 
-//TEST(MutexBufferPerformance, BinaryThroughput)
-//{
-//  const unsigned int N = 1000000;
-//  const unsigned int M = 1000;
-//  const unsigned int buf_depth = 100000;
-//  
-//  MutexBuffer<Binary> buf(buf_depth);
-//
-//  Binary vals[N];
-//  for (unsigned int i = 0; i < N; i++) {
-//    vals[i] = Binary(i, 32);
-//  }
-//
-//  Binary consumed[N];
-//
-//  auto t0 = std::chrono::high_resolution_clock::now();
-//
-//  std::thread producer(ProduceN<Binary>, &buf, &vals[0], N, M, 0);
-//  std::thread consumer(ConsumeN<Binary>, &buf, &consumed[0], N, M, 0);
-//
-//  producer.join();
-//  consumer.join();
-//
-//  auto tend = std::chrono::high_resolution_clock::now();
-//  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-//  double throughput = static_cast<double>(N) / diff; // in million entries/sec
-//  cout << "throughput: " << throughput << " Mwords/s" << endl;
-//}
+TEST(MutexBufferPerformance, UintThroughput2x)
+{
+  const unsigned int N = 100e6;
+  const unsigned int M = 1000;
+  const unsigned int buf_depth = 100000;
+  
+  MutexBuffer<uint64_t> buf0(buf_depth);
+  MutexBuffer<uint64_t> buf1(buf_depth);
+
+  uint64_t * vals0;
+  uint64_t * vals1;
+  vals0 = new uint64_t[N];
+  vals1 = new uint64_t[N];
+  for (unsigned int i = 0; i < N; i++) {
+    vals0[i] = i;
+    vals1[i] = i;
+  }
+
+  uint64_t * consumed0;
+  uint64_t * consumed1;
+  consumed0 = new uint64_t[N];
+  consumed1 = new uint64_t[N];
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::thread producer0(ProduceN<uint64_t>, &buf0, &vals0[0], N, M, 0);
+  std::thread consumer0(ConsumeN<uint64_t>, &buf0, &consumed0[0], N, M, 0);
+
+  std::thread producer1(ProduceN<uint64_t>, &buf1, &vals1[0], N, M, 0);
+  std::thread consumer1(ConsumeN<uint64_t>, &buf1, &consumed1[0], N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  producer1.join();
+  consumer1.join();
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  double throughput = static_cast<double>(N*2) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
+}
+
+TEST(MutexBufferPerformance, PairThroughput)
+{
+  const unsigned int N = 100e6;
+  const unsigned int M = 1000;
+  const unsigned int buf_depth = 100000;
+
+  typedef std::pair<uint64_t, unsigned int> PairType;
+  
+  MutexBuffer<PairType> buf(buf_depth);
+
+  PairType * vals;
+  vals = new PairType[N];
+  for (unsigned int i = 0; i < N; i++) {
+    vals[i].first = i;
+    vals[i].second = 64;
+  }
+
+  PairType * consumed;
+  consumed = new PairType[N];
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::thread producer(ProduceN<PairType>, &buf, &vals[0], N, M, 0);
+  std::thread consumer(ConsumeN<PairType>, &buf, &consumed[0], N, M, 0);
+
+  producer.join();
+  consumer.join();
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
+}
 

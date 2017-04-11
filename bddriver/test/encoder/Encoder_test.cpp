@@ -20,7 +20,10 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
 
   for (unsigned int i = 0; i < N; i++) {
     // chip id 0, leaf "softleaf", payload N
-    vals.push_back(std::make_pair(HWLoc(0, "softleaf"), Binary(i, 32)));
+    HWLoc loc;
+    loc.core_id_ = 0;
+    loc.leaf_idx_ = 0;
+    vals.push_back(std::make_pair(loc, static_cast<uint32_t>(i)));
   }
 
   return vals;
@@ -34,7 +37,7 @@ class EncoderFixture : public testing::Test
       buf_in = new MutexBuffer<EncInput>(buf_depth);
       buf_out = new MutexBuffer<EncOutput>(buf_depth);
 
-      pars = new BDPars("foo.yaml"); // filename unused for now
+      pars = new BDPars(); // filename unused for now
 
       input_vals = MakeEncInput(N);
     }

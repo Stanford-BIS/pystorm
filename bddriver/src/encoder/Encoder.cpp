@@ -8,7 +8,7 @@
 
 #include "common/BDPars.h"
 #include "common/HWLoc.h"
-#include "common/Binary.h"
+#include "common/binary_util.h"
 #include "common/MutexBuffer.h"
 
 #include <iostream>
@@ -34,15 +34,15 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
 
     // unpack data
     HWLoc destination = inputs[i].first;
-    Binary payload = inputs[i].second;
+    uint32_t payload = inputs[i].second;
 
-    // look up route for this leaf_name
-    const Binary * leaf_route = pars_->HornRoute(*destination.LeafName());
+    // look up route for this leaf_idx_
+    FHRoute leaf_route = pars_->HornRoute(destination.leaf_idx_);
 
-    // XXX this is where you would do something with the chip id
+    // XXX this is where you would do something with the core id
 
-    // encoder horn
-    Binary horn_encoded = EncodeHorn(*leaf_route, payload);
+    // encode horn
+    uint32_t horn_encoded = EncodeHorn(leaf_route, payload);
 
     // XXX this is where you would encode the FPGA
     
@@ -50,22 +50,18 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
   }
 }
 
-Binary Encoder::EncodeHorn(const Binary& route, const Binary& payload) const
+inline uint32_t Encoder::EncodeHorn(FHRoute route, uint32_t payload) const
 {
   // msb <- lsb
   // [ X | payload | route ]
 
-  //const std::vector<Binary> to_concat = {route, payload};
-  Binary encoded = Binary({route, payload});
-  //cout << "encoding: " << payload.AsString() << " & " << route.AsString() << " = " << encoded.AsUint() << endl;
-  return encoded;
-}
+  uint32_t route_val = route.first;
+  unsigned int route_len = route.second;
 
-
-Binary Encoder::EncodeFPGA(/*TODO args*/ const Binary& payload) const
-{
-  // TODO
-  return payload;
+  // NOTE: don't need to know payload size
+  // could use PackV32({route_val, payload}, {route_len, 32 - route_len})
+  // optimize here by avoiding extra function call
+  return route_val | (payload << route_len);
 }
 
 } // bddriver

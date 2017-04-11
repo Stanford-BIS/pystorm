@@ -1,6 +1,7 @@
 #ifndef ENCODER_H
 #define ENCODER_H
 
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <utility>
@@ -8,15 +9,14 @@
 
 #include "common/BDPars.h"
 #include "common/HWLoc.h"
-#include "common/Binary.h"
 #include "common/MutexBuffer.h"
 #include "common/Xcoder.h"
 
 namespace pystorm {
 namespace bddriver {
 
-typedef std::pair<HWLoc, Binary> EncInput;
-typedef Binary EncOutput;
+typedef std::pair<HWLoc, uint32_t> EncInput;
+typedef uint32_t EncOutput;
 
 class Encoder : public Xcoder<EncInput, EncOutput> {
   public:
@@ -32,8 +32,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
 
     void RunOnce();
     void Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs);
-    Binary EncodeHorn(const Binary& route, const Binary& payload) const; 
-    Binary EncodeFPGA(/*TODO args*/ const Binary& payload) const;
+    uint32_t EncodeHorn(FHRoute route, uint32_t payload) const;
     
 };
 
