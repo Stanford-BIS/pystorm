@@ -1,4 +1,4 @@
-[![Build Status](https://ng-hippocampus.stanford.edu/github/buildStatus/icon?job=Pystorm_build/master)](https://ng-hippocampus.stanford.edu/github/job/Pystorm_build/job/master/)
+[![Build Status](https://ng-hippocampus.stanford.edu/jenkins/buildStatus/icon?job=Pystorm/master)](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/)
 
 
 Pystorm is a set of software modules allowing Nengo and Nengo_GUI to 
