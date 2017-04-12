@@ -23,6 +23,7 @@ Driver& Driver::getInstance()
     return m_instance;
 }
 
+
 Driver::Driver()
 {
   // load parameters
@@ -31,20 +32,26 @@ Driver::Driver()
   
   // initialize buffers
   enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get("enc_buf_in_", "capacity"));
-  enc_buf_out_ = new MutexBuffer<EncInput>(driver_pars_->Get("enc_buf_out_", "capacity"));
+  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get("enc_buf_out_", "capacity"));
   dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get("dec_buf_in_", "capacity"));
-  dec_buf_out_ = new MutexBuffer<DecInput>(driver_pars_->Get("dec_buf_out_", "capacity"));
+  dec_buf_out_ = new MutexBuffer<DecOutput>(driver_pars_->Get("dec_buf_out_", "capacity"));
 
   // initialize Encoder and Decoder
-  //enc_ = new Encoder(bd_pars_, enc_buf_in_, enc_buf_out_, driver_pars_->Get("enc_", "chunk_size"), driver_pars_->Get("enc_", "timeout_us"));
-  //dec_ = new Decoder(bd_pars_, dec_buf_in_, dec_buf_out_, driver_pars_->Get("dec_", "chunk_size"), driver_pars_->Get("dec_", "timeout_us")));
-}
+  enc_ = new Encoder(
+      bd_pars_,
+      enc_buf_in_, 
+      enc_buf_out_, 
+      driver_pars_->Get("enc_", "chunk_size"), 
+      driver_pars_->Get("enc_", "timeout_us")
+  );
 
-void Driver::Start()
-{
-  // start all worker threads
-  enc_->Start();
-  dec_->Start();
+  dec_ = new Decoder(
+      bd_pars_, 
+      dec_buf_in_, 
+      dec_buf_out_, 
+      driver_pars_->Get("dec_", "chunk_size"), 
+      driver_pars_->Get("dec_", "timeout_us")
+  );
 }
 
 Driver::~Driver()
@@ -63,6 +70,14 @@ void Driver::testcall(const std::string& msg)
 {
     std::cout << msg << std::endl;
 }
+
+void Driver::Start()
+{
+  // start all worker threads
+  enc_->Start();
+  dec_->Start();
+}
+
 
 } // bddriver namespace
 } // pystorm namespace

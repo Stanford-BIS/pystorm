@@ -21,8 +21,8 @@ std::vector<EncInput> MakeEncInput(unsigned int N) {
   for (unsigned int i = 0; i < N; i++) {
     // chip id 0, leaf "softleaf", payload N
     HWLoc loc;
-    loc.core_id_ = 0;
-    loc.leaf_idx_ = 0;
+    loc.core_id = 0;
+    loc.leaf_idx = 0;
     vals.push_back(std::make_pair(loc, static_cast<uint32_t>(i)));
   }
 

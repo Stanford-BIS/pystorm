@@ -37,7 +37,8 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
     uint32_t payload = inputs[i].second;
 
     // look up route for this leaf_idx_
-    FHRoute leaf_route = pars_->HornRoute(destination.leaf_idx_);
+    // XXX not doing anything with core_id
+    FHRoute leaf_route = pars_->HornRoute(destination.leaf_idx);
 
     // XXX this is where you would do something with the core id
 

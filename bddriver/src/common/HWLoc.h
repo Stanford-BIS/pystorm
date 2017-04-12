@@ -7,8 +7,8 @@ namespace pystorm {
 namespace bddriver {
 
 struct HWLoc {
-  unsigned int core_id_;
-  unsigned int leaf_idx_;
+  unsigned int core_id;
+  unsigned int leaf_idx;
 };
 
 } // bddriver

@@ -23,7 +23,7 @@ class Xcoder {
         unsigned int chunk_size, 
         unsigned int timeout_us
     );
-    ~Xcoder();
+    virtual ~Xcoder();
 
     void Start();
     void Stop();

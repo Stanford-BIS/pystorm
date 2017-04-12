@@ -93,8 +93,8 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput
     uint32_t payload = funnel_decoded.second;
 
     HWLoc loc;
-    loc.leaf_idx_ = leaf_idx;
-    loc.core_id_ = 0;
+    loc.leaf_idx = leaf_idx;
+    loc.core_id = 0;
 
     outputs[i] = std::make_pair(loc, payload);
   }
