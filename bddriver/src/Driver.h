@@ -64,6 +64,7 @@ struct Spike {
   /// A spike going to or from a neuron
   unsigned int core_id;
   unsigned int neuron_id;
+  int sign;
 };
 
 struct Tag {
@@ -162,8 +163,8 @@ class Driver
 
     /// Send a stream of spikes to neurons
     void SendSpikes(
-        std::vector<Spike> spikes,        ///< addresses of neurons to send spikes to
-        std::vector<unsigned int> delays  ///< inter-spike intervals
+        const std::vector<Spike> & spikes,        ///< addresses of neurons to send spikes to
+        const std::vector<unsigned int> & delays  ///< inter-spike intervals
     );
 
     /// Send a stream of tags
@@ -171,6 +172,8 @@ class Driver
         std::vector<Spike> spikes,        ///< tag ids to send
         std::vector<unsigned int> delays  ///< inter-tag intervals
     );
+
+    // XXX need to figure out FPGA-generated spike stream calls
 
     /// Receive a stream of spikes
     std::vector<Spike> RecvSpikes(unsigned int max_to_recv);
@@ -206,6 +209,11 @@ class Driver
     uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
 
     void SendToHorn(unsigned int core_id, const std::string & leaf_name, std::vector<uint64_t> payload);
+    void SendToHorn(
+      const std::vector<unsigned int> & core_id, 
+      const std::vector<std::string> & leaf_name, 
+      const std::vector<uint64_t> & payload
+    );
 
     uint64_t SignedValToBit(int sign) const;
 
@@ -239,6 +247,7 @@ class Driver
     void ToggleStream(unsigned int core_id, const std::string & stream_name, bool traffic_on, bool dump_on); // wrapper around SetRegister
 
     void SetRegister(unsigned int core_id, const std::string & reg_name, const FieldValues & field_vals);
+    void SetToggle(unsigned int core_id, const std::string & toggle_name, bool traffic_enable, bool dump_enable);
 
     void SetRIWIMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
     void SetRMWMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);

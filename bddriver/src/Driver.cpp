@@ -15,6 +15,7 @@ namespace pystorm
 namespace bddriver
 {
 
+
 Driver& Driver::getInstance()
 {
     // In C++11, if control from two threads occurs concurrently, execution
@@ -55,6 +56,7 @@ Driver::Driver()
   );
 }
 
+
 Driver::~Driver()
 {
   delete driver_pars_;
@@ -67,16 +69,74 @@ Driver::~Driver()
   delete dec_;
 }
 
+
 void Driver::testcall(const std::string& msg)
 {
     std::cout << msg << std::endl;
 }
+
 
 void Driver::Start()
 {
   // start all worker threads
   enc_->Start();
   dec_->Start();
+}
+
+
+/// Turn on tag traffic in datapath (also calls Start/KillSpikes)
+void Driver::StartTraffic(unsigned int core_id)
+{
+  // XXX look up dump state
+  bool dump_state = false;
+  for (auto& it : {"TOGGLE_PRE_FIFO", "TOGGLE_POST_FIFO[0]", "TOGGLE_POST_FIFO[1]", "NeuronDumpToggle"}) {
+    SetToggle(core_id, it, true, dump_state);
+  }
+}
+
+
+/// Turn off tag traffic in datapath (also calls Start/KillSpikes)
+void Driver::KillTraffic(unsigned int core_id)
+{
+  // XXX look up dump state
+  bool dump_state = false;
+  for (auto& it : {"TOGGLE_PRE_FIFO", "TOGGLE_POST_FIFO[0]", "TOGGLE_POST_FIFO[1]", "NeuronDumpToggle"}) {
+    SetToggle(core_id, it, false, dump_state);
+  }
+}
+
+
+/// Turn on spike outputs for all neurons
+void Driver::StartSpikes(unsigned int core_id)
+{
+  // XXX look up dump state
+  bool dump_state = false;
+  SetToggle(core_id, "NeuronDumpToggle", true, dump_state);
+}
+
+
+/// Turn on spike output of a particular neuron
+void Driver::StartSpikes(unsigned int core_id, unsigned int neuron_id) 
+{
+  // XXX program the tile memory
+  assert(false && "not implemented")
+}
+
+
+/// Turn off spike outputs for all neurons
+void Driver::KillSpikes(unsigned int core_id)
+{
+  // XXX look up dump state
+  bool dump_state = false;
+  SetToggle(core_id, "NeuronDumpToggle", false, dump_state);
+}
+
+
+/// Turn off spike output of a particular neuron
+void Driver::KillSpikes(unsigned int core_id, unsigned int neuron_id)
+{
+  // XXX program the tile memory
+  assert(false && "not implemented")
 }
 
 
@@ -91,12 +151,47 @@ void Driver::SetDACValue(unsigned int core_id, const std::string & DAC_signal_na
   SetRegister(core_id, *DAC_register_name, field_vals);
 }
 
+void Driver::ConnectDACtoADC(unsigned int core_id, const std::string & dac_signal_name)
+{
+  assert(false && "not implemented")
+}
+
+
+void DisconnectDACsfromADC(unsigned int core_id)
+{
+  assert(false && "not implemented")
+}
+
+
+/// Set large/small current scale for either ADC
+void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large)
+{
+  assert(false && "not implemented")
+}
+
+
+/// Turn ADC output on
+void Driver::StartADCTraffic(unsigned int core_id)
+{
+  assert(false && "not implemented")
+}
+
+
+/// Turn ADC output off
+void Driver::KillADCTraffic(unsigned int core_id)
+{
+  assert(false && "not implemented")
+}
+
+
 void Driver::SetPAT(
     unsigned int core_id, 
     const std::vector<PATData> & data, ///< data to program
     unsigned int start_addr            ///< PAT memory address to start programming from, default 0
 )
 {
+  // XXX ensure traffic is stopped, stop if necessary 
+  
   // pack data fields
   std::vector<uint64_t> payload;
   for (auto& it : data) {
@@ -123,6 +218,8 @@ void Driver::SetTAT(
     unsigned int start_addr            ///< PAT memory address to start programming from, default 0
 )
 {
+  // XXX ensure traffic is stopped, stop if necessary 
+ 
   // pack data fields
   std::vector<uint64_t> payload;
 
@@ -180,12 +277,15 @@ void Driver::SetTAT(
   SendToHorn(core_id, TAT_name, prog_words);
 }
 
+
 void Driver::SetAM(
     unsigned int core_id,
     const std::vector<AMData> & data, ///< data to program
     unsigned int start_addr           ///< PAT memory address to start programming from, default 0
 )
 {
+  // XXX ensure traffic is stopped, stop if necessary 
+ 
   // pack data fields
   std::vector<uint64_t> payload;
   for (auto& it : data) {
@@ -212,18 +312,21 @@ void Driver::SetAM(
   SendToHorn(core_id, "AMMM", prog_words_encapsulated);
 }
 
+
 void Driver::SetMM(
     unsigned int core_id,
     const std::vector<unsigned int> & data, ///< data to program
     unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
 )
 {
+  // XXX ensure traffic is stopped, stop if necessary 
+ 
   // pack data fields
   std::vector<uint64_t> payload;
   for (auto& it : data) {
 
     FieldValues field_vals = 
-        {{"weight", it.weight}};
+        {{"weight", it}};
 
     payload.push_back(PackWord(*(bd_pars_->Word("MM")), field_vals));
   }
@@ -238,6 +341,8 @@ void Driver::SetMM(
   std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord("MM", prog_words);
 
   SendToHorn(core_id, "AMMM", prog_words_encapsulated);
+}
+
 
 std::vector<uint64_t> Driver::PackRWProgWords(
     const WordStructure & word_struct, 
@@ -255,6 +360,7 @@ std::vector<uint64_t> Driver::PackRWProgWords(
 
   return retval;
 }
+
 
 std::vector<uint64_t> Driver::PackRIWIProgWords(
     const WordStructure & addr_word_struct, 
@@ -277,6 +383,7 @@ std::vector<uint64_t> Driver::PackRIWIProgWords(
   return retval;
 }
 
+
 std::vector<uint64_t> Driver::PackRMWProgWords(
     const WordStructure & addr_word_struct, 
     const WordStructure & write_word_struct, 
@@ -298,6 +405,7 @@ std::vector<uint64_t> Driver::PackRMWProgWords(
   return retval;
 }
 
+
 std::vector<uint64_t> Driver::PackAMMMWord(const std::string & AM_or_MM, const std::vector<uint64_t> & payload) const
 {
   const WordStructure * AM_MM_encapsulation;
@@ -308,7 +416,6 @@ std::vector<uint64_t> Driver::PackAMMMWord(const std::string & AM_or_MM, const s
   } else {
     assert(false && "AM_or_MM must == 'AM' or 'MM'");
   }
-
 
   std::vector<uint64_t> retval;
   for (auto& it : payload) {
@@ -325,19 +432,54 @@ std::vector<uint64_t> Driver::PackAMMMWord(const std::string & AM_or_MM, const s
   return retval;
 }
 
-void Driver::SendToHorn(unsigned int core_id, const std::string & leaf_name, std::vector<uint64_t> payload) 
+
+void Driver::SendSpikes(
+    const std::vector<Spike> & spikes,        ///< addresses of neurons to send spikes to
+    const std::vector<unsigned int> & delays  ///< inter-spike intervals
+)
 {
-  HWLoc loc = {core_id, bd_pars_->HornIdx(leaf_name)};
+  // XXX probably want to hardcode this for throughput
+  assert(spikes.size() == delays.size() && "length of spike ids and delays must match") ;
+
+  std::vector<uint64_t> payloads;
+  std::vector<unsigned int> core_ids;
+  payloads.reserve(spikes.size());
+  for (auto& it : spikes) {
+    core_ids.push_back(it.core_id);
+    payloads.push_back(PackWord(*(bd_pars_->Word("NeuronInject")), {"sign", SignedValToBit(it.sign)}}));
+  }
+
+  // XXX figure out what to do with the delays
+
+  SendToHorn(core_ids, {"NeuronInject"}, payloads);
+}
+
+
+void Driver::SendToHorn(
+    const std::vector<unsigned int> & core_id, 
+    const std::vector<std::string> & leaf_name, 
+    const std::vector<uint64_t> & payload) 
+{
 
   // XXX DO SERIALIZATION HERE XXX
   
+  assert(core_id.size() == leaf_name.size() && core_id.size() == payload.size() && "input lens must match");
+
   std::vector<EncInput> enc_inputs;
-  for (auto& it : payload) {
-   enc_inputs.push_back(std::make_pair(loc, static_cast<uint32_t>(it)));
+  for (unsigned int i = 0; i < payload.size(); i++) {
+    HWLoc loc = {core_id[i], bd_pars_->HornIdx(leaf_name[i])};
+    enc_inputs.push_back(std::make_pair(loc, static_cast<uint32_t>(payload[i])));
   }
  
   enc_buf_in_->Push(enc_inputs);
 }
+
+
+void Driver::SendToHorn(unsigned int core_id, const std::string & leaf_name, std::vector<uint64_t> payload) 
+{
+  SendToHorn({core_id}, {leaf_name}, payload);
+}
+
 
 void Driver::SetRegister(unsigned int core_id, const std::string & reg_name, const FieldValues & field_vals)
 {
@@ -346,6 +488,13 @@ void Driver::SetRegister(unsigned int core_id, const std::string & reg_name, con
 
   SendToHorn(core_id, reg_name, {payload});
 }
+
+
+void Driver::SetToggle(unsigned int core_id, const std::string & toggle_name, bool traffic_enable, bool dump_enable)
+{
+  SetRegister(core_id, toggle_name, {{"traffic_enable", traffic_enable}, {"dump_enable", dump_enable}});
+}
+
 
 uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues & field_values) const
 {
@@ -373,6 +522,7 @@ uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues &
 
   return PackV64(field_values_as_vect, widths_as_vect);
 }
+
 
 uint64_t Driver::SignedValToBit(int sign) const {
   assert((sign == 1 || sign == -1) && "sign must be +1 or -1");

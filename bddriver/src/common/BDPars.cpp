@@ -150,9 +150,14 @@ BDPars::BDPars()
   
   io_input_width_ = 21;
 
-  input_["RI"]            = {{"ct", 9}, {"tag", 11}};
-  input_["INIT_FIFO_DCT"] = {{"tag", 11}};
-  input_["NeuronInject"]  = {{"sign", 1}, {"synapse index", 10}};
+  input_["RI"]                  = {{"ct", 9}, {"tag", 11}};
+  input_["INIT_FIFO_DCT"]       = {{"tag", 11}};
+  input_["NeuronInject"]        = {{"sign", 1}, {"synapse index", 10}};
+  input_["TOGGLE_PRE_FIFO"]     = {{"traffic_enable", 1}, {"dump_enable", 1}};
+  input_["TOGGLE_POST_FIFO[0]"] = {{"traffic_enable", 1}, {"dump_enable", 1}};
+  input_["TOGGLE_POST_FIFO[1]"] = {{"traffic_enable", 1}, {"dump_enable", 1}};
+  input_["NeuronDumpToggle"]    = {{"traffic_enable", 1}, {"dump_enable", 1}};
+
 
   //////////////////////////////////////////////////////
   // outputs
