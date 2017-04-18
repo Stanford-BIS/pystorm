@@ -7,6 +7,7 @@ COPY . /home/git/pystorm
 # the automated tests for PyStorm
 
 RUN ln -s /usr/lib/x86_64-linux-gnu/libboost_python-py35.so /usr/lib/x86_64-linux-gnu/libboost_python3.so \
+    && export HOME="/home/git" \
     && cd /home/git/pystorm \ 
     && mkdir build \
     && cd build \
