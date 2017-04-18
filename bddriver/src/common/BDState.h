@@ -17,16 +17,15 @@ class BDState {
     ~BDState();
 
     void SetRegister(const std::string & reg_name, uint64_t new_val);
+    uint64_t GetRegister(const std::string & reg_name) const;
+
     void SetMemory(const std::string & mem_name, unsigned int start_addr, const std::vector<uint64_t> & new_vals);
+    std::vector<uint64_t> GetMemory(const std::string & mem_name, unsigned int start_addr, unsigned int num_vals) const;
 
   private:
-    unsigned int in_bits;
-
-    std::vector<std::string> register_names_;
-    std::vector<std::string> memory_names_;
-
-    std::unordered_map<std::string, uint64_t> register_vals_;
-    std::unordered_map<std::string, uint64_t *> memory_vals_;
+    const BDPars * pars_;
+    std::unordered_map<std::string, uint64_t> reg_vals_;
+    std::unordered_map<std::string, std::vector<uint64_t> > mem_vals_;
 
 };
 

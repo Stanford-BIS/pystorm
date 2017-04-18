@@ -19,6 +19,8 @@ namespace bddriver
  *
  */
 
+typedef std::unordered_map<std::string, uint64_t> FieldValues;
+
 struct PATData {
   /// Contents of a single PAT memory entry
   unsigned int AM_addr;
@@ -40,8 +42,8 @@ struct TATData {
   unsigned int MM_addr;
 
   // type == 1 means neuron entry
-  unsigned int tap_addr[2];
-  bool         tap_sign[2]; // 1 is -1, 0 is +1
+  unsigned int tap_addr;
+  int          tap_sign; // -1 or +1
   
   // type == 2 means fanout entry
   unsigned int tag;
@@ -53,7 +55,7 @@ struct AMData {
   ///
   /// (the value field is not exposed to the programmer, 
   ///  programming the AM sets this field to 0)
-  unsigned int thr;
+  unsigned int threshold;
   unsigned int stop;
   unsigned int next_addr;
 };
@@ -68,6 +70,7 @@ struct Tag {
   /// A tag going to or from the datapath
   unsigned int core_id;
   unsigned int tag_id;
+  unsigned int count;
 };
 
 class Driver
@@ -104,10 +107,10 @@ class Driver
     // ADC/DAC Config
 
     /// Program DAC value
-    void SetDACValue(unsigned int core_id, const std::string & dac_name, unsigned int value);
+    void SetDACValue(unsigned int core_id, const std::string & dac_signal_name, unsigned int value);
 
     /// Make DAC-to-ADC connection for calibration for a particular DAC
-    void ConnectDACtoADC(unsigned int core_id, const std::string & dac_name);
+    void ConnectDACtoADC(unsigned int core_id, const std::string & dac_signal_name);
     /// Disconnect DAC-to-ADC connection for all DACs
     void DisconnectDACsfromADC(unsigned int core_id);
 
@@ -126,32 +129,32 @@ class Driver
     // memory programming
 
     /// Program Pool Action Table
-    void ProgramPAT(
+    void SetPAT(
         unsigned int core_id, 
         const std::vector<PATData> & data, ///< data to program
         unsigned int start_addr            ///< PAT memory address to start programming from, default 0
     );
 
     /// Program Tag Action Table
-    void ProgramTAT(
+    void SetTAT(
         unsigned int core_id, 
-        bool TAT_idx,               ///< which TAT to program, 0 or 1
-        const std::vector<TATData>, ///< data to program
-        unsigned int start_addr     ///< PAT memory address to start programming from, default 0
+        bool TAT_idx,                      ///< which TAT to program, 0 or 1
+        const std::vector<TATData> & data, ///< data to program
+        unsigned int start_addr            ///< PAT memory address to start programming from, default 0
     );
 
     /// Program Accumulator Memory
-    void ProgramAM(
+    void SetAM(
         unsigned int core_id,
-        const std::vector<AMData>, ///< data to program
-        unsigned int start_addr    ///< PAT memory address to start programming from, default 0
+        const std::vector<AMData> & data, ///< data to program
+        unsigned int start_addr           ///< PAT memory address to start programming from, default 0
     );
 
     /// Program Main Memory (a.k.a. Weight Memory)
-    void ProgramMM(
+    void SetMM(
         unsigned int core_id,
-        const std::vector<unsigned int>, ///< data to program
-        unsigned int start_addr          ///< PAT memory address to start programming from, default 0
+        const std::vector<unsigned int> & data, ///< data to program
+        unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
     );
 
     ////////////////////////////////
@@ -199,11 +202,43 @@ class Driver
     Decoder * dec_; // decodes traffic from BD
 
     ////////////////////////////////
+    // helpers
+    uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
+
+    void SendToHorn(unsigned int core_id, const std::string & leaf_name, std::vector<uint64_t> payload);
+
+    uint64_t SignedValToBit(int sign) const;
+
+    ////////////////////////////////
     // low-level programming calls, breadth of high-level downstream API goes through these
+    
+    std::vector<uint64_t> PackRWProgWords(
+        const WordStructure & word_struct, 
+        const std::vector<uint64_t> & payload, 
+        unsigned int start_addr
+    ) const;
+
+    std::vector<uint64_t> PackRIWIProgWords(
+        const WordStructure & addr_word_struct, 
+        const WordStructure & write_word_struct, 
+        const std::vector<uint64_t> & payload, 
+        unsigned int start_addr
+    ) const;
+
+    std::vector<uint64_t> PackRMWProgWords(
+        const WordStructure & addr_word_struct, 
+        const WordStructure & write_word_struct, 
+        const WordStructure & incr_word_struct,
+        const std::vector<uint64_t> & payload, 
+        unsigned int start_addr
+    ) const; 
+
+    std::vector<uint64_t> PackAMMMWord(const std::string & AM_or_MM, const std::vector<uint64_t> & payload) const;
+
     
     void ToggleStream(unsigned int core_id, const std::string & stream_name, bool traffic_on, bool dump_on); // wrapper around SetRegister
 
-    void SetRegister(unsigned int core_id, const std::string & register_name, unsigned int val);
+    void SetRegister(unsigned int core_id, const std::string & reg_name, const FieldValues & field_vals);
 
     void SetRIWIMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
     void SetRMWMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
