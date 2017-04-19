@@ -61,8 +61,24 @@ The following diagram illustrates the structure
 
 # Build
 
-The module bddriver is currently buildable by cd'ing to the 
-`pystorm/bddriver` directory and running the `build_driver.sh` script.
+Pystorm modules can be built issuing the following commands from the repositories
+base directory.
+
+```
+    mkdir build
+    cd build
+    cmake ..
+    make
+```
+
+# TEST 
+
+From the build directory all module tests can be executed issuing the 
+following command.
+
+```
+    make test ARGS="-V"
+```
 
 # Dependencies
 
@@ -79,17 +95,10 @@ Pystorm was built and is dependent on the following software packages:
 # Docker
 
 Docker can be used to build and test Pystorm. The folder `docker` has a 
-Docker file (named `Dockerfile`) and shell script that can be used to build 
-an image and build/test Pystorm on it.
-
-The files can be moved to any directory on a machine with Docker installed and
-used to build and test Pystorm.
+Docker file (named `Dockerfile_JENKINS_CI`) and shell script that can be 
+used to build an image and build/test Pystorm on it.
 
 The following is an example of how to use Docker to build and test using 
 Docker.
 
-    cp pystorm/docker/* <your_docker_directory>
-    cd <your_docker_directory>
-    git clone git@github.com:Stanford-BIS/pystorm.git
-    sudo docker build -t <your_build_name> .
-    sudo docker run --rm -t <your_build_name>:latest
+    sudo docker build --file docker/Dockerfile_JENKINS_CI .

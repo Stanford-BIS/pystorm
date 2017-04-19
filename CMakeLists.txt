@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 
 project(pystorm CXX)
 
-############################################################################
-#
+############################################################################ #
 # Global variables 
 #
 ############################################################################
@@ -60,6 +59,16 @@ function(build_on_linux)
     # Build driver
     add_subdirectory(${PROJECT_SOURCE_DIR}/bddriver)
 
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -ggdb -O0" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3 -march=native -NDEBUG" CACHE STRING "" FORCE)
+    endif()
+
+    message(status ${CMAKE_COMPILER_IS_GNUCXX})
+    message(status ${CMAKE_CXX_FLAGS_DEBUG})
+    message(status ${CMAKE_CXX_FLAGS_RELEASE})
+
 endfunction()
 
 ############################################################################
@@ -72,7 +81,9 @@ endfunction()
 check_multiplatform_system_dependencies()
 
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug")
+    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+    "Choose the type of build, options are : Debug Release"
+    FORCE)
 endif()
 
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
