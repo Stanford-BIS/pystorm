@@ -29,7 +29,7 @@ check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
 find_package(Threads REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native)
+  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
   #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
 endif()
 
@@ -71,6 +71,7 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
+    ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
 )
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
