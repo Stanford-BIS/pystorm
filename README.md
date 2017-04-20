@@ -13,7 +13,9 @@ the software stack known as PyStorm.
 The following diagram illustrates the structure
 
 	├── pystorm
+        │                                                                           
 	    ├── CMakeLists.txt                                                          
+        │                                                                           
         ├── bddriver                                                                
         │   ├── CMakeLists.txt                                                      
         │   ├── build                   (out-of-source tree)                        
@@ -22,42 +24,32 @@ The following diagram illustrates the structure
         │   ├── test                    (out-of-source tree)                        
         │   │   ├── CMakeLists.txt                                                  
         │   │   ├── comm                                                            
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── common                                                          
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── encoder                                                         
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── driverifc                                                       
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   └── decoder                                                         
-        │   │       └── CMakeLists.txt                                              
         │   │                                                                       
         │   ├── src                                                                 
         │   │   ├── CMakeLists.txt                                                  
         │   │   ├── comm                                                            
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── common                                                          
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── encoder                                                         
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── driverifc                                                       
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   └── decoder                                                         
-        │   │       └── CMakeLists.txt                                              
         │   │                                                                       
-        │   └── include                 (public C++ API)                            
+        │   └── include                 (public bddriver API)                            
         │                                                                           
         ├── bdhal                                                                   
-        │   ├── build                   (out-of-source tree)                        
-        │   ├── lib                     (out-of-source tree)                        
-        │   ├── docs                    (out-of-source tree)                        
-        │   ├── test                    (out-of-source tree)                        
-        │   ├── src                                                                 
-        │   └── include                 (public C++ API)                            
+        │                                                                           
+        ├── ext                         (externally sourced libraries)
+        │                                                                           
+        ├── include                     (public shared headers)
+        │                                                                           
+        ├── lib                         (public shared libs)
         │                                                                           
         ├── neuromorph                                                              
         │                                                                           
-        └── docker                                           
+        └── docker 
 
 # Build
 
