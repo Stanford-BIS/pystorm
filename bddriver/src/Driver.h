@@ -199,7 +199,7 @@ class Driver
     MutexBuffer<EncOutput> * enc_buf_out_;
 
     MutexBuffer<DecInput> * dec_buf_in_;
-    MutexBuffer<DecOutput> * dec_buf_out_;
+    std::vector<MutexBuffer<DecOutput> *> dec_bufs_out_;
 
     Encoder * enc_; // encodes traffic to BD
     Decoder * dec_; // decodes traffic from BD

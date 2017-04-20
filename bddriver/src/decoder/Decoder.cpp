@@ -22,27 +22,37 @@ namespace bddriver {
 void Decoder::RunOnce()
 {
   unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
-  Decode(input_chunk_, num_popped, output_chunk_);
-  bool success = false;
-  while (!success & do_run_) { // if killed, need to stop trying
-    success = out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+  std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
+  Decode(input_chunk_, num_popped, &output_chunks_, &num_pushed_to_each);
+
+  bool all_success = false;
+
+  // XXX this is not ideal. Blocking on one queue should not cause other queues to block
+  
+  while (!all_success & do_run_) { // if killed, need to stop trying
+    all_success = true;
+    for (unsigned int i = 0; i < out_bufs_.size(); i++) {
+      if (num_pushed_to_each[i] > 0) {
+        bool this_success = out_bufs_[i]->Push(output_chunks_[i], num_pushed_to_each[i], timeout_us_);
+        all_success = all_success & this_success;
+      }
+    }
   }
+  //cout << "decoded a chunk" << endl;
   //num_processed_ += num_popped;
 }
 
 Decoder::Decoder(
     const BDPars * pars, 
     MutexBuffer<DecInput> * in_buf, 
-    MutexBuffer<DecOutput> * out_buf, 
+    const std::vector<MutexBuffer<DecOutput> *> & out_bufs, 
     unsigned int chunk_size, 
     unsigned int timeout_us
-) : Xcoder(pars, in_buf, out_buf, chunk_size, timeout_us) // call default constructor
+) : Xcoder(pars, in_buf, out_bufs, chunk_size, timeout_us) // call default constructor
 {
   // set up the vectors we use to do the decoding
   // for now not worrying about the order of entries, might be important later
   for (const auto& it : *(pars_->FunnelRoutes())) {
-    leaf_idxs_.push_back(it.first);
-
     uint64_t one = 1;
 
     uint64_t route_val = static_cast<uint64_t>(it.first);
@@ -78,13 +88,16 @@ Decoder::Decoder(
 
 }
 
-void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs)
+void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each)
 {
   for (unsigned int i = 0; i < num_popped; i++) {
 
     // XXX this is where you would decode the FPGA
+    // do something with time
+    unsigned int time_epoch = 0;
 
     // XXX this is where you would do something with the core id
+    unsigned int core_id = 0;
 
     // decode funnel
     uint64_t input = inputs[0];
@@ -92,11 +105,12 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, DecOutput
     unsigned int leaf_idx = funnel_decoded.first;
     uint32_t payload = funnel_decoded.second;
 
-    HWLoc loc;
-    loc.leaf_idx = leaf_idx;
-    loc.core_id = 0;
+    //cout << leaf_idx << endl;
 
-    outputs[i] = std::make_pair(loc, payload);
+    unsigned int num_pushed_to_this = num_pushed_to_each->at(leaf_idx);
+    (*outputs)[leaf_idx][num_pushed_to_this] = {payload, core_id, time_epoch};
+
+    (*num_pushed_to_each)[leaf_idx]++;
   }
 }
 
@@ -110,7 +124,7 @@ inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_
   // [ route | X | payload ]
 
   // test which routes match, break out payload for the one that does, return matching leaf name
-  for (unsigned int i = 0; i < leaf_idxs_.size(); i++) {
+  for (unsigned int i = 0; i < leaf_routes_.size(); i++) {
 
     // mask out everything except the route bits used by this leaf
     uint64_t eligible_route_bits_only = leaf_route_masks_[i] & payload_route;
@@ -124,7 +138,7 @@ inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_
       uint32_t payload = static_cast<uint32_t>(leaf_payload_masks_[i] & payload_route);
 
       // return payload and leaf name tuple
-      unsigned int leaf_idx = leaf_idxs_[i];
+      unsigned int leaf_idx = i;
 
       return std::make_pair(leaf_idx, payload);
     }

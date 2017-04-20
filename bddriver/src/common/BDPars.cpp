@@ -177,15 +177,19 @@ BDPars::BDPars()
   // Postprocessing
 
   // map funnel/horn leaf names to indices used internally
-  unsigned int idx = 0;
+  unsigned int idx;
+  idx = 0;
   for (auto& it : horn_) {
     std::string horn_leaf_name = it.first;
     horn_leaf_name_to_idx_[horn_leaf_name] = idx;
+    idx++;
   }
 
+  idx = 0;
   for (auto& it : funnel_) {
     std::string funnel_leaf_name = it.first;
     funnel_leaf_name_to_idx_[funnel_leaf_name] = idx;
+    idx++;
   }
   
   // create direct-mapped tables used in encoding/decoding
@@ -199,6 +203,16 @@ BDPars::BDPars()
     funnel_routes_.push_back(std::make_pair(leaf_info.route_val, leaf_info.route_len));
   }
 
+  //cout << "funnel_routes_" << endl;
+  //for (auto& it : funnel_routes_) {
+  //  cout << it.first << " , " << it.second << endl;
+  //}
+
+  //cout << "funnel_leaf_name_to_idx_" << endl;
+  //for (auto& it : funnel_leaf_name_to_idx_) {
+  //  cout << it.first << " : " << it.second << endl;
+  //}
+
 }
 
 unsigned int BDPars::Width(const std::string& object) const
@@ -208,6 +222,10 @@ unsigned int BDPars::Width(const std::string& object) const
     return funnel_.at(object).data_width;
   } else if (horn_.count(object) > 0) {
     return horn_.at(object).data_width;
+  } else if (object.compare("BD_input") == 0) {
+    return io_input_width_;
+  } else if (object.compare("BD_output") == 0) {
+    return io_output_width_;
   } else {
     assert(false && "couldn't find desired object");
   }
@@ -230,6 +248,19 @@ const WordStructure * BDPars::Word(const std::string & object, unsigned int subt
   }
 }
 
+std::vector<std::string> BDPars::FunnelLeafNames() const 
+{
+  std::vector<std::string> retval;
+  for (auto& it : funnel_) {
+    retval.push_back(it.first);
+  }
+  return retval;
+}
+
+const std::string * BDPars::DACSignalNameToDACRegisterName(const std::string & signal_name) 
+{
+  assert(false && "not implemented");
+}
 
 } // bddriver
 } // pystorm

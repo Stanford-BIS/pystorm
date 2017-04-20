@@ -36,7 +36,11 @@ Driver::Driver()
   enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get("enc_buf_in_", "capacity"));
   enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get("enc_buf_out_", "capacity"));
   dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get("dec_buf_in_", "capacity"));
-  dec_buf_out_ = new MutexBuffer<DecOutput>(driver_pars_->Get("dec_buf_out_", "capacity"));
+
+  for (unsigned int i = 0; i < bd_pars_->FunnelLeafNames().size(); i++) {
+    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get("dec_buf_out_", "capacity"));
+    dec_bufs_out_.push_back(buf_ptr);
+  }
 
   // initialize Encoder and Decoder
   enc_ = new Encoder(
@@ -50,7 +54,7 @@ Driver::Driver()
   dec_ = new Decoder(
       bd_pars_, 
       dec_buf_in_, 
-      dec_buf_out_, 
+      dec_bufs_out_, 
       driver_pars_->Get("dec_", "chunk_size"), 
       driver_pars_->Get("dec_", "timeout_us")
   );
@@ -64,7 +68,9 @@ Driver::~Driver()
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
-  delete dec_buf_out_;
+  for (auto& it : dec_bufs_out_) {
+    delete it;
+  }
   delete enc_;
   delete dec_;
 }
@@ -119,7 +125,7 @@ void Driver::StartSpikes(unsigned int core_id)
 void Driver::StartSpikes(unsigned int core_id, unsigned int neuron_id) 
 {
   // XXX program the tile memory
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
@@ -136,7 +142,7 @@ void Driver::KillSpikes(unsigned int core_id)
 void Driver::KillSpikes(unsigned int core_id, unsigned int neuron_id)
 {
   // XXX program the tile memory
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
@@ -153,34 +159,34 @@ void Driver::SetDACValue(unsigned int core_id, const std::string & DAC_signal_na
 
 void Driver::ConnectDACtoADC(unsigned int core_id, const std::string & dac_signal_name)
 {
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
 void DisconnectDACsfromADC(unsigned int core_id)
 {
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
 /// Set large/small current scale for either ADC
 void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large)
 {
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
 /// Turn ADC output on
 void Driver::StartADCTraffic(unsigned int core_id)
 {
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
 /// Turn ADC output off
 void Driver::KillADCTraffic(unsigned int core_id)
 {
-  assert(false && "not implemented")
+  assert(false && "not implemented");
 }
 
 
@@ -258,7 +264,7 @@ void Driver::SetTAT(
         field_vals = 
           {{"tag", it.tag}, 
            {"global route", it.global_route},
-           {"stop", it.stop}}
+           {"stop", it.stop}};
     }
 
     if (!skip) {
@@ -446,7 +452,7 @@ void Driver::SendSpikes(
   payloads.reserve(spikes.size());
   for (auto& it : spikes) {
     core_ids.push_back(it.core_id);
-    payloads.push_back(PackWord(*(bd_pars_->Word("NeuronInject")), {"sign", SignedValToBit(it.sign)}}));
+    payloads.push_back(PackWord(*(bd_pars_->Word("NeuronInject")), {{"sign", SignedValToBit(it.sign)}}));
   }
 
   // XXX figure out what to do with the delays
@@ -528,6 +534,7 @@ uint64_t Driver::SignedValToBit(int sign) const {
   assert((sign == 1 || sign == -1) && "sign must be +1 or -1");
   return static_cast<uint64_t>((-1 * sign + 1) / 2);
 }
+
 
 } // bddriver namespace
 } // pystorm namespace

@@ -51,6 +51,8 @@ class BDPars {
     inline const std::vector<FHRoute> * HornRoutes() const { return &horn_routes_; }
     inline const std::vector<FHRoute> * FunnelRoutes() const { return &funnel_routes_; }
 
+    std::vector<std::string> FunnelLeafNames() const;
+
     /////////////////////////////////////
     // field width queries
     

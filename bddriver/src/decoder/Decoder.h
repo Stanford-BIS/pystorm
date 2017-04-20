@@ -15,7 +15,11 @@
 namespace pystorm {
 namespace bddriver {
 
-typedef std::pair<HWLoc, uint32_t> DecOutput;
+struct DecOutput {
+  uint32_t payload;
+  unsigned int core_id;
+  unsigned int time_epoch;
+};
 typedef uint64_t DecInput;
 
 class Decoder : public Xcoder<DecInput, DecOutput> {
@@ -23,21 +27,20 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
     Decoder(
         const BDPars * pars, 
         MutexBuffer<DecInput> * in_buf, 
-        MutexBuffer<DecOutput> * out_buf, 
+        const std::vector<MutexBuffer<DecOutput> *> & out_bufs, 
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
     );
 
     // for testing
     //unsigned int num_processed_;
-    void Decode(const DecInput * inputs, unsigned int num_popped, DecOutput * outputs);
+    void Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each);
 
   private:
 
     void RunOnce();
     std::pair<unsigned int, uint32_t> DecodeFunnel(uint64_t payload_route) const;
 
-    std::vector<unsigned int> leaf_idxs_;
     std::vector<uint64_t> leaf_routes_;
     std::vector<unsigned int> leaf_route_lens_;
     std::vector<uint64_t> leaf_route_masks_;

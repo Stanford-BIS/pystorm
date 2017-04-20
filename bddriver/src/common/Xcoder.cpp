@@ -20,26 +20,31 @@ template <class TIN, class TOUT>
 Xcoder<TIN, TOUT>::Xcoder(
     const BDPars * pars, 
     MutexBuffer<TIN> * in_buf, 
-    MutexBuffer<TOUT> * out_buf, 
+    const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
     unsigned int chunk_size, 
     unsigned int timeout_us) 
 {
   pars_ = pars;  
   in_buf_ = in_buf;
-  out_buf_ = out_buf;
+  out_bufs_ = out_bufs;
   timeout_us_ = timeout_us;
 
   // allocate working arrays
   max_chunk_size_ = chunk_size;
   input_chunk_ = new TIN[max_chunk_size_];
-  output_chunk_ = new TOUT[max_chunk_size_];
+
+  for (unsigned int i = 0; i < out_bufs.size(); i++) {
+    output_chunks_.push_back(new TOUT[max_chunk_size_]);
+  }
 }
 
 template <class TIN, class TOUT>
 Xcoder<TIN, TOUT>::~Xcoder()
 {
   delete[] input_chunk_;
-  delete[] output_chunk_;
+  for (auto& chunk : output_chunks_) {
+    delete[] chunk;
+  }
   if (do_run_) {
     Stop();
   }

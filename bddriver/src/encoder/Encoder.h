@@ -26,7 +26,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
         MutexBuffer<EncOutput> * out_buf, 
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
-    ) : Xcoder(pars, in_buf, out_buf, chunk_size, timeout_us) {}; // call base constructor only
+    ) : Xcoder(pars, in_buf, {out_buf}, chunk_size, timeout_us) {}; // call base constructor only
 
   private:
 

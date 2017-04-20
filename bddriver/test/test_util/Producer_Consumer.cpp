@@ -66,6 +66,7 @@ void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int
 
   unsigned int N_consumed = 0;
   while (N_consumed != N) {
+    //cout << "hi" << endl;
     unsigned int num_popped = buf->Pop(data, M, try_for_us);
 
     //cout << "popping: ";
