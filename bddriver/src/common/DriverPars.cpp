@@ -15,6 +15,12 @@ DriverPars::DriverPars()
 
   pars_["dec_"]["chunk_size"] = 1000;
   pars_["dec_"]["timeout_us"] = 1000;
+
+  pars_["DumpPAT"]["timeout_us"] = 1000;
+  pars_["DumpTAT"]["timeout_us"] = 1000;
+  pars_["DumpMM"]["timeout_us"] = 1000;
+  pars_["RecvSpikes"]["timeout_us"] = 1000;
+  pars_["RecvTags"]["timeout_us"] = 1000;
 }
 
 DriverPars::~DriverPars()

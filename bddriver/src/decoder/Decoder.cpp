@@ -3,12 +3,10 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include <string>
 #include <thread>
 #include <utility>
 
 #include "common/BDPars.h"
-#include "common/HWLoc.h"
 #include "common/binary_util.h"
 #include "common/MutexBuffer.h"
 
@@ -57,7 +55,7 @@ Decoder::Decoder(
 
     uint64_t route_val = static_cast<uint64_t>(it.first);
     uint64_t route_len = static_cast<uint64_t>(it.second);
-    uint64_t payload_len = static_cast<uint64_t>(pars_->Width("BD_output")) - route_len;
+    uint64_t payload_len = static_cast<uint64_t>(pars_->Width(BD_output)) - route_len;
 
     //cout << "route len " << route_len << endl;
     //cout << "payload len " << payload_len << endl;

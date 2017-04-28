@@ -8,19 +8,12 @@
 #include <thread>
 
 #include "common/BDPars.h"
-#include "common/HWLoc.h"
 #include "common/MutexBuffer.h"
 #include "common/Xcoder.h"
+#include "common/DriverTypes.h"
 
 namespace pystorm {
 namespace bddriver {
-
-struct DecOutput {
-  uint32_t payload;
-  unsigned int core_id;
-  unsigned int time_epoch;
-};
-typedef uint64_t DecInput;
 
 class Decoder : public Xcoder<DecInput, DecOutput> {
   public:

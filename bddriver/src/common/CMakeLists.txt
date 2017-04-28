@@ -2,7 +2,7 @@ set(HEADER_FILES
     ${HEADER_FILES} 
     ${CMAKE_CURRENT_SOURCE_DIR}/BDPars.h
     ${CMAKE_CURRENT_SOURCE_DIR}/DriverPars.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/HWLoc.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/DriverTypes.h
     # MutexBuffer.cpp is included from here:
     ${CMAKE_CURRENT_SOURCE_DIR}/MutexBuffer.h 
     # Xcoder.cpp is included from here:

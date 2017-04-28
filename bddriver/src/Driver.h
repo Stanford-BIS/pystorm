@@ -3,76 +3,46 @@
 
 #include <memory>
 
+//#include "common/WordStream.h"
 #include "common/BDPars.h"
 #include "common/DriverPars.h"
-#include "common/HWLoc.h"
 #include "encoder/Encoder.h"
 #include "decoder/Decoder.h"
 #include "common/MutexBuffer.h"
 
-namespace pystorm
-{
-namespace bddriver
-{
+/* 
+ * TODO LIST: funnel/horn leaves that still need their calls finished
+ *
+ * horn_["RI"]                   (SendTags needs impl)
+ * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
+ * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
+ * horn_["NeuronConfig"]         (XXX TileSRAM calls don't exist)
+ * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl)
+ * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl)
+ * horn_["DELAY[*]"]             (SetMemDelay needs impl)
+ *
+ * funnel_["RO_ACC"]             (RecvTags needs impl)
+ * funnel_["RO_TAT"]             (RecvTags needs impl)
+ * funnel_["DUMP_AM"]            (DumpAM needs impl, see DumpPAT)
+ * funnel_["DUMP_MM"]            (DumpMM needs impl, see DumpPAT)
+ * funnel_["DUMP_TAT[0]"]        (DumpTAT needs impl, see DumpPAT)
+ * funnel_["DUMP_TAT[1]"]        (DumpTAT needs impl, see DumpPAT)
+ * funnel_["DUMP_PRE_FIFO"]      (XXX FIFO dump calls don't exist)
+ * funnel_["DUMP_POST_FIFO[0]"]  (XXX FIFO dump calls don't exist)
+ * funnel_["DUMP_POST_FIFO[1]"]  (XXX FIFO dump calls don't exist)
+ * funnel_["OVFLW[0]"]           (XXX warning monitoring calls don't exist)
+ * funnel_["OVFLW[1]"]           (XXX warning monitoring calls don't exist)
+ */
+
+namespace pystorm {
+namespace bddriver {
+
+typedef std::unordered_map<WordFieldId, uint64_t> FieldValues;
+
 /**
  * \class Driver is a singleton; There should only be one instance of this.
  *
  */
-
-typedef std::unordered_map<std::string, uint64_t> FieldValues;
-
-struct PATData {
-  /// Contents of a single PAT memory entry
-  unsigned int AM_addr;
-  unsigned int MM_addr_low_bits;
-  unsigned int MM_addr_high_bits;
-};
-
-struct TATData {
-  /// Contents of a single TAT memory entry. 
-  ///
-  /// Has three field classes depending on what type of data is stored
-  // (this implementation is wasteful but simple).
-
-  unsigned int stop;
-  unsigned int type;
-
-  // type == 0 means accumulator entry
-  unsigned int AM_addr;
-  unsigned int MM_addr;
-
-  // type == 1 means neuron entry
-  unsigned int tap_addr;
-  int          tap_sign; // -1 or +1
-  
-  // type == 2 means fanout entry
-  unsigned int tag;
-  unsigned int global_route;
-};
-
-struct AMData {
-  /// Contents of a single AM memory entry.
-  ///
-  /// (the value field is not exposed to the programmer, 
-  ///  programming the AM sets this field to 0)
-  unsigned int threshold;
-  unsigned int stop;
-  unsigned int next_addr;
-};
-
-struct Spike {
-  /// A spike going to or from a neuron
-  unsigned int core_id;
-  unsigned int neuron_id;
-  int sign;
-};
-
-struct Tag {
-  /// A tag going to or from the datapath
-  unsigned int core_id;
-  unsigned int tag_id;
-  unsigned int count;
-};
 
 class Driver
 {
@@ -90,37 +60,26 @@ class Driver
     ////////////////////////////////
     // Traffic Control
 
-    /// Turn on tag traffic in datapath (also calls Start/KillSpikes)
-    void StartTraffic(unsigned int core_id);
-    /// Turn off tag traffic in datapath (also calls Start/KillSpikes)
-    void KillTraffic(unsigned int core_id);
+    /// Control tag traffic 
+    void SetTagTrafficState(unsigned int core_id, bool en);
 
-    /// Turn on spike outputs for all neurons
-    void StartSpikes(unsigned int core_id);
-    /// Turn on spike output of a particular neuron
-    void StartSpikes(unsigned int core_id, unsigned int neuron_id);
-    /// Turn off spike outputs for all neurons
-    void KillSpikes(unsigned int core_id);
-    /// Turn off spike output of a particular neuron
-    void KillSpikes(unsigned int core_id, unsigned int neuron_id);
+    /// Control spike traffic from neuron array to datapath
+    void SetSpikeTrafficState(unsigned int core_id, bool en);
+    /// Control spike traffic from neuron array to driver
+    void SetSpikeDumpState(unsigned int core_id, bool en);
 
     ////////////////////////////////
     // ADC/DAC Config
 
     /// Program DAC value
-    void SetDACValue(unsigned int core_id, const std::string & dac_signal_name, unsigned int value);
-
+    void SetDACValue(unsigned int core_id, DACSignalId signal_id,  unsigned int value);
     /// Make DAC-to-ADC connection for calibration for a particular DAC
-    void ConnectDACtoADC(unsigned int core_id, const std::string & dac_signal_name);
-    /// Disconnect DAC-to-ADC connection for all DACs
-    void DisconnectDACsfromADC(unsigned int core_id);
+    void SetDACtoADCConnectionState(unsigned int core_id, DACSignalId dac_signal_id, bool en);
 
     /// Set large/small current scale for either ADC
     void SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large);
     /// Turn ADC output on
-    void StartADCTraffic(unsigned int core_id);
-    /// Turn ADC output off
-    void KillADCTraffic(unsigned int core_id);
+    void SetADCTrafficState(unsigned int core_id, bool en);
 
     ////////////////////////////////
     // Neuron Config
@@ -128,7 +87,7 @@ class Driver
 
     ////////////////////////////////
     // memory programming
-
+    
     /// Program Pool Action Table
     void SetPAT(
         unsigned int core_id, 
@@ -158,28 +117,31 @@ class Driver
         unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
     );
 
+    /// Dump PAT contents
+    std::vector<PATData> DumpPAT(unsigned int core_id);
+    /// Dump TAT contents
+    std::vector<TATData> DumpTAT(unsigned int core_id);
+    /// Dump AM contents
+    std::vector<AMData> DumpAM(unsigned int core_id);
+    /// Dump MM contents
+    std::vector<unsigned int> DumpMM(unsigned int core_id);
+
     ////////////////////////////////
     // Spike/Tag Streams
 
     /// Send a stream of spikes to neurons
-    void SendSpikes(
-        const std::vector<Spike> & spikes,        ///< addresses of neurons to send spikes to
-        const std::vector<unsigned int> & delays  ///< inter-spike intervals
-    );
+    void SendSpikes(const std::vector<Spike> & spikes);
 
     /// Send a stream of tags
-    void SendTags(
-        std::vector<Spike> spikes,        ///< tag ids to send
-        std::vector<unsigned int> delays  ///< inter-tag intervals
-    );
-
-    // XXX need to figure out FPGA-generated spike stream calls
+    void SendTags(std::vector<Tag> spikes);
 
     /// Receive a stream of spikes
     std::vector<Spike> RecvSpikes(unsigned int max_to_recv);
 
     /// Receive a stream of tags
     std::vector<Tag> RecvTags(unsigned int max_to_recv);
+
+    // XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
 
 
   protected:
@@ -207,12 +169,14 @@ class Driver
     ////////////////////////////////
     // helpers
     uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
+    //std::vector<uint64_t> PackWords(const WordStructure & word_struct, const WordStream & vals);
+    FieldValues UnpackWord(const WordStructure & word_struct, uint64_t word) const;
 
-    void SendToHorn(unsigned int core_id, const std::string & leaf_name, std::vector<uint64_t> payload);
+    void SendToHorn(unsigned int core_id, HornLeafId leaf_id, std::vector<uint64_t> payload);
     void SendToHorn(
-      const std::vector<unsigned int> & core_id, 
-      const std::vector<std::string> & leaf_name, 
-      const std::vector<uint64_t> & payload
+        const std::vector<unsigned int> & core_id, 
+        const std::vector<HornLeafId> & leaf_id,
+        const std::vector<uint64_t> & payload
     );
 
     uint64_t SignedValToBit(int sign) const;
@@ -225,12 +189,23 @@ class Driver
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const;
+    std::vector<uint64_t> PackRWDumpWords(
+        const WordStructure & word_struct, 
+        unsigned int start_addr,
+        unsigned int end_addr
+    ) const;
 
     std::vector<uint64_t> PackRIWIProgWords(
         const WordStructure & addr_word_struct, 
         const WordStructure & write_word_struct, 
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
+    ) const;
+    std::vector<uint64_t> PackRIWIDumpWords(
+        const WordStructure & addr_word_struct, 
+        const WordStructure & read_word_struct, 
+        unsigned int start_addr,
+        unsigned int end_addr
     ) const;
 
     std::vector<uint64_t> PackRMWProgWords(
@@ -240,19 +215,18 @@ class Driver
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const; 
+    // RMWProgWord == RMWDumpWord
 
-    std::vector<uint64_t> PackAMMMWord(const std::string & AM_or_MM, const std::vector<uint64_t> & payload) const;
+    std::vector<uint64_t> PackAMMMWord(MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
 
     
-    void ToggleStream(unsigned int core_id, const std::string & stream_name, bool traffic_on, bool dump_on); // wrapper around SetRegister
+    void SetRegister(unsigned int core_id, RegId reg_id, const FieldValues & field_vals);
+    void SetToggle(unsigned int core_id, RegId toggle_id, bool traffic_enable, bool dump_enable);
 
-    void SetRegister(unsigned int core_id, const std::string & reg_name, const FieldValues & field_vals);
-    void SetToggle(unsigned int core_id, const std::string & toggle_name, bool traffic_enable, bool dump_enable);
-
-    void SetRIWIMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRMWMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRWMemory(unsigned int core_id, const std::string & memory_name, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetMemoryDelay(unsigned int core_id, const std::string & memory_name, unsigned int value);
+    void SetRIWIMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetRMWMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetRWMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetMemoryDelay(unsigned int core_id, MemId mem_id, unsigned int value);
 
     void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
 

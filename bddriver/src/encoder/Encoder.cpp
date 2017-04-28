@@ -3,11 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include <string>
 #include <thread>
 
 #include "common/BDPars.h"
-#include "common/HWLoc.h"
 #include "common/binary_util.h"
 #include "common/MutexBuffer.h"
 
@@ -33,12 +31,13 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
   for (unsigned int i = 0; i < num_popped; i++) {
 
     // unpack data
-    HWLoc destination = inputs[i].first;
-    uint32_t payload = inputs[i].second;
+    unsigned int core_id = inputs[i].core_id;
+    unsigned int leaf_id = inputs[i].leaf_id;
+    uint32_t payload = inputs[i].payload;
 
-    // look up route for this leaf_idx_
+    // look up route for this leaf_id_
     // XXX not doing anything with core_id
-    FHRoute leaf_route = pars_->HornRoute(destination.leaf_idx);
+    FHRoute leaf_route = pars_->HornRoute(leaf_id);
 
     // XXX this is where you would do something with the core id
 

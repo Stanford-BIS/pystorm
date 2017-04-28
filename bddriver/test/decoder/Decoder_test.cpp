@@ -24,8 +24,8 @@ std::vector<DecInput> MakeDecInput(unsigned int N, const BDPars * pars) {
 
   //cout << "route " << pars->FunnelRoute("NRNI").first << endl;
   for (unsigned int i = 0; i < N; i++) {
-    unsigned int input_width = pars->Width("BD_output");
-    FHRoute route = pars->FunnelRoute("NRNI"); 
+    unsigned int input_width = pars->Width(BD_output);
+    FHRoute route = pars->FunnelRoute(NRNI); 
     uint32_t route_val = route.first;
     unsigned int route_len = route.second;
 
@@ -48,7 +48,7 @@ class DecoderFixture : public testing::Test
       pars = new BDPars(); 
 
       buf_in = new MutexBuffer<DecInput>(buf_depth);
-      for (unsigned int i = 0; i < pars->FunnelLeafNames().size(); i++) {
+      for (unsigned int i = 0; i < pars->FunnelRoutes()->size(); i++) {
         MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(buf_depth);
         bufs_out.push_back(buf_ptr);
       }
@@ -85,7 +85,7 @@ TEST_F(DecoderFixture, Test1xDecoder)
   consumed.reserve(N);
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
   //cout << "NRNI HAS IDX: " << pars->FunnelIdx("NRNI") << endl;
-  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx("NRNI")], &consumed, N, M, 0);
+  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
 
   // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -119,7 +119,7 @@ TEST_F(DecoderFixture, Test2xDecoder)
   // start producer/consumer threads
   std::vector<DecOutput> consumed;
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
-  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx("NRNI")], &consumed, N, M, 0);
+  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
 
   // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
