@@ -1,9 +1,11 @@
-#include <iostream>
-
 #include "Driver.h"
 
+#include <iostream>
+#include <vector>
+#include <unordered_map>
+#include <cassert>
+
 #include "common/DriverTypes.h"
-//#include "common/WordStream.h"
 #include "common/BDPars.h"
 #include "common/DriverPars.h"
 #include "encoder/Encoder.h"
@@ -129,6 +131,7 @@ void Driver::SetDACValue(unsigned int core_id, DACSignalId signal_id,  unsigned 
   SetRegister(core_id, DAC_reg_id, field_vals);
 }
 
+
 void Driver::SetDACtoADCConnectionState(unsigned int core_id, DACSignalId dac_signal_id, bool en)
 {
   assert(false && "not implemented");
@@ -163,21 +166,106 @@ void Driver::SetPAT(
 {
   // XXX ensure traffic is stopped, stop if necessary 
   
-  std::vector<uint64_t> payload;
-  for (auto& it : data) {
-
-    FieldValues field_vals = 
-        {{AM_address, it.AM_address},   
-         {MM_address_lo, it.MM_address_lo}, 
-         {MM_address_hi, it.MM_address_hi}};
-
-    payload.push_back(PackWord(*(bd_pars_->Word(PAT)), field_vals));
-  }
+  // pack data fields
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(PAT)), DataToFieldVValues(data));
 
   // encapsulate according to RW format
-  std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(PAT_write)), payload, start_addr);
+  std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(PAT_write)), data_fields, start_addr);
 
+  // transmit words
   SendToHorn(core_id, bd_pars_->ProgHornId(PAT), prog_words);
+}
+
+
+void Driver::SetTAT(
+    unsigned int core_id, 
+    bool TAT_idx,                      ///< which TAT to program, 0 or 1
+    const std::vector<TATData> & data, ///< data to program
+    unsigned int start_addr            ///< PAT memory address to start programming from, default 0
+)
+{
+  // XXX ensure traffic is stopped, stop if necessary 
+  
+  // TAT_idx -> TAT_id
+  MemId TAT_id;
+  if (TAT_idx == 0) {
+    TAT_id = TAT0;
+  } else if (TAT_idx == 1) {
+    TAT_id = TAT1;
+  } else {
+    assert(false && "TAT_idx must == 0 or 1");
+  }
+  
+  // pack data fields
+  std::vector<FieldValues> field_vals = DataToFieldVValues(data);
+  std::vector<uint64_t> data_fields;
+  for (unsigned int i = 0; i < field_vals.size(); i++) {
+    unsigned int word_type = data[i].type; // XXX this is a little janky, we just iterated through data
+    data_fields.push_back(PackWord(*(bd_pars_->Word(TAT_id, word_type)), field_vals[i]));
+  }
+
+  // encapsulate data fields according to RIWI format
+  std::vector<uint64_t> prog_words = PackRIWIProgWords(
+      *(bd_pars_->Word(TAT_set_address)), 
+      *(bd_pars_->Word(TAT_write_increment)), 
+      data_fields,
+      start_addr);
+
+  // transmit data
+  SendToHorn(core_id, bd_pars_->ProgHornId(TAT_id), prog_words);
+}
+
+
+void Driver::SetAM(
+    unsigned int core_id,
+    const std::vector<AMData> & data, ///< data to program
+    unsigned int start_addr           ///< PAT memory address to start programming from, default 0
+)
+{
+  // XXX ensure traffic is stopped, stop if necessary 
+ 
+  // pack data fields
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(AM)), DataToFieldVValues(data));
+
+  // encapsulate according to RMW format
+  std::vector<uint64_t> prog_words = PackRMWProgWords(
+      *(bd_pars_->Word(AM_set_address)), 
+      *(bd_pars_->Word(AM_read_write)), 
+      *(bd_pars_->Word(AM_increment)), 
+      data_fields,
+      start_addr);
+
+  // encapsulate AM/MM
+  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(AM, prog_words);
+
+  // transmit to horn
+  SendToHorn(core_id, bd_pars_->ProgHornId(AM), prog_words_encapsulated);
+}
+
+
+void Driver::SetMM(
+    unsigned int core_id,
+    const std::vector<unsigned int> & data, ///< data to program
+    unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
+)
+{
+  // XXX ensure traffic is stopped, stop if necessary 
+ 
+  // pack data fields
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(MM)), DataToFieldVValues(data));
+
+  // encapsulate according to RIWI format
+  std::vector<uint64_t> prog_words = PackRIWIProgWords(
+      *(bd_pars_->Word(MM_set_address)), 
+      *(bd_pars_->Word(MM_write_increment)), 
+      data_fields,
+      start_addr);
+
+  // encapsulate AM/MM
+  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(MM, prog_words);
+
+  // transmit to horn
+  SendToHorn(core_id, bd_pars_->ProgHornId(MM), prog_words_encapsulated);
 }
 
 
@@ -220,147 +308,6 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
 }
 
 
-void Driver::SetTAT(
-    unsigned int core_id, 
-    bool TAT_idx,                      ///< which TAT to program, 0 or 1
-    const std::vector<TATData> & data, ///< data to program
-    unsigned int start_addr            ///< PAT memory address to start programming from, default 0
-)
-{
-  // XXX ensure traffic is stopped, stop if necessary 
-  
-  MemId TAT_id;
-  if (TAT_idx == 0) {
-    TAT_id = TAT0;
-  } else if (TAT_idx == 1) {
-    TAT_id = TAT1;
-  } else {
-    assert(false && "TAT_idx must == 0 or 1");
-  }
- 
-  // pack data fields
-  std::vector<uint64_t> payload;
-
-  unsigned int even_odd_spike = 0;
-  uint64_t last_synapse_addr = 0; // initialization value unused, suppresses compiler warning
-  uint64_t last_synapse_sign = 0; // initialization value unused, suppresses compiler warning
-  bool skip;
-  for (auto& it : data) {
-
-    skip = false;
-
-    FieldValues field_vals;
-    if (it.type == 0) { // address type
-      field_vals = 
-        {{AM_address, it.AM_address}, 
-         {MM_address, it.MM_address},
-         {stop,       it.stop}};
-
-    } else if (it.type == 1) { // spike type
-      if ((even_odd_spike % 2) == 0) {
-        skip = true; // only push spike type every other element
-      }
-
-      field_vals = 
-        {{synapse_address_0, last_synapse_addr},
-         {synapse_sign_0,    SignedValToBit(last_synapse_sign)}, // -1/+1 -> 1/0
-         {synapse_address_1, it.synapse_id}, 
-         {synapse_sign_1,    SignedValToBit(it.synapse_sign)}, // -1/+1 -> 1/0
-         {stop,              it.stop}};
-
-      last_synapse_addr = it.synapse_id;
-      last_synapse_sign = it.synapse_sign;
-      even_odd_spike = (even_odd_spike + 1) % 2;
-
-    } else if (it.type == 2) { // fanout type
-        field_vals = 
-          {{tag,          it.tag}, 
-           {global_route, it.global_route},
-           {stop,         it.stop}};
-    }
-
-    if (!skip) {
-      payload.push_back(PackWord(*(bd_pars_->Word(TAT_id, it.type)), field_vals));
-    }
-  }
-
-  // encapsulate according to RIWI format
-  std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(TAT_set_address)), 
-      *(bd_pars_->Word(TAT_write_increment)), 
-      payload,
-      start_addr);
-
-  SendToHorn(core_id, bd_pars_->ProgHornId(TAT_id), prog_words);
-}
-
-
-void Driver::SetAM(
-    unsigned int core_id,
-    const std::vector<AMData> & data, ///< data to program
-    unsigned int start_addr           ///< PAT memory address to start programming from, default 0
-)
-{
-  // XXX ensure traffic is stopped, stop if necessary 
- 
-  // pack data fields
-  std::vector<uint64_t> payload;
-  for (auto& it : data) {
-
-    FieldValues field_vals = 
-        {{value,        0}, 
-         {threshold,    it.threshold},
-         {stop,         it.stop},
-         {next_address, it.next_address}};
-
-    payload.push_back(PackWord(*(bd_pars_->Word(AM)), field_vals));
-  }
-
-  // encapsulate according to RMW format
-  std::vector<uint64_t> prog_words = PackRMWProgWords(
-      *(bd_pars_->Word(AM_set_address)), 
-      *(bd_pars_->Word(AM_read_write)), 
-      *(bd_pars_->Word(AM_increment)), 
-      payload, 
-      start_addr);
-
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(AM, prog_words);
-
-  SendToHorn(core_id, bd_pars_->ProgHornId(AM), prog_words_encapsulated);
-}
-
-
-void Driver::SetMM(
-    unsigned int core_id,
-    const std::vector<unsigned int> & data, ///< data to program
-    unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
-)
-{
-  // XXX ensure traffic is stopped, stop if necessary 
- 
-  // pack data fields
-  std::vector<uint64_t> payload;
-  for (auto& it : data) {
-
-    FieldValues field_vals = 
-        {{weight, it}};
-
-    payload.push_back(PackWord(*(bd_pars_->Word(MM)), field_vals));
-  }
-
-  // encapsulate according to RIWI format
-  std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(MM_set_address)), 
-      *(bd_pars_->Word(MM_write_increment)), 
-      payload, 
-      start_addr);
-
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(MM, prog_words);
-
-  SendToHorn(core_id, bd_pars_->ProgHornId(MM), prog_words_encapsulated);
-}
-
-
 std::vector<uint64_t> Driver::PackRWProgWords(
     const WordStructure & word_struct, 
     const std::vector<uint64_t> & payload, 
@@ -377,6 +324,7 @@ std::vector<uint64_t> Driver::PackRWProgWords(
 
   return retval;
 }
+
 
 std::vector<uint64_t> Driver::PackRWDumpWords(
     const WordStructure & word_struct, 
@@ -554,6 +502,21 @@ void Driver::SetToggle(unsigned int core_id, RegId toggle_id, bool traffic_en, b
   SetRegister(core_id, toggle_id, {{traffic_enable, traffic_en}, {dump_enable, dump_en}});
 }
 
+uint64_t ValueForSpecialFieldId(WordFieldId field_id) {
+  if (field_id == unused) { // user need not supply values for unused fields
+    return 0;
+  } else if (field_id == FIXED_0) {
+    return 0;
+  } else if (field_id == FIXED_1) {
+    return 1;
+  } else if (field_id == FIXED_2) {
+    return 2;
+  } else if (field_id == FIXED_3) {
+    return 3;
+  } else {
+    assert(false && "no value supplied for a given field");
+  }
+}
 
 uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues & field_values) const
 {
@@ -566,18 +529,8 @@ uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues &
     uint64_t field_value;
     if (field_values.count(field_id) > 0) {
       field_value = field_values.at(field_id);
-    } else if (field_id == unused) { // user need not supply values for unused fields
-      field_value = 0;
-    } else if (field_id == FIXED_0) {
-      field_value = 0;
-    } else if (field_id == FIXED_1) {
-      field_value = 1;
-    } else if (field_id == FIXED_2) {
-      field_value = 2;
-    } else if (field_id == FIXED_3) {
-      field_value = 3;
     } else {
-      assert(false && "no value supplied for a given field");
+      field_value = ValueForSpecialFieldId(field_id);
     }
     
     widths_as_vect.push_back(field_width);
@@ -587,27 +540,56 @@ uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues &
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
-//std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const WordStream & stream)
-//{
-//  // user must ensure that each vector element (which is an array) is ordered according to the word_struct
-//  
-//  // repackage word_struct field lens as array
-//  assert(word_struct.size() == stream.NumFields() && "stream and word_struct don't match");
-//
-//  unsigned int n_fields = word_struct.size()
-//  unsigned int len_arr[n_fields];
-//  unsigned int i = 0;
-//  for (auto& it : word_struct) {
-//    len_arr[i++] = it.second;
-//  }
-//
-//  std::vector<uint64_t> retval;
-//  for (unsigned int i = 0; i < stream.Size(); i++) {
-//    retval.push_back(Pack64(stream.Data(i), len_arr, n_fields));
-//  }
-//  return retval;
-//
-//}
+std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const
+{
+  // check that input is well-formed
+  assert(word_struct.size() == field_values.size() && "number of fields in word_struct and field_values");
+  unsigned int n_fields = word_struct.size();
+  unsigned int n_words = field_values.begin()->second.size();
+  for (auto& it : field_values) {
+    assert(it.second.size() == n_words && "FieldVValues vector length mismatch");
+  }
+
+  // XXX not sure if it's better to rearrange first (which needs alloc), then Pack, or just iterate and pack
+  // this is the rearrange then pack option
+  uint64_t * vals = new uint64_t[n_words * n_fields];
+  unsigned int i = 0;
+  for (auto& it : word_struct) {
+    WordFieldId field_id = it.first; // field id ~ i
+
+    for (unsigned int j = 0; j < n_words; j++) {
+
+      uint64_t field_value;
+      if (field_values.count(field_id) > 0) {
+        field_value = field_values.at(field_id).at(j);
+      } else {
+        field_value = ValueForSpecialFieldId(field_id);
+      }
+
+      vals[n_fields * j + i] = field_value;
+    }
+    i++;
+  }
+
+  // get the array of field lengths
+  unsigned int * len_arr = new unsigned int[n_fields];
+  i = 0;
+  for (auto& it : word_struct) {
+    len_arr[i++] = it.second;
+  }
+
+  // pack data from rearranged vals
+  std::vector<uint64_t> retval;
+  for (unsigned int i = 0; i < n_words; i++) {
+    retval.push_back(Pack64(&vals[i*n_fields], len_arr, n_fields));
+  }
+
+  // clean up
+  delete[] vals;
+  delete[] len_arr;
+
+  return retval;
+}
 
 FieldValues Driver::UnpackWord(const WordStructure & word_struct, uint64_t word) const
 {
@@ -629,12 +611,124 @@ FieldValues Driver::UnpackWord(const WordStructure & word_struct, uint64_t word)
   return retval;
 }
 
+FieldVValues Driver::UnpackWords(const WordStructure & word_struct, std::vector<uint64_t> words) const 
+{
+  std::vector<unsigned int> widths_as_vect;
+  for (auto& it : word_struct) {
+    unsigned int field_width = it.second;
+    widths_as_vect.push_back(field_width);
+  }
+
+  // set up retval, init vectors
+  FieldVValues retval;
+  for (auto& it : word_struct) {
+    WordFieldId field_id = it.first;
+    retval[field_id] = {};
+  }
+
+  // fill in vectors
+  for (unsigned int i = 0; i < words.size(); i++) {
+    std::vector<uint64_t> vals = UnpackV64(words[i], widths_as_vect);
+    unsigned int j = 0;
+    for (auto& it : word_struct) {
+      WordFieldId field_id = it.first;
+      retval[field_id].push_back(vals[j]);
+      j++;
+    }
+  }
+
+  return retval;
+}
 
 uint64_t Driver::SignedValToBit(int sign) const {
   assert((sign == 1 || sign == -1) && "sign must be +1 or -1");
   return static_cast<uint64_t>((-1 * sign + 1) / 2);
 }
 
+
+FieldVValues Driver::DataToFieldVValues(const std::vector<PATData> & data) const
+{
+  FieldVValues retval = {{AM_address, {}}, {MM_address_lo, {}}, {MM_address_hi, {}}};
+  for (auto& it : data) {
+    retval[AM_address].push_back(it.AM_address);
+    retval[MM_address_lo].push_back(it.MM_address_lo);
+    retval[MM_address_hi].push_back(it.MM_address_hi);
+  }
+  return retval;
+}
+
+std::vector<FieldValues> Driver::DataToFieldVValues(const std::vector<TATData> & data) const
+{
+  // TAT is super complicated, has three possible data packings, different return type for this fn than the others
+  std::vector<FieldValues> retval;
+
+  unsigned int even_odd_spike = 0;
+  uint64_t last_synapse_addr = 0; // initialization value unused (suppresses compiler warning)
+  uint64_t last_synapse_sign = 0; // initialization value unused (suppresses compiler warning)
+  bool skip;
+  for (auto& it : data) {
+
+    skip = false;
+
+    FieldValues field_vals;
+    if (it.type == 0) { // address type
+      field_vals = 
+        {{AM_address, it.AM_address}, 
+         {MM_address, it.MM_address},
+         {stop,       it.stop}};
+
+    } else if (it.type == 1) { // spike type
+      if ((even_odd_spike % 2) == 0) {
+        skip = true; // only push spike type every other element
+      }
+
+      field_vals = 
+        {{synapse_address_0, last_synapse_addr},
+         {synapse_sign_0,    SignedValToBit(last_synapse_sign)}, // -1/+1 -> 1/0
+         {synapse_address_1, it.synapse_id}, 
+         {synapse_sign_1,    SignedValToBit(it.synapse_sign)}, // -1/+1 -> 1/0
+         {stop,              it.stop}};
+
+      last_synapse_addr = it.synapse_id;
+      last_synapse_sign = it.synapse_sign;
+      even_odd_spike = (even_odd_spike + 1) % 2;
+
+    } else if (it.type == 2) { // fanout type
+        field_vals = 
+          {{tag,          it.tag}, 
+           {global_route, it.global_route},
+           {stop,         it.stop}};
+    }
+
+    // pack data fields
+    if (!skip) {
+      retval.push_back(field_vals);
+    }
+  }
+
+  return retval;
+}
+
+FieldVValues Driver::DataToFieldVValues(const std::vector<AMData> & data) const
+{
+  FieldVValues retval = {{value, {}}, {threshold, {}}, {stop, {}}, {next_address, {}}};
+  for (auto& it : data) {
+    retval[value].push_back(0);
+    retval[threshold].push_back(it.threshold);
+    retval[stop].push_back(it.stop);
+    retval[next_address].push_back(it.next_address);
+  }
+  return retval;
+}
+
+FieldVValues Driver::DataToFieldVValues(const std::vector<unsigned int> & data) const
+{
+  FieldVValues retval = {{weight, {}}};
+  for (auto& it : data) {
+    retval[weight].push_back(it);
+  }
+  return retval;
+}
 
 } // bddriver namespace
 } // pystorm namespace

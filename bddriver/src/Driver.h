@@ -3,7 +3,6 @@
 
 #include <memory>
 
-//#include "common/WordStream.h"
 #include "common/BDPars.h"
 #include "common/DriverPars.h"
 #include "encoder/Encoder.h"
@@ -37,7 +36,9 @@
 namespace pystorm {
 namespace bddriver {
 
+// typedefs: words and word streams
 typedef std::unordered_map<WordFieldId, uint64_t> FieldValues;
+typedef std::unordered_map<WordFieldId, std::vector<uint64_t> > FieldVValues;
 
 /**
  * \class Driver is a singleton; There should only be one instance of this.
@@ -168,9 +169,11 @@ class Driver
 
     ////////////////////////////////
     // helpers
+    
     uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
-    //std::vector<uint64_t> PackWords(const WordStructure & word_struct, const WordStream & vals);
+    std::vector<uint64_t> PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const;
     FieldValues UnpackWord(const WordStructure & word_struct, uint64_t word) const;
+    FieldVValues UnpackWords(const WordStructure & word_struct, std::vector<uint64_t> words) const;
 
     void SendToHorn(unsigned int core_id, HornLeafId leaf_id, std::vector<uint64_t> payload);
     void SendToHorn(
@@ -231,6 +234,11 @@ class Driver
     void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
 
     void InitFIFO(unsigned int core_id);
+
+    FieldVValues             DataToFieldVValues(const std::vector<PATData> & data) const;
+    std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data) const; // TAT can have mixed field types
+    FieldVValues             DataToFieldVValues(const std::vector<AMData> & data) const;
+    FieldVValues             DataToFieldVValues(const std::vector<unsigned int> & data) const;
 
 };
 
