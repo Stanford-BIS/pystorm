@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <unordered_map>
 
 #include <iostream>
 using std::cout;
@@ -15,11 +14,12 @@ namespace bddriver {
 
 // originally all the dictionary keys were strings
 // using enums is better:
-// the set of possible keys is fixed
+// the set of possible keys is fixed, and is documented explicitly
 // typos will be caught by compiler
-// dictionary lookup is possibly faster
+// dictionary lookup is probably faster (can use vectors instead, actually!)
 
-// XXX DO NOT ATTEMPT TO ASSIGN ENUM VALUES WITHOUT UNDERSTANDING horn_routes_ and funnel_routes_
+// XXX DO NOT ATTEMPT TO ASSIGN ENUM VALUES XXX
+// it will mess a lot of stuff up!
 // the enum values are used to index these vectors
 
 enum HornLeafId {
@@ -56,7 +56,9 @@ enum HornLeafId {
   DELAY3_leaf,
   DELAY4_leaf,
   DELAY5_leaf,
-  DELAY6_leaf
+  DELAY6_leaf,
+
+  LastHornLeafId = DELAY6_leaf
 };
 
 enum FunnelLeafId {
@@ -72,7 +74,9 @@ enum FunnelLeafId {
   DUMP_POST_FIFO0,
   DUMP_POST_FIFO1,
   OVFLW0,
-  OVFLW1
+  OVFLW1,
+
+  LastFunnelLeafId = OVFLW1
 };
 
 enum RegId {
@@ -100,7 +104,9 @@ enum RegId {
   DELAY3,
   DELAY4,
   DELAY5,
-  DELAY6
+  DELAY6,
+
+  LastRegId = DELAY6
 };
 
 enum MemId {
@@ -108,7 +114,9 @@ enum MemId {
   MM,
   TAT0,
   TAT1,
-  PAT
+  PAT,
+
+  LastMemId = PAT
 };
 
 enum MemWordId {
@@ -129,7 +137,9 @@ enum MemWordId {
   AM_increment,
   // AM/MM encapsulation
   AM_encapsulation,
-  MM_encapsulation
+  MM_encapsulation,
+
+  LastMemWordId = MM_encapsulation
 };
 
 enum WordFieldId {
@@ -158,7 +168,7 @@ enum WordFieldId {
   ADC_small_large_current_1,
   ADC_output_enable,
   // AM data
-  value,
+  accumulator_value,
   threshold,
   next_address,
   // MM data
@@ -177,21 +187,26 @@ enum WordFieldId {
   synapse_address,
   synapse_sign,
   neuron_address,
+
+  LastWordFieldId = neuron_address
 };
 
-// XXX I don't like this. Identifiers for things that don't fit in other categories
-enum MiscId {
+enum MiscWidthId {
   BD_input,
-  BD_output
+  BD_output,
+
+  LastMiscWidthId = BD_output
 };
 
 // XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
 enum DACSignalId {
-  PlaceholderSignalName
+  PlaceholderSignalName,
+
+  LastDACSignalId = PlaceholderSignalName
 };
 
 typedef std::pair<uint32_t, unsigned int> FHRoute; // route val, route len
-typedef std::map<WordFieldId, unsigned int> WordStructure; // field name, field width, in order lsb -> msb
+typedef std::vector<std::pair<WordFieldId, unsigned int> > WordStructure; // field name, field width, in order lsb -> msb
 
 struct LeafInfo {
   /// Information describing one funnel/horn leaf in Braindrop
@@ -239,7 +254,7 @@ class BDPars {
     
     inline unsigned int Width(HornLeafId object)   const { return horn_.at(object).data_width; }
     inline unsigned int Width(FunnelLeafId object) const { return funnel_.at(object).data_width; }
-    inline unsigned int Width(MiscId object)       const { return misc_pars_.at(object); }
+    inline unsigned int Width(MiscWidthId object)  const { return misc_widths_.at(object); }
 
     inline const WordStructure * Word(MemId object, unsigned int subtype_idx=0) const { return &(mem_.at(object).word_structures.at(subtype_idx)); }
     inline const WordStructure * Word(MemWordId object)    const { return &(mem_prog_words_.at(object)); }
@@ -256,39 +271,44 @@ class BDPars {
 
     RegId DACSignalIdToDACRegisterId(DACSignalId id) const;
 
-    /////////////////////////////////////
-    // bit-packing helper functions
+    inline unsigned int NumReg() const { return reg_.size(); }
+    inline unsigned int NumCores() const { return num_cores_; }
 
   private:
-    std::unordered_map<MiscId, unsigned int> misc_pars_;
+    std::vector<unsigned int> misc_widths_;
+    unsigned int num_cores_;
 
     /// inputs to BD that aren't a register or memory programming word
-    std::unordered_map<HornLeafId, WordStructure> input_;
+    /// keyed by HornLeafId
+    std::vector<WordStructure> input_;
     /// outputs from BD that aren't a memory dump word
-    std::unordered_map<FunnelLeafId, WordStructure> output_;
+    /// keyed by FunnelLeafId
+    std::vector<WordStructure> output_;
     
     /// horn description
-    std::unordered_map<HornLeafId, LeafInfo> horn_;
+    /// keyed by HornLeafId
+    std::vector<LeafInfo> horn_;
     /// funnel description
-    std::unordered_map<FunnelLeafId, LeafInfo> funnel_;
+    /// keyed by FunnelLeafId
+    std::vector<LeafInfo> funnel_;
 
     /// memory descriptions (data field packing + misc info)
-    std::unordered_map<MemId, MemInfo> mem_;
+    /// keyed by MemId
+    std::vector<MemInfo> mem_;
 
     /// memory programming words
-    std::unordered_map<MemWordId, WordStructure> mem_prog_words_;
+    /// keyed by MemId
+    std::vector<WordStructure> mem_prog_words_;
 
     /// register descriptions (data field packing + misc info)
-    std::unordered_map<RegId, RegInfo> reg_;
+    /// keyed by RegId
+    std::vector<RegInfo> reg_;
 
-    // memory stuff
-    std::unordered_map<MemId, unsigned int> mem_sizes_;
-    std::unordered_map<MemId, unsigned int> mem_word_widths_;
+    /// memory stuff
+    /// keyed by MemId
+    std::vector<unsigned int> mem_sizes_;
+    std::vector<unsigned int> mem_word_widths_;
     
-    // map between leaf name and index, used when enqueuing/dequeuing words
-    std::unordered_map<HornLeafId, unsigned int> horn_leaf_name_to_idx_;
-    std::unordered_map<FunnelLeafId, unsigned int> funnel_leaf_name_to_idx_;
-
     // funnel/horn route tables are direct-mapped
     std::vector<FHRoute> horn_routes_;
     std::vector<FHRoute> funnel_routes_;

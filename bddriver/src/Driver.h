@@ -1,9 +1,12 @@
 #ifndef DRIVER_H
 #define DRIVER_H   
 
-#include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "common/BDPars.h"
+#include "common/BDState.h"
+#include "common/DriverTypes.h"
 #include "common/DriverPars.h"
 #include "encoder/Encoder.h"
 #include "decoder/Decoder.h"
@@ -36,9 +39,6 @@
 namespace pystorm {
 namespace bddriver {
 
-// typedefs: words and word streams
-typedef std::unordered_map<WordFieldId, uint64_t> FieldValues;
-typedef std::unordered_map<WordFieldId, std::vector<uint64_t> > FieldVValues;
 
 /**
  * \class Driver is a singleton; There should only be one instance of this.
@@ -114,7 +114,7 @@ class Driver
     /// Program Main Memory (a.k.a. Weight Memory)
     void SetMM(
         unsigned int core_id,
-        const std::vector<unsigned int> & data, ///< data to program
+        const std::vector<MMData> & data, ///< data to program
         unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
     );
 
@@ -152,10 +152,12 @@ class Driver
     ////////////////////////////////
     // data members
 
-    // parameters describing parameters of the software (e.g. buffer depths)
+    /// parameters describing parameters of the software (e.g. buffer depths)
     DriverPars * driver_pars_; 
-    // parameters describing BD hardware
+    /// parameters describing BD hardware
     BDPars * bd_pars_; 
+    /// state of bd hardware
+    std::vector<BDState> bd_state_;
 
     // thread-safe circular buffers sourcing/sinking encoder and decoder
     MutexBuffer<EncInput> * enc_buf_in_;
@@ -166,6 +168,15 @@ class Driver
 
     Encoder * enc_; // encodes traffic to BD
     Decoder * dec_; // decodes traffic from BD
+
+    ////////////////////////////////
+    // traffic helpers
+    const std::vector<RegId> kTrafficRegs = {NeuronDumpToggle, TOGGLE_PRE_FIFO, TOGGLE_POST_FIFO0, TOGGLE_POST_FIFO1};
+    std::unordered_map<unsigned int, std::vector<bool> > last_traffic_state_;
+
+    /// Stops traffic for a core and saves the previous state in last_traffic_state_
+    void PauseTraffic(unsigned int core_id);
+    void ResumeTraffic(unsigned int core_id);
 
     ////////////////////////////////
     // helpers
@@ -218,13 +229,15 @@ class Driver
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const; 
-    // RMWProgWord == RMWDumpWord
+    // note: RMWProgWord can function as RMWDumpWord
 
     std::vector<uint64_t> PackAMMMWord(MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
 
     
     void SetRegister(unsigned int core_id, RegId reg_id, const FieldValues & field_vals);
     void SetToggle(unsigned int core_id, RegId toggle_id, bool traffic_enable, bool dump_enable);
+    bool SetToggleTraffic(unsigned int core_id, RegId reg_id, bool en);
+    bool SetToggleDump(unsigned int core_id, RegId reg_id, bool en);
 
     void SetRIWIMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
     void SetRMWMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
@@ -235,10 +248,21 @@ class Driver
 
     void InitFIFO(unsigned int core_id);
 
+    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
+
+    ////////////////////////////////
+    // conversion functions from user types to FieldVValues
+    // XXX might eliminate user types at some point, have user use FieldVValues
+    
     FieldVValues             DataToFieldVValues(const std::vector<PATData> & data) const;
     std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data) const; // TAT can have mixed field types
     FieldVValues             DataToFieldVValues(const std::vector<AMData> & data) const;
-    FieldVValues             DataToFieldVValues(const std::vector<unsigned int> & data) const;
+    FieldVValues             DataToFieldVValues(const std::vector<MMData> & data) const;
+
+    std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) const;
+    std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values) const;
+    std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values) const;
+    std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values) const;
 
 };
 

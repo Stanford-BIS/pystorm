@@ -15,6 +15,7 @@ BDPars::BDPars()
   // Funnel/Horn
 
   //                               {route, route_len, data width, serialization, serialized data width, description}
+  horn_.resize(LastHornLeafId);
   horn_[NeuronInject]            = {7  , 4  , 11 , 1  , 11 , "direct spike injection to neuron array"};
   horn_[RI]                      = {0  , 1  , 20 , 1  , 20 , "main tag input to FIFO"};
   horn_[PROG_AMMM]               = {57 , 6  , 42 , 4  , 11 , "AM/MM programming/diagnostic port"};
@@ -51,6 +52,7 @@ BDPars::BDPars()
   horn_[DELAY6_leaf]             = {89 , 7  , 8  , 1  , 8  , "AM delay line config"};
 
   //                               {route, route_len, data width, serialization, serialized data width, description}
+  horn_.resize(LastFunnelLeafId);
   funnel_[RO_ACC]                = {2  , 2  , 28 , 1  , 28 , "tag output from accumulator"};
   funnel_[RO_TAT]                = {0  , 2  , 32 , 1  , 32 , "tag output from TAT"};
   funnel_[NRNI]                  = {3  , 2  , 12 , 1  , 12 , "copy of traffic exiting neuron array"};
@@ -73,6 +75,7 @@ BDPars::BDPars()
   WordStructure ADC_word    = {{ADC_small_large_current_0, 1}, {ADC_small_large_current_1, 1}, {ADC_output_enable, 1}};
   WordStructure DELAY_word  = {{read_delay, 4}, {write_delay, 4}};
 
+  reg_.resize(LastRegId);
   reg_[TOGGLE_PRE_FIFO]   = {toggle_word, TOGGLE_PRE_FIFO_leaf};
   reg_[TOGGLE_POST_FIFO0] = {toggle_word, TOGGLE_POST_FIFO0_leaf};
   reg_[TOGGLE_POST_FIFO1] = {toggle_word, TOGGLE_POST_FIFO1_leaf};
@@ -103,7 +106,7 @@ BDPars::BDPars()
   // Memories
   
   // this is the packing of the stored value! goes in the data fields of programming words
-  std::vector<WordStructure> AM_words  = {{{value, 15}, 
+  std::vector<WordStructure> AM_words  = {{{accumulator_value, 15}, 
                                            {threshold, 3}, 
                                            {stop, 1}, 
                                            {next_address, 19}}};
@@ -122,6 +125,7 @@ BDPars::BDPars()
                                            {global_route, 12}, 
                                            {unused,3}}};
 
+  mem_.resize(LastMemId);
   mem_[AM]   = {1024,    AM_words,  PROG_AMMM, DUMP_AM};
   mem_[MM]   = {64*1024, MM_words,  PROG_AMMM, DUMP_MM};
   mem_[TAT0] = {1024,    TAT_words, PROG_TAT0, DUMP_TAT0};
@@ -129,6 +133,7 @@ BDPars::BDPars()
   mem_[PAT]  = {64,      PAT_words, PROG_PAT,  DUMP_PAT};
 
   // these are the words you use to program the memory
+  mem_prog_words_.resize(LastMemWordId);
   mem_prog_words_[PAT_write]             = {{address, 6}, {FIXED_0, 2}, {data, 20}};
   mem_prog_words_[PAT_read]              = {{address, 6}, {FIXED_1, 2}, {unused, 20}};
 
@@ -150,8 +155,7 @@ BDPars::BDPars()
   //////////////////////////////////////////////////////
   // inputs
   
-  misc_pars_[BD_input] = 21;
-
+  input_.resize(3); // XXX hardcoded
   input_[RI]                  = {{count, 9}, {tag, 11}};
   input_[INIT_FIFO_DCT]       = {{tag, 11}};
   input_[NeuronInject]        = {{synapse_sign, 1}, {synapse_address, 10}};
@@ -160,8 +164,7 @@ BDPars::BDPars()
   //////////////////////////////////////////////////////
   // outputs
   
-  misc_pars_[BD_output] = 34;
-
+  output_.resize(8); // XXX hardcoded
   output_[DUMP_PRE_FIFO]   = {{count, 9}, {tag, 11}};
   output_[DUMP_POST_FIFO0] = {{count, 9}, {tag, 10}};
   output_[DUMP_POST_FIFO1] = {{count, 9}, {tag, 10}};
@@ -172,21 +175,30 @@ BDPars::BDPars()
   output_[RO_TAT]          = {{count, 9}, {tag, 11}, {global_route, 12}};
 
   //////////////////////////////////////////////////////
+  // misc
+  
+  misc_widths_.resize(LastMiscWidthId);
+  misc_widths_[BD_input] = 21;
+  misc_widths_[BD_output] = 34;
+
+  num_cores_ = 1;
+
+  //////////////////////////////////////////////////////
   // Postprocessing
 
   // create direct-mapped tables used in encoding/decoding
   horn_routes_.resize(horn_.size());
   for (auto& it : horn_) {
-    LeafInfo leaf_info = it.second;
-    HornLeafId leaf_id = it.first;
-    horn_routes_[leaf_id] = std::make_pair(leaf_info.route_val, leaf_info.route_len);
+    LeafInfo leaf_info = it;
+    auto to_push = std::make_pair(leaf_info.route_val, leaf_info.route_len);
+    horn_routes_.push_back(to_push);
   }
 
   funnel_routes_.resize(funnel_.size());
   for (auto& it : funnel_) {
-    LeafInfo leaf_info = it.second;
-    FunnelLeafId leaf_id = it.first;
-    funnel_routes_[leaf_id] = std::make_pair(leaf_info.route_val, leaf_info.route_len);
+    LeafInfo leaf_info = it;
+    auto to_push = std::make_pair(leaf_info.route_val, leaf_info.route_len);
+    funnel_routes_.push_back(to_push);
   }
 
 }

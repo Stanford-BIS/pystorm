@@ -4,8 +4,13 @@
 #include <cstdint>
 #include <unordered_map>
 
+#include "BDPars.h"
+
 namespace pystorm {
 namespace bddriver {
+
+////////////////////////////////////////
+// user types
 
 struct PATData {
   /// Contents of a single PAT memory entry
@@ -28,8 +33,10 @@ struct TATData {
   unsigned int MM_address;
 
   // type == 1 means neuron entry
-  unsigned int synapse_id;
-  int          synapse_sign; // -1 or +1
+  unsigned int synapse_address_0;
+  int          synapse_sign_0; // -1 or +1
+  unsigned int synapse_address_1;
+  int          synapse_sign_1; // -1 or +1
   
   // type == 2 means fanout entry
   unsigned int tag;
@@ -46,6 +53,9 @@ struct AMData {
   unsigned int next_address;
 };
 
+/// MMData is just a weight
+int typedef MMData;
+
 struct Spike {
   /// A spike going to or from a neuron
   unsigned int time;
@@ -61,6 +71,16 @@ struct Tag {
   unsigned int tag_id;
   unsigned int count;
 };
+
+////////////////////////////////////////
+// internal word stream def'ns 
+
+// typedefs: words and word streams
+typedef std::unordered_map<WordFieldId, uint64_t> FieldValues;
+typedef std::unordered_map<WordFieldId, std::vector<uint64_t> > FieldVValues;
+
+////////////////////////////////////////
+// decoder/encoder
 
 // decoder
 struct DecOutput {
