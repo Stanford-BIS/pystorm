@@ -59,7 +59,7 @@ class DecoderFixture : public testing::Test
     const unsigned int input_width = 34;
     unsigned int N = 10e6;
     unsigned int M = 1000;
-    unsigned int buf_depth = 10000;
+    unsigned int buf_depth = 100000;
 
     // XXX set this to something meaningful later, compiler flags?
     const double fastEnough = .2;
@@ -84,7 +84,7 @@ TEST_F(DecoderFixture, Test1xDecoder)
   std::vector<DecOutput> consumed;
   consumed.reserve(N);
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
-  //cout << "NRNI HAS IDX: " << pars->FunnelIdx("NRNI") << endl;
+  //cout << "NRNI HAS IDX: " << pars->FunnelIdx(NRNI) << endl;
   consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
 
   // start decoder, sources from producer through buf_in, sinks to consumer through buf_out

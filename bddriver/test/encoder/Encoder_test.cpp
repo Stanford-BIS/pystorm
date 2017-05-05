@@ -39,9 +39,9 @@ class EncoderFixture : public testing::Test
       input_vals = MakeEncInput(N);
     }
 
-    unsigned int N = 100000;
-    unsigned int M = 100;
-    unsigned int buf_depth = 10000;
+    unsigned int N = 10e6;
+    unsigned int M = 1000;
+    unsigned int buf_depth = 100000;
 
     // XXX set this to something meaningful later, compiler flags?
     const double fastEnough = .2;
