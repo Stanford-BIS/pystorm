@@ -65,6 +65,23 @@ TEST_F(MutexBufferFixture, Test1to1)
   }
 }
 
+TEST_F(MutexBufferFixture, Test1to1PushThenPop)
+{
+  vector<unsigned int> consumed;
+
+  unsigned int N_small = buf_depth / 2; // less than buf_depth
+
+  producer0 = std::thread(ProduceN<unsigned int>, buf, vals0, N_small, M, 0);
+  producer0.join();
+
+  consumer0 = std::thread(ConsumeVectN<unsigned int>, buf, &consumed, N_small, M, 0);
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N_small; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
 TEST_F(MutexBufferFixture, Test1to1WithTimeout)
 {
   vector<unsigned int> consumed;

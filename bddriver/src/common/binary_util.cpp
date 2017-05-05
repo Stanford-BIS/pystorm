@@ -22,9 +22,7 @@ T Pack(const T * vals, const unsigned int * widths, unsigned int num_fields)
     T field_val = vals[idx];
     T field_width = widths[idx];
 
-    T one = 1;
-
-    assert(field_val < (one << field_width) && "packed element value exceeds value allowed by packed element width");
+    assert(field_val < (static_cast<T>(1) << field_width) && "packed element value exceeds value allowed by packed element width");
 
     value = value | field_val << width;
 

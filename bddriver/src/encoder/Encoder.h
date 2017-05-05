@@ -2,21 +2,17 @@
 #define ENCODER_H
 
 #include <cstdint>
-#include <string>
 #include <vector>
 #include <utility>
 #include <thread>
 
 #include "common/BDPars.h"
-#include "common/HWLoc.h"
 #include "common/MutexBuffer.h"
 #include "common/Xcoder.h"
+#include "common/DriverTypes.h"
 
 namespace pystorm {
 namespace bddriver {
-
-typedef std::pair<HWLoc, uint32_t> EncInput;
-typedef uint32_t EncOutput;
 
 class Encoder : public Xcoder<EncInput, EncOutput> {
   public:
@@ -26,7 +22,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
         MutexBuffer<EncOutput> * out_buf, 
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
-    ) : Xcoder(pars, in_buf, out_buf, chunk_size, timeout_us) {}; // call base constructor only
+    ) : Xcoder(pars, in_buf, {out_buf}, chunk_size, timeout_us) {}; // call base constructor only
 
   private:
 

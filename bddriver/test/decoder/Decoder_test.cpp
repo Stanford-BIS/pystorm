@@ -22,9 +22,10 @@ using namespace bddriver;
 std::vector<DecInput> MakeDecInput(unsigned int N, const BDPars * pars) {
   std::vector<DecInput> vals;
 
+  //cout << "route " << pars->FunnelRoute("NRNI").first << endl;
   for (unsigned int i = 0; i < N; i++) {
-    unsigned int input_width = pars->Width("BD_output");
-    FHRoute route = pars->FunnelRoute("NRNI"); 
+    unsigned int input_width = pars->Width(BD_output);
+    FHRoute route = pars->FunnelRoute(NRNI); 
     uint32_t route_val = route.first;
     unsigned int route_len = route.second;
 
@@ -43,16 +44,20 @@ class DecoderFixture : public testing::Test
   public:
     void SetUp() 
     {
-      buf_in = new MutexBuffer<DecInput>(buf_depth);
-      buf_out = new MutexBuffer<DecOutput>(buf_depth);
 
-      pars = new BDPars(); // filename unused for now
+      pars = new BDPars(); 
+
+      buf_in = new MutexBuffer<DecInput>(buf_depth);
+      for (unsigned int i = 0; i < pars->FunnelRoutes()->size(); i++) {
+        MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(buf_depth);
+        bufs_out.push_back(buf_ptr);
+      }
 
       input_vals = MakeDecInput(N, pars);
     }
 
     const unsigned int input_width = 34;
-    unsigned int N = 100e6;
+    unsigned int N = 10e6;
     unsigned int M = 1000;
     unsigned int buf_depth = 100000;
 
@@ -60,7 +65,7 @@ class DecoderFixture : public testing::Test
     const double fastEnough = .2;
 
     MutexBuffer<DecInput> * buf_in;
-    MutexBuffer<DecOutput> * buf_out;
+    std::vector<MutexBuffer<DecOutput> *> bufs_out;
 
     BDPars * pars;
 
@@ -73,13 +78,14 @@ class DecoderFixture : public testing::Test
 
 TEST_F(DecoderFixture, Test1xDecoder)
 {
-  Decoder dec(pars, buf_in, buf_out, M);
+  Decoder dec(pars, buf_in, bufs_out, M);
 
   // start producer/consumer threads
   std::vector<DecOutput> consumed;
   consumed.reserve(N);
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
-  consumer = std::thread(ConsumeVectN<DecOutput>, buf_out, &consumed, N, M, 0);
+  //cout << "NRNI HAS IDX: " << pars->FunnelIdx(NRNI) << endl;
+  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
 
   // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -107,13 +113,13 @@ TEST_F(DecoderFixture, Test1xDecoder)
 TEST_F(DecoderFixture, Test2xDecoder)
 {
   // two identical Decoders in this test
-  Decoder dec0(pars, buf_in, buf_out, M);
-  Decoder dec1(pars, buf_in, buf_out, M);
+  Decoder dec0(pars, buf_in, bufs_out, M);
+  Decoder dec1(pars, buf_in, bufs_out, M);
 
   // start producer/consumer threads
   std::vector<DecOutput> consumed;
   producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
-  consumer = std::thread(ConsumeVectN<DecOutput>, buf_out, &consumed, N, M, 0);
+  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
 
   // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();

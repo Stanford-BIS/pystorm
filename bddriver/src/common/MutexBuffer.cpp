@@ -56,25 +56,29 @@ bool MutexBuffer<T>::Push(const T * input, unsigned int input_len, unsigned int 
 
   std::unique_lock<std::mutex> lock(mutex_);
 
+  // we currently have the lock, but if there isn't room to push, we need to wait
   // wait for the queue to have enough room for the input
   // if <try_for_us> == 0, then wait until notified without timeout
-  if (try_for_us == 0) {
-    just_popped_.wait(
-        lock, 
-        [this, input_len]{ return HasRoomFor(input_len); }
-    );
-  // else, time out after try_for_us microseconds
-  } else {
-    bool success = just_popped_.wait_for(
-        lock, 
-        std::chrono::duration<unsigned int, std::micro>(try_for_us),
-        [this, input_len]{ return HasRoomFor(input_len); }
-    );
+  if (!HasRoomFor(input_len)) { 
+    if (try_for_us == 0) {
+      just_popped_.wait(
+          lock, 
+          [this, input_len]{ return HasRoomFor(input_len); }
+      );
+    // else, time out after try_for_us microseconds
+    } else {
+      bool success = just_popped_.wait_for(
+          lock, 
+          std::chrono::duration<unsigned int, std::micro>(try_for_us),
+          [this, input_len]{ return HasRoomFor(input_len); }
+      );
 
-    if (!success) {
-      return false;
+      if (!success) {
+        return false;
+      }
     }
   }
+  // XXX there is probably some weird stuff that can happen w/ multiple producers/consumers
 
   // copy the data, update queue state
   PushData(input, input_len);
@@ -124,22 +128,26 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
 {
   std::unique_lock<std::mutex> lock(mutex_);
 
+  // we currently have the lock, but if the buffer is empty, we need to wait
   // wait for the queue to have something to output
   // if try_for_us == 0, wait until notified
-  if (try_for_us == 0) {
-    just_pushed_.wait(lock, [this]{ return !IsEmpty(); });
-  // else, time out after try_for_us microseconds
-  } else {
-    bool success = just_popped_.wait_for(
-        lock, 
-        std::chrono::duration<unsigned int, std::micro>(try_for_us),
-        [this]{ return !IsEmpty(); }
-    );
+  if (IsEmpty()) { 
+    if (try_for_us == 0) { 
+      just_pushed_.wait(lock, [this]{ return !IsEmpty(); });
+    // else, time out after try_for_us microseconds
+    } else {
+      bool success = just_popped_.wait_for(
+          lock, 
+          std::chrono::duration<unsigned int, std::micro>(try_for_us),
+          [this]{ return !IsEmpty(); }
+      );
 
-    if (!success) {
-      return 0;
+      if (!success) {
+        return 0;
+      }
     }
   }
+  // XXX there is probably some weird stuff that can happen w/ multiple producers/consumers
 
   // copy the data, update queue state
   unsigned int num_popped = PopData(copy_to, max_to_pop);

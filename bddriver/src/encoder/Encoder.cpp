@@ -3,11 +3,9 @@
 #include <cstdint>
 #include <vector>
 #include <unordered_map>
-#include <string>
 #include <thread>
 
 #include "common/BDPars.h"
-#include "common/HWLoc.h"
 #include "common/binary_util.h"
 #include "common/MutexBuffer.h"
 
@@ -21,10 +19,10 @@ namespace bddriver {
 void Encoder::RunOnce()
 {
   unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
-  Encode(input_chunk_, num_popped, output_chunk_);
+  Encode(input_chunk_, num_popped, output_chunks_[0]);
   bool success = false;
   while (!success & do_run_) { // if killed, need to stop trying
-    success = out_buf_->Push(output_chunk_, num_popped, timeout_us_);
+    success = out_bufs_[0]->Push(output_chunks_[0], num_popped, timeout_us_);
   }
 }
 
@@ -33,12 +31,13 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
   for (unsigned int i = 0; i < num_popped; i++) {
 
     // unpack data
-    HWLoc destination = inputs[i].first;
-    uint32_t payload = inputs[i].second;
+    //unsigned int core_id = inputs[i].core_id;
+    unsigned int leaf_id = inputs[i].leaf_id;
+    uint32_t payload = inputs[i].payload;
 
-    // look up route for this leaf_idx_
+    // look up route for this leaf_id_
     // XXX not doing anything with core_id
-    FHRoute leaf_route = pars_->HornRoute(destination.leaf_idx);
+    FHRoute leaf_route = pars_->HornRoute(leaf_id);
 
     // XXX this is where you would do something with the core id
 

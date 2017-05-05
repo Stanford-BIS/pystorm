@@ -26,6 +26,8 @@ void Unpack(T val, const unsigned int * widths, T * unpacked_vals, unsigned int 
 template <class T>
 std::string AsString(T value, unsigned int width);
 
+inline uint64_t MaxVal(unsigned int width) { uint64_t one = 1; return (one << width) - 1; }
+
 // XXX The *only* the following does is let me write "Pack64" instead of "Pack<uint64_t>"
 // I suppose it also encodes which types the template functions are supposed to be used with
 
