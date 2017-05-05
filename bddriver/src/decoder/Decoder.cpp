@@ -142,6 +142,7 @@ inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_
     }
   }
   assert(false && "input word missed all possible route words: malformed route table");
+  return std::make_pair(0, 0); // squelch compiler warning
 }
 
 } // bddriver

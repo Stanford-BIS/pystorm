@@ -202,8 +202,8 @@ BDPars::BDPars()
 RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const
 {
   assert(false && "not implemented");
+  return DAC0; // squelch compiler warning for now
 }
-
 
 } // bddriver
 } // pystorm

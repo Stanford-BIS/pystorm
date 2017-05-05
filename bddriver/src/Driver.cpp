@@ -626,7 +626,7 @@ std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const
   unsigned int n_words = field_values.begin()->second.size();
   for (auto& it : field_values) {
     std::vector<uint64_t> vect = it.second;
-    assert(vect.size(); == n_words && "FieldVValues vector length mismatch");
+    assert(vect.size() == n_words && "FieldVValues vector length mismatch");
   }
 
   // XXX not sure if it's better to rearrange first (which needs alloc), then Pack, or just iterate and pack

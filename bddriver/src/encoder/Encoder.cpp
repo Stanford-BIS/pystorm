@@ -31,7 +31,7 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
   for (unsigned int i = 0; i < num_popped; i++) {
 
     // unpack data
-    unsigned int core_id = inputs[i].core_id;
+    //unsigned int core_id = inputs[i].core_id;
     unsigned int leaf_id = inputs[i].leaf_id;
     uint32_t payload = inputs[i].payload;
 
