@@ -1,4 +1,4 @@
-# Dockerfile for GITLAB CI
+# Dockerfile for JENKINS CI
 FROM jjaguayo/ubuntu-pystorm:latest
 
 COPY . /home/git/pystorm
@@ -7,8 +7,10 @@ COPY . /home/git/pystorm
 # the automated tests for PyStorm
 
 RUN ln -s /usr/lib/x86_64-linux-gnu/libboost_python-py35.so /usr/lib/x86_64-linux-gnu/libboost_python3.so \
-    && cd /home/git/pystorm/bddriver \ 
-    && ./build_driver.sh \
-    && export LD_LIBRARY_PATH=/home/git/pystorm/bddriver/lib \
-    && cd /home/git/pystorm/bddriver/build/test \
-    && ./bddriver_test
+    && export HOME="/home/git" \
+    && cd /home/git/pystorm \ 
+    && mkdir build \
+    && cd build \
+    && cmake .. \
+    && make \
+    && make test ARGS="-V"

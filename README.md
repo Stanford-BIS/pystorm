@@ -1,5 +1,4 @@
-[![Build Status](https://ng-hippocampus.stanford.edu/jenkins/buildStatus/icon?job=Pystorm/master)](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/)
-
+[![Build Status](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/badge/icon)](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/)
 
 Pystorm is a set of software modules allowing Nengo and Nengo_GUI to 
 communicate with Braindrop providing an API that abstracts hardware 
@@ -14,7 +13,9 @@ the software stack known as PyStorm.
 The following diagram illustrates the structure
 
 	├── pystorm
+        │                                                                           
 	    ├── CMakeLists.txt                                                          
+        │                                                                           
         ├── bddriver                                                                
         │   ├── CMakeLists.txt                                                      
         │   ├── build                   (out-of-source tree)                        
@@ -23,47 +24,53 @@ The following diagram illustrates the structure
         │   ├── test                    (out-of-source tree)                        
         │   │   ├── CMakeLists.txt                                                  
         │   │   ├── comm                                                            
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── common                                                          
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── encoder                                                         
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── driverifc                                                       
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   └── decoder                                                         
-        │   │       └── CMakeLists.txt                                              
         │   │                                                                       
         │   ├── src                                                                 
         │   │   ├── CMakeLists.txt                                                  
         │   │   ├── comm                                                            
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── common                                                          
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── encoder                                                         
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   ├── driverifc                                                       
-        │   │   │   ├── CMakeLists.txt                                              
         │   │   └── decoder                                                         
-        │   │       └── CMakeLists.txt                                              
         │   │                                                                       
-        │   └── include                 (public C++ API)                            
+        │   └── include                 (public bddriver API)                            
         │                                                                           
         ├── bdhal                                                                   
-        │   ├── build                   (out-of-source tree)                        
-        │   ├── lib                     (out-of-source tree)                        
-        │   ├── docs                    (out-of-source tree)                        
-        │   ├── test                    (out-of-source tree)                        
-        │   ├── src                                                                 
-        │   └── include                 (public C++ API)                            
+        │                                                                           
+        ├── ext                         (externally sourced libraries)
+        │                                                                           
+        ├── include                     (public shared headers)
+        │                                                                           
+        ├── lib                         (public shared libs)
         │                                                                           
         ├── neuromorph                                                              
         │                                                                           
-        └── docker                                           
+        └── docker 
 
 # Build
 
-The module bddriver is currently buildable by cd'ing to the 
-`pystorm/bddriver` directory and running the `build_driver.sh` script.
+Pystorm modules can be built issuing the following commands from the repositories
+base directory.
+
+```
+    mkdir build
+    cd build
+    cmake ..
+    make
+```
+
+# TEST 
+
+From the build directory all module tests can be executed issuing the 
+following command.
+
+```
+    make test ARGS="-V"
+```
 
 # Dependencies
 
@@ -80,17 +87,10 @@ Pystorm was built and is dependent on the following software packages:
 # Docker
 
 Docker can be used to build and test Pystorm. The folder `docker` has a 
-Docker file (named `Dockerfile`) and shell script that can be used to build 
-an image and build/test Pystorm on it.
-
-The files can be moved to any directory on a machine with Docker installed and
-used to build and test Pystorm.
+Docker file (named `Dockerfile_JENKINS_CI`) and shell script that can be 
+used to build an image and build/test Pystorm on it.
 
 The following is an example of how to use Docker to build and test using 
 Docker.
 
-    cp pystorm/docker/* <your_docker_directory>
-    cd <your_docker_directory>
-    git clone git@github.com:Stanford-BIS/pystorm.git
-    sudo docker build -t <your_build_name> .
-    sudo docker run --rm -t <your_build_name>:latest
+    sudo docker build --file docker/Dockerfile_JENKINS_CI .

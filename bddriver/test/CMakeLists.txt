@@ -3,6 +3,8 @@ set(PROJECT_NAME_STR bddriver_test)
 #project(${PROJECT_NAME_STR} C CXX)
 project(${PROJECT_NAME_STR} CXX)
 
+set(PYSTORM_BASE_LIB_DIR $ENV{HOME}/pystorm/lib)
+
 ############################################################################       
 #                                                                               
 # Check minimum python version (python 3) is installed                          
@@ -27,7 +29,7 @@ check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
 find_package(Threads REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native)
+  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
   #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
 endif()
 
@@ -60,8 +62,6 @@ include_directories(${INC_BASE_DIR})
 #-------------------
 # Build Test
 #-------------------
-enable_testing()
-
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
@@ -71,6 +71,7 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
+    ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
 )
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
@@ -88,3 +89,10 @@ target_link_libraries(${PROJECT_NAME_STR}
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY PREFIX "")
+set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
+
+enable_testing()
+add_test(NAME AllTests
+         COMMAND bddriver_test)
+
+set_property(TEST AllTests PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
