@@ -8,26 +8,27 @@ DriverPars::DriverPars()
   const unsigned int ms = 1000;
 
   // buffer capacities
-  pars_[kenc_buf_in_][kcapacity] = 10000;
-  pars_[kenc_buf_out_][kcapacity] = 10000;
-  pars_[kdec_buf_in_][kcapacity] = 10000;
-  pars_[kdec_buf_out_][kcapacity] = 10000;
+  pars_.resize(LastDriverParId);
+  pars_[enc_buf_in_capacity] = 10000;
+  pars_[enc_buf_out_capacity] = 10000;
+  pars_[dec_buf_in_capacity] = 10000;
+  pars_[dec_buf_out_capacity] = 10000;
 
   // encoder/decoder working chunk sizes
-  pars_[kenc_][kchunk_size] = 1 * ms;
-  pars_[kenc_][ktimeout_us] = 1 * ms;
+  pars_[enc_chunk_size] = 1 * ms;
+  pars_[enc_timeout_us] = 1 * ms;
 
-  pars_[kdec_][kchunk_size] = 1 * ms;
-  pars_[kdec_][ktimeout_us] = 1 * ms;
+  pars_[dec_chunk_size] = 1 * ms;
+  pars_[dec_timeout_us] = 1 * ms;
 
-  pars_[kbd_state_][ktraffic_drain_us] = 1 * ms; // timing assumption: this long after shutting off traffic, bd will be inactive
+  pars_[bd_state_traffic_drain_us] = 1 * ms; // timing assumption: this long after shutting off traffic, bd will be inactive
 
   // timeouts for functions that pop from buffers
-  pars_[kDumpPAT][ktimeout_us] = 1 * ms;
-  pars_[kDumpTAT][ktimeout_us] = 1 * ms;
-  pars_[kDumpMM][ktimeout_us] = 1 * ms;
-  pars_[kRecvSpikes][ktimeout_us] = 1 * ms;
-  pars_[kRecvTags][ktimeout_us] = 1 * ms;
+  pars_[DumpPAT_timeout_us] = 1 * ms;
+  pars_[DumpTAT_timeout_us] = 1 * ms;
+  pars_[DumpMM_timeout_us] = 1 * ms;
+  pars_[RecvSpikes_timeout_us] = 1 * ms;
+  pars_[RecvTags_timeout_us] = 1 * ms;
 }
 
 DriverPars::~DriverPars()

@@ -38,12 +38,12 @@ Driver::Driver()
   bd_state_ = std::vector<BDState>(bd_pars_->NumCores(), BDState(bd_pars_, driver_pars_));
   
   // initialize buffers
-  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(kenc_buf_in_, kcapacity));
-  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(kenc_buf_out_, kcapacity));
-  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(kdec_buf_in_, kcapacity));
+  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(enc_buf_in_capacity));
+  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(enc_buf_out_capacity));
+  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(dec_buf_in_capacity));
 
   for (unsigned int i = 0; i < bd_pars_->FunnelRoutes()->size(); i++) {
-    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(kdec_buf_out_, kcapacity));
+    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(dec_buf_out_capacity));
     dec_bufs_out_.push_back(buf_ptr);
   }
 
@@ -52,16 +52,16 @@ Driver::Driver()
       bd_pars_,
       enc_buf_in_, 
       enc_buf_out_, 
-      driver_pars_->Get(kenc_, kchunk_size), 
-      driver_pars_->Get(kenc_, ktimeout_us)
+      driver_pars_->Get(enc_chunk_size), 
+      driver_pars_->Get(enc_timeout_us)
   );
 
   dec_ = new Decoder(
       bd_pars_, 
       dec_buf_in_, 
       dec_bufs_out_, 
-      driver_pars_->Get(kdec_, kchunk_size), 
-      driver_pars_->Get(kdec_, ktimeout_us)
+      driver_pars_->Get(dec_chunk_size), 
+      driver_pars_->Get(dec_timeout_us)
   );
 }
 
@@ -346,7 +346,7 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
   
   DecOutput recv_vals[PAT_size];
   unsigned int funnel_idx = bd_pars_->FunnelIdx(bd_pars_->DumpFunnelId(PAT));
-  unsigned int timeout = driver_pars_->Get(kDumpPAT, ktimeout_us);
+  unsigned int timeout = driver_pars_->Get(DumpPAT_timeout_us);
   unsigned int n_recv = dec_bufs_out_[funnel_idx]->Pop(recv_vals, PAT_size, timeout);
   if (n_recv != PAT_size) {
     // XXX this should probably go to a warning log instead of stdio
@@ -470,7 +470,7 @@ std::vector<uint64_t> Driver::PackRMWProgWords(
 std::vector<uint64_t> Driver::PackAMMMWord(MemId AM_or_MM, const std::vector<uint64_t> & payload_data) const
 // XXX should vectorize, use PackWords
 {
-  const WordStructure * AM_MM_encapsulation;
+  const WordStructure * AM_MM_encapsulation = nullptr; // assignment to nullptr suppresses compiler warning
   if (AM_or_MM == AM) {
     AM_MM_encapsulation = bd_pars_->Word(AM_encapsulation);
   } else if (AM_or_MM == MM) {
@@ -519,7 +519,7 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
 std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
 {
   unsigned int buf_idx = bd_pars_->FunnelIdx(NRNI);
-  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(kRecvSpikes, ktimeout_us));
+  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(RecvSpikes_timeout_us));
 
   std::vector<Spike> retval;
   for (auto& el : dec_out) {
@@ -592,6 +592,7 @@ uint64_t Driver::ValueForSpecialFieldId(WordFieldId field_id) const {
     return 3;
   } else {
     assert(false && "no value supplied for a given field");
+    return 0; // suppresses compiler warning
   }
 }
 
@@ -624,7 +625,8 @@ std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const
   unsigned int n_fields = word_struct.size();
   unsigned int n_words = field_values.begin()->second.size();
   for (auto& it : field_values) {
-    assert(it.second.size() == n_words && "FieldVValues vector length mismatch");
+    std::vector<uint64_t> vect = it.second;
+    assert(vect.size(); == n_words && "FieldVValues vector length mismatch");
   }
 
   // XXX not sure if it's better to rearrange first (which needs alloc), then Pack, or just iterate and pack

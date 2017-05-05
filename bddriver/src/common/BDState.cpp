@@ -124,7 +124,7 @@ bool BDState::IsTrafficOff() const
   // check that traffic regs are still off
   if (AreTrafficRegsOff()) {
     auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
-    std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(kbd_state_, ktraffic_drain_us));
+    std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(bd_state_traffic_drain_us));
     if (time_since > traffic_drain_time) {
       return true;
     }

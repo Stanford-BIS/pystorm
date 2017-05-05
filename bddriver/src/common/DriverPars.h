@@ -2,37 +2,30 @@
 #define DRIVERPARS_H
 
 #include <string>
-#include <unordered_map>
+#include <vector>
 
 namespace pystorm {
 namespace bddriver {
 
-enum DriverParObj {
+enum DriverParId {
   // objects
-  kenc_buf_in_,
-  kenc_buf_out_,
-  kdec_buf_in_,
-  kdec_buf_out_,
-  kenc_,
-  kdec_,
-  kbd_state_,
+  enc_buf_in_capacity,
+  dec_buf_in_capacity,
+  enc_buf_out_capacity,
+  dec_buf_out_capacity,
+  enc_chunk_size,
+  enc_timeout_us,
+  dec_chunk_size,
+  dec_timeout_us,
+  bd_state_traffic_drain_us,
   // functions
-  kDumpPAT,
-  kDumpTAT,
-  kDumpMM,
-  kRecvSpikes,
-  kRecvTags,
+  DumpPAT_timeout_us,
+  DumpTAT_timeout_us,
+  DumpMM_timeout_us,
+  RecvSpikes_timeout_us,
+  RecvTags_timeout_us,
 
-  kLastDriverParObj = kRecvTags
-};
-
-enum DriverParProperty {
-  kcapacity,
-  kchunk_size,
-  ktraffic_drain_us,
-  ktimeout_us,
-
-  kLastDriverParProperty = ktimeout_us
+  LastDriverParId = RecvTags_timeout_us
 };
 
 class DriverPars {
@@ -41,11 +34,11 @@ class DriverPars {
     DriverPars();
     ~DriverPars();
 
-    inline unsigned int Get(DriverParObj object, DriverParProperty property) const 
-      { return pars_.at(object).at(property); }
+    inline unsigned int Get(DriverParId par_id) const 
+      { return pars_.at(par_id); }
 
   private:
-    std::unordered_map<DriverParObj, std::unordered_map<DriverParProperty, unsigned int> > pars_;
+    std::vector<unsigned int> pars_;
 
 };
 
