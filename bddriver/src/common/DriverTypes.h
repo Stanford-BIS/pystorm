@@ -2,7 +2,7 @@
 #define DRIVERTYPES_H
 
 #include <cstdint>
-#include <unordered_map>
+#include <map>
 
 #include "BDPars.h"
 
@@ -76,8 +76,8 @@ struct Tag {
 // internal word stream def'ns 
 
 // typedefs: words and word streams
-typedef std::unordered_map<WordFieldId, uint64_t> FieldValues;
-typedef std::unordered_map<WordFieldId, std::vector<uint64_t> > FieldVValues;
+typedef std::map<WordFieldId, uint64_t> FieldValues;
+typedef std::map<WordFieldId, std::vector<uint64_t> > FieldVValues;
 
 ////////////////////////////////////////
 // decoder/encoder
