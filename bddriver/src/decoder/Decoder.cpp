@@ -23,6 +23,14 @@ void Decoder::RunOnce()
   std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
   Decode(input_chunk_, num_popped, &output_chunks_, &num_pushed_to_each);
 
+  // XXX can use the Read/PopAfterRead ifc, but doesn't seem to improve throughput
+  //const DecInput * read_data;
+  //unsigned int num_read;
+  //std::tie(read_data, num_read) = in_buf_->Read(max_chunk_size_, timeout_us_);
+  //std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
+  //Decode(read_data, num_read, &output_chunks_, &num_pushed_to_each);
+  //in_buf_->PopAfterRead();
+
   bool all_success = false;
 
   // XXX this is not ideal. Blocking on one queue should not cause other queues to block

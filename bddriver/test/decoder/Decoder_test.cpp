@@ -57,7 +57,7 @@ class DecoderFixture : public testing::Test
     }
 
     const unsigned int input_width = 34;
-    unsigned int N = 10e6;
+    unsigned int N = 20e6;
     unsigned int M = 1000;
     unsigned int buf_depth = 100000;
 
