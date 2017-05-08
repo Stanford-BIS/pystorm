@@ -19,6 +19,11 @@ class MutexBuffer {
     bool Push(const T * input, unsigned int input_len, unsigned int try_for_us=0);
     unsigned int Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us=0);
 
+    // two part read-then-pop call. Saves some copying
+    // returns head pointer, num that may be read
+    std::pair<const T *, unsigned int> Read(unsigned int max_to_pop, unsigned int try_for_us=0);
+    void PopAfterRead();
+
     // vector interface, extra allocation
     bool Push(const std::vector<T> & input, unsigned int try_for_us=0);
     std::vector<T> PopVect(unsigned int max_to_pop, unsigned int try_for_us=0);
@@ -30,6 +35,14 @@ class MutexBuffer {
     unsigned int back_;
     unsigned int count_;
 
+    unsigned int num_to_read_; // used in Read/PopAfterRead
+
+    // a few notes:
+    // on init, front_ == back_ == 0
+    // when full, back == front_ - 1
+    // "back_ is next place to push to"
+    // "front_ is next place to pop from"
+
     // XXX originally I designed this with two locks to allow concurrent push/pop
     // (which should be possible--a completely lockless circular buffer is supposedly even possible!)
     // the way I implemented it originally (probably) had a race conditions when
@@ -38,6 +51,8 @@ class MutexBuffer {
     std::mutex mutex_;
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
+
+    std::mutex read_in_progress_;
 
     bool IsEmpty(); 
     bool HasRoomFor(unsigned int size);

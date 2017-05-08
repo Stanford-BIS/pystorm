@@ -84,6 +84,32 @@ void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int
 }
 
 template <class T>
+void ConsumeVectReadThenPopN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+{
+  unsigned int N_consumed = 0;
+  while (N_consumed != N) {
+    //cout << "hi" << endl;
+    const T * read_ptr;
+    unsigned int num_to_read;
+    std::tie(read_ptr, num_to_read) = buf->Read(M, try_for_us);
+
+    //cout << "popping: ";
+    //for (unsigned int i = 0; i < num_popped; i++) {
+    //  //cout << data[i] << ", ";
+    //}
+    //cout << ". " << N_consumed + num_popped << " popped" << endl;
+    
+    for (unsigned int j = 0; j < num_to_read; j++) {
+      vals->push_back(read_ptr[j]);
+    }
+
+    buf->PopAfterRead();
+
+    N_consumed += num_to_read;
+  }
+}
+
+template <class T>
 void ConsumeAndCheckN(bddriver::MutexBuffer<T> * buf, T * check_vals, unsigned int N, unsigned int M, unsigned int try_for_us)
 {
   T data[M];
