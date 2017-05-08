@@ -26,7 +26,7 @@ MutexBuffer<T>::MutexBuffer(unsigned int capacity)
 template<class T>
 MutexBuffer<T>::~MutexBuffer()
 {
-  delete vals_;
+  delete[] vals_;
 }
 
 template<class T>
