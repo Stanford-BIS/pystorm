@@ -198,6 +198,7 @@ class Driver
     ////////////////////////////////
     // helpers
     
+    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
     uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
     std::vector<uint64_t> PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const;
     FieldValues UnpackWord(const WordStructure & word_struct, uint64_t word) const;
@@ -210,7 +211,6 @@ class Driver
         const std::vector<uint64_t> & payload
     );
 
-    uint64_t SignedValToBit(int sign) const;
 
     ////////////////////////////////
     // low-level programming calls, breadth of high-level downstream API goes through these
@@ -264,21 +264,6 @@ class Driver
     void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
 
     void InitFIFO(unsigned int core_id);
-
-    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
-
-    ////////////////////////////////
-    // conversion functions from user types to FieldVValues
-    
-    FieldVValues             DataToFieldVValues(const std::vector<PATData> & data) const;
-    std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data) const; // TAT can have mixed field types
-    FieldVValues             DataToFieldVValues(const std::vector<AMData> & data) const;
-    FieldVValues             DataToFieldVValues(const std::vector<MMData> & data) const;
-
-    std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) const;
-    std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values) const;
-    std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values) const;
-    std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values) const;
 
 };
 
