@@ -15,19 +15,23 @@ namespace pystorm {
 namespace bddriver {
 
 class Encoder : public Xcoder<EncInput, EncOutput> {
+
+  const static unsigned int bytesPerOutput = 3; // BD_input is 21 bits, fits in 3 bytes
+
   public:
+
     Encoder(
         const BDPars * pars, 
         MutexBuffer<EncInput> * in_buf, 
         MutexBuffer<EncOutput> * out_buf, 
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
-    ) : Xcoder(pars, in_buf, {out_buf}, chunk_size, timeout_us) {}; // call base constructor only
+    ) : Xcoder(pars, in_buf, {out_buf}, chunk_size, chunk_size * bytesPerOutput, timeout_us) {}; // call base constructor only
 
   private:
 
     void RunOnce();
-    void Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs);
+    void Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs) const;
     uint32_t EncodeHorn(FHRoute route, uint32_t payload) const;
     
 };

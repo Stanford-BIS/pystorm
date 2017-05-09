@@ -18,6 +18,7 @@ using std::endl;
 using namespace pystorm;
 using namespace bddriver;
 
+#define BYTES_PER_WORD 5
 
 std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecInputAndOutputs(unsigned int N, const BDPars * pars, unsigned int max_leaf_idx_to_use) {
 
@@ -54,15 +55,20 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
     // pack dec input word
     // msb <-- lsb
     // [route | X | payload]
-    uint64_t dec_input = PackV64(
+    uint64_t dec_input_packed = PackV64(
         {static_cast<uint64_t>(payload_val), 0, static_cast<uint64_t>(route_val)},
         {payload_width, BD_output_width - payload_width - route_len, route_len}
     );
+
     //cout << "route(" << route_len << "): " << route_val << endl;
     //cout << UintAsString(dec_input, 34) << endl;
-
-    // push packed word
-    dec_inputs.push_back(dec_input);
+    
+    // now unpack input into uint8_ts
+    std::vector<unsigned int> byte_widths (BYTES_PER_WORD, 8);
+    std::vector<uint64_t> dec_input = UnpackV64(dec_input_packed, byte_widths);
+    for (auto& it : dec_input) {
+      dec_inputs.push_back(static_cast<uint8_t>(it));
+    }
 
     // push dec output word to appropriate queue
     // XXX ignore time epoch for now
@@ -104,7 +110,7 @@ class DecoderFixture : public testing::TestWithParam<unsigned int>
     }
 
     const unsigned int input_width = 34;
-    unsigned int N = 20e6;
+    unsigned int N = 10e6;
     unsigned int M = 10000;
     unsigned int buf_depth = 100000;
 
@@ -128,7 +134,7 @@ TEST_P(DecoderFixture, Test1xDecoder)
   Decoder dec(pars, buf_in, bufs_out, M);
 
   // start producer/consumer threads
-  std::thread producer = std::thread(ProduceN<DecInput>, buf_in, &dec_inputs[0], N, M, 0);
+  std::thread producer = std::thread(ProduceN<DecInput>, buf_in, &dec_inputs[0], N*BYTES_PER_WORD, M, 0);
 
   // XXX this isn't quite the use-case, but it fits well with the testing structures
   // in reality, there isn't necessarily one thread per bufs_out queue

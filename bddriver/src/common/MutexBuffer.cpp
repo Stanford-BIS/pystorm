@@ -96,7 +96,7 @@ bool MutexBuffer<T>::Push(const std::vector<T>& input, unsigned int try_for_us)
 }
 
 template<class T>
-unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop) 
+unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop, unsigned int multiple) 
 {
   // figure out how many elements are going to be in output
   unsigned int num_popped;
@@ -105,6 +105,10 @@ unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop)
   } else {
     num_popped = count_;
   }
+
+  // num_popped must be a multiple
+  num_popped -= num_popped % multiple;
+  assert(num_popped > 0);
 
   // do copy
   for (unsigned int i = 0; i < num_popped; i++) {
@@ -122,7 +126,7 @@ unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop)
 }
 
 template<class T>
-unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us)
+unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us, unsigned int multiple)
 // copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
 {
   std::unique_lock<std::mutex> lock(mutex_);
@@ -130,15 +134,15 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
   // we currently have the lock, but if the buffer is empty, we need to wait
   // wait for the queue to have something to output
   // if try_for_us == 0, wait until notified
-  if (IsEmpty()) { 
+  if (!HasAtLeast(multiple)) { 
     if (try_for_us == 0) { 
-      just_pushed_.wait(lock, [this]{ return !IsEmpty(); });
+      just_pushed_.wait(lock, [this, multiple]{ return HasAtLeast(multiple); });
     // else, time out after try_for_us microseconds
     } else {
       bool success = just_popped_.wait_for(
           lock, 
           std::chrono::duration<unsigned int, std::micro>(try_for_us),
-          [this]{ return !IsEmpty(); }
+          [this, multiple]{ return HasAtLeast(multiple); }
       );
 
       if (!success) {
@@ -149,7 +153,7 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
   // XXX there is probably some weird stuff that can happen w/ multiple producers/consumers
 
   // copy the data, update queue state
-  unsigned int num_popped = PopData(copy_to, max_to_pop);
+  unsigned int num_popped = PopData(copy_to, max_to_pop, multiple);
 
   // notify the producer that they may wake up
   just_popped_.notify_all();
@@ -159,21 +163,21 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
 
 
 template<class T>
-std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try_for_us)
+std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try_for_us, unsigned int multiple)
 {
   std::vector<T> output;
   output.reserve(max_to_pop);
 
-  unsigned int num_popped = Pop(&output[0], max_to_pop, try_for_us);
+  unsigned int num_popped = Pop(&output[0], max_to_pop, try_for_us, multiple);
   output.resize(num_popped);
 
   return output;
 }
 
 template<class T>
-bool MutexBuffer<T>::IsEmpty()
+bool MutexBuffer<T>::HasAtLeast(unsigned int num)
 {
-  return count_ == 0;
+  return count_ >= num;
 }
 
 template<class T>
@@ -185,7 +189,7 @@ bool MutexBuffer<T>::HasRoomFor(unsigned int size)
 }
 
 template<class T>
-std::pair<const T *, unsigned int> MutexBuffer<T>::Read(unsigned int max_to_pop, unsigned int try_for_us)
+std::pair<const T *, unsigned int> MutexBuffer<T>::Read(unsigned int max_to_pop, unsigned int try_for_us, unsigned int multiple)
 {
   // only returns a pointer to the front_ and a max number of entries
   // that may be read, starting from there, does not update queue state
@@ -200,15 +204,15 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::Read(unsigned int max_to_pop,
   // we currently have the lock, but if the buffer is empty, we need to wait
   // wait for the queue to have something to output
   // if try_for_us == 0, wait until notified
-  if (IsEmpty()) { 
+  if (!HasAtLeast(multiple)) { 
     if (try_for_us == 0) { 
-      just_pushed_.wait(lock, [this]{ return !IsEmpty(); });
+      just_pushed_.wait(lock, [this, multiple]{ return HasAtLeast(multiple); });
     // else, time out after try_for_us microseconds
     } else {
       bool success = just_popped_.wait_for(
           lock, 
           std::chrono::duration<unsigned int, std::micro>(try_for_us),
-          [this]{ return !IsEmpty(); }
+          [this, multiple]{ return HasAtLeast(multiple); }
       );
 
       if (!success) {
@@ -225,6 +229,10 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::Read(unsigned int max_to_pop,
   } else {
     num_to_read = max_to_pop;
   }
+  // num_to_read must be a multiple
+  num_to_read -= (num_to_read) % multiple;
+  assert(num_to_read > 0);
+
   // keep track of how many we're allowing the (single) consumer to read
   num_to_read_ = num_to_read;
 

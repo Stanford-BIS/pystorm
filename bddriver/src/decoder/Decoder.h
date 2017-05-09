@@ -16,6 +16,9 @@ namespace pystorm {
 namespace bddriver {
 
 class Decoder : public Xcoder<DecInput, DecOutput> {
+
+  const static unsigned int bytesPerInput = 5; // BD_output is 34 bits, fits in 5 bytes
+
   public:
     Decoder(
         const BDPars * pars, 

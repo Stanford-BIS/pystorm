@@ -19,7 +19,7 @@ namespace bddriver {
 
 void Decoder::RunOnce()
 {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, max_chunk_size_, timeout_us_);
+  unsigned int num_popped = in_buf_->Pop(input_chunk_, input_chunk_size_, timeout_us_, bytesPerInput);
   std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
   Decode(input_chunk_, num_popped, &output_chunks_, &num_pushed_to_each);
 
@@ -31,7 +31,7 @@ void Decoder::RunOnce()
   // XXX can use the Read/PopAfterRead ifc, but doesn't seem to improve throughput
   //const DecInput * read_data;
   //unsigned int num_read;
-  //std::tie(read_data, num_read) = in_buf_->Read(max_chunk_size_, timeout_us_);
+  //std::tie(read_data, num_read) = in_buf_->Read(input_chunk_size_, timeout_us_);
   //std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
   //Decode(read_data, num_read, &output_chunks_, &num_pushed_to_each);
   //in_buf_->PopAfterRead();
@@ -60,7 +60,7 @@ Decoder::Decoder(
     const std::vector<MutexBuffer<DecOutput> *> & out_bufs, 
     unsigned int chunk_size, 
     unsigned int timeout_us
-) : Xcoder(pars, in_buf, out_bufs, chunk_size, timeout_us) // call default constructor
+) : Xcoder(pars, in_buf, out_bufs, chunk_size * bytesPerInput, chunk_size, timeout_us) // call default constructor
 {
   // set up the vectors we use to do the decoding
   // for now not worrying about the order of entries, might be important later
@@ -107,7 +107,22 @@ Decoder::~Decoder()
 
 void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each) const
 {
-  for (unsigned int i = 0; i < num_popped; i++) {
+  assert(num_popped % bytesPerInput == 0 && "should have used Pop() with a multiple argument");
+  for (unsigned int i = 0; i < num_popped / bytesPerInput; i++) {
+
+    // Pack 5 bytes into uint64_t
+    // this is the safe way, there's probably a lower-level, sketchier way that relies on endianess
+    // XXX this should probably be optimized: cuts decoder throughput in half vs taking in uint64_t
+    uint64_t input_bytes64[bytesPerInput];
+    for (unsigned int j = 0; j < bytesPerInput; j++) {
+      input_bytes64[j] = static_cast<uint64_t>(inputs[i*bytesPerInput + j]);
+    }
+    unsigned int byte_widths[bytesPerInput];
+    for (unsigned int j = 0; j < bytesPerInput; j++) {
+      byte_widths[j] = 8;
+    }
+
+    uint64_t input = Pack64(input_bytes64, byte_widths, bytesPerInput);
 
     // XXX this is where you would decode the FPGA
     // do something with time
@@ -117,7 +132,6 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
     unsigned int core_id = 0;
 
     // decode funnel
-    uint64_t input = inputs[i];
     std::pair<unsigned int, uint32_t> funnel_decoded = DecodeFunnel(input);
     unsigned int leaf_idx = funnel_decoded.first;
     uint32_t payload = funnel_decoded.second;
@@ -130,6 +144,7 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
     (*num_pushed_to_each)[leaf_idx]++;
   }
 }
+
 
 inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_route) const
 {

@@ -11,6 +11,8 @@
 #include "binary_util.h"
 #include "test_util/Producer_Consumer.cpp"
 
+#define BYTES_PER_WORD 3
+
 using std::cout;
 using std::endl;
 using namespace pystorm;
@@ -50,16 +52,23 @@ std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(
     // pack enc output word
     // msb <- lsb
     // [ X | payload | route ]
-    EncOutput enc_output = PackV32(
+    uint32_t enc_output_packed = PackV32(
         {route_val, payload_val}, 
         {route_len, payload_width}
     );
-    //cout << route_val << ", " << payload_val << endl;
-    //cout << UintAsString(enc_output, 32) << endl;
+    //cout << route_val << "(" << route_len << "), " << payload_val << "(" << payload_width << ")" << endl;
+    //cout << UintAsString(enc_output_packed, 32) << endl;
+    
+    // now unpack output into uint8_ts
+    std::vector<unsigned int> byte_widths (BYTES_PER_WORD, 8);
+    std::vector<uint32_t> enc_output = UnpackV32(enc_output_packed, byte_widths);
 
     // push to vectors
+    for (auto& it : enc_output) {
+       enc_outputs.push_back(static_cast<uint8_t>(it));
+       //cout << UintAsString(it, 8) << endl;
+    }
     enc_inputs.push_back(enc_input);
-    enc_outputs.push_back(enc_output);
   }
 
   return std::make_pair(enc_inputs, enc_outputs);
@@ -105,7 +114,7 @@ TEST_F(EncoderFixture, Test1xEncoder)
   // start producer/consumer threads
   std::vector<EncOutput> consumed;
   producer = std::thread(ProduceN<EncInput>, buf_in, &enc_inputs[0], N, M, 0);
-  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N, M, 0);
+  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N * BYTES_PER_WORD, M, 0);
 
   // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();
@@ -126,7 +135,9 @@ TEST_F(EncoderFixture, Test1xEncoder)
 
   ASSERT_EQ(consumed.size(), enc_outputs.size());
   for (unsigned int i = 0; i < consumed.size(); i++) {
-    ASSERT_EQ(consumed[i], enc_outputs[i]);
+    //cout << "got " << UintAsString(consumed[i], 8) << endl;
+    //cout << "exp " << UintAsString(enc_outputs[i], 8) << endl;
+    EXPECT_EQ(consumed[i], enc_outputs[i]);
   }
 
 }
@@ -140,7 +151,7 @@ TEST_F(EncoderFixture, Test2xEncoder)
   // start producer/consumer threads
   std::vector<EncOutput> consumed;
   producer = std::thread(ProduceN<EncInput>, buf_in, &enc_inputs[0], N, M, 0);
-  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N, M, 0);
+  consumer = std::thread(ConsumeVectN<EncOutput>, buf_out, &consumed, N * BYTES_PER_WORD, M, 0);
 
   // start encoder, sources from producer through buf_in, sinks to consumer through buf_out
   auto t0 = std::chrono::high_resolution_clock::now();

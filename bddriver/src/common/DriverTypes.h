@@ -103,7 +103,7 @@ struct DecOutput {
   unsigned int core_id;
   unsigned int time_epoch;
 };
-typedef uint64_t DecInput;
+typedef uint8_t DecInput;
 
 // encoder
 struct EncInput {
@@ -111,7 +111,7 @@ struct EncInput {
   unsigned int leaf_id;
   uint32_t payload;
 };
-typedef uint32_t EncOutput;
+typedef uint8_t EncOutput;
 
 } // bddriver
 } // pystorm
