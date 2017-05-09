@@ -11,88 +11,98 @@
 
 #include <cstring>
 
-#include "common/TSQueue.h"
 #include "Comm.h"
 
-namespace pystorm
-{
-namespace bddriver
-{
-namespace bdcomm
-{
+namespace pystorm {
+namespace bddriver {
+namespace comm {
 
 class EmulatorClientIfc;
 
-struct EmulatorCallbackData                                                             
-{                                                                               
-    EmulatorClientIfc* comm;                                                                 
+///
+/// EmulatorCallbackData is passed to Emulator clients after a read or write
+/// is performed.
+///
+struct EmulatorCallbackData {                                                                               
+    EmulatorClientIfc* client;
     std::unique_ptr<COMMWordStream> buf;                                        
 };                   
 
-class EmulatorClientIfc
-{
+class EmulatorClientIfc {
 public:
     virtual void ReadCallback(std::unique_ptr<EmulatorCallbackData> cb) = 0;
     virtual void WriteCallback(std::unique_ptr<EmulatorCallbackData> cb) = 0;
 };
 
-class Emulator
-{
+///
+/// Emulator is used by CommSoft and emulates the libusb module by having the
+/// client (i.e. an instance of CommSoft) create a callback method that is
+/// invoked when Emulator has mimiced reading data from an input file or 
+/// writing data to an output file.
+///
+class Emulator {
 public:
-    Emulator(std::string& in_file_name, std::string& out_file_name);
+    Emulator(const std::string& in_file_name, const std::string& out_file_name);
+
+    Emulator() = delete;
 
     ~Emulator();
 
-    /* Read
-     * 
-     * Blocking call telling Emulator to read a stream of data
-     */
+    ///
+    /// Blocking call telling Emulator to read a stream of data
+    ///
     void Read(std::unique_ptr<EmulatorCallbackData> cb);
 
-    /* Read
-     * 
-     * Blocking call telling Emulator to write a stream of data
-     */
+    ///
+    /// Blocking call telling Emulator to write a stream of data
+    ///
     void Write(std::unique_ptr<EmulatorCallbackData> cb);
 
-    /* Start
-     * 
-     * Open the streams 
-     */
+    ///
+    /// Open the streams 
+    ///
     void Start();
 
-    /*
-     * Stop
-     *
-     * Close the streams
-     */
+    ///
+    /// Close the streams
+    ///
     void Stop();
 
-    Emulator();
+    /// The maximum number of characters in each element of m_word_streams.
+    static const int READ_SIZE = 512;
 protected:
+    /// 
+    /// Init is called by the constructor open the file handles to the 
+    /// input and output files.
     void Init();
 
-    /*
-     * BuildInputStream
-     *
-     * Read the input file and build a vector of streams whose elements will
-     * will be passed to an emulator client when the emulator client calls 
-     * Read.
-     */
+    ///
+    /// Read the input file and build a vector of streams whose elements will
+    /// will be passed to an emulator client when the emulator client calls 
+    ///
     void BuildInputStream();
 
+    /// The name of the input file read when the Emulator is started.
     std::string   m_in_file_name;                                               
+
+    /// The name of the output file written to when the Emulator is started.
     std::string   m_out_file_name;                                              
-                                                                                
-    std::ofstream m_out_stream;                                                 
+       
+    /// The input file stream handler                                                                         
     std::ifstream m_in_stream; 
 
+    /// The output file stream handler                                                                         
+    std::ofstream m_out_stream;                                                 
+
+    /// The word streams that the Emulator reads from the input file.
     std::vector<COMMWordStream> m_word_streams;
-    int m_current_word_stream_pos;
-    static const int READ_SIZE = 512;
+
+    /// The index of the next element of m_word_streams to read from.
+    unsigned int m_current_word_stream_pos;
+
 };
 
-} // bdcomm namespace
+} // comm namespace
 } // bddriver namespace
 } // pystorm namespace
 #endif

@@ -1,84 +1,83 @@
 #include "CommSoft.h"
 
-namespace pystorm
-{
-namespace bddriver
-{
-namespace bdcomm
-{
+namespace pystorm {
+namespace bddriver {
+namespace comm {
 
+CommSoft::CommSoft(const std::string& in_file_name, 
+    const std::string& out_file_name) :
+        m_emulator(nullptr),
+        m_read_buffer(nullptr),
+        m_write_buffer(nullptr),
+        m_state(CommStreamState::STOPPED) {
+    m_emulator = new Emulator(in_file_name, out_file_name);
+    m_read_buffer = new MutexBuffer<COMMWordStream>(CommSoft::CAPACITY);
+    m_write_buffer = new MutexBuffer<COMMWordStream>(CommSoft::CAPACITY);
+}
 
-void CommSoft::ReadPacketsIn()
-{
+void CommSoft::ReadFromDevice() {
     std::unique_ptr<EmulatorCallbackData> cb = 
-        std::unique_ptr<EmulatorCallbackData>(
-        new EmulatorCallbackData());
+        std::unique_ptr<EmulatorCallbackData>(new EmulatorCallbackData());
 
-    cb->comm = this;
+    cb->client = this;
 
     m_emulator->Read(std::move(cb));
 }
 
-void CommSoft::WritePacketsOut()
-{
-    std::unique_ptr<COMMWordStream> wordstream;
-    bool retValue = m_write_queue.try_pop(std::ref(wordstream));
-    if (true == retValue)
-    {
-        
+void CommSoft::WriteToDevice() {
+    auto vectorOfCOMMWordStreams =
+        m_write_buffer->PopVect(MAX_POP, DEFAULT_BUFFER_TIMEOUT);
+
+    if (vectorOfCOMMWordStreams.size() > 0) {
+        auto wordstream = std::unique_ptr<COMMWordStream>(
+            new COMMWordStream());
+
+        for (auto stream:vectorOfCOMMWordStreams) {
+            wordstream->insert(wordstream->end(),stream.begin(), stream.end());
+        }
+
         std::unique_ptr<EmulatorCallbackData> cb = 
             std::unique_ptr<EmulatorCallbackData>(
             new EmulatorCallbackData());
-        cb->comm = this;
+
+        cb->client = this;
         cb->buf = std::move(wordstream);
 
         m_emulator->Write(std::move(cb));
     }
 }
 
-void CommSoft::CommSoftController()
-{
+void CommSoft::CommSoftController() {
     while (CommStreamState::STARTED == GetStreamState())
     {
-        ReadPacketsIn();
-        WritePacketsOut();        
+        ReadFromDevice();
+        WriteToDevice();
     }
 }
 
-
-CommSoft::CommSoft(std::string& in_file_name, std::string& out_file_name)
-{
-    m_emulator = std::unique_ptr<Emulator>(new Emulator(in_file_name, out_file_name));
-    m_state = CommStreamState::STOPPED;
-}
-
-CommSoft::~CommSoft()
-{
+CommSoft::~CommSoft() {
     StopStreaming();
-    SetStreamState(CommStreamState::STOPPED);
+    m_state = CommStreamState::STOPPED;
     if (m_control_thread.joinable())
         m_control_thread.join();
+    delete m_write_buffer;
+    delete m_read_buffer;
+    delete m_emulator;
 }
 
-void CommSoft::StartStreaming()
-{
-    if (CommStreamState::STOPPED == GetStreamState())
-    {
-        SetStreamState(CommStreamState::STARTED);
-
+void CommSoft::StartStreaming() {
+    if (CommStreamState::STOPPED == GetStreamState()) {
+        m_state = CommStreamState::STARTED;
         m_emulator->Start();
-
         m_control_thread = std::thread(&CommSoft::CommSoftController, this);
     }
 }
 
-void CommSoft::StopStreaming()
-{
+void CommSoft::StopStreaming() {
     {
         std::lock_guard<std::recursive_mutex> lck(m_state_mutex);
-        if (CommStreamState::STARTED == GetStreamState())
-        {
-            SetStreamState(CommStreamState::STOPPED);
+        if (CommStreamState::STARTED == GetStreamState()) {
+            m_state = CommStreamState::STOPPED;
         }
     }
 
@@ -88,31 +87,20 @@ void CommSoft::StopStreaming()
     m_emulator->Stop();
 }
 
-void CommSoft::Write(std::unique_ptr<COMMWordStream> wordStream)
-{
-    m_write_queue.push(wordStream);
+void CommSoft::ReadCallback(std::unique_ptr<EmulatorCallbackData> cb) {
+
+    std::vector<COMMWordStream> vecOfCWS;
+    vecOfCWS.push_back(*(cb->buf));
+
+    while ((m_read_buffer->Push(vecOfCWS,DEFAULT_BUFFER_TIMEOUT) == false) &&
+           (CommStreamState::STOPPED != m_state)) {
+    }
 }
 
-std::unique_ptr<COMMWordStream> CommSoft::Read()
-{
-    std::unique_ptr<COMMWordStream> wordstream;
-    auto retValue = m_read_queue.try_pop(wordstream);
-    if (retValue)
-        return wordstream;
-    else
-        return nullptr;
-}
-
-void CommSoft::ReadCallback(std::unique_ptr<EmulatorCallbackData> cb)
-{
-    m_read_queue.push(std::ref(cb->buf));
-}
-
-void CommSoft::WriteCallback(std::unique_ptr<EmulatorCallbackData> cb)
-{
+void CommSoft::WriteCallback(std::unique_ptr<EmulatorCallbackData> cb) {
 }
 
 
-} // bdcomm namespace
+} // comm namespace
 } // bddriver namespace
 } // pystorm namespace

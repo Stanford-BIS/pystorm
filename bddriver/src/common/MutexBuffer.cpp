@@ -26,7 +26,7 @@ MutexBuffer<T>::MutexBuffer(unsigned int capacity)
 template<class T>
 MutexBuffer<T>::~MutexBuffer()
 {
-  delete vals_;
+  delete []vals_;
 }
 
 template<class T>
@@ -52,7 +52,7 @@ bool MutexBuffer<T>::Push(const T * input, unsigned int input_len, unsigned int 
 // block until <input_len> elements at <input> are successfully pushed or <try_for_us> us have expired
 // returns true if push suceeded, false if push failed
 {
-  assert(input_len < capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
+  assert(input_len <= capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
 
   std::unique_lock<std::mutex> lock(mutex_);
 
@@ -164,9 +164,9 @@ template<class T>
 std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try_for_us)
 {
   std::vector<T> output;
-  output.reserve(max_to_pop);
+  output.resize(max_to_pop);
 
-  unsigned int num_popped = Pop(&output[0], try_for_us);
+  unsigned int num_popped = Pop(&output[0], max_to_pop, try_for_us);
   output.resize(num_popped);
 
   return output;

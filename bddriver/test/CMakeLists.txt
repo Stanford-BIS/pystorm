@@ -66,7 +66,8 @@ include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
     ${PROJECT_SOURCE_DIR}/test_util/Producer_Consumer.cpp
-    ${PROJECT_SOURCE_DIR}/comm/emulator_test.cpp
+    ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
+    ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
     ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
