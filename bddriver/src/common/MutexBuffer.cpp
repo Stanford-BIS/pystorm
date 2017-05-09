@@ -164,7 +164,7 @@ std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try
   std::vector<T> output;
   output.reserve(max_to_pop);
 
-  unsigned int num_popped = Pop(&output[0], try_for_us);
+  unsigned int num_popped = Pop(&output[0], max_to_pop, try_for_us);
   output.resize(num_popped);
 
   return output;
