@@ -23,6 +23,11 @@ void Decoder::RunOnce()
   std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
   Decode(input_chunk_, num_popped, &output_chunks_, &num_pushed_to_each);
 
+  unsigned int total_pushed_to_each = 0;
+  for (auto& it : num_pushed_to_each) {
+    total_pushed_to_each += it;
+  }
+
   // XXX can use the Read/PopAfterRead ifc, but doesn't seem to improve throughput
   //const DecInput * read_data;
   //unsigned int num_read;
@@ -31,21 +36,22 @@ void Decoder::RunOnce()
   //Decode(read_data, num_read, &output_chunks_, &num_pushed_to_each);
   //in_buf_->PopAfterRead();
 
-  bool all_success = false;
 
   // XXX this is not ideal. Blocking on one queue should not cause other queues to block
+  // hard to get around due to the serial nature of the input, however
+  // in practice, shouldn't be a big issue
   
-  while (!all_success & do_run_) { // if killed, need to stop trying
-    all_success = true;
-    for (unsigned int i = 0; i < out_bufs_.size(); i++) {
-      if (num_pushed_to_each[i] > 0) {
-        bool this_success = out_bufs_[i]->Push(output_chunks_[i], num_pushed_to_each[i], timeout_us_);
-        all_success = all_success & this_success;
+  for (unsigned int i = 0; i < out_bufs_.size(); i++) {
+    if (num_pushed_to_each[i] > 0) {
+      bool success = false;
+      // have to check do_run_, since we could potentially get stuck here
+      while (!success & do_run_) { 
+        success = out_bufs_[i]->Push(output_chunks_[i], num_pushed_to_each[i], timeout_us_);
       }
     }
   }
-  //cout << "decoded a chunk" << endl;
   //num_processed_ += num_popped;
+  //cout << "decoded a chunk size " << num_popped << ". total " << num_processed_ << endl;
 }
 
 Decoder::Decoder(
@@ -94,7 +100,12 @@ Decoder::Decoder(
 
 }
 
-void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each)
+Decoder::~Decoder()
+{
+  //cout << "decoder processed " << num_processed_ << " entries" << endl;
+}
+
+void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each) const
 {
   for (unsigned int i = 0; i < num_popped; i++) {
 
@@ -106,7 +117,7 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
     unsigned int core_id = 0;
 
     // decode funnel
-    uint64_t input = inputs[0];
+    uint64_t input = inputs[i];
     std::pair<unsigned int, uint32_t> funnel_decoded = DecodeFunnel(input);
     unsigned int leaf_idx = funnel_decoded.first;
     uint32_t payload = funnel_decoded.second;
@@ -130,13 +141,20 @@ inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_
   // [ route | X | payload ]
 
   // test which routes match, break out payload for the one that does, return matching leaf name
+  //cout << "payload_route" << endl;
+  //cout << UintAsString(payload_route, 34) << endl;
   for (unsigned int i = 0; i < leaf_routes_.size(); i++) {
+    //cout << "trying leaf " << i << endl;
 
     // mask out everything except the route bits used by this leaf
     uint64_t eligible_route_bits_only = leaf_route_masks_[i] & payload_route;
 
+    //cout << "eligible bits: ";
+    //cout << UintAsString(eligible_route_bits_only, 34) << " = " << eligible_route_bits_only << endl;
+
     // check if the route bits match
     uint64_t route = leaf_routes_[i];
+    //cout << "route: " << route << endl;
     
     if (eligible_route_bits_only == route) {
 
@@ -145,6 +163,7 @@ inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_
 
       // return payload and leaf name tuple
       unsigned int leaf_idx = i;
+      //cout << "HIT" << endl;
 
       return std::make_pair(leaf_idx, payload);
     }

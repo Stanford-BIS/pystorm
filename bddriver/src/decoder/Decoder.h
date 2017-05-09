@@ -24,15 +24,16 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
     );
+    ~Decoder();
 
     // for testing
     //unsigned int num_processed_;
-    void Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each);
 
   private:
 
     void RunOnce();
     std::pair<unsigned int, uint32_t> DecodeFunnel(uint64_t payload_route) const;
+    void Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each) const;
 
     std::vector<uint64_t> leaf_routes_;
     std::vector<unsigned int> leaf_route_lens_;

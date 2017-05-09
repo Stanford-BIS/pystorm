@@ -1,6 +1,7 @@
 #include "MutexBuffer.h"
 #include "gtest/gtest.h"
 
+#include <chrono>
 #include <vector>
 #include <cstdint>
 #include <string>
@@ -60,12 +61,15 @@ void ConsumeN(bddriver::MutexBuffer<T> * buf, T * vals, unsigned int N, unsigned
 }
 
 template <class T>
-void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+void ConsumeVectNGiveUpAfter(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us, unsigned int give_up_after_us)
 {
   T data[M];
 
+  bool give_up = false;
+  auto t0 = std::chrono::high_resolution_clock::now();
+
   unsigned int N_consumed = 0;
-  while (N_consumed != N) {
+  while (N_consumed != N && give_up == false) {
     //cout << "hi" << endl;
     unsigned int num_popped = buf->Pop(data, M, try_for_us);
 
@@ -80,8 +84,21 @@ void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int
     }
 
     N_consumed += num_popped;
+
+    auto tnow = std::chrono::high_resolution_clock::now();
+    auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tnow - t0).count();
+    if (give_up_after_us != 0 && diff > give_up_after_us) {
+      give_up = true;
+    }
   }
 }
+
+template <class T>
+void ConsumeVectN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
+{
+  ConsumeVectNGiveUpAfter(buf, vals, N, M, try_for_us, 0);
+}
+
 
 template <class T>
 void ConsumeVectReadThenPopN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, unsigned int N, unsigned int M, unsigned int try_for_us)
