@@ -55,13 +55,15 @@ inline uint32_t Encoder::EncodeHorn(FHRoute route, uint32_t payload) const
   // msb <- lsb
   // [ X | payload | route ]
 
-  uint32_t route_val = route.first;
-  unsigned int route_len = route.second;
+  uint32_t route_val;
+  unsigned int route_len;
+  std::tie(route_val, route_len) = route;
 
   // NOTE: don't need to know payload size
   // could use PackV32({route_val, payload}, {route_len, 32 - route_len})
   // optimize here by avoiding extra function call
-  return route_val | (payload << route_len);
+  uint32_t retval = route_val | (payload << route_len);
+  return retval;
 }
 
 } // bddriver

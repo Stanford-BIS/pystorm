@@ -183,8 +183,8 @@ TEST_P(DecoderFixture, Test1xDecoder)
   for (unsigned int i = 0; i < consumed_data.size(); i++) {
     ASSERT_EQ(consumed_data[i].size(), dec_outputs[i].size());
     for (unsigned int j = 0; j < consumed_data[i].size(); j++) {
-      EXPECT_EQ(consumed_data[i][j].payload, dec_outputs[i][j].payload);
-      EXPECT_EQ(consumed_data[i][j].core_id, dec_outputs[i][j].core_id);
+      ASSERT_EQ(consumed_data[i][j].payload, dec_outputs[i][j].payload);
+      ASSERT_EQ(consumed_data[i][j].core_id, dec_outputs[i][j].core_id);
     }
   }
 
