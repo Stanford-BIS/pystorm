@@ -18,7 +18,7 @@
  * horn_["RI"]                   (SendTags needs impl)
  * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
  * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
- * horn_["NeuronConfig"]         (XXX TileSRAM calls don't exist)
+ * horn_["NeuronConfig"]         (SetTileSRAMMemory needs impl)
  * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl)
  * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl)
  * horn_["DELAY[*]"]             (SetMemDelay needs impl)
@@ -29,11 +29,13 @@
  * funnel_["DUMP_MM"]            (DumpMM needs impl, see DumpPAT)
  * funnel_["DUMP_TAT[0]"]        (DumpTAT needs impl, see DumpPAT)
  * funnel_["DUMP_TAT[1]"]        (DumpTAT needs impl, see DumpPAT)
- * funnel_["DUMP_PRE_FIFO"]      (XXX FIFO dump calls don't exist)
- * funnel_["DUMP_POST_FIFO[0]"]  (XXX FIFO dump calls don't exist)
- * funnel_["DUMP_POST_FIFO[1]"]  (XXX FIFO dump calls don't exist)
- * funnel_["OVFLW[0]"]           (XXX warning monitoring calls don't exist)
- * funnel_["OVFLW[1]"]           (XXX warning monitoring calls don't exist)
+ * funnel_["DUMP_PRE_FIFO"]      (SetPreFIFODumpState/GetPreFIFODump needs impl)
+ * funnel_["DUMP_POST_FIFO[0]"]  (SetPostFIFO0DumpState/GetPostFIFO0Dump needs impl)
+ * funnel_["DUMP_POST_FIFO[1]"]  (SetPostFIFO1DumpState/GetPostFIFO1Dump needs impl)
+ * funnel_["OVFLW[0]"]           (GetFIFOOverflows needs impl)
+ * funnel_["OVFLW[1]"]           (GetFIFOOverflows needs impl)
+ *
+ * XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
  */
 
 namespace pystorm {
@@ -127,6 +129,20 @@ class Driver
     /// Dump MM contents
     std::vector<unsigned int> DumpMM(unsigned int core_id);
 
+    /// Dump copy of traffic pre-FIFO
+    void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
+    /// Dump copy of traffic post-FIFO, tag msbs = 0
+    void SetPostFIFO0DumpState(unsigned int core_id, bool dump_en);
+    /// Dump copy of traffic post-FIFO, tag msbs = 1
+    void SetPostFIFO1DumpState(unsigned int core_id, bool dump_en);
+    
+    /// Get pre-FIFO tags recorded during dump
+    std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+    /// Get post-FIFO tags msbs = 0 recorded during dump
+    std::vector<Tag> GetPostFIFO0Dump(unsigned int core_id, unsigned int n_tags);
+    /// Get post-FIFO tags msbs = 1 recorded during dump
+    std::vector<Tag> GetPostFIFO1Dump(unsigned int core_id, unsigned int n_tags);
+
     ////////////////////////////////
     // Spike/Tag Streams
 
@@ -142,10 +158,11 @@ class Driver
     /// Receive a stream of tags
     std::vector<Tag> RecvTags(unsigned int max_to_recv);
 
-    // XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
+    /// Get warning count
+    std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts();
 
 
-  protected:
+  private:
     Driver();
     ~Driver();
 
@@ -181,6 +198,7 @@ class Driver
     ////////////////////////////////
     // helpers
     
+    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
     uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
     std::vector<uint64_t> PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const;
     FieldValues UnpackWord(const WordStructure & word_struct, uint64_t word) const;
@@ -193,7 +211,6 @@ class Driver
         const std::vector<uint64_t> & payload
     );
 
-    uint64_t SignedValToBit(int sign) const;
 
     ////////////////////////////////
     // low-level programming calls, breadth of high-level downstream API goes through these
@@ -247,22 +264,6 @@ class Driver
     void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
 
     void InitFIFO(unsigned int core_id);
-
-    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
-
-    ////////////////////////////////
-    // conversion functions from user types to FieldVValues
-    // XXX might eliminate user types at some point, have user use FieldVValues
-    
-    FieldVValues             DataToFieldVValues(const std::vector<PATData> & data) const;
-    std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data) const; // TAT can have mixed field types
-    FieldVValues             DataToFieldVValues(const std::vector<AMData> & data) const;
-    FieldVValues             DataToFieldVValues(const std::vector<MMData> & data) const;
-
-    std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) const;
-    std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values) const;
-    std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values) const;
-    std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values) const;
 
 };
 

@@ -79,6 +79,21 @@ struct Tag {
 typedef std::map<WordFieldId, uint64_t> FieldValues;
 typedef std::map<WordFieldId, std::vector<uint64_t> > FieldVValues;
 
+////////////////////////////////
+// conversion functions from user types to FieldVValues
+
+uint64_t SignedValToSignBit(int sign);
+
+FieldVValues             DataToFieldVValues(const std::vector<PATData> & data);
+std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data); // TAT can have mixed field types
+FieldVValues             DataToFieldVValues(const std::vector<AMData> & data);
+FieldVValues             DataToFieldVValues(const std::vector<MMData> & data);
+
+std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values);
+std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values);
+std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values);
+std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values);
+
 ////////////////////////////////////////
 // decoder/encoder
 
@@ -88,7 +103,7 @@ struct DecOutput {
   unsigned int core_id;
   unsigned int time_epoch;
 };
-typedef uint64_t DecInput;
+typedef uint8_t DecInput;
 
 // encoder
 struct EncInput {
@@ -96,7 +111,7 @@ struct EncInput {
   unsigned int leaf_id;
   uint32_t payload;
 };
-typedef uint32_t EncOutput;
+typedef uint8_t EncOutput;
 
 } // bddriver
 } // pystorm

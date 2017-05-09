@@ -21,7 +21,8 @@ Xcoder<TIN, TOUT>::Xcoder(
     const BDPars * pars, 
     MutexBuffer<TIN> * in_buf, 
     const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
-    unsigned int chunk_size, 
+    unsigned int input_chunk_size, 
+    unsigned int output_chunk_size, 
     unsigned int timeout_us) 
 {
   pars_ = pars;  
@@ -30,11 +31,13 @@ Xcoder<TIN, TOUT>::Xcoder(
   timeout_us_ = timeout_us;
 
   // allocate working arrays
-  max_chunk_size_ = chunk_size;
-  input_chunk_ = new TIN[max_chunk_size_];
+  input_chunk_size_ = input_chunk_size;
+  output_chunk_size_ = output_chunk_size; 
+
+  input_chunk_ = new TIN[input_chunk_size_];
 
   for (unsigned int i = 0; i < out_bufs.size(); i++) {
-    output_chunks_.push_back(new TOUT[max_chunk_size_]);
+    output_chunks_.push_back(new TOUT[output_chunk_size_]);
   }
 }
 
