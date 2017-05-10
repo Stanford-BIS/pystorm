@@ -8,6 +8,7 @@
 #include <thread>
 #include <mutex>
 #include <memory>
+#include <chrono>
 
 #include <cstring>
 
@@ -94,12 +95,11 @@ protected:
     /// The output file stream handler                                                                         
     std::ofstream m_out_stream;                                                 
 
-    /// The word streams that the Emulator reads from the input file.
-    std::vector<COMMWordStream> m_word_streams;
+    /// The word stream that the Emulator reads from the input file.
+    COMMWordStream m_word_stream;
 
-    /// The index of the next element of m_word_streams to read from.
+    /// The index of the next element of m_word_stream to read from.
     unsigned int m_current_word_stream_pos;
-
 };
 
 } // comm namespace

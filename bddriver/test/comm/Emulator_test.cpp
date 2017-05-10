@@ -24,8 +24,8 @@ public:
         Emulator(in_file, out_file) {
     }
 
-    std::vector<COMMWordStream>& getWordStreamVec() {
-        return m_word_streams;
+    COMMWordStream& getWordStreamVec() {
+        return m_word_stream;
     }
 
     std::ifstream& getInStream() {
@@ -110,12 +110,10 @@ TEST(EmulatorTests, testConstructionCreatesInputStream) {
 
     // read the contents of m_word_streams;
     EmulatorFixture em(input_file_name, output_file_name);
-    std::vector<COMMWordStream> wordStreams = em.getWordStreamVec();
+    auto wordStream = em.getWordStreamVec();
 
-    for (auto cwstream : wordStreams) {
-        for (auto byte : cwstream) {
-            stream_read.push_back(byte);
-        }
+    for (auto byte : wordStream) {
+        stream_read.push_back(byte);
     }
 
     ASSERT_EQ(stream_read.size(), INPUT_FILE_SIZE);
@@ -138,7 +136,6 @@ TEST(EmulatorTests, testConstructionCreatesInputStream) {
 ///
 TEST(EmulatorTests, testRead) {
     unsigned int INPUT_FILE_SIZE = Emulator::READ_SIZE;
-    std::vector<char> stream_read;
     EmulatorClient emc;
 
     // create the temp files
@@ -159,6 +156,8 @@ TEST(EmulatorTests, testRead) {
         auto emcb = 
             std::unique_ptr<EmulatorCallbackData>(new EmulatorCallbackData());
         emcb->client = &emc;
+        emcb->buf = std::unique_ptr<COMMWordStream>(new COMMWordStream());
+        emcb->buf->resize(INPUT_FILE_SIZE);
         em.Read(std::move(emcb));
     }
 

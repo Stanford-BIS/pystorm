@@ -21,7 +21,9 @@ namespace comm {
 
 class CommSoft : public Comm, EmulatorClientIfc {
 public:
-    CommSoft(const std::string& in_file_name, const std::string& out_file_name);
+    CommSoft(const std::string& in_file_name, const std::string& out_file_name,
+        MutexBuffer<COMMWord> * read_buffer, 
+        MutexBuffer<COMMWord> * write_buffer);
     ~CommSoft();
     CommSoft(const CommSoft&) = delete;
 
@@ -44,11 +46,11 @@ public:
         return m_state;
     }
 
-    MutexBuffer<COMMWordStream> * getReadBuffer() {
+    MutexBuffer<COMMWord> * getReadBuffer() {
         return m_read_buffer;
     }
 
-    MutexBuffer<COMMWordStream> * getWriteBuffer() {
+    MutexBuffer<COMMWord> * getWriteBuffer() {
         return m_write_buffer;
     }
 
@@ -64,11 +66,9 @@ public:
     ///
     virtual void WriteCallback(std::unique_ptr<EmulatorCallbackData> cb);
 
-    ///
-    /// The number of elements the read and write buffers can store before 
-    /// blocking.
-    ///
-    static const unsigned int CAPACITY = 10000; 
+    static const int WRITE_SIZE = 512;
+    static const int READ_SIZE = 512;
+    static const int DEFAULT_BUFFER_TIMEOUT = 10;
 
 protected:
     ///
@@ -87,16 +87,12 @@ protected:
     void WriteToDevice();
 
     Emulator * m_emulator;
-    MutexBuffer<COMMWordStream> * m_read_buffer;
-    MutexBuffer<COMMWordStream> * m_write_buffer;
+    MutexBuffer<COMMWord> * m_read_buffer;
+    MutexBuffer<COMMWord> * m_write_buffer;
     std::atomic<CommStreamState> m_state;
+    std::recursive_mutex m_state_mutex;
 
     std::thread m_control_thread;
-
-    std::recursive_mutex m_state_mutex;
-   
-    static const int MAX_POP = 4;
-    static const int DEFAULT_BUFFER_TIMEOUT = 10;
 };
 
 } // comm namespace

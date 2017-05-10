@@ -31,30 +31,22 @@ void Emulator::Init() {
 
     m_out_stream = std::ofstream(m_out_file_name,std::ios::binary);
     assert(m_out_stream.good());
+
     BuildInputStream();
 }
 
 void Emulator::BuildInputStream() {
-    int current_stream_pos = 0;
-    int current_vec_pos = 0;
     std::istreambuf_iterator<char> beg(m_in_stream), end;
 
-    m_word_streams.clear();
-    m_word_streams.resize(current_vec_pos+1);
+    m_current_word_stream_pos = 0;
+
+    m_word_stream.clear();
+    m_word_stream.resize(0);
 
     while(beg!=end) {
-        m_word_streams[current_vec_pos].push_back(*beg);
+        m_word_stream.push_back(*beg);
         beg++;
-        current_stream_pos++;
-        if ((READ_SIZE == current_stream_pos) && (beg != end)) {
-            current_stream_pos = 0;
-            m_word_streams.resize(m_word_streams.size()+1);
-            current_vec_pos++;
-        }
     }
-
-    if (m_word_streams[m_word_streams.size()-1].size() < READ_SIZE) 
-        m_word_streams[m_word_streams.size()-1].resize(READ_SIZE);
 }
 
 Emulator::~Emulator() {
@@ -63,21 +55,15 @@ Emulator::~Emulator() {
 }
 
 void Emulator::Read(std::unique_ptr<EmulatorCallbackData> cb) {
-    if (m_word_streams.size() > 0) {
-        if (m_word_streams.size() == m_current_word_stream_pos) {
-            m_current_word_stream_pos = 0;
+    if (m_word_stream.size() > 0) {
+        for (int i = 0; i < cb->buf->size(); i++) {
+            cb->buf->at(i) = m_word_stream.at(m_current_word_stream_pos++);
+            if (m_current_word_stream_pos == m_word_stream.size()) {
+                m_current_word_stream_pos = 0;
+            }
         }
 
-        // Copy the current pointed to wordstream and pass to the
-        // callback
-        auto wordstream =
-            std::unique_ptr<pystorm::bddriver::comm::COMMWordStream>(
-            new pystorm::bddriver::comm::COMMWordStream(
-                m_word_streams.at(m_current_word_stream_pos)));
-
-        cb->buf = std::move(wordstream);
         cb->client->ReadCallback(std::move(cb));
-        m_current_word_stream_pos++;
     }
 }
 

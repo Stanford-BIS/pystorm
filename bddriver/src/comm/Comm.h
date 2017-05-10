@@ -77,12 +77,10 @@ public:
     virtual CommStreamState GetStreamState() = 0;
 
     /// Returns the read buffer
-    virtual MutexBuffer<COMMWordStream> * getReadBuffer() = 0;
+    virtual MutexBuffer<COMMWord> * getReadBuffer() = 0;
 
     /// Returns the write buffer
-    virtual MutexBuffer<COMMWordStream> * getWriteBuffer() = 0;
-
-
+    virtual MutexBuffer<COMMWord> * getWriteBuffer() = 0;
 };
 
 } // comm namespace
