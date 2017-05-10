@@ -20,7 +20,8 @@ class Xcoder {
         const BDPars * pars, 
         MutexBuffer<TIN> * in_buf, 
         const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
-        unsigned int chunk_size, 
+        unsigned int input_chunk_size, 
+        unsigned int output_chunk_size, 
         unsigned int timeout_us
     );
     virtual ~Xcoder();
@@ -35,7 +36,8 @@ class Xcoder {
     std::vector<MutexBuffer<TOUT> *> out_bufs_; // output buffer
 
     unsigned int timeout_us_; // max condition variable wait time
-    unsigned int max_chunk_size_; // max chunk size of inputs processed
+    unsigned int input_chunk_size_; // max chunk size of inputs processed
+    unsigned int output_chunk_size_; // max chunk size of outputs processed
     TIN * input_chunk_; // will point to scratch pad memory for inputs
     std::vector<TOUT *> output_chunks_; // and outputs
 
