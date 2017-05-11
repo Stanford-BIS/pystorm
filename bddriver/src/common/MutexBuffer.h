@@ -58,8 +58,6 @@ class MutexBuffer {
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
 
-    std::mutex main_lock_;
-
     // these locks are only for preventing multiple concurrent two-part calls of the same type
     std::mutex front_lock_;
     std::mutex back_lock_;
