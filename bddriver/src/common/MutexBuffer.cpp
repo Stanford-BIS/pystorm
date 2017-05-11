@@ -1,5 +1,6 @@
 #include <assert.h>
 
+#include <atomic>
 #include <vector>
 #include <mutex>
 #include <condition_variable>
@@ -111,10 +112,9 @@ bool MutexBuffer<T>::Push(const T * input, unsigned int input_len, unsigned int 
   assert(input_len < capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
 
   std::unique_lock<std::mutex> back_lock(back_lock_); // have to wait if someone else is doing BackFront()
-  std::unique_lock<std::mutex> lock(main_lock_);
 
   // we currently have the lock, but if there isn't room to push, we need to wait
-  bool success = WaitForHasRoomFor(&lock, input_len, try_for_us);
+  bool success = WaitForHasRoomFor(&back_lock, input_len, try_for_us);
   if (!success) {
     return false;
   }
@@ -171,10 +171,9 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
 // copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
 {
   std::unique_lock<std::mutex> front_lock(front_lock_); // have to wait if someone else is doing LockFront()
-  std::unique_lock<std::mutex> lock(main_lock_);
 
   // we currently have the lock, but if the buffer is empty, we need to wait
-  bool success = WaitForHasAtLeast(&lock, try_for_us, multiple);
+  bool success = WaitForHasAtLeast(&front_lock, try_for_us, multiple);
   if (!success) { // timed out before there was enough data
     return 0;
   }
@@ -226,12 +225,10 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to
   
   // can only have one thread doing this type of read at a time
   // otherwise much harder to keep track of the front_
-  front_lock_.lock();
+  front_ulock_ = new std::unique_lock<std::mutex>(front_lock_);
 
-  std::unique_lock<std::mutex> lock(main_lock_);
-  
   // we currently have the lock, but if the buffer is empty, we need to wait
-  bool success = WaitForHasAtLeast(&lock, try_for_us, multiple);
+  bool success = WaitForHasAtLeast(front_ulock_, try_for_us, multiple);
   if (!success) { // timed out before there was enough data
     return std::make_pair(nullptr, 0);
   }
@@ -250,7 +247,7 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to
   // keep track of how many we're allowing the (single) consumer to read
   num_to_read_ = num_to_read;
 
-  // front_lock_ stays locked (so no one else can issue Read())
+  // front_ulock_ stays locked (so no one else can issue Read())
 
   return std::make_pair(&vals_[front_], num_to_read);
 
@@ -262,8 +259,6 @@ void MutexBuffer<T>::UnlockFront()
 {
   // tells the MB that the client is done reading from the memory associated with LockFront()
   
-  std::unique_lock<std::mutex> lock(main_lock_);
- 
   // update front_ and count_;
   front_ = (front_ + num_to_read_) % capacity_;
   count_ -= num_to_read_;
@@ -273,19 +268,17 @@ void MutexBuffer<T>::UnlockFront()
   just_popped_.notify_all();
   
   // allow someone else to issue LockFront()
-  front_lock_.unlock();
+  delete front_ulock_;
 }
 
 
 template<class T>
 T * MutexBuffer<T>::LockBack(unsigned int input_len, unsigned int try_for_us)
 {
-  back_lock_.lock(); // prevent any other push-like operations until this one is over
-
-  std::unique_lock<std::mutex> lock(main_lock_);
+  back_ulock_ = new std::unique_lock<std::mutex>(back_lock_);
 
   // we currently have the global lock, but if the buffer is nearly full, we have to wait
-  bool success = WaitForHasRoomFor(&lock, input_len, try_for_us);
+  bool success = WaitForHasRoomFor(back_ulock_, input_len, try_for_us);
   if (!success) { // signal timeout by returning a null ptr
     return nullptr;
   }
@@ -316,8 +309,6 @@ void MutexBuffer<T>::UnlockBack()
 {
   // tells the MB that the client is done writing to the memory associated with LockBack()
 
-  std::unique_lock<std::mutex> lock(main_lock_);
-
   // have to do a copy if scratchpad_ was used
   if (scratchpad_.size() > 0) {
     for (unsigned int i = 0; i < scratchpad_.size(); i++) {
@@ -334,7 +325,7 @@ void MutexBuffer<T>::UnlockBack()
   just_pushed_.notify_all();
 
   // allow someone else to issue LockBack()
-  back_lock_.unlock();
+  delete back_ulock_;
 }
 
 

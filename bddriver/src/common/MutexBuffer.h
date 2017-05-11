@@ -1,6 +1,7 @@
 #ifndef MUTEXBUFFER_H
 #define MUTEXBUFFER_H
 
+#include <atomic>
 #include <vector>
 #include <mutex>
 #include <condition_variable>
@@ -41,12 +42,7 @@ class MutexBuffer {
     unsigned int capacity_;
     unsigned int front_;
     unsigned int back_;
-    unsigned int count_;
-
-    unsigned int num_to_read_; // used in LockFront/UnlockFront
-    unsigned int num_to_write_; // used in LockBack/UnlockBack
-
-    std::vector<T> scratchpad_; // used in LockBack/UnlockBack in case LockBack() is called when back_ is close to end of memory
+    std::atomic<unsigned int> count_; // guarantees that concurrent access will serialize in a reasonable fashion (no crazy values will get read)
 
     // a few notes:
     // on init, front_ == back_ == 0
@@ -54,19 +50,21 @@ class MutexBuffer {
     // "back_ is next place to push to"
     // "front_ is next place to pop from"
 
-    // XXX originally I designed this with two locks to allow concurrent push/pop
-    // (which should be possible--a completely lockless circular buffer is supposedly even possible!)
-    // the way I implemented it originally (probably) had a race conditions when
-    // the front/back catches the back/front. I reverted to a single mutex because I wasn't confident.
-    // if performance is an issue, we can explore different locking schemes again
-    std::mutex main_lock_;
+    unsigned int num_to_read_; // used in LockFront/UnlockFront
+    unsigned int num_to_write_; // used in LockBack/UnlockBack
+
+    std::vector<T> scratchpad_; // used in LockBack/UnlockBack in case LockBack() is called when back_ is close to end of memory
 
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
 
+    std::mutex main_lock_;
+
     // these locks are only for preventing multiple concurrent two-part calls of the same type
     std::mutex front_lock_;
     std::mutex back_lock_;
+    std::unique_lock<std::mutex> * front_ulock_;
+    std::unique_lock<std::mutex> * back_ulock_;
 
     bool HasAtLeast(unsigned int num);
     bool HasRoomFor(unsigned int size);
