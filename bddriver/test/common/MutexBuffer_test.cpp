@@ -65,12 +65,42 @@ TEST_F(MutexBufferFixture, Test1to1)
   }
 }
 
-TEST_F(MutexBufferFixture, Test1to1UseReadThenPop)
+TEST_F(MutexBufferFixture, Test1to1UseLockFront)
 {
   vector<unsigned int> consumed;
 
   producer0 = std::thread(ProduceN<unsigned int>, buf, vals0, N, M, 0);
-  consumer0 = std::thread(ConsumeVectReadThenPopN<unsigned int>, buf, &consumed, N, M, 0);
+  consumer0 = std::thread(ConsumeVectLockFrontN<unsigned int>, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
+TEST_F(MutexBufferFixture, Test1to1UseLockBack)
+{
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceLockBackN<unsigned int>, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeVectN<unsigned int>, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
+TEST_F(MutexBufferFixture, Test1to1UseLockBackAndLockFront)
+{
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceLockBackN<unsigned int>, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeVectLockFrontN<unsigned int>, buf, &consumed, N, M, 0);
 
   producer0.join();
   consumer0.join();
@@ -266,6 +296,37 @@ TEST(MutexBufferPerformance, UintThroughput)
 
   std::thread producer(ProduceN<uint64_t>, &buf, &vals[0], N, M, 0);
   std::thread consumer(ConsumeN<uint64_t>, &buf, &consumed[0], N, M, 0);
+
+  producer.join();
+  consumer.join();
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
+}
+
+TEST(MutexBufferPerformance, UintThroughputLockFrontAndLockBack)
+{
+  const unsigned int N = 100e6;
+  const unsigned int M = 1000;
+  const unsigned int buf_depth = 100000;
+  
+  MutexBuffer<uint64_t> buf(buf_depth);
+
+  uint64_t * vals;
+  vals = new uint64_t[N];
+  for (unsigned int i = 0; i < N; i++) {
+    vals[i] = i;
+  }
+
+  vector<uint64_t> consumed;
+  consumed.reserve(N);
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::thread producer(ProduceLockBackN<uint64_t>, &buf, &vals[0], N, M, 0);
+  std::thread consumer(ConsumeVectLockFrontN<uint64_t>, &buf, &consumed, N, M, 0);
 
   producer.join();
   consumer.join();

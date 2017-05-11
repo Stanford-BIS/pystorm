@@ -15,18 +15,26 @@ class MutexBuffer {
     MutexBuffer(unsigned int capacity);
     ~MutexBuffer();
 
-    // fast array interface
+    // simple vector interface, the slowest option
+    bool Push(const std::vector<T> & input, unsigned int try_for_us=0);
+    std::vector<T> PopVect(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
+
+    // fast(er) array interface
     bool Push(const T * input, unsigned int input_len, unsigned int try_for_us=0);
     unsigned int Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
 
-    // two part read-then-pop call. Saves some copying
-    // returns head pointer, num that may be read
-    std::pair<const T *, unsigned int> Read(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
-    void PopAfterRead();
-
-    // vector interface, extra allocation
-    bool Push(const std::vector<T> & input, unsigned int try_for_us=0);
-    std::vector<T> PopVect(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
+    // Two-part calls
+    // These are more complicated, but using them can avoid unecessary copying by the client.
+    // Using these also allows for concurrent reads and writes!
+    
+    // Lock/UnlockBack function like a two-part Push() call
+    T * LockBack(unsigned int input_len, unsigned int try_for_us=0);
+    void UnlockBack();
+    
+    // Lock/UnlockFront function like a two-part Pop() call
+    // LockFront returns front_ pointer, num that it is safe to access
+    std::pair<const T *, unsigned int> LockFront(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
+    void UnlockFront();
 
   private:
     T * vals_;
@@ -35,7 +43,10 @@ class MutexBuffer {
     unsigned int back_;
     unsigned int count_;
 
-    unsigned int num_to_read_; // used in Read/PopAfterRead
+    unsigned int num_to_read_; // used in LockFront/UnlockFront
+    unsigned int num_to_write_; // used in LockBack/UnlockBack
+
+    std::vector<T> scratchpad_; // used in LockBack/UnlockBack in case LockBack() is called when back_ is close to end of memory
 
     // a few notes:
     // on init, front_ == back_ == 0
@@ -48,16 +59,22 @@ class MutexBuffer {
     // the way I implemented it originally (probably) had a race conditions when
     // the front/back catches the back/front. I reverted to a single mutex because I wasn't confident.
     // if performance is an issue, we can explore different locking schemes again
-    std::mutex mutex_;
+    std::mutex main_lock_;
+
     std::condition_variable just_popped_;
     std::condition_variable just_pushed_;
 
-    std::mutex read_in_progress_;
+    // these locks are only for preventing multiple concurrent two-part calls of the same type
+    std::mutex front_lock_;
+    std::mutex back_lock_;
 
     bool HasAtLeast(unsigned int num);
     bool HasRoomFor(unsigned int size);
     void PushData(const T * input, unsigned int input_len);
     unsigned int PopData(T * copy_to, unsigned int max_to_pop, unsigned int multiple);
+
+    bool WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsigned int try_for_us, unsigned int multiple);
+    bool WaitForHasRoomFor(std::unique_lock<std::mutex> * lock, unsigned int input_len, unsigned int try_for_us);
 
 };
 
