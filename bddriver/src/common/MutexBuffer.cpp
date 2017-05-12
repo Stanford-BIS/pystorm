@@ -230,19 +230,32 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to
   // we currently have the lock, but if the buffer is empty, we need to wait
   bool success = WaitForHasAtLeast(front_ulock_, try_for_us, multiple);
   if (!success) { // timed out before there was enough data
+    num_to_read_ = 0;
     return std::make_pair(nullptr, 0);
   }
 
   // figure out how many entries can be read sequentially (handle wrap-around)
-  unsigned int num_to_read;
+  unsigned int max_num_to_read;
   if (front_ + max_to_pop > capacity_) { // wrap-around, read only up to end
-    num_to_read = capacity_ - front_;
+    max_num_to_read = capacity_ - front_;
   } else {
-    num_to_read = max_to_pop;
+    max_num_to_read = max_to_pop;
   }
+
+  // but max_num_to_read still has to be less than count_
+  unsigned int num_to_read;
+  if (max_num_to_read < count_) {
+    num_to_read = max_num_to_read;
+  } else {
+    num_to_read = count_;
+  }
+
   // num_to_read must be a multiple
   num_to_read -= (num_to_read) % multiple;
   assert(num_to_read > 0);
+
+  assert(front_ + num_to_read <= capacity_);
+  assert(num_to_read <= count_);
 
   // keep track of how many we're allowing the (single) consumer to read
   num_to_read_ = num_to_read;
@@ -259,9 +272,14 @@ void MutexBuffer<T>::UnlockFront()
 {
   // tells the MB that the client is done reading from the memory associated with LockFront()
   
+  assert(num_to_read_ <= count_);
+ 
   // update front_ and count_;
   front_ = (front_ + num_to_read_) % capacity_;
   count_ -= num_to_read_;
+
+  // allow someone else to issue LockFront()
+  front_lock_.unlock();
 
   // only now have we actually made space
   // notify the producers that they may wake up
@@ -295,6 +313,7 @@ T * MutexBuffer<T>::LockBack(unsigned int input_len, unsigned int try_for_us)
   
   if (back_ + input_len > capacity_) { 
     scratchpad_.resize(input_len);
+    //cout << "used the scratchpad" << endl;
     return &scratchpad_[0];
   } else {
     scratchpad_.resize(0); // does not free memory
@@ -319,6 +338,9 @@ void MutexBuffer<T>::UnlockBack()
   // update queue state
   back_ = (back_ + num_to_write_) % capacity_;
   count_ += num_to_write_;
+
+  // allow someone else to issue LockBack()
+  back_lock_.unlock();
 
   // only now have we actually written the data in
   // notify the consumers that they may wake up

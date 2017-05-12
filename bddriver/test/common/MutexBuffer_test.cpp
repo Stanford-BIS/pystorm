@@ -35,8 +35,8 @@ class MutexBufferFixture : public testing::Test
     }
 
     unsigned int buf_depth = 10000;
-    unsigned int N = 100000; // number of messages
-    unsigned int M = 1000; // message chunk size
+    unsigned int N = 10e6; // number of messages
+    unsigned int M = 937; // message chunk size
 
     bddriver::MutexBuffer<unsigned int> * buf;
 
@@ -150,7 +150,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizes)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -169,7 +169,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesTimeout)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -188,7 +188,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesCheckAfter)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -221,7 +221,7 @@ TEST_F(MutexBufferFixture, Test2to1)
   consumer0.join();
 
   // because of nondeterminism, can't test for much more than the following
-  unsigned int counts[2*N];
+  unsigned int * counts = new unsigned int[2*N];
   for (unsigned int i = 0; i < 2*N; i++) {
     counts[i] = 0;
   }
@@ -234,7 +234,7 @@ TEST_F(MutexBufferFixture, Test2to1)
 
   for (unsigned int i = 0; i < 2*N; i++) {
     //cout << counts[i] << endl;
-    EXPECT_EQ(counts[i], static_cast<unsigned int>(1)); 
+    ASSERT_EQ(counts[i], static_cast<unsigned int>(1)); 
   }
 }
 
@@ -250,17 +250,21 @@ TEST_F(MutexBufferFixture, Test2to2)
   consumer1 = std::thread(ConsumeVectN<unsigned int>, buf, &consumed1, N, M, 0);
 
   producer0.join();
+  //cout << "p 0 joined" << endl;
   producer1.join();
+  //cout << "p 1 joined" << endl;
 
   consumer0.join();
+  //cout << "c 0 joined" << endl;
   consumer1.join();
+  //cout << "c 1 joined" << endl;
 
-  unsigned int counts[2*N];
+  unsigned int * counts = new unsigned int[2*N];
   for (unsigned int i = 0; i < 2*N; i++) {
     counts[i] = 0;
   }
 
-  ASSERT_EQ(consumed0.size() + consumed1.size(), 2*N);
+  EXPECT_EQ(consumed0.size() + consumed1.size(), 2*N);
   for (unsigned int i = 0; i < consumed0.size(); i++) {
     ASSERT_LE(consumed0[i], 2*N);
     counts[consumed0[i]]++;
@@ -271,7 +275,7 @@ TEST_F(MutexBufferFixture, Test2to2)
   }
 
   for (unsigned int i = 0; i < 2*N; i++) {
-    EXPECT_EQ(counts[i], static_cast<unsigned int>(1)); 
+    ASSERT_EQ(counts[i], static_cast<unsigned int>(1)); 
   }
 }
 

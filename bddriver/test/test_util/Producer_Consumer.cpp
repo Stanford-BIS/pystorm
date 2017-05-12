@@ -104,7 +104,14 @@ void ConsumeVectNGiveUpAfter(bddriver::MutexBuffer<T> * buf, vector<T> * vals, u
   unsigned int N_consumed = 0;
   while (N_consumed != N && give_up == false) {
     //cout << "hi" << endl;
-    unsigned int num_popped = buf->Pop(data, M, try_for_us);
+    unsigned int max_to_read;
+    if (N - N_consumed <= M) {
+      max_to_read = N - N_consumed;
+    } else {
+      max_to_read = M;
+    }
+
+    unsigned int num_popped = buf->Pop(data, max_to_read, try_for_us);
 
     //cout << "popping: ";
     //for (unsigned int i = 0; i < num_popped; i++) {
@@ -141,7 +148,9 @@ void ConsumeVectLockFrontN(bddriver::MutexBuffer<T> * buf, vector<T> * vals, uns
     //cout << "hi" << endl;
     const T * read_ptr;
     unsigned int num_to_read;
+
     std::tie(read_ptr, num_to_read) = buf->LockFront(M, try_for_us);
+    // might return (nullptr, 0), but that's ok, following code does nothing if num_to_read == 0
 
     //cout << "popping: ";
     //for (unsigned int i = 0; i < num_popped; i++) {
