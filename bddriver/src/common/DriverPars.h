@@ -18,6 +18,7 @@ enum DriverParId {
   dec_chunk_size,
   dec_timeout_us,
   bd_state_traffic_drain_us,
+  comm_type,
   // functions
   DumpPAT_timeout_us,
   DumpTAT_timeout_us,
@@ -28,6 +29,20 @@ enum DriverParId {
   LastDriverParId = RecvTags_timeout_us
 };
 
+enum DriverStringParId {
+  soft_comm_in_fname,
+  soft_comm_out_fname,
+
+  LastDriverStringParId = soft_comm_out_fname
+};
+
+enum CommType { 
+  soft,
+  libUSB,
+
+  LastCommType = libUSB
+};
+
 class DriverPars {
   public:
     // init from yaml file describing driver parameters
@@ -36,9 +51,12 @@ class DriverPars {
 
     inline unsigned int Get(DriverParId par_id) const 
       { return pars_.at(par_id); }
+    inline const std::string * Get(DriverStringParId par_id) const 
+      { return &(string_pars_.at(par_id)); }
 
   private:
     std::vector<unsigned int> pars_;
+    std::vector<std::string> string_pars_;
 
 };
 

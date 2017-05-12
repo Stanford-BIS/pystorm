@@ -54,7 +54,7 @@ struct AMData {
 };
 
 /// MMData is just a weight
-int typedef MMData;
+unsigned int typedef MMData;
 
 struct Spike {
   /// A spike going to or from a neuron

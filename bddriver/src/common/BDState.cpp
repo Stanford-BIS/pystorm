@@ -8,6 +8,10 @@
 namespace pystorm {
 namespace bddriver {
 
+#include <iostream>
+using std::cout;
+using std::endl;
+
 BDState::BDState(const BDPars * bd_pars, const DriverPars * driver_pars)
 {
 

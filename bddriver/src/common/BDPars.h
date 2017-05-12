@@ -267,7 +267,7 @@ class BDPars {
 
     inline FunnelLeafId DumpFunnelId(MemId object) const { return mem_.at(object).dump_leaf; }
 
-    inline unsigned int Size(const MemId object) const { return mem_sizes_.at(object); }
+    inline unsigned int Size(const MemId object) const { return mem_.at(object).size; }
 
     RegId DACSignalIdToDACRegisterId(DACSignalId id) const;
 
@@ -304,11 +304,6 @@ class BDPars {
     /// keyed by RegId
     std::vector<RegInfo> reg_;
 
-    /// memory stuff
-    /// keyed by MemId
-    std::vector<unsigned int> mem_sizes_;
-    std::vector<unsigned int> mem_word_widths_;
-    
     // funnel/horn route tables are direct-mapped
     std::vector<FHRoute> horn_routes_;
     std::vector<FHRoute> funnel_routes_;

@@ -7,8 +7,15 @@ DriverPars::DriverPars()
 {
   const unsigned int ms = 1000;
 
+  pars_.resize(LastDriverParId+1);
+  string_pars_.resize(LastDriverStringParId+1);
+
+  // Comm parameters
+  pars_[comm_type] = soft;
+  string_pars_[soft_comm_in_fname] = "soft_comm_in.dat";
+  string_pars_[soft_comm_out_fname] = "soft_comm_out.dat";
+
   // buffer capacities
-  pars_.resize(LastDriverParId);
   pars_[enc_buf_in_capacity] = 10000;
   pars_[enc_buf_out_capacity] = 10000;
   pars_[dec_buf_in_capacity] = 10000;
