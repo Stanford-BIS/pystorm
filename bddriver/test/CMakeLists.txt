@@ -72,6 +72,7 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/DriverTypes_test.cpp
     ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
 )
 
