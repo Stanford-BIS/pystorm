@@ -139,17 +139,25 @@ bool MutexBuffer<T>::Push(const std::vector<T>& input, unsigned int try_for_us)
 template<class T>
 unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop, unsigned int multiple) 
 {
+  // sample count_ once for the entire function
+  // if you used count_ in place of maybe_stale_count in the if statement below, you could run into problems:
+  // e.g. the first time you accessed count_, in the if(), count_ could be small
+  // then someone else pushes, and if you go into the else, count_ could suddenly be larger.
+  // it could even be bigger than max_to_pop (which could cause big problems for the user).
+  unsigned int maybe_stale_ct = count_; 
+
   // figure out how many elements are going to be in output
   unsigned int num_popped;
-  if (max_to_pop < count_) {
+  if (max_to_pop < maybe_stale_ct) {
     num_popped = max_to_pop;
   } else {
-    num_popped = count_;
+    num_popped = maybe_stale_ct;
   }
 
   // num_popped must be a multiple
   num_popped -= num_popped % multiple;
-  assert(num_popped > 0);
+
+  assert(num_popped <= max_to_pop);
 
   // do copy
   for (unsigned int i = 0; i < num_popped; i++) {
@@ -243,19 +251,23 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to
   }
 
   // but max_num_to_read still has to be less than count_
+  // sample count_ once, by the time you assign it, it might be stale
+  // but that's OK. See similar comment in PopData for an example
+  unsigned int maybe_stale_count = count_; 
+
   unsigned int num_to_read;
-  if (max_num_to_read < count_) {
+  if (max_num_to_read < maybe_stale_count) {
     num_to_read = max_num_to_read;
   } else {
-    num_to_read = count_;
+    num_to_read = maybe_stale_count;
   }
 
   // num_to_read must be a multiple
-  num_to_read -= (num_to_read) % multiple;
-  assert(num_to_read > 0);
+  num_to_read -= num_to_read % multiple;
 
+  assert(num_to_read <= max_to_pop);
   assert(front_ + num_to_read <= capacity_);
-  assert(num_to_read <= count_);
+  assert(num_to_read <= maybe_stale_count);
 
   // keep track of how many we're allowing the (single) consumer to read
   num_to_read_ = num_to_read;
