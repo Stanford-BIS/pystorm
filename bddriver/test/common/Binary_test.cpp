@@ -5,10 +5,12 @@
 #include <cstdint>
 #include <string>
 #include <iostream>
+using std::cout;
+using std::endl;
 
 using namespace pystorm;
 using namespace bddriver;
-using namespace std;
+
 
 class BinaryFixture : public testing::Test
 {
@@ -46,10 +48,10 @@ TEST_F(BinaryFixture, TestUnpack)
 
 TEST_F(BinaryFixture, TestAsString)
 {
-  string bin_str = UintAsString<uint64_t>(my_uint, total_width);
+  std::string bin_str = UintAsString<uint64_t>(my_uint, total_width);
 
-  vector<uint64_t> bin_vect;
-  vector<unsigned int> ones;
+  std::vector<uint64_t> bin_vect;
+  std::vector<unsigned int> ones;
   EXPECT_EQ(bin_str.size(), total_width);
   for (auto el = bin_str.rbegin(); el != bin_str.rend(); el++) {
     if (*el == '1') {
