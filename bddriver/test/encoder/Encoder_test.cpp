@@ -87,6 +87,13 @@ class EncoderFixture : public testing::Test
       std::tie(enc_inputs, enc_outputs) = MakeEncInputAndOutput(pars, N, LastHornLeafId);
     }
 
+    void TearDown()
+    {
+      delete buf_in;
+      delete buf_out;
+      delete pars;
+    }
+
     unsigned int N = 10e6;
     unsigned int M = 1000;
     unsigned int buf_depth = 100000;

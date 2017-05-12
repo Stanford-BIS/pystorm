@@ -104,6 +104,7 @@ class DecoderFixture : public testing::TestWithParam<unsigned int>
     void TearDown() 
     {
       delete pars;
+      delete buf_in;
       for (auto& buf_out : bufs_out) {
         delete buf_out;
       }
