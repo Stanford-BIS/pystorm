@@ -27,6 +27,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
         unsigned int chunk_size, 
         unsigned int timeout_us=1000
     ) : Xcoder(pars, in_buf, {out_buf}, chunk_size, chunk_size * bytesPerOutput, timeout_us) {}; // call base constructor only
+    ~Encoder() {};
 
   private:
 

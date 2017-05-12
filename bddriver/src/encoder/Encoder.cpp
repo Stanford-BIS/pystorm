@@ -21,7 +21,7 @@ void Encoder::RunOnce()
   unsigned int num_popped = in_buf_->Pop(input_chunk_, input_chunk_size_, timeout_us_);
   Encode(input_chunk_, num_popped, output_chunks_[0]);
   bool success = false;
-  while (!success & do_run_) { // if killed, need to stop trying
+  while (!success && do_run_) { // if killed, need to stop trying
     success = out_bufs_[0]->Push(output_chunks_[0], num_popped * bytesPerOutput, timeout_us_);
   }
 }

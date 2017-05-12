@@ -13,18 +13,23 @@
 #include "decoder/Decoder.h"
 #include "common/MutexBuffer.h"
 #include "common/binary_util.h"
+#include "comm/Comm.h"
+#include "comm/CommSoft.h"
+
+using std::cout;
+using std::endl;
 
 namespace pystorm {
 namespace bddriver {
 
 
-Driver& Driver::getInstance()
+Driver * Driver::GetInstance()
 {
     // In C++11, if control from two threads occurs concurrently, execution
     // shall wait during static variable initialization, therefore, this is 
     // thread safe
     static Driver m_instance;
-    return m_instance;
+    return &m_instance;
 }
 
 
@@ -35,8 +40,11 @@ Driver::Driver()
   bd_pars_ = new BDPars();
 
   // one BDState object per core
-  bd_state_ = std::vector<BDState>(bd_pars_->NumCores(), BDState(bd_pars_, driver_pars_));
-  
+  //bd_state_ = std::vector<BDState>(bd_pars_->NumCores(), BDState(bd_pars_, driver_pars_));
+  for (unsigned int i = 0; i < bd_pars_->NumCores(); i++) {
+    bd_state_.push_back(BDState(bd_pars_, driver_pars_));
+  }
+
   // initialize buffers
   enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(enc_buf_in_capacity));
   enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(enc_buf_out_capacity));
@@ -63,6 +71,22 @@ Driver::Driver()
       driver_pars_->Get(dec_chunk_size), 
       driver_pars_->Get(dec_timeout_us)
   );
+
+  // initialize Comm
+  if (driver_pars_->Get(comm_type) == soft) {
+
+    comm_ = new comm::CommSoft(
+        *(driver_pars_->Get(soft_comm_in_fname)),
+        *(driver_pars_->Get(soft_comm_out_fname)),
+        enc_buf_out_,
+        dec_buf_in_
+    );
+
+  } else if (driver_pars_->Get(comm_type) == libUSB) {
+    assert(false && "libUSB Comm is not implemented");
+  } else {
+    assert(false && "unhandled comm_type");
+  }
 }
 
 
@@ -73,11 +97,12 @@ Driver::~Driver()
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
-  for (auto& it : dec_bufs_out_) {
+  for (MutexBuffer<DecOutput> * it : dec_bufs_out_) {
     delete it;
   }
   delete enc_;
   delete dec_;
+  delete comm_;
 }
 
 
@@ -92,6 +117,7 @@ void Driver::Start()
   // start all worker threads
   enc_->Start();
   dec_->Start();
+  comm_->StartStreaming();
 }
 
 /// Set toggle traffic_en only, keep dump_en the same, returns previous traffic_en.

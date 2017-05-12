@@ -5,6 +5,7 @@
 #include <vector>
 #include <utility>
 #include <thread>
+#include <atomic>
 
 #include "common/BDPars.h"
 #include "common/MutexBuffer.h"
@@ -42,7 +43,7 @@ class Xcoder {
     std::vector<TOUT *> output_chunks_; // and outputs
 
     std::thread * thread_; // pointer to thread which will be launched with Start()
-    bool do_run_; // used to join thread on destruction
+    std::atomic<bool> do_run_; // used to join thread on destruction
 
     void Run();
     virtual void RunOnce() = 0;

@@ -11,6 +11,8 @@
 #include "encoder/Encoder.h"
 #include "decoder/Decoder.h"
 #include "common/MutexBuffer.h"
+#include "comm/Comm.h"
+#include "comm/CommSoft.h"
 
 /* 
  * TODO LIST: funnel/horn leaves that still need their calls finished
@@ -51,7 +53,7 @@ class Driver
 {
   public:
     /// Return a global instance of bddriver
-    static Driver& getInstance();
+    static Driver * GetInstance();
 
     void testcall(const std::string& msg);
 
@@ -173,18 +175,31 @@ class Driver
     DriverPars * driver_pars_; 
     /// parameters describing BD hardware
     BDPars * bd_pars_; 
-    /// state of bd hardware
+    /// best-of-driver's-knowledge state of bd hardware
     std::vector<BDState> bd_state_;
 
-    // thread-safe circular buffers sourcing/sinking encoder and decoder
+    // downstream buffers
+
+    /// thread-safe, MPMC buffer between breadth of downstream driver API and the encoder
     MutexBuffer<EncInput> * enc_buf_in_;
+    /// thread-safe, MPMC buffer between the encoder and comm
     MutexBuffer<EncOutput> * enc_buf_out_;
 
+    // upstream buffers
+
+    /// thread-safe, MPMC buffer between comm and decoder
     MutexBuffer<DecInput> * dec_buf_in_;
+
+    /// vector of thread-safe, MPMC buffers between decoder and breadth of upstream driver API
     std::vector<MutexBuffer<DecOutput> *> dec_bufs_out_;
 
-    Encoder * enc_; // encodes traffic to BD
-    Decoder * dec_; // decodes traffic from BD
+    /// encodes traffic to BD
+    Encoder * enc_; 
+    /// decodes traffic from BD
+    Decoder * dec_; 
+
+    /// comm module talks to libUSB or to file
+    comm::Comm * comm_;
 
     ////////////////////////////////
     // traffic helpers

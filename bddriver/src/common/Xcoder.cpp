@@ -39,19 +39,21 @@ Xcoder<TIN, TOUT>::Xcoder(
   for (unsigned int i = 0; i < out_bufs.size(); i++) {
     output_chunks_.push_back(new TOUT[output_chunk_size_]);
   }
+
+  do_run_ = false;
+  thread_ = nullptr;
 }
 
 template <class TIN, class TOUT>
 Xcoder<TIN, TOUT>::~Xcoder()
 {
+  if (do_run_) {
+    Stop();
+  }
   delete[] input_chunk_;
   for (auto& chunk : output_chunks_) {
     delete[] chunk;
   }
-  if (do_run_) {
-    Stop();
-  }
-  delete thread_;
 }
 
 template <class TIN, class TOUT>
@@ -73,7 +75,12 @@ template <class TIN, class TOUT>
 void Xcoder<TIN, TOUT>::Stop()
 {
   do_run_ = false;
-  thread_->join();
+  if (thread_ != nullptr) {
+    if (thread_->joinable()) {
+      thread_->join();
+    }
+    delete thread_;
+  }
 }
 
 } // bddriver

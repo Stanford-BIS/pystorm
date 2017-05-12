@@ -14,7 +14,7 @@ namespace driverifc
 
 void testcall(const std::string& msg)
 {
-    Driver::getInstance().testcall(msg);
+    Driver::GetInstance()->testcall(msg);
 }
 
 BOOST_PYTHON_MODULE(DriverPy)

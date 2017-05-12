@@ -45,7 +45,7 @@ void Decoder::RunOnce()
     if (num_pushed_to_each[i] > 0) {
       bool success = false;
       // have to check do_run_, since we could potentially get stuck here
-      while (!success & do_run_) { 
+      while (!success && do_run_) { 
         success = out_bufs_[i]->Push(output_chunks_[i], num_pushed_to_each[i], timeout_us_);
       }
     }
