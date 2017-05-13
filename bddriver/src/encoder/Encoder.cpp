@@ -37,7 +37,7 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
 
     // look up route for this leaf_id_
     // XXX not doing anything with core_id
-    FHRoute leaf_route = pars_->HornRoute(leaf_id);
+    bdpars::FHRoute leaf_route = pars_->HornRoute(leaf_id);
 
     // XXX this is where you would do something with the core id
 
@@ -67,7 +67,7 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
   }
 }
 
-inline uint32_t Encoder::EncodeHorn(FHRoute route, uint32_t payload) const
+inline uint32_t Encoder::EncodeHorn(bdpars::FHRoute route, uint32_t payload) const
 {
   // msb <- lsb
   // [ X | payload | route ]

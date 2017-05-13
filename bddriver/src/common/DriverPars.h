@@ -6,6 +6,7 @@
 
 namespace pystorm {
 namespace bddriver {
+namespace driverpars {
 
 enum DriverParId {
   // objects
@@ -60,6 +61,7 @@ class DriverPars {
 
 };
 
+} // driverpars
 } // bddriver
 } // pystorm
 

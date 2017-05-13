@@ -17,6 +17,7 @@ using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
+using namespace bdpars;
 
 #define BYTES_PER_WORD 5
 

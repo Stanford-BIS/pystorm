@@ -76,8 +76,8 @@ struct Tag {
 // internal word stream def'ns 
 
 // typedefs: words and word streams
-typedef std::map<WordFieldId, uint64_t> FieldValues;
-typedef std::map<WordFieldId, std::vector<uint64_t> > FieldVValues;
+typedef std::map<bdpars::WordFieldId, uint64_t> FieldValues;
+typedef std::map<bdpars::WordFieldId, std::vector<uint64_t> > FieldVValues;
 
 ////////////////////////////////
 // conversion functions from user types to FieldVValues

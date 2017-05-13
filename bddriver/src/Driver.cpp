@@ -36,8 +36,8 @@ Driver * Driver::GetInstance()
 Driver::Driver()
 {
   // load parameters
-  driver_pars_ = new DriverPars();
-  bd_pars_ = new BDPars();
+  driver_pars_ = new driverpars::DriverPars();
+  bd_pars_ = new bdpars::BDPars();
 
   // one BDState object per core
   //bd_state_ = std::vector<BDState>(bd_pars_->NumCores(), BDState(bd_pars_, driver_pars_));
@@ -46,12 +46,12 @@ Driver::Driver()
   }
 
   // initialize buffers
-  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(enc_buf_in_capacity));
-  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(enc_buf_out_capacity));
-  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(dec_buf_in_capacity));
+  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(driverpars::enc_buf_in_capacity));
+  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::enc_buf_out_capacity));
+  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::dec_buf_in_capacity));
 
   for (unsigned int i = 0; i < bd_pars_->FunnelRoutes()->size(); i++) {
-    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(dec_buf_out_capacity));
+    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::dec_buf_out_capacity));
     dec_bufs_out_.push_back(buf_ptr);
   }
 
@@ -60,29 +60,29 @@ Driver::Driver()
       bd_pars_,
       enc_buf_in_, 
       enc_buf_out_, 
-      driver_pars_->Get(enc_chunk_size), 
-      driver_pars_->Get(enc_timeout_us)
+      driver_pars_->Get(driverpars::enc_chunk_size), 
+      driver_pars_->Get(driverpars::enc_timeout_us)
   );
 
   dec_ = new Decoder(
       bd_pars_, 
       dec_buf_in_, 
       dec_bufs_out_, 
-      driver_pars_->Get(dec_chunk_size), 
-      driver_pars_->Get(dec_timeout_us)
+      driver_pars_->Get(driverpars::dec_chunk_size), 
+      driver_pars_->Get(driverpars::dec_timeout_us)
   );
 
   // initialize Comm
-  if (driver_pars_->Get(comm_type) == soft) {
+  if (driver_pars_->Get(driverpars::comm_type) == driverpars::soft) {
 
     comm_ = new comm::CommSoft(
-        *(driver_pars_->Get(soft_comm_in_fname)),
-        *(driver_pars_->Get(soft_comm_out_fname)),
+        *(driver_pars_->Get(driverpars::soft_comm_in_fname)),
+        *(driver_pars_->Get(driverpars::soft_comm_out_fname)),
         enc_buf_out_,
         dec_buf_in_
     );
 
-  } else if (driver_pars_->Get(comm_type) == libUSB) {
+  } else if (driver_pars_->Get(driverpars::comm_type) == driverpars::libUSB) {
     assert(false && "libUSB Comm is not implemented");
   } else {
     assert(false && "unhandled comm_type");
@@ -120,9 +120,16 @@ void Driver::Start()
   comm_->StartStreaming();
 }
 
+void Driver::Stop()
+{
+  enc_->Stop();
+  dec_->Stop();
+  comm_->StopStreaming();
+}
+
 /// Set toggle traffic_en only, keep dump_en the same, returns previous traffic_en.
 /// If register state has not been set, dump_en -> 0
-bool Driver::SetToggleTraffic(unsigned int core_id, RegId reg_id, bool en) 
+bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en) 
 {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
@@ -134,7 +141,7 @@ bool Driver::SetToggleTraffic(unsigned int core_id, RegId reg_id, bool en)
 
 /// Set toggle dump_en only, keep traffic_en the same, returns previous dump_en
 /// If register state has not been set, traffic_en -> 0
-bool Driver::SetToggleDump(unsigned int core_id, RegId reg_id, bool en)
+bool Driver::SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en)
 {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
@@ -147,7 +154,7 @@ bool Driver::SetToggleDump(unsigned int core_id, RegId reg_id, bool en)
 /// Turn on tag traffic in datapath (also calls Start/KillSpikes)
 void Driver::SetTagTrafficState(unsigned int core_id, bool en)
 {
-  for (auto& it : {TOGGLE_PRE_FIFO, TOGGLE_POST_FIFO0, TOGGLE_POST_FIFO1, NeuronDumpToggle}) {
+  for (auto& it : kTrafficRegs) {
     SetToggleTraffic(core_id, it, en);
   }
 }
@@ -156,14 +163,14 @@ void Driver::SetTagTrafficState(unsigned int core_id, bool en)
 /// Turn on spike outputs for all neurons
 void Driver::SetSpikeTrafficState(unsigned int core_id, bool en)
 {
-  SetToggleTraffic(core_id, NeuronDumpToggle, en);
+  SetToggleTraffic(core_id, bdpars::NeuronDumpToggle, en); 
 }
 
 
 /// Turn on spike outputs for all neurons
 void Driver::SetSpikeDumpState(unsigned int core_id, bool en)
 {
-  SetToggleDump(core_id, NeuronDumpToggle, en);
+  SetToggleDump(core_id, bdpars::NeuronDumpToggle, en);
 }
 
 
@@ -189,19 +196,19 @@ void Driver::ResumeTraffic(unsigned int core_id)
 }
 
 
-void Driver::SetDACValue(unsigned int core_id, DACSignalId signal_id, unsigned int value)
+void Driver::SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id, unsigned int value)
 {
-  RegId DAC_reg_id = bd_pars_->DACSignalIdToDACRegisterId(signal_id);
+  bdpars::RegId DAC_reg_id = bd_pars_->DACSignalIdToDACRegisterId(signal_id);
 
   // look up state of connection to ADC XXX
   bool DAC_to_ADC_conn_curr_state = false;
 
-  FieldValues field_vals = {{DAC_value, value}, {DAC_to_ADC_conn, DAC_to_ADC_conn_curr_state}};
+  FieldValues field_vals = {{bdpars::DAC_value, value}, {bdpars::DAC_to_ADC_conn, DAC_to_ADC_conn_curr_state}};
   SetRegister(core_id, DAC_reg_id, field_vals);
 }
 
 
-void Driver::SetDACtoADCConnectionState(unsigned int core_id, DACSignalId dac_signal_id, bool en)
+void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::DACSignalId dac_signal_id, bool en)
 {
   assert(false && "not implemented");
 }
@@ -238,13 +245,13 @@ void Driver::SetPAT(
   PauseTraffic(core_id);
 
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(PAT)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::PAT)), DataToFieldVValues(data));
 
   // encapsulate according to RW format
-  std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(PAT_write)), data_fields, start_addr);
+  std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(bdpars::PAT_write)), data_fields, start_addr);
 
   // transmit words
-  SendToHorn(core_id, bd_pars_->ProgHornId(PAT), prog_words);
+  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), prog_words);
 
   ResumeTraffic(core_id);
 }
@@ -259,13 +266,13 @@ void Driver::SetTAT(
 {
 
   // TAT_idx -> TAT_id
-  MemId TAT_id;
+  bdpars::MemId TAT_id;
   if (TAT_idx == 0) {
     bd_state_[core_id].SetTAT0(start_addr, data);
-    TAT_id = TAT0;
+    TAT_id = bdpars::TAT0;
   } else if (TAT_idx == 1) {
     bd_state_[core_id].SetTAT1(start_addr, data);
-    TAT_id = TAT1;
+    TAT_id = bdpars::TAT1;
   } else {
     assert(false && "TAT_idx must == 0 or 1");
   }
@@ -282,8 +289,8 @@ void Driver::SetTAT(
 
   // encapsulate data fields according to RIWI format
   std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(TAT_set_address)), 
-      *(bd_pars_->Word(TAT_write_increment)), 
+      *(bd_pars_->Word(bdpars::TAT_set_address)), 
+      *(bd_pars_->Word(bdpars::TAT_write_increment)), 
       data_fields,
       start_addr);
 
@@ -305,21 +312,21 @@ void Driver::SetAM(
   PauseTraffic(core_id);
  
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(AM)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::AM)), DataToFieldVValues(data));
 
   // encapsulate according to RMW format
   std::vector<uint64_t> prog_words = PackRMWProgWords(
-      *(bd_pars_->Word(AM_set_address)), 
-      *(bd_pars_->Word(AM_read_write)), 
-      *(bd_pars_->Word(AM_increment)), 
+      *(bd_pars_->Word(bdpars::AM_set_address)), 
+      *(bd_pars_->Word(bdpars::AM_read_write)), 
+      *(bd_pars_->Word(bdpars::AM_increment)), 
       data_fields,
       start_addr);
 
   // encapsulate AM/MM
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(AM, prog_words);
+  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::AM, prog_words);
 
   // transmit to horn
-  SendToHorn(core_id, bd_pars_->ProgHornId(AM), prog_words_encapsulated);
+  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::AM), prog_words_encapsulated);
 
   ResumeTraffic(core_id);
 }
@@ -336,20 +343,20 @@ void Driver::SetMM(
   PauseTraffic(core_id);
  
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(MM)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::MM)), DataToFieldVValues(data));
 
   // encapsulate according to RIWI format
   std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(MM_set_address)), 
-      *(bd_pars_->Word(MM_write_increment)), 
+      *(bd_pars_->Word(bdpars::MM_set_address)), 
+      *(bd_pars_->Word(bdpars::MM_write_increment)), 
       data_fields,
       start_addr);
 
   // encapsulate AM/MM
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(MM, prog_words);
+  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::MM, prog_words);
 
   // transmit to horn
-  SendToHorn(core_id, bd_pars_->ProgHornId(MM), prog_words_encapsulated);
+  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::MM), prog_words_encapsulated);
 
   ResumeTraffic(core_id);
 }
@@ -360,19 +367,19 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
   PauseTraffic(core_id);
 
   // make dump words
-  unsigned int PAT_size = bd_pars_->Size(PAT);
-  std::vector<uint64_t> dump_words = PackRWDumpWords(*(bd_pars_->Word(PAT_read)), 0, PAT_size);
+  unsigned int PAT_size = bd_pars_->Size(bdpars::PAT);
+  std::vector<uint64_t> dump_words = PackRWDumpWords(*(bd_pars_->Word(bdpars::PAT_read)), 0, PAT_size);
 
   // transmit dump words
-  SendToHorn(core_id, bd_pars_->ProgHornId(PAT), dump_words);
+  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), dump_words);
 
   // wait to receive return values 
   // XXX CALLING THREAD IS BLOCKED UNTIL ALL WORDS RECEIVED
   // There's no max timeout for this call, currently.
   
   DecOutput recv_vals[PAT_size];
-  unsigned int funnel_idx = bd_pars_->FunnelIdx(bd_pars_->DumpFunnelId(PAT));
-  unsigned int timeout = driver_pars_->Get(DumpPAT_timeout_us);
+  unsigned int funnel_idx = bd_pars_->FunnelIdx(bd_pars_->DumpFunnelId(bdpars::PAT));
+  unsigned int timeout = driver_pars_->Get(driverpars::DumpPAT_timeout_us);
   unsigned int n_recv = dec_bufs_out_[funnel_idx]->Pop(recv_vals, PAT_size, timeout);
   if (n_recv != PAT_size) {
     // XXX this should probably go to a warning log instead of stdio
@@ -389,7 +396,7 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
     payloads.push_back(static_cast<uint64_t>(val.payload));
   }
 
-  FieldVValues fields = UnpackWords(*bd_pars_->Word(PAT), payloads);
+  FieldVValues fields = UnpackWords(*bd_pars_->Word(bdpars::PAT), payloads);
 
   ResumeTraffic(core_id);
   return FieldVValuesToPATData(fields);
@@ -397,7 +404,7 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
 
 
 std::vector<uint64_t> Driver::PackRWProgWords(
-    const WordStructure & word_struct, 
+    const bdpars::WordStructure & word_struct, 
     const std::vector<uint64_t> & payload, 
     unsigned int start_addr) const
 // NOTE: word_struct is a parameter because memories with the same type may still have different field widths
@@ -407,7 +414,7 @@ std::vector<uint64_t> Driver::PackRWProgWords(
 
   uint64_t addr = static_cast<uint64_t>(start_addr);
   for (auto& it : payload) {
-    retval.push_back(PackWord(word_struct, {{address, addr}, {data, it}}));
+    retval.push_back(PackWord(word_struct, {{bdpars::address, addr}, {bdpars::data, it}}));
     addr++;
   }
 
@@ -416,22 +423,22 @@ std::vector<uint64_t> Driver::PackRWProgWords(
 
 
 std::vector<uint64_t> Driver::PackRWDumpWords(
-    const WordStructure & word_struct, 
+    const bdpars::WordStructure & word_struct, 
     unsigned int start_addr,
     unsigned int end_addr) const
 // XXX should vectorize, use PackWords
 {
   std::vector<uint64_t> retval;
   for (unsigned int addr = start_addr; addr < end_addr; addr++) {
-    retval.push_back(PackWord(word_struct, {{address, static_cast<uint64_t>(addr)}}));
+    retval.push_back(PackWord(word_struct, {{bdpars::address, static_cast<uint64_t>(addr)}}));
   }
   return retval;
 }
 
 
 std::vector<uint64_t> Driver::PackRIWIProgWords(
-    const WordStructure & addr_word_struct, 
-    const WordStructure & write_word_struct, 
+    const bdpars::WordStructure & addr_word_struct, 
+    const bdpars::WordStructure & write_word_struct, 
     const std::vector<uint64_t> & payload, 
     unsigned int start_addr) const
 // NOTE: word_struct is a parameter because memories with the same type may still have different field widths
@@ -442,10 +449,10 @@ std::vector<uint64_t> Driver::PackRIWIProgWords(
 
   // address word
   uint64_t addr = static_cast<uint64_t>(start_addr);
-  retval.push_back(PackWord(addr_word_struct, {{address, addr}}));
+  retval.push_back(PackWord(addr_word_struct, {{bdpars::address, addr}}));
 
   for (auto& it : payload) {
-    retval.push_back(PackWord(write_word_struct, {{data, it}}));
+    retval.push_back(PackWord(write_word_struct, {{bdpars::data, it}}));
   }
 
   return retval;
@@ -453,14 +460,14 @@ std::vector<uint64_t> Driver::PackRIWIProgWords(
 
 
 std::vector<uint64_t> Driver::PackRIWIDumpWords(
-    const WordStructure & addr_word_struct, 
-    const WordStructure & read_word_struct, 
+    const bdpars::WordStructure & addr_word_struct, 
+    const bdpars::WordStructure & read_word_struct, 
     unsigned int start_addr,
     unsigned int end_addr) const
 // XXX should vectorize, use PackWords
 {
   std::vector<uint64_t> retval;
-  retval.push_back(PackWord(addr_word_struct, {{address, static_cast<uint64_t>(start_addr)}}));
+  retval.push_back(PackWord(addr_word_struct, {{bdpars::address, static_cast<uint64_t>(start_addr)}}));
   for (unsigned int addr = start_addr; addr < end_addr; addr++) {
     retval.push_back(PackWord(read_word_struct, {}));
   }
@@ -469,9 +476,9 @@ std::vector<uint64_t> Driver::PackRIWIDumpWords(
 
 
 std::vector<uint64_t> Driver::PackRMWProgWords(
-    const WordStructure & addr_word_struct, 
-    const WordStructure & write_word_struct, 
-    const WordStructure & incr_word_struct,
+    const bdpars::WordStructure & addr_word_struct, 
+    const bdpars::WordStructure & write_word_struct, 
+    const bdpars::WordStructure & incr_word_struct,
     const std::vector<uint64_t> & payload, 
     unsigned int start_addr) const
 // XXX should vectorize, use PackWords
@@ -482,10 +489,10 @@ std::vector<uint64_t> Driver::PackRMWProgWords(
 
   // address word
   uint64_t addr = static_cast<uint64_t>(start_addr);
-  retval.push_back(PackWord(addr_word_struct, {{address, addr}}));
+  retval.push_back(PackWord(addr_word_struct, {{bdpars::address, addr}}));
 
   for (auto& it : payload) {
-    retval.push_back(PackWord(write_word_struct, {{data, it}}));
+    retval.push_back(PackWord(write_word_struct, {{bdpars::data, it}}));
     retval.push_back(PackWord(incr_word_struct, {})); // only fixed value of increment op for this word
   }
 
@@ -493,14 +500,14 @@ std::vector<uint64_t> Driver::PackRMWProgWords(
 }
 
 
-std::vector<uint64_t> Driver::PackAMMMWord(MemId AM_or_MM, const std::vector<uint64_t> & payload_data) const
+std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> & payload_data) const
 // XXX should vectorize, use PackWords
 {
-  const WordStructure * AM_MM_encapsulation = nullptr; // assignment to nullptr suppresses compiler warning
-  if (AM_or_MM == AM) {
-    AM_MM_encapsulation = bd_pars_->Word(AM_encapsulation);
-  } else if (AM_or_MM == MM) {
-    AM_MM_encapsulation = bd_pars_->Word(MM_encapsulation);
+  const bdpars::WordStructure * AM_MM_encapsulation = nullptr; // assignment to nullptr suppresses compiler warning
+  if (AM_or_MM == bdpars::AM) {
+    AM_MM_encapsulation = bd_pars_->Word(bdpars::AM_encapsulation);
+  } else if (AM_or_MM == bdpars::MM) {
+    AM_MM_encapsulation = bd_pars_->Word(bdpars::MM_encapsulation);
   } else {
     assert(false && "AM_or_MM must == AM or MM");
   }
@@ -515,7 +522,7 @@ std::vector<uint64_t> Driver::PackAMMMWord(MemId AM_or_MM, const std::vector<uin
       stop_bit = 0;
     }
 
-    uint64_t word = PackWord(*AM_MM_encapsulation, {{payload, it}, {stop, stop_bit}});
+    uint64_t word = PackWord(*AM_MM_encapsulation, {{bdpars::payload, it}, {bdpars::stop, stop_bit}});
     retval.push_back(word);
   }
   return retval;
@@ -532,20 +539,20 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
   for (auto& it : spikes) {
     core_ids.push_back(it.core_id);
     // XXX neuron_id != synapse id. Figure out how to resolve this... hopefully don't need input spike vs output spike type
-    FieldValues field_values = {{synapse_sign, SignedValToSignBit(it.sign)}, {synapse_address, it.neuron_id}};
-    payloads.push_back(PackWord(*(bd_pars_->Word(NeuronInject)), field_values));
+    FieldValues field_values = {{bdpars::synapse_sign, SignedValToSignBit(it.sign)}, {bdpars::synapse_address, it.neuron_id}};
+    payloads.push_back(PackWord(*(bd_pars_->Word(bdpars::NeuronInject)), field_values));
   }
 
   // XXX figure out what to do with the delays
 
-  SendToHorn(core_ids, std::vector<HornLeafId>(core_ids.size(), NeuronInject), payloads);
+  SendToHorn(core_ids, std::vector<bdpars::HornLeafId>(core_ids.size(), bdpars::NeuronInject), payloads);
 }
 
 
 std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
 {
-  unsigned int buf_idx = bd_pars_->FunnelIdx(NRNI);
-  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(RecvSpikes_timeout_us));
+  unsigned int buf_idx = bd_pars_->FunnelIdx(bdpars::NRNI);
+  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RecvSpikes_timeout_us));
 
   std::vector<Spike> retval;
   for (auto& el : dec_out) {
@@ -558,7 +565,7 @@ std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
 
 void Driver::SendToHorn(
     const std::vector<unsigned int> & core_id, 
-    const std::vector<HornLeafId> & leaf_id,
+    const std::vector<bdpars::HornLeafId> & leaf_id,
     const std::vector<uint64_t> & payload) 
 {
 
@@ -576,18 +583,18 @@ void Driver::SendToHorn(
   enc_buf_in_->Push(enc_inputs);
 }
 
-void Driver::SendToHorn(unsigned int core_id, HornLeafId leaf_id, std::vector<uint64_t> payload) 
+void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, std::vector<uint64_t> payload) 
 {
   std::vector<unsigned int> core_ids = std::vector<unsigned int>(payload.size(), core_id);
-  std::vector<HornLeafId> leaf_ids = std::vector<HornLeafId>(payload.size(), leaf_id);
+  std::vector<bdpars::HornLeafId> leaf_ids = std::vector<bdpars::HornLeafId>(payload.size(), leaf_id);
 
   SendToHorn(core_ids, leaf_ids, payload);
 }
 
 
-void Driver::SetRegister(unsigned int core_id, RegId reg_id, const FieldValues & field_vals)
+void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues & field_vals)
 {
-  const WordStructure * reg_word_struct = bd_pars_->Word(reg_id);
+  const bdpars::WordStructure * reg_word_struct = bd_pars_->Word(reg_id);
   uint64_t payload = PackWord(*reg_word_struct, field_vals);
 
   std::vector<unsigned int> field_vals_as_vect;
@@ -600,21 +607,21 @@ void Driver::SetRegister(unsigned int core_id, RegId reg_id, const FieldValues &
 }
 
 
-void Driver::SetToggle(unsigned int core_id, RegId toggle_id, bool traffic_en, bool dump_en)
+void Driver::SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_en, bool dump_en)
 {
-  SetRegister(core_id, toggle_id, {{traffic_enable, traffic_en}, {dump_enable, dump_en}});
+  SetRegister(core_id, toggle_id, {{bdpars::traffic_enable, traffic_en}, {bdpars::dump_enable, dump_en}});
 }
 
-uint64_t Driver::ValueForSpecialFieldId(WordFieldId field_id) const {
-  if (field_id == unused) { // user need not supply values for unused fields
+uint64_t Driver::ValueForSpecialFieldId(bdpars::WordFieldId field_id) const {
+  if (field_id == bdpars::unused) { // user need not supply values for unused fields
     return 0;
-  } else if (field_id == FIXED_0) {
+  } else if (field_id == bdpars::FIXED_0) {
     return 0;
-  } else if (field_id == FIXED_1) {
+  } else if (field_id == bdpars::FIXED_1) {
     return 1;
-  } else if (field_id == FIXED_2) {
+  } else if (field_id == bdpars::FIXED_2) {
     return 2;
-  } else if (field_id == FIXED_3) {
+  } else if (field_id == bdpars::FIXED_3) {
     return 3;
   } else {
     assert(false && "no value supplied for a given field");
@@ -622,12 +629,12 @@ uint64_t Driver::ValueForSpecialFieldId(WordFieldId field_id) const {
   }
 }
 
-uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues & field_values) const
+uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) const
 {
   std::vector<unsigned int> widths_as_vect;
   std::vector<uint64_t> field_values_as_vect;
   for (auto& it : word_struct) {
-    WordFieldId field_id = it.first;
+    bdpars::WordFieldId field_id = it.first;
     unsigned int field_width = it.second;
 
     uint64_t field_value;
@@ -644,7 +651,7 @@ uint64_t Driver::PackWord(const WordStructure & word_struct, const FieldValues &
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
-std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const
+std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values) const
 {
   // check that input is well-formed
   assert(word_struct.size() == field_values.size() && "number of fields in word_struct and field_values");
@@ -660,7 +667,7 @@ std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const
   uint64_t * vals = new uint64_t[n_words * n_fields];
   unsigned int i = 0;
   for (auto& it : word_struct) {
-    WordFieldId field_id = it.first; // field id ~ i
+    bdpars::WordFieldId field_id = it.first; // field id ~ i
 
     for (unsigned int j = 0; j < n_words; j++) {
 
@@ -696,7 +703,7 @@ std::vector<uint64_t> Driver::PackWords(const WordStructure & word_struct, const
   return retval;
 }
 
-FieldValues Driver::UnpackWord(const WordStructure & word_struct, uint64_t word) const
+FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word) const
 {
   std::vector<unsigned int> widths_as_vect;
   for (auto& it : word_struct) {
@@ -709,14 +716,14 @@ FieldValues Driver::UnpackWord(const WordStructure & word_struct, uint64_t word)
   FieldValues retval;
   unsigned int i = 0;
   for (auto& it : word_struct) {
-    WordFieldId field_id = it.first;
+    bdpars::WordFieldId field_id = it.first;
     retval[field_id] = vals[i];
     i++;
   }
   return retval;
 }
 
-FieldVValues Driver::UnpackWords(const WordStructure & word_struct, std::vector<uint64_t> words) const 
+FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words) const 
 {
   std::vector<unsigned int> widths_as_vect;
   for (auto& it : word_struct) {
@@ -727,7 +734,7 @@ FieldVValues Driver::UnpackWords(const WordStructure & word_struct, std::vector<
   // set up retval, init vectors
   FieldVValues retval;
   for (auto& it : word_struct) {
-    WordFieldId field_id = it.first;
+    bdpars::WordFieldId field_id = it.first;
     retval[field_id] = {};
   }
 
@@ -736,7 +743,7 @@ FieldVValues Driver::UnpackWords(const WordStructure & word_struct, std::vector<
     std::vector<uint64_t> vals = UnpackV64(words[i], widths_as_vect);
     unsigned int j = 0;
     for (auto& it : word_struct) {
-      WordFieldId field_id = it.first;
+      bdpars::WordFieldId field_id = it.first;
       retval[field_id].push_back(vals[j]);
       j++;
     }

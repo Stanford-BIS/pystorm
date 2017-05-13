@@ -8,6 +8,7 @@
 
 namespace pystorm {
 namespace bddriver {
+namespace bdpars {
 
 BDPars::BDPars() 
 {
@@ -207,5 +208,6 @@ RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const
   return DAC0; // squelch compiler warning for now
 }
 
+} // bdpars
 } // bddriver
 } // pystorm

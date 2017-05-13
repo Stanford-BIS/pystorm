@@ -43,7 +43,6 @@
 namespace pystorm {
 namespace bddriver {
 
-
 /**
  * \class Driver is a singleton; There should only be one instance of this.
  *
@@ -51,6 +50,7 @@ namespace bddriver {
 
 class Driver
 {
+
   public:
     /// Return a global instance of bddriver
     static Driver * GetInstance();
@@ -59,6 +59,8 @@ class Driver
 
     /// starts child workers, e.g. encoder and decoder
     void Start(); 
+    /// stops the child workers
+    void Stop();
     /// initializes hardware state
     void InitBD(); 
 
@@ -77,9 +79,9 @@ class Driver
     // ADC/DAC Config
 
     /// Program DAC value
-    void SetDACValue(unsigned int core_id, DACSignalId signal_id,  unsigned int value);
+    void SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id,  unsigned int value);
     /// Make DAC-to-ADC connection for calibration for a particular DAC
-    void SetDACtoADCConnectionState(unsigned int core_id, DACSignalId dac_signal_id, bool en);
+    void SetDACtoADCConnectionState(unsigned int core_id, bdpars::DACSignalId dac_signal_id, bool en);
 
     /// Set large/small current scale for either ADC
     void SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large);
@@ -172,9 +174,9 @@ class Driver
     // data members
 
     /// parameters describing parameters of the software (e.g. buffer depths)
-    DriverPars * driver_pars_; 
+    driverpars::DriverPars * driver_pars_; 
     /// parameters describing BD hardware
-    BDPars * bd_pars_; 
+    bdpars::BDPars * bd_pars_; 
     /// best-of-driver's-knowledge state of bd hardware
     std::vector<BDState> bd_state_;
 
@@ -203,7 +205,13 @@ class Driver
 
     ////////////////////////////////
     // traffic helpers
-    const std::vector<RegId> kTrafficRegs = {NeuronDumpToggle, TOGGLE_PRE_FIFO, TOGGLE_POST_FIFO0, TOGGLE_POST_FIFO1};
+    const std::vector<bdpars::RegId> kTrafficRegs = {
+        bdpars::NeuronDumpToggle, 
+        bdpars::TOGGLE_PRE_FIFO, 
+        bdpars::TOGGLE_POST_FIFO0, 
+        bdpars::TOGGLE_POST_FIFO1
+    };
+
     std::unordered_map<unsigned int, std::vector<bool> > last_traffic_state_;
 
     /// Stops traffic for a core and saves the previous state in last_traffic_state_
@@ -213,16 +221,16 @@ class Driver
     ////////////////////////////////
     // helpers
     
-    uint64_t ValueForSpecialFieldId(WordFieldId field_id) const;
-    uint64_t PackWord(const WordStructure & word_struct, const FieldValues & field_values) const;
-    std::vector<uint64_t> PackWords(const WordStructure & word_struct, const FieldVValues & field_values) const;
-    FieldValues UnpackWord(const WordStructure & word_struct, uint64_t word) const;
-    FieldVValues UnpackWords(const WordStructure & word_struct, std::vector<uint64_t> words) const;
+    uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id) const;
+    uint64_t PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) const;
+    std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values) const;
+    FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word) const;
+    FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words) const;
 
-    void SendToHorn(unsigned int core_id, HornLeafId leaf_id, std::vector<uint64_t> payload);
+    void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, std::vector<uint64_t> payload);
     void SendToHorn(
         const std::vector<unsigned int> & core_id, 
-        const std::vector<HornLeafId> & leaf_id,
+        const std::vector<bdpars::HornLeafId> & leaf_id,
         const std::vector<uint64_t> & payload
     );
 
@@ -231,50 +239,50 @@ class Driver
     // low-level programming calls, breadth of high-level downstream API goes through these
     
     std::vector<uint64_t> PackRWProgWords(
-        const WordStructure & word_struct, 
+        const bdpars::WordStructure & word_struct, 
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const;
     std::vector<uint64_t> PackRWDumpWords(
-        const WordStructure & word_struct, 
+        const bdpars::WordStructure & word_struct, 
         unsigned int start_addr,
         unsigned int end_addr
     ) const;
 
     std::vector<uint64_t> PackRIWIProgWords(
-        const WordStructure & addr_word_struct, 
-        const WordStructure & write_word_struct, 
+        const bdpars::WordStructure & addr_word_struct, 
+        const bdpars::WordStructure & write_word_struct, 
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const;
     std::vector<uint64_t> PackRIWIDumpWords(
-        const WordStructure & addr_word_struct, 
-        const WordStructure & read_word_struct, 
+        const bdpars::WordStructure & addr_word_struct, 
+        const bdpars::WordStructure & read_word_struct, 
         unsigned int start_addr,
         unsigned int end_addr
     ) const;
 
     std::vector<uint64_t> PackRMWProgWords(
-        const WordStructure & addr_word_struct, 
-        const WordStructure & write_word_struct, 
-        const WordStructure & incr_word_struct,
+        const bdpars::WordStructure & addr_word_struct, 
+        const bdpars::WordStructure & write_word_struct, 
+        const bdpars::WordStructure & incr_word_struct,
         const std::vector<uint64_t> & payload, 
         unsigned int start_addr
     ) const; 
     // note: RMWProgWord can function as RMWDumpWord
 
-    std::vector<uint64_t> PackAMMMWord(MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
+    std::vector<uint64_t> PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
 
     
-    void SetRegister(unsigned int core_id, RegId reg_id, const FieldValues & field_vals);
-    void SetToggle(unsigned int core_id, RegId toggle_id, bool traffic_enable, bool dump_enable);
-    bool SetToggleTraffic(unsigned int core_id, RegId reg_id, bool en);
-    bool SetToggleDump(unsigned int core_id, RegId reg_id, bool en);
+    void SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues & field_vals);
+    void SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_enable, bool dump_enable);
+    bool SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en);
+    bool SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en);
 
-    void SetRIWIMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRMWMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRWMemory(unsigned int core_id, MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetMemoryDelay(unsigned int core_id, MemId mem_id, unsigned int value);
+    void SetRIWIMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetRMWMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetRWMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
+    void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int value);
 
     void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
 

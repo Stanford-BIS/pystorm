@@ -21,7 +21,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
   public:
 
     Encoder(
-        const BDPars * pars, 
+        const bdpars::BDPars * pars, 
         MutexBuffer<EncInput> * in_buf, 
         MutexBuffer<EncOutput> * out_buf, 
         unsigned int chunk_size, 
@@ -33,7 +33,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
 
     void RunOnce();
     void Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs) const;
-    uint32_t EncodeHorn(FHRoute route, uint32_t payload) const;
+    uint32_t EncodeHorn(bdpars::FHRoute route, uint32_t payload) const;
     
 };
 

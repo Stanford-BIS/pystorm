@@ -18,7 +18,7 @@ namespace bddriver {
 
 template <class TIN, class TOUT>
 Xcoder<TIN, TOUT>::Xcoder(
-    const BDPars * pars, 
+    const bdpars::BDPars * pars, 
     MutexBuffer<TIN> * in_buf, 
     const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
     unsigned int input_chunk_size, 

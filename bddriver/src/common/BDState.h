@@ -15,7 +15,7 @@ namespace bddriver {
 class BDState {
   // keeps track of currently set register values, toggle states, memory values, etc.
   public:
-    BDState(const BDPars * bd_pars, const DriverPars * driver_pars);
+    BDState(const bdpars::BDPars * bd_pars, const driverpars::DriverPars * driver_pars);
     ~BDState();
 
     void SetPAT(unsigned int start_addr, const std::vector<PATData> & data);
@@ -24,11 +24,11 @@ class BDState {
     void SetAM(unsigned int start_addr, const std::vector<AMData> & data);
     void SetMM(unsigned int start_addr, const std::vector<MMData> & data);
 
-    void SetReg(RegId reg_id, const std::vector<unsigned int> & data);
-    const std::pair<const std::vector<unsigned int> *, bool> GetReg(RegId reg_id) const;
+    void SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> & data);
+    const std::pair<const std::vector<unsigned int> *, bool> GetReg(bdpars::RegId reg_id) const;
 
-    void SetToggle(RegId reg_id, bool traffic_en, bool dump_en);
-    std::tuple<bool, bool, bool> GetToggle(RegId reg_id) const;
+    void SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en);
+    std::tuple<bool, bool, bool> GetToggle(bdpars::RegId reg_id) const;
 
     bool AreTrafficRegsOff() const; /// is traffic_en == false for all traffic_regs_
     bool IsTrafficOff() const; /// has AreTrafficRegsOff been true for traffic_drain_us
@@ -37,8 +37,8 @@ class BDState {
   private:
 
     /// const pointer to driver's pars objects
-    const BDPars * bd_pars_;
-    const DriverPars * driver_pars_;
+    const bdpars::BDPars * bd_pars_;
+    const driverpars::DriverPars * driver_pars_;
 
     /// register contents
     std::vector<std::vector<unsigned int> > reg_;
@@ -59,7 +59,7 @@ class BDState {
     std::vector<bool> MM_valid_;
 
     /// consts
-    const std::vector<RegId> kTrafficRegs = {NeuronDumpToggle, TOGGLE_PRE_FIFO, TOGGLE_POST_FIFO0, TOGGLE_POST_FIFO1};
+    const std::vector<bdpars::RegId> kTrafficRegs = {bdpars::NeuronDumpToggle, bdpars::TOGGLE_PRE_FIFO, bdpars::TOGGLE_POST_FIFO0, bdpars::TOGGLE_POST_FIFO1};
 
     /// timing: when certain things happened
     std::chrono::high_resolution_clock::time_point all_traffic_off_start_;

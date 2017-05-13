@@ -21,7 +21,7 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
 
   public:
     Decoder(
-        const BDPars * pars, 
+        const bdpars::BDPars * pars, 
         MutexBuffer<DecInput> * in_buf, 
         const std::vector<MutexBuffer<DecOutput> *> & out_bufs, 
         unsigned int chunk_size, 

@@ -8,6 +8,7 @@ using std::endl;
 
 using namespace pystorm;
 using namespace bddriver;
+using namespace driverpars;
 
 class DriverParsFixture : public testing::Test
 {

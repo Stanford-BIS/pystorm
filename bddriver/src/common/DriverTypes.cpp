@@ -3,9 +3,13 @@
 #include <cassert>
 #include <vector>
 
+#include "BDPars.h"
+
+
 namespace pystorm {
 namespace bddriver {
 
+using namespace bdpars; // XXX should probably just type it in everywhere...
 
 uint64_t SignedValToSignBit(int sign) 
 {

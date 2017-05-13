@@ -2,6 +2,7 @@
 
 namespace pystorm {
 namespace bddriver {
+namespace driverpars {
 
 DriverPars::DriverPars()
 {
@@ -42,5 +43,6 @@ DriverPars::~DriverPars()
 {
 }
 
+} // driverpars
 } // bddriver
 } // pystorm

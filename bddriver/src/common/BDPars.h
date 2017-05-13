@@ -22,6 +22,55 @@ namespace bddriver {
 // it will mess a lot of stuff up!
 // the enum values are used to index these vectors
 
+namespace bdpars {
+
+enum RegId {
+  TOGGLE_PRE_FIFO,
+  TOGGLE_POST_FIFO0,
+  TOGGLE_POST_FIFO1,
+  NeuronDumpToggle,
+  DAC0,
+  DAC1,
+  DAC2,
+  DAC3,
+  DAC4,
+  DAC5,
+  DAC6,
+  DAC7,
+  DAC8,
+  DAC9,
+  DAC10,
+  DAC11,
+  DAC12,
+  ADC,
+  DELAY0,
+  DELAY1,
+  DELAY2,
+  DELAY3,
+  DELAY4,
+  DELAY5,
+  DELAY6,
+
+  LastRegId = DELAY6
+};
+
+enum MemId {
+  AM,
+  MM,
+  TAT0,
+  TAT1,
+  PAT,
+
+  LastMemId = PAT
+};
+
+// XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
+enum DACSignalId {
+  PlaceholderSignalName,
+
+  LastDACSignalId = PlaceholderSignalName
+};
+
 enum HornLeafId {
   NeuronInject,
   RI,
@@ -77,46 +126,6 @@ enum FunnelLeafId {
   OVFLW1,
 
   LastFunnelLeafId = OVFLW1
-};
-
-enum RegId {
-  TOGGLE_PRE_FIFO,
-  TOGGLE_POST_FIFO0,
-  TOGGLE_POST_FIFO1,
-  NeuronDumpToggle,
-  DAC0,
-  DAC1,
-  DAC2,
-  DAC3,
-  DAC4,
-  DAC5,
-  DAC6,
-  DAC7,
-  DAC8,
-  DAC9,
-  DAC10,
-  DAC11,
-  DAC12,
-  ADC,
-  DELAY0,
-  DELAY1,
-  DELAY2,
-  DELAY3,
-  DELAY4,
-  DELAY5,
-  DELAY6,
-
-  LastRegId = DELAY6
-};
-
-enum MemId {
-  AM,
-  MM,
-  TAT0,
-  TAT1,
-  PAT,
-
-  LastMemId = PAT
 };
 
 enum MemWordId {
@@ -198,15 +207,8 @@ enum MiscWidthId {
   LastMiscWidthId = BD_output
 };
 
-// XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
-enum DACSignalId {
-  PlaceholderSignalName,
-
-  LastDACSignalId = PlaceholderSignalName
-};
-
 typedef std::pair<uint32_t, unsigned int> FHRoute; // route val, route len
-typedef std::vector<std::pair<WordFieldId, unsigned int> > WordStructure; // field name, field width, in order lsb -> msb
+typedef std::vector<std::pair<bdpars::WordFieldId, unsigned int> > WordStructure; // field name, field width, in order lsb -> msb
 
 struct LeafInfo {
   /// Information describing one funnel/horn leaf in Braindrop
@@ -310,6 +312,7 @@ class BDPars {
 
 };
 
+} // bdpars
 } // bddriver
 } // pystorm
 

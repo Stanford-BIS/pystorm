@@ -13,13 +13,13 @@ class BDParsFixture : public testing::Test
 {
   public:
     void SetUp() {
-      pars = new BDPars();
+      pars = new bdpars::BDPars();
     }
     void TearDown() {
       delete pars;
     }
 
-    BDPars * pars;
+    bdpars::BDPars * pars;
 };
 
 TEST_F(BDParsFixture, TestSetUpTearDown) {}

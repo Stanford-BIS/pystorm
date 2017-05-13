@@ -18,7 +18,7 @@ class Xcoder {
   // pure-virtual base class for encoders/decoders. Derived classes must define RunOnce()
   public: 
     Xcoder(
-        const BDPars * pars, 
+        const bdpars::BDPars * pars, 
         MutexBuffer<TIN> * in_buf, 
         const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
         unsigned int input_chunk_size, 
@@ -31,7 +31,7 @@ class Xcoder {
     void Stop();
 
   protected:
-    const BDPars * pars_; // chip parameters, contains routing table used in EncodeHorn
+    const bdpars::BDPars * pars_; // chip parameters, contains routing table used in EncodeHorn
 
     MutexBuffer<TIN> * in_buf_; // input buffer
     std::vector<MutexBuffer<TOUT> *> out_bufs_; // output buffer

@@ -17,6 +17,7 @@ using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
+using namespace bdpars;
 
 std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(BDPars * pars, unsigned int N, unsigned int max_leaf_idx_to_use) {
 

@@ -12,18 +12,18 @@ namespace bddriver {
 using std::cout;
 using std::endl;
 
-BDState::BDState(const BDPars * bd_pars, const DriverPars * driver_pars)
+BDState::BDState(const bdpars::BDPars * bd_pars, const driverpars::DriverPars * driver_pars)
 {
 
   bd_pars_ = bd_pars;
   driver_pars_ = driver_pars;
 
   // initialize memory vectors
-  PAT_  = std::vector<PATData>(bd_pars->Size(PAT), {0,0,0});
-  TAT0_ = std::vector<TATData>(bd_pars->Size(TAT0), {0,0,0,0,0,0,0,0,0,0});
-  TAT1_ = std::vector<TATData>(bd_pars->Size(TAT1), {0,0,0,0,0,0,0,0,0,0});
-  AM_   = std::vector<AMData>(bd_pars->Size(AM), {0,0,0});
-  MM_   = std::vector<MMData>(bd_pars->Size(MM), 0);
+  PAT_  = std::vector<PATData>(bd_pars->Size(bdpars::PAT), {0,0,0});
+  TAT0_ = std::vector<TATData>(bd_pars->Size(bdpars::TAT0), {0,0,0,0,0,0,0,0,0,0});
+  TAT1_ = std::vector<TATData>(bd_pars->Size(bdpars::TAT1), {0,0,0,0,0,0,0,0,0,0});
+  AM_   = std::vector<AMData>(bd_pars->Size(bdpars::AM), {0,0,0});
+  MM_   = std::vector<MMData>(bd_pars->Size(bdpars::MM), 0);
 
   PAT_valid_  = std::vector<bool>(PAT_.size(), false);
   TAT0_valid_ = std::vector<bool>(TAT0_.size(), false);
@@ -80,19 +80,19 @@ void BDState::SetMM(unsigned int start_addr, const std::vector<MMData> & data)
   }
 }
 
-void BDState::SetReg(RegId reg_id, const std::vector<unsigned int> & data)
+void BDState::SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> & data)
 {
   reg_[reg_id] = data;
   reg_valid_[reg_id] = true;
 }
   
-const std::pair<const std::vector<unsigned int> *, bool> BDState::GetReg(RegId reg_id) const
+const std::pair<const std::vector<unsigned int> *, bool> BDState::GetReg(bdpars::RegId reg_id) const
 {
   return make_pair(&(reg_.at(reg_id)), reg_valid_.at(reg_id));
 }
 
 
-void BDState::SetToggle(RegId reg_id, bool traffic_en, bool dump_en)
+void BDState::SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en)
 {
   bool already_off = AreTrafficRegsOff();
 
@@ -103,7 +103,7 @@ void BDState::SetToggle(RegId reg_id, bool traffic_en, bool dump_en)
   }
 }
 
-std::tuple<bool, bool, bool> BDState::GetToggle(RegId reg_id) const
+std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::RegId reg_id) const
 {
   return std::make_tuple(reg_.at(reg_id)[0], reg_.at(reg_id)[1], reg_valid_.at(reg_id));
 }
@@ -128,7 +128,7 @@ bool BDState::IsTrafficOff() const
   // check that traffic regs are still off
   if (AreTrafficRegsOff()) {
     auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
-    std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(bd_state_traffic_drain_us));
+    std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(driverpars::bd_state_traffic_drain_us));
     if (time_since > traffic_drain_time) {
       return true;
     }

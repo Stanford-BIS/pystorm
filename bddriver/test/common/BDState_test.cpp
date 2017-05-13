@@ -13,8 +13,8 @@ class BDStateFixture : public testing::Test
 {
   public:
     void SetUp() {
-      bd_pars = new BDPars();
-      driver_pars = new DriverPars();
+      bd_pars = new bdpars::BDPars();
+      driver_pars = new driverpars::DriverPars();
       state = new BDState(bd_pars, driver_pars);
     }
     void TearDown() {
@@ -24,8 +24,8 @@ class BDStateFixture : public testing::Test
     }
 
     BDState * state;
-    BDPars * bd_pars;
-    DriverPars * driver_pars;
+    bdpars::BDPars * bd_pars;
+    driverpars::DriverPars * driver_pars;
 };
 
 TEST_F(BDStateFixture, TestSetUpTearDown) {}
