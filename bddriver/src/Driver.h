@@ -165,6 +165,30 @@ class Driver
     /// Get warning count
     std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts();
 
+    ////////////////////////////////
+    // BDState queries
+    
+    // XXX note that these queries are NOT subject to timing assumptions!
+    // this is the SOFTWARE state of the board
+    // for any purpose where a timing assumption has some functional importance, 
+    // there is a separate call, e.g. for traffic registers
+    
+    /// Get register contents by name. 
+    /// XXX this is more low-level than most calls (no other public call requires RegId).
+    /// Could break into multiple calls
+    inline const std::pair<const std::vector<unsigned int> *, bool> GetRegState(unsigned int core_id, bdpars::RegId reg_id) const { return bd_state_[core_id].GetReg(reg_id); }
+
+    /// Get software state of PAT memory contents: this DOES NOT dump the memory.
+    inline const std::vector<PATData>  * GetPATState(unsigned int core_id) const { return bd_state_[core_id].GetPAT(); }
+    /// Get software state of TAT0 memory contents: this DOES NOT dump the memory.
+    inline const std::vector<TATData> * GetTAT0State(unsigned int core_id) const { return bd_state_[core_id].GetTAT0(); }
+    /// Get software state of TAT1 memory contents: this DOES NOT dump the memory.
+    inline const std::vector<TATData> * GetTAT1State(unsigned int core_id) const { return bd_state_[core_id].GetTAT1(); }
+    /// Get software state of AM memory contents: this DOES NOT dump the memory.
+    inline const std::vector<AMData>    * GetAMState(unsigned int core_id) const { return bd_state_[core_id].GetAM(); }
+    /// Get software state of MM memory contents: this DOES NOT dump the memory.
+    inline const std::vector<MMData>    * GetMMState(unsigned int core_id) const { return bd_state_[core_id].GetMM(); }
+
 
   private:
     Driver();

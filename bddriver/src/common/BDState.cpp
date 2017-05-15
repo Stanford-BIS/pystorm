@@ -1,5 +1,7 @@
 #include "BDState.h"
 
+#include <chrono>
+#include <thread>
 #include <vector>
 #include <assert.h>
 
@@ -104,13 +106,15 @@ void BDState::SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en)
 }
 
 std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::RegId reg_id) const
+/// Returns traffic_en, dump_en, valid
 {
   return std::make_tuple(reg_.at(reg_id)[0], reg_.at(reg_id)[1], reg_valid_.at(reg_id));
 }
 
 bool BDState::AreTrafficRegsOff() const 
 /// is traffic_en == false for all traffic_regs_
-/// note that !AreTrafficRegsOff() != (traffic_en == true for all traffic_regs_
+/// note that !AreTrafficRegsOff() != (traffic_en == true) for all traffic_regs_ 
+/// because not every register may be programmed yet (all registers not valid)
 {
   bool all_traffic_off = true;
   for(auto& reg_id : kTrafficRegs) {
@@ -122,14 +126,20 @@ bool BDState::AreTrafficRegsOff() const
   return all_traffic_off;
 }
 
+int BDState::TrafficRegWaitTimeLeftUs() const
+{
+  auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
+  std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(driverpars::bd_state_traffic_drain_us));
+  std::chrono::duration<int, std::micro> wait_time_left = std::chrono::duration_cast<std::chrono::microseconds>(traffic_drain_time - time_since);
+  return wait_time_left.count();
+}
+
 bool BDState::IsTrafficOff() const 
 /// has AreTrafficRegsOff been true for traffic_drain_us
 {
   // check that traffic regs are still off
   if (AreTrafficRegsOff()) {
-    auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
-    std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(driverpars::bd_state_traffic_drain_us));
-    if (time_since > traffic_drain_time) {
+    if (TrafficRegWaitTimeLeftUs() <= 0) {
       return true;
     }
   }
@@ -138,7 +148,12 @@ bool BDState::IsTrafficOff() const
 
 void BDState::WaitForTrafficOff() const
 {
-  while (!IsTrafficOff()) {}
+  while (!IsTrafficOff()) {  
+    int time_left = TrafficRegWaitTimeLeftUs();
+    if (time_left > 0) {
+      std::this_thread::sleep_for(std::chrono::microseconds(time_left));
+    }
+  }
 }
 
 

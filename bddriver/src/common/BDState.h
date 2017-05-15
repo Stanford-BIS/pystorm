@@ -12,8 +12,14 @@
 namespace pystorm {
 namespace bddriver {
 
+/// Keeps track of currently set register values, toggle states, memory values, etc.
+/// 
+/// Also encodes timing assumptions: e.g. as soon as the traffic toggles are turned 
+/// off in software, it is not necessarily safe to start programming memories:
+/// there is some amount of time that we must wait for the traffic to drain completely.
+/// the length of this delay is kept in DriverPars, and is used by BDState to implement
+/// an interface that the driver can use to block until it is safe.
 class BDState {
-  // keeps track of currently set register values, toggle states, memory values, etc.
   public:
     BDState(const bdpars::BDPars * bd_pars, const driverpars::DriverPars * driver_pars);
     ~BDState();
@@ -24,6 +30,12 @@ class BDState {
     void SetAM(unsigned int start_addr, const std::vector<AMData> & data);
     void SetMM(unsigned int start_addr, const std::vector<MMData> & data);
 
+    inline const std::vector<PATData> * GetPAT() const { return &PAT_; }
+    inline const std::vector<TATData> * GetTAT0() const { return &TAT0_; }
+    inline const std::vector<TATData> * GetTAT1() const { return &TAT1_; }
+    inline const std::vector<AMData> * GetAM() const { return &AM_; }
+    inline const std::vector<MMData> * GetMM() const { return &MM_; }
+
     void SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> & data);
     const std::pair<const std::vector<unsigned int> *, bool> GetReg(bdpars::RegId reg_id) const;
 
@@ -32,7 +44,7 @@ class BDState {
 
     bool AreTrafficRegsOff() const; /// is traffic_en == false for all traffic_regs_
     bool IsTrafficOff() const; /// has AreTrafficRegsOff been true for traffic_drain_us
-    void WaitForTrafficOff() const;
+    void WaitForTrafficOff() const; /// Busy wait until IsTrafficOff()
 
   private:
 
@@ -63,6 +75,8 @@ class BDState {
 
     /// timing: when certain things happened
     std::chrono::high_resolution_clock::time_point all_traffic_off_start_;
+
+    int TrafficRegWaitTimeLeftUs() const; 
 
 };
 
