@@ -33,6 +33,21 @@ MutexBuffer<T>::~MutexBuffer()
 
 
 template<class T>
+bool MutexBuffer<T>::HasAtLeast(unsigned int num)
+{
+  return count_ >= num;
+}
+
+template<class T>
+bool MutexBuffer<T>::HasRoomFor(unsigned int size)
+{
+  bool has_room = size <= capacity_ - count_;
+  //cout << "seeing if there's room: " << has_room << endl;
+  return has_room;
+}
+
+
+template<class T>
 bool MutexBuffer<T>::WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsigned int try_for_us, unsigned int multiple)
 {
   assert(multiple != 0);
@@ -56,7 +71,6 @@ bool MutexBuffer<T>::WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsi
   }
   return true;
 }
-
 
 template<class T>
 bool MutexBuffer<T>::WaitForHasRoomFor(std::unique_lock<std::mutex> * lock, unsigned int input_len, unsigned int try_for_us)
@@ -87,21 +101,44 @@ bool MutexBuffer<T>::WaitForHasRoomFor(std::unique_lock<std::mutex> * lock, unsi
 
 
 template<class T>
-void MutexBuffer<T>::PushData(const T * input, unsigned int input_len)
-// the base of the Push and TryPush calls
+void MutexBuffer<T>::UpdateStateForPush(unsigned int num_pushed)
 {
-  // copy the data
-  for (unsigned int i = 0; i < input_len; i++) {
-    vals_[(back_ + i) % capacity_] = input[i];
+  back_ = (back_ + num_pushed) % capacity_;
+  count_ += num_pushed;
+}
+
+template<class T>
+void MutexBuffer<T>::UpdateStateForPop(unsigned int num_popped)
+{
+  front_ = (front_ + num_popped) % capacity_;
+  count_ -= num_popped;
+}
+
+template<class T>
+unsigned int MutexBuffer<T>::DetermineNumToPop(unsigned int max_to_pop, unsigned int multiple) 
+{
+  // sample count_ once for the entire function
+  // if you used count_ in place of maybe_stale_count in the if statement below, you could run into problems:
+  // e.g. the first time you accessed count_, in the if(), count_ could be small
+  // then someone else pushes, and if you go into the else, count_ could suddenly be larger.
+  // it could even be bigger than max_to_pop (which could cause big problems for the user).
+  unsigned int maybe_stale_ct = count_; 
+
+  // figure out how many elements are going to be in output
+  unsigned int num_to_pop;
+  if (max_to_pop < maybe_stale_ct) {
+    num_to_pop = max_to_pop;
+  } else {
+    num_to_pop = maybe_stale_ct;
   }
 
-  // update queue state
-  back_ = (back_ + input_len) % capacity_;
-  count_ += input_len;
-  
-  //cout << "pushed data starting with " << vals_[back_ - input_len];
-  //cout << "just pushed, size = " << count_ << endl;
+  // num_to_pop must be a multiple
+  num_to_pop -= num_to_pop % multiple;
 
+  assert(num_to_pop <= max_to_pop);
+  assert(num_to_pop <= maybe_stale_ct);
+
+  return num_to_pop;
 }
 
 
@@ -120,8 +157,13 @@ bool MutexBuffer<T>::Push(const T * input, unsigned int input_len, unsigned int 
     return false;
   }
 
-  // copy the data, update queue state
-  PushData(input, input_len);
+  // copy the data
+  for (unsigned int i = 0; i < input_len; i++) {
+    vals_[(back_ + i) % capacity_] = input[i];
+  }
+
+  // update buffer state
+  UpdateStateForPush(input_len);
 
   // let the consumer know it's time to wake up
   just_pushed_.notify_all();
@@ -138,44 +180,6 @@ bool MutexBuffer<T>::Push(const std::vector<T>& input, unsigned int try_for_us)
 
 
 template<class T>
-unsigned int MutexBuffer<T>::PopData(T * copy_to, unsigned int max_to_pop, unsigned int multiple) 
-{
-  // sample count_ once for the entire function
-  // if you used count_ in place of maybe_stale_count in the if statement below, you could run into problems:
-  // e.g. the first time you accessed count_, in the if(), count_ could be small
-  // then someone else pushes, and if you go into the else, count_ could suddenly be larger.
-  // it could even be bigger than max_to_pop (which could cause big problems for the user).
-  unsigned int maybe_stale_ct = count_; 
-
-  // figure out how many elements are going to be in output
-  unsigned int num_popped;
-  if (max_to_pop < maybe_stale_ct) {
-    num_popped = max_to_pop;
-  } else {
-    num_popped = maybe_stale_ct;
-  }
-
-  // num_popped must be a multiple
-  num_popped -= num_popped % multiple;
-
-  assert(num_popped <= max_to_pop);
-
-  // do copy
-  for (unsigned int i = 0; i < num_popped; i++) {
-    copy_to[i] = vals_[(front_ + i) % capacity_];
-  }
-
-  // update queue state
-  front_ = (front_ + num_popped) % capacity_;
-  count_ -= num_popped;
-
-  //cout << "popped data starting with " << vals_[front_ - num_popped];
-  //cout << "just popped, size = " << count_ << endl;
-
-  return num_popped;
-}
-
-template<class T>
 unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us, unsigned int multiple)
 // copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
 {
@@ -187,13 +191,21 @@ unsigned int MutexBuffer<T>::Pop(T * copy_to, unsigned int max_to_pop, unsigned 
     return 0;
   }
 
-  // copy the data, update queue state
-  unsigned int num_popped = PopData(copy_to, max_to_pop, multiple);
+  // copy the data
+  unsigned int num_to_pop = DetermineNumToPop(max_to_pop, multiple);
+
+  // do copy
+  for (unsigned int i = 0; i < num_to_pop; i++) {
+    copy_to[i] = vals_[(front_ + i) % capacity_];
+  }
+
+  // update buffer state
+  UpdateStateForPop(num_to_pop);
 
   // notify the producer that they may wake up
   just_popped_.notify_all();
 
-  return num_popped;
+  return num_to_pop;
 }
 
 
@@ -207,22 +219,6 @@ std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try
   output.resize(num_popped);
 
   return output;
-}
-
-
-template<class T>
-bool MutexBuffer<T>::HasAtLeast(unsigned int num)
-{
-  return count_ >= num;
-}
-
-
-template<class T>
-bool MutexBuffer<T>::HasRoomFor(unsigned int size)
-{
-  bool has_room = size <= capacity_ - count_;
-  //cout << "seeing if there's room: " << has_room << endl;
-  return has_room;
 }
 
 
@@ -251,24 +247,9 @@ std::pair<const T *, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to
     max_num_to_read = max_to_pop;
   }
 
-  // but max_num_to_read still has to be less than count_
-  // sample count_ once, by the time you assign it, it might be stale
-  // but that's OK. See similar comment in PopData for an example
-  unsigned int maybe_stale_count = count_; 
-
-  unsigned int num_to_read;
-  if (max_num_to_read < maybe_stale_count) {
-    num_to_read = max_num_to_read;
-  } else {
-    num_to_read = maybe_stale_count;
-  }
-
-  // num_to_read must be a multiple
-  num_to_read -= num_to_read % multiple;
-
-  assert(num_to_read <= max_to_pop);
+  // pass the new upper bound to the normal function
+  unsigned int num_to_read = DetermineNumToPop(max_num_to_read, multiple);
   assert(front_ + num_to_read <= capacity_);
-  assert(num_to_read <= maybe_stale_count);
 
   // keep track of how many we're allowing the (single) consumer to read
   num_to_read_ = num_to_read;
@@ -288,8 +269,7 @@ void MutexBuffer<T>::UnlockFront()
   assert(num_to_read_ <= count_);
  
   // update front_ and count_;
-  front_ = (front_ + num_to_read_) % capacity_;
-  count_ -= num_to_read_;
+  UpdateStateForPop(num_to_read_);
 
   // allow someone else to issue LockFront()
   front_lock_.unlock();
@@ -349,8 +329,7 @@ void MutexBuffer<T>::UnlockBack()
   }
 
   // update queue state
-  back_ = (back_ + num_to_write_) % capacity_;
-  count_ += num_to_write_;
+  UpdateStateForPush(num_to_write_);
 
   // allow someone else to issue LockBack()
   back_lock_.unlock();

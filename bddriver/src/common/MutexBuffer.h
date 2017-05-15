@@ -122,8 +122,9 @@ class MutexBuffer {
 
     bool HasAtLeast(unsigned int num);
     bool HasRoomFor(unsigned int size);
-    void PushData(const T * input, unsigned int input_len);
-    unsigned int PopData(T * copy_to, unsigned int max_to_pop, unsigned int multiple);
+    void UpdateStateForPush(unsigned int num_pushed);
+    void UpdateStateForPop(unsigned int num_popped);
+    unsigned int DetermineNumToPop(unsigned int max_to_pop, unsigned int multiple);
 
     bool WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsigned int try_for_us, unsigned int multiple);
     bool WaitForHasRoomFor(std::unique_lock<std::mutex> * lock, unsigned int input_len, unsigned int try_for_us);
