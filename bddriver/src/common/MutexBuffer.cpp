@@ -35,6 +35,7 @@ MutexBuffer<T>::~MutexBuffer()
 template<class T>
 bool MutexBuffer<T>::WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsigned int try_for_us, unsigned int multiple)
 {
+  assert(multiple != 0);
   // wait for the queue to have something to output
   // if try_for_us == 0, wait until notified
   if (!HasAtLeast(multiple)) { 
@@ -42,7 +43,7 @@ bool MutexBuffer<T>::WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsi
       just_pushed_.wait(*lock, [this, multiple]{ return HasAtLeast(multiple); });
     // else, time out after try_for_us microseconds
     } else {
-      bool success = just_popped_.wait_for(
+      bool success = just_pushed_.wait_for(
           *lock, 
           std::chrono::duration<unsigned int, std::micro>(try_for_us),
           [this, multiple]{ return HasAtLeast(multiple); }
