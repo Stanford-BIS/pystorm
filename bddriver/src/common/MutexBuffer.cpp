@@ -4,11 +4,7 @@
 #include <vector>
 #include <mutex>
 #include <condition_variable>
-#include <iostream>
 #include <chrono> // duration, for wait_for
-
-using std::cout;
-using std::endl;
 
 
 namespace pystorm {
@@ -42,7 +38,6 @@ template<class T>
 bool MutexBuffer<T>::HasRoomFor(unsigned int size)
 {
   bool has_room = size <= capacity_ - count_;
-  //cout << "seeing if there's room: " << has_room << endl;
   return has_room;
 }
 
@@ -75,6 +70,8 @@ bool MutexBuffer<T>::WaitForHasAtLeast(std::unique_lock<std::mutex> * lock, unsi
 template<class T>
 bool MutexBuffer<T>::WaitForHasRoomFor(std::unique_lock<std::mutex> * lock, unsigned int input_len, unsigned int try_for_us)
 {
+  assert(input_len <= capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
+
   // wait for the queue to have enough room for the input
   // if <try_for_us> == 0, then wait until notified without timeout
   if (!HasRoomFor(input_len)) { 
@@ -147,8 +144,6 @@ bool MutexBuffer<T>::Push(const T * input, unsigned int input_len, unsigned int 
 // block until <input_len> elements at <input> are successfully pushed or <try_for_us> us have expired
 // returns true if push suceeded, false if push failed
 {
-  assert(input_len < capacity_ && "trying to insert a vector longer than queue capacity"); // _capacity is TS
-
   std::unique_lock<std::mutex> back_lock(back_lock_); // have to wait if someone else is doing BackFront()
 
   // we currently have the lock, but if there isn't room to push, we need to wait
@@ -319,7 +314,6 @@ T * MutexBuffer<T>::LockBack(unsigned int input_len, unsigned int try_for_us)
   
   if (back_ + input_len > capacity_) { 
     scratchpad_.resize(input_len);
-    //cout << "used the scratchpad" << endl;
     return &scratchpad_[0];
   } else {
     scratchpad_.resize(0); // does not free memory
