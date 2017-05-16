@@ -35,8 +35,8 @@ class MutexBufferFixture : public testing::Test
     }
 
     unsigned int buf_depth = 10000;
-    unsigned int N = 100000; // number of messages
-    unsigned int M = 1000; // message chunk size
+    unsigned int N = 10e6; // number of messages
+    unsigned int M = 937; // message chunk size
 
     bddriver::MutexBuffer<unsigned int> * buf;
 
@@ -65,12 +65,42 @@ TEST_F(MutexBufferFixture, Test1to1)
   }
 }
 
-TEST_F(MutexBufferFixture, Test1to1UseReadThenPop)
+TEST_F(MutexBufferFixture, Test1to1UseLockFront)
 {
   vector<unsigned int> consumed;
 
   producer0 = std::thread(ProduceN<unsigned int>, buf, vals0, N, M, 0);
-  consumer0 = std::thread(ConsumeVectReadThenPopN<unsigned int>, buf, &consumed, N, M, 0);
+  consumer0 = std::thread(ConsumeVectLockFrontN<unsigned int>, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
+TEST_F(MutexBufferFixture, Test1to1UseLockBack)
+{
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceLockBackN<unsigned int>, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeVectN<unsigned int>, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for(unsigned int i = 0; i < N; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
+TEST_F(MutexBufferFixture, Test1to1UseLockBackAndLockFront)
+{
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceLockBackN<unsigned int>, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeVectLockFrontN<unsigned int>, buf, &consumed, N, M, 0);
 
   producer0.join();
   consumer0.join();
@@ -120,7 +150,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizes)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -139,7 +169,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesTimeout)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -158,7 +188,7 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesCheckAfter)
   unsigned int MProd = 3;
   unsigned int MCons = 5;
 
-  unsigned int vals_prod[N];
+  unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
     vals_prod[i] = i;
   }
@@ -191,7 +221,7 @@ TEST_F(MutexBufferFixture, Test2to1)
   consumer0.join();
 
   // because of nondeterminism, can't test for much more than the following
-  unsigned int counts[2*N];
+  unsigned int * counts = new unsigned int[2*N];
   for (unsigned int i = 0; i < 2*N; i++) {
     counts[i] = 0;
   }
@@ -204,7 +234,7 @@ TEST_F(MutexBufferFixture, Test2to1)
 
   for (unsigned int i = 0; i < 2*N; i++) {
     //cout << counts[i] << endl;
-    EXPECT_EQ(counts[i], static_cast<unsigned int>(1)); 
+    ASSERT_EQ(counts[i], static_cast<unsigned int>(1)); 
   }
 }
 
@@ -220,17 +250,21 @@ TEST_F(MutexBufferFixture, Test2to2)
   consumer1 = std::thread(ConsumeVectN<unsigned int>, buf, &consumed1, N, M, 0);
 
   producer0.join();
+  //cout << "p 0 joined" << endl;
   producer1.join();
+  //cout << "p 1 joined" << endl;
 
   consumer0.join();
+  //cout << "c 0 joined" << endl;
   consumer1.join();
+  //cout << "c 1 joined" << endl;
 
-  unsigned int counts[2*N];
+  unsigned int * counts = new unsigned int[2*N];
   for (unsigned int i = 0; i < 2*N; i++) {
     counts[i] = 0;
   }
 
-  ASSERT_EQ(consumed0.size() + consumed1.size(), 2*N);
+  EXPECT_EQ(consumed0.size() + consumed1.size(), 2*N);
   for (unsigned int i = 0; i < consumed0.size(); i++) {
     ASSERT_LE(consumed0[i], 2*N);
     counts[consumed0[i]]++;
@@ -241,7 +275,7 @@ TEST_F(MutexBufferFixture, Test2to2)
   }
 
   for (unsigned int i = 0; i < 2*N; i++) {
-    EXPECT_EQ(counts[i], static_cast<unsigned int>(1)); 
+    ASSERT_EQ(counts[i], static_cast<unsigned int>(1)); 
   }
 }
 
@@ -266,6 +300,37 @@ TEST(MutexBufferPerformance, UintThroughput)
 
   std::thread producer(ProduceN<uint64_t>, &buf, &vals[0], N, M, 0);
   std::thread consumer(ConsumeN<uint64_t>, &buf, &consumed[0], N, M, 0);
+
+  producer.join();
+  consumer.join();
+
+  auto tend = std::chrono::high_resolution_clock::now();
+  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
+  double throughput = static_cast<double>(N) / diff; // in million entries/sec
+  cout << "throughput: " << throughput << " Mwords/s" << endl;
+}
+
+TEST(MutexBufferPerformance, UintThroughputLockFrontAndLockBack)
+{
+  const unsigned int N = 100e6;
+  const unsigned int M = 1000;
+  const unsigned int buf_depth = 100000;
+  
+  MutexBuffer<uint64_t> buf(buf_depth);
+
+  uint64_t * vals;
+  vals = new uint64_t[N];
+  for (unsigned int i = 0; i < N; i++) {
+    vals[i] = i;
+  }
+
+  vector<uint64_t> consumed;
+  consumed.reserve(N);
+
+  auto t0 = std::chrono::high_resolution_clock::now();
+
+  std::thread producer(ProduceLockBackN<uint64_t>, &buf, &vals[0], N, M, 0);
+  std::thread consumer(ConsumeVectLockFrontN<uint64_t>, &buf, &consumed, N, M, 0);
 
   producer.join();
   consumer.join();
