@@ -10,12 +10,14 @@
 
 #include "binary_util.h"
 #include "gtest/gtest.h"
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/DriverTypes_util.h"
+#include "test_util/Producer_Consumer.h"
 
 using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
+
 
 class DriverFixture : public testing::Test
 {
@@ -40,15 +42,12 @@ class DriverFixture : public testing::Test
     const unsigned kCoreId = 0;
     Driver * driver;
 
-    std::vector<FieldVValues> downstream;
-    std::vector<FieldVValues> upstream;
 
 };
 
 TEST_F(DriverFixture, TestSetUpAndTearDown) {}
 
-//TEST_F(DriverFixture, TestSetToggleTraffic) {
-//
-//  for (unsigned int i = 0; i < bdpars::LastRegId; i++) {
-//    driver->SetToggleTraffic(0, 
-//}
+TEST_F(DriverFixture, TestDownStreamCalls) {
+  // just make a bunch of downstream calls. Make sure we don't die.
+  // XXX no correctness testing yet
+}

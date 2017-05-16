@@ -11,7 +11,7 @@
 #include "binary_util.h"
 #include "BDPars.h"
 #include "gtest/gtest.h"
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/Producer_Consumer.h"
 
 using std::cout;
 using std::endl;

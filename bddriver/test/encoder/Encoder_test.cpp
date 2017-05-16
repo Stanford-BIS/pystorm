@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "MutexBuffer.h"
 #include "binary_util.h"
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/Producer_Consumer.h"
 
 #define BYTES_PER_WORD 3
 

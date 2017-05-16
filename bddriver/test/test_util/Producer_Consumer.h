@@ -1,3 +1,6 @@
+#ifndef PRODUCER_CONSUMER_H
+#define PRODUCER_CONSUMER_H
+
 #include "MutexBuffer.h"
 #include "gtest/gtest.h"
 
@@ -191,3 +194,4 @@ void ConsumeAndCheckN(bddriver::MutexBuffer<T> * buf, T * check_vals, unsigned i
   }
 }
 
+#endif

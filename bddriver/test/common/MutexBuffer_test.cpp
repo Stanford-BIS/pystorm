@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/Producer_Consumer.h"
 
 using namespace pystorm;
 using namespace bddriver;
