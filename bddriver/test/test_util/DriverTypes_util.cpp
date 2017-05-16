@@ -116,6 +116,26 @@ std::vector<MMData> MakeRandomMMData(unsigned int N)
   return data;
 }
 
+std::vector<Spike> MakeRandomSpikesSameCoreId(unsigned int N, unsigned int core_id)
+{
+  auto generator = std::default_random_engine(0);
+  auto uint_distribution = std::uniform_int_distribution<unsigned int>(0, std::numeric_limits<unsigned int>::max());
+
+  std::vector<Spike> data;
+  data.reserve(N);
+  for (unsigned int i = 0; i < N; i++) {
+    int sign = 2*(uint_distribution(generator) % 2) - 1;
+    data[i] = {
+      uint_distribution(generator),
+      core_id,
+      uint_distribution(generator),
+      sign
+    };
+  };
+  return data;
+
+}
+
 void ComparePATData(const std::vector<PATData> & a, const std::vector<PATData> & b)
 {
   ASSERT_EQ(a.size(), b.size());
