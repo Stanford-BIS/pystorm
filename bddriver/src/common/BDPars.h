@@ -251,6 +251,10 @@ class BDPars {
     inline const std::vector<FHRoute> * HornRoutes()   const { return &horn_routes_; }
     inline const std::vector<FHRoute> * FunnelRoutes() const { return &funnel_routes_; }
 
+    // look up serialization
+    inline unsigned int Serialization(HornLeafId leaf)   const { return funnel_.at(leaf).serialization; }
+    inline unsigned int Serialization(FunnelLeafId leaf) const { return horn_.at(leaf).serialization; }
+
     /////////////////////////////////////
     // field width queries
     
