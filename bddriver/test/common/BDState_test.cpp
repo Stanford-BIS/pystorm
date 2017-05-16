@@ -29,3 +29,30 @@ class BDStateFixture : public testing::Test
 };
 
 TEST_F(BDStateFixture, TestSetUpTearDown) {}
+
+TEST_F(BDStateFixture, TestTrafficIsNotOffOnInit) 
+{
+  // we haven't set anything, traffic can't be off
+  ASSERT_FALSE(state->IsTrafficOff());
+}
+
+TEST_F(BDStateFixture, TestTrafficTurnsOff) 
+{
+  // we haven't set anything, traffic can't be off
+  ASSERT_FALSE(state->IsTrafficOff());
+
+  const std::vector<bdpars::RegId> kTrafficRegs = {bdpars::NeuronDumpToggle, bdpars::TOGGLE_PRE_FIFO, bdpars::TOGGLE_POST_FIFO0, bdpars::TOGGLE_POST_FIFO1};
+  for (auto& reg : kTrafficRegs) {
+    state->SetToggle(reg, false, false);
+  }
+
+  // XXX there's a race here, we won't check this if the delay is set short enough
+  if (driver_pars->Get(driverpars::bd_state_traffic_drain_us) > 100) {
+    // an immediate query should return false still because of the delay
+    ASSERT_FALSE(state->IsTrafficOff());
+  }
+
+  state->WaitForTrafficOff();
+  ASSERT_TRUE(state->IsTrafficOff());
+  
+}
