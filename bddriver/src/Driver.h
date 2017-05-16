@@ -191,6 +191,7 @@ class Driver
 
 
   private:
+    // private because singleton. See GetInstance().
     Driver();
     ~Driver();
 

@@ -133,7 +133,7 @@ bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool e
 {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  if (en != traffic_en) {
+  if ((en != traffic_en) || !reg_valid) {
     SetToggle(core_id, reg_id, en, dump_en & reg_valid);
   }
   return traffic_en;
@@ -145,7 +145,7 @@ bool Driver::SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en)
 {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  if (en != dump_en) {
+  if ((en != dump_en) || !reg_valid) {
     SetToggle(core_id, reg_id, traffic_en & reg_valid, en);
   }
   return dump_en;
@@ -761,12 +761,14 @@ void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, const Field
   const bdpars::WordStructure * reg_word_struct = bd_pars_->Word(reg_id);
   uint64_t payload = PackWord(*reg_word_struct, field_vals);
 
+  // form vector of values to set BDState's reg state with, in WordStructure field order
   std::vector<unsigned int> field_vals_as_vect;
-  for (auto& it : field_vals) {
-    field_vals_as_vect.push_back(it.second);
+  for (auto& it : *reg_word_struct) {
+    bdpars::WordFieldId field_id = it.first;
+    field_vals_as_vect.push_back(field_vals.at(field_id));
   }
-
   bd_state_[core_id].SetReg(reg_id, field_vals_as_vect);
+
   SendToHorn(core_id, bd_pars_->ProgHornId(reg_id), {payload});
 }
 

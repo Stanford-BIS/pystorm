@@ -84,8 +84,15 @@ void BDState::SetMM(unsigned int start_addr, const std::vector<MMData> & data)
 
 void BDState::SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> & data)
 {
+  // we could have just set a traffic toggle
+  bool already_off = AreTrafficRegsOff();
+
   reg_[reg_id] = data;
   reg_valid_[reg_id] = true;
+
+  if (AreTrafficRegsOff() & !already_off) { // if we just turned the last toggle off, set the timer
+    all_traffic_off_start_ = std::chrono::high_resolution_clock::now();
+  }
 }
   
 const std::pair<const std::vector<unsigned int> *, bool> BDState::GetReg(bdpars::RegId reg_id) const
@@ -96,18 +103,22 @@ const std::pair<const std::vector<unsigned int> *, bool> BDState::GetReg(bdpars:
 
 void BDState::SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en)
 {
-  bool already_off = AreTrafficRegsOff();
+  // just to make sure we've hardcoded the right order
+  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NeuronDumpToggle);
+  assert(toggle_word_struct->at(0).first == bdpars::traffic_enable);
+  assert(toggle_word_struct->at(1).first == bdpars::dump_enable);
 
   SetReg(reg_id, {traffic_en, dump_en});
-
-  if (AreTrafficRegsOff() & !already_off) { // if we just turned the last toggle off, set the timer
-    all_traffic_off_start_ = std::chrono::high_resolution_clock::now();
-  }
 }
 
 std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::RegId reg_id) const
 /// Returns traffic_en, dump_en, valid
 {
+  // just to make sure we've hardcoded the right order
+  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NeuronDumpToggle);
+  assert(toggle_word_struct->at(0).first == bdpars::traffic_enable);
+  assert(toggle_word_struct->at(1).first == bdpars::dump_enable);
+
   return std::make_tuple(reg_.at(reg_id)[0], reg_.at(reg_id)[1], reg_valid_.at(reg_id));
 }
 
