@@ -242,8 +242,6 @@ void Driver::SetPAT(
 {
   bd_state_[core_id].SetPAT(start_addr, data);
   
-  PauseTraffic(core_id);
-
   // pack data fields
   std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::PAT)), DataToFieldVValues(data));
 
@@ -251,8 +249,8 @@ void Driver::SetPAT(
   std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(bdpars::PAT_write)), data_fields, start_addr);
 
   // transmit words
+  PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), prog_words);
-
   ResumeTraffic(core_id);
 }
 
@@ -277,8 +275,6 @@ void Driver::SetTAT(
     assert(false && "TAT_idx must == 0 or 1");
   }
   
-  PauseTraffic(core_id);
-  
   // pack data fields
   std::vector<FieldValues> field_vals = DataToFieldVValues(data);
   std::vector<uint64_t> data_fields;
@@ -295,8 +291,8 @@ void Driver::SetTAT(
       start_addr);
 
   // transmit data
+  PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->ProgHornId(TAT_id), prog_words);
-
   ResumeTraffic(core_id);
 }
 
@@ -308,8 +304,6 @@ void Driver::SetAM(
 )
 {
   bd_state_[core_id].SetAM(start_addr, data);
-
-  PauseTraffic(core_id);
  
   // pack data fields
   std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::AM)), DataToFieldVValues(data));
@@ -326,8 +320,8 @@ void Driver::SetAM(
   std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::AM, prog_words);
 
   // transmit to horn
+  PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::AM), prog_words_encapsulated);
-
   ResumeTraffic(core_id);
 }
 
@@ -340,8 +334,6 @@ void Driver::SetMM(
 {
   bd_state_[core_id].SetMM(start_addr, data);
 
-  PauseTraffic(core_id);
- 
   // pack data fields
   std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::MM)), DataToFieldVValues(data));
 
@@ -356,50 +348,30 @@ void Driver::SetMM(
   std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::MM, prog_words);
 
   // transmit to horn
+  PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::MM), prog_words_encapsulated);
-
   ResumeTraffic(core_id);
 }
 
 
 std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
 {
-  PauseTraffic(core_id);
-
   // make dump words
   unsigned int PAT_size = bd_pars_->Size(bdpars::PAT);
   std::vector<uint64_t> dump_words = PackRWDumpWords(*(bd_pars_->Word(bdpars::PAT_read)), 0, PAT_size);
 
-  // transmit dump words
+  // transmit dump words, then block until all PAT words have been received
+  // XXX if something goes terribly wrong and not all the words come back, this will hang
+  PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), dump_words);
-
-  // wait to receive return values 
-  // XXX CALLING THREAD IS BLOCKED UNTIL ALL WORDS RECEIVED
-  // There's no max timeout for this call, currently.
-  
-  DecOutput recv_vals[PAT_size];
-  unsigned int funnel_idx = bd_pars_->FunnelIdx(bd_pars_->DumpFunnelId(bdpars::PAT));
-  unsigned int timeout = driver_pars_->Get(driverpars::DumpPAT_timeout_us);
-  unsigned int n_recv = dec_bufs_out_[funnel_idx]->Pop(recv_vals, PAT_size, timeout);
-  if (n_recv != PAT_size) {
-    // XXX this should probably go to a warning log instead of stdio
-    cout << "WARNING: DumpPAT(): didn't get all PAT values back in time" << endl;
-  }
+  std::vector<uint64_t> payloads = RecvFromFunnel(bdpars::DUMP_PAT, core_id, PAT_size);
+  ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to pat word format
-  // first put payloads into a vector
-  std::vector<uint64_t> payloads;
-  for (unsigned int i = 0; i < n_recv; i++) {
-    DecOutput val = recv_vals[i];
-    assert(val.core_id == core_id && "got PAT dump from wrong core");
-    // XXX we throw the time on the floor, don't care about it
-    payloads.push_back(static_cast<uint64_t>(val.payload));
-  }
-
   FieldVValues fields = UnpackWords(*bd_pars_->Word(bdpars::PAT), payloads);
+  std::vector<PATData> PAT_contents = FieldVValuesToPATData(fields);
 
-  ResumeTraffic(core_id);
-  return FieldVValuesToPATData(fields);
+  return PAT_contents;
 }
 
 
