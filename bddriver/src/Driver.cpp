@@ -531,13 +531,36 @@ std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::ve
 
 void Driver::SendSpikes(const std::vector<Spike> & spikes)
 {
-  // XXX this circumvents the normal set of calls that would be made
+  // XXX this circumvents going through the normal set of calls:
+  // no FieldVValues/PackWords and no SerializeWords
+  
+  // We look up the width of the synapse and sign fields,
+  // but we are hardcoding the order
+  const bdpars::WordStructure * spike_word_struct = bd_pars_->Word(bdpars::NeuronInject);
+  unsigned int widths[2] = {spike_word_struct->at(0).second, spike_word_struct->at(1).second};
 
-  assert(false && "not implemented");
-  // get reference to enc_buf_in_
+  // we can at least assert that the line we wrote above is consistent with BDPars
+  // if BDPars were to change, we want to know about it
+  assert(spike_word_struct->at(0).first == bdpars::synapse_sign);
+  assert(spike_word_struct->at(1).first == bdpars::synapse_address);
+
+  // get reference to enc_buf_in_'s memory
+  EncInput * write_to = enc_buf_in_->LockBack(spikes.size());   
   for (unsigned int i = 0; i < spikes.size(); i++) {
-    // do something! use the new calls to push to enc_buf_in_
+
+    // XXX time? need to figure out what to do in the FPGA
+    // probably need to insert delay events here
+    
+    uint32_t sign_and_neuron_id[2] = {static_cast<uint32_t>(SignedValToSignBit(spikes[i].sign)), spikes[i].neuron_id};
+    uint32_t payload = Pack32(sign_and_neuron_id, widths, 2);
+
+    unsigned int leaf_id_as_uint = static_cast<unsigned int>(bdpars::NeuronInject);
+
+    // write to memory pointed to by LockBack()
+    write_to[i] = {spikes[i].core_id, leaf_id_as_uint, payload};
   }
+  // unlock
+  enc_buf_in_->UnlockBack();
 }
 
 
@@ -649,7 +672,7 @@ std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWords(const std:
 }
 
 
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::HornLeafId leaf_id) const
+std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const
 {
   unsigned int deserialization = bd_pars_->Serialization(leaf_id); 
   unsigned int deserialized_width = bd_pars_->Width(leaf_id);
@@ -698,7 +721,7 @@ void Driver::SendToHorn(
   unsigned int serialized_width;
   std::tie(serialized_words, serialized_width) = SerializeWords(payload, leaf_id);
 
-  // Encoder/decoder don't know about the enums, cast leaf_id as a uint
+  // Encoder doesn't know about the enums, cast leaf_id as a uint
   unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id); 
 
   // package into EncInput
@@ -708,6 +731,57 @@ void Driver::SendToHorn(
   }
  
   enc_buf_in_->Push(enc_inputs);
+}
+
+std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned num_to_recv) 
+{
+
+  // This is a call of convenience. Often, we're interested not just in a particular
+  // leaf's traffic, but also just the traffic from a particular core.
+  //
+  // This isn't implemented for the multi-core case. 
+  // That's complicated, and probably needs some additional interfaces
+  // in the MB to do some fancy locking, 
+  // or we need to dynamically allocate MBs by core.
+
+  // Decoder doesn't know about enums, cast leaf_id as uint
+  // this is the index of the dec_bufs_out[] we want to pull from
+  unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id); 
+  MutexBuffer<DecOutput> * this_buf = dec_bufs_out_[leaf_id_as_uint];
+
+  // look up serialization, we really need num_to_recv * serialiazation
+  unsigned int deserialization = bd_pars_->Serialization(leaf_id); 
+
+  // Pop <num_to_recv> * deserialization elements from <leaf_id>'s buffer to outputs
+  std::vector<DecOutput> outputs;
+
+  if (num_to_recv > 0) {
+    unsigned int DecOutput_needed = num_to_recv * deserialization;
+
+    while (outputs.size() < DecOutput_needed) {
+      unsigned int num_to_pop = DecOutput_needed - outputs.size();
+      this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+    }
+  } else {
+    // if num_to_recv=0, just take whatever's in the queue
+    unsigned int num_to_pop = driver_pars_->Get(driverpars::dec_buf_out_capacity);
+    this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+  }
+
+  // deserialize (pull out payloads first)
+  std::vector<uint32_t> payloads;
+  for (auto& output : outputs) {
+    payloads.push_back(output.payload);
+    // throw the time on the ground, if you want it, you're not using this call
+    assert(output.core_id == core_id && "not implmented for multi-core");
+  }
+
+  std::vector<uint64_t> deserialized_payloads;
+  std::vector<uint32_t> remainder;
+  std::tie(deserialized_payloads, remainder) = DeserializeWords(payloads, leaf_id);
+  assert(remainder.size() == 0);
+
+  return deserialized_payloads;
 }
 
 void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues & field_vals)

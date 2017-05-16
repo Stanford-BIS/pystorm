@@ -255,9 +255,24 @@ class Driver
     std::pair<std::vector<uint32_t>, unsigned int> SerializeWord4(uint64_t input, unsigned int input_width) const;
     std::pair<std::vector<uint32_t>, unsigned int> SerializeWords(const std::vector<uint64_t> & inputs, bdpars::HornLeafId) const;
 
-    std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::HornLeafId leaf_id) const;
+    std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const;
 
+    /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
+    ///
+    /// Determines whether payloads must be serialized based on <leaf_id>.
+    /// For payloads that don't need to be serialized, or that might need to 
+    /// go to multiple cores, this isn't the most effective call.
+    /// SendSpikes(), for example, pushes directly to the encoder's input buffer.
     void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<uint64_t> & payload);
+
+    /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads 
+    /// associated with a supplied <core_id>.
+    ///
+    /// If <num_to_recv> is zero, then receive whatever's currently in the buffer.
+    /// Returns vector of deserialized payloads. For payloads that don't need to be deserialized, 
+    /// that might come from multiple cores, or that need time_epoch information,
+    /// This isn't the most effective call.
+    std::vector<uint64_t> RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned int num_to_recv=0);
 
     ////////////////////////////////
     // low-level programming calls, breadth of high-level downstream API goes through these
