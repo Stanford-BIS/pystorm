@@ -43,44 +43,63 @@ class MutexBuffer {
     // simple vector interface, the slowest option
     
     /// Push() pushes the elements in <input> to the back of the buffer.
+    /// 
     /// Returns false if not successful in <try_for_us> us (e.g. if the buffer was full), 
     /// else returns true. <try_for_us>=0 will cause the call to block until success.
     bool Push(const std::vector<T> & input, unsigned int try_for_us=0);
-    /// Pop() returns a vector containing up to <max_to_pop> elements from the front of the buffer.
+
+    /// Pop() pushes up to <max_to_pop> elements from the front of the buffer onto <push_to>. 
+    /// 
+    /// The return value is the number of elements which were copied.
+    /// May copy fewer elements than <max_to_pop> if the buffer contains only a small number of elements
+    /// May copy zero elements if the buffer does not contain any contents before <try_for_us> us.
+    /// Setting <multiple> > 1 will only return N*<multiple> elements, leaving any remainder in the buffer.
+    unsigned int Pop(std::vector<T> * push_to, unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
+
+    /// PopVect() returns a vector containing up to <max_to_pop> elements from the front of the buffer.
+    /// 
     /// May return fewer elements than <max_to_pop> if the buffer contains only a small number of elements
     /// May return zero elements if the buffer does not contain any contents before <try_for_us> us.
     /// Setting <multiple> > 1 will only return N*<multiple> elements, leaving any remainder in the buffer.
     std::vector<T> PopVect(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
 
+
     // fast(er) array interface
     
     /// Push() pushes <input_len> elements pointed to by <input> to the back of the buffer.
+    /// 
     /// Returns false if not successful in <try_for_us> us (e.g. if the buffer was full), 
     /// else returns true. <try_for_us>=0 will cause the call to block until success.
     bool Push(const T * input, unsigned int input_len, unsigned int try_for_us=0);
+
     /// Pop() copies up to <max_to_pop> elements from the front of the buffer to <copy_to>. 
+    /// 
     /// The return value is the number of elements which were copyied.
     /// May copy fewer elements than <max_to_pop> if the buffer contains only a small number of elements
     /// May copy zero elements if the buffer does not contain any contents before <try_for_us> us.
     /// Setting <multiple> > 1 will only return N*<multiple> elements, leaving any remainder in the buffer.
     unsigned int Pop(T * copy_to, unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
 
+
     // Two-part calls
     // These are more complicated, but using them can avoid unecessary copying by the client.
     // Using these also allows for concurrent reads and writes!
     
     /// LockBack() returns a pointer that the user may write <input_len> elements to. 
+    /// 
     /// When done writing to the memory pointed to by this pointer, the user must call
     /// UnlockBack() to finish  it into the buffer.
     /// Returns nullptr if not successful in <try_for_us> us (e.g. if the buffer was full), 
     /// else returns a non-null pointer. <try_for_us>=0 will cause the call to block until success.
     /// LockBack()/UnlockBack() function like a two-part Push() call. 
     T * LockBack(unsigned int input_len, unsigned int try_for_us=0);
+
     /// UnlockBack() is called after the user is done writing to the memory pointed
     /// to by LockBack(), to finish pushing it into the buffer.
     void UnlockBack();
     
     /// LockFront() returns a pair<A,B> where A is a pointer that the user may read B elements from.
+    ///
     /// B will not be larger than <max_to_pop>.
     /// When done writing to the memory pointed to by this pointer, the user must call
     /// UnlockFront() to finish it into the buffer.
@@ -89,6 +108,7 @@ class MutexBuffer {
     /// Setting <multiple> > 1 will force B = N*<multiple> elements, leaving any remainder in the buffer.
     /// LockBack()/UnlockBack() function like a two-part Push() call. 
     std::pair<const T *, unsigned int> LockFront(unsigned int max_to_pop, unsigned int try_for_us=0, unsigned int multiple=1);
+
     /// UnlockFront() is called after the user is done reading from the memory pointed
     /// to by LockFront(), to finish popping it from the buffer.
     void UnlockFront();
