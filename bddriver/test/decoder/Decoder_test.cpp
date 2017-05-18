@@ -47,7 +47,7 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
     std::tie(route_val, route_len) = pars->FunnelRoute(leaf_idx); 
     
     // look up data width and output width
-    unsigned int BD_output_width = pars->Width(BD_output);
+    unsigned int BD_output_width = pars->Width(BD_OUTPUT);
     unsigned int payload_width = pars->Width(static_cast<FunnelLeafId>(leaf_idx));
 
     // mask payload value

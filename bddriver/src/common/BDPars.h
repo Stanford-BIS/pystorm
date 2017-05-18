@@ -25,19 +25,19 @@ namespace bddriver {
 namespace bdpars {
 
 enum ComponentTypeId {
-  Reg,
-  Mem,
-  Input,
-  Output,
+  REG,
+  MEM,
+  INPUT,
+  OUTPUT,
 
-  LastComponentTypeId = Output
+  LastComponentTypeId = OUTPUT
 };
 
 enum RegId {
   TOGGLE_PRE_FIFO,
   TOGGLE_POST_FIFO0,
   TOGGLE_POST_FIFO1,
-  NeuronDumpToggle,
+  NEURON_DUMP_TOGGLE,
   DAC0,
   DAC1,
   DAC2,
@@ -74,38 +74,38 @@ enum MemId {
 };
 
 enum InputId {
-  InputTags,
-  DCTFIFOInputTags,
-  HTFIFOReset,
-  TileSRAMInputs,
-  InputSpikes,
+  INPUT_TAGS,
+  DCT_FIFO_INPUT_TAGS,
+  HT_FIFO_RESET,
+  TILE_SRAM_INPUTS,
+  INPUT_SPIKES,
 
-  LastInputId = InputSpikes
+  LastInputId = INPUT_SPIKES
 };
 
 enum OutputId {
-  PreFIFOTags,
-  PostFIFOTags0,
-  PostFIFOTags1,
-  OutputSpikes,
-  OverflowTags0,
-  OverflowTags1,
-  AccOutputTags,
-  TATOutputTags,
+  PRE_FIFO_TAGS,
+  POST_FIFO_TAGS0,
+  POST_FIFO_TAGS1,
+  OUTPUT_SPIKES,
+  OVERFLOW_TAGS0,
+  OVERFLOW_TAGS1,
+  ACC_OUTPUT_TAGS,
+  TAT_OUTPUT_TAGS,
 
-  LastOutputId = TATOutputTags
+  LastOutputId = TAT_OUTPUT_TAGS
 };
 
 
 // XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
 enum DACSignalId {
-  PlaceholderSignalName,
+  PLACEHOLDER_SIGNAL_NAME,
 
-  LastDACSignalId = PlaceholderSignalName
+  LastDACSignalId = PLACEHOLDER_SIGNAL_NAME
 };
 
 enum HornLeafId {
-  NeuronInject,
+  NEURON_INJECT,
   RI,
   PROG_AMMM,
   PROG_PAT,
@@ -113,34 +113,34 @@ enum HornLeafId {
   PROG_TAT1,
   INIT_FIFO_DCT,
   INIT_FIFO_HT,
-  TOGGLE_PRE_FIFO_leaf,
-  TOGGLE_POST_FIFO0_leaf,
-  TOGGLE_POST_FIFO1_leaf,
-  NeuronDumpToggle_leaf,
-  NeuronConfig,
-  DAC0_leaf,
-  DAC1_leaf,
-  DAC2_leaf,
-  DAC3_leaf,
-  DAC4_leaf,
-  DAC5_leaf,
-  DAC6_leaf,
-  DAC7_leaf,
-  DAC8_leaf,
-  DAC9_leaf,
-  DAC10_leaf,
-  DAC11_leaf,
-  DAC12_leaf,
-  ADC_leaf,
-  DELAY0_leaf,
-  DELAY1_leaf,
-  DELAY2_leaf,
-  DELAY3_leaf,
-  DELAY4_leaf,
-  DELAY5_leaf,
-  DELAY6_leaf,
+  TOGGLE_PRE_FIFO_LEAF,
+  TOGGLE_POST_FIFO0_LEAF,
+  TOGGLE_POST_FIFO1_LEAF,
+  NEURON_DUMP_TOGGLE_LEAF,
+  NEURON_CONFIG,
+  DAC0_LEAF,
+  DAC1_LEAF,
+  DAC2_LEAF,
+  DAC3_LEAF,
+  DAC4_LEAF,
+  DAC5_LEAF,
+  DAC6_LEAF,
+  DAC7_LEAF,
+  DAC8_LEAF,
+  DAC9_LEAF,
+  DAC10_LEAF,
+  DAC11_LEAF,
+  DAC12_LEAF,
+  ADC_LEAF,
+  DELAY0_LEAF,
+  DELAY1_LEAF,
+  DELAY2_LEAF,
+  DELAY3_LEAF,
+  DELAY4_LEAF,
+  DELAY5_LEAF,
+  DELAY6_LEAF,
 
-  LastHornLeafId = DELAY6_leaf
+  LastHornLeafId = DELAY6_LEAF
 };
 
 enum FunnelLeafId {
@@ -163,25 +163,25 @@ enum FunnelLeafId {
 
 enum MemWordId {
   // PAT words
-  PAT_write,
-  PAT_read,
-  // TAT words
-  TAT_set_address,
-  TAT_write_increment,
-  TAT_read_increment,
-  // MM words
-  MM_set_address,
-  MM_write_increment,
-  MM_read_increment,
-  // AM words
-  AM_set_address,
-  AM_read_write,
-  AM_increment,
-  // AM/MM encapsulation
-  AM_encapsulation,
-  MM_encapsulation,
+  PAT_WRITE,
+  PAT_READ,
+  // TAT WORDS
+  TAT_SET_ADDRESS,
+  TAT_WRITE_INCREMENT,
+  TAT_READ_INCREMENT,
+  // MM WORDS
+  MM_SET_ADDRESS,
+  MM_WRITE_INCREMENT,
+  MM_READ_INCREMENT,
+  // AM WORDS
+  AM_SET_ADDRESS,
+  AM_READ_WRITE,
+  AM_INCREMENT,
+  // AM/MM ENCAPSULATION
+  AM_ENCAPSULATION,
+  MM_ENCAPSULATION,
 
-  LastMemWordId = MM_encapsulation
+  LastMemWordId = MM_ENCAPSULATION
 };
 
 enum WordFieldId {
@@ -190,54 +190,54 @@ enum WordFieldId {
   FIXED_1,
   FIXED_2,
   FIXED_3, // if you need a higher FIXED value, need to add it here and encode meaning (or use multiple fields)
-  unused,
+  UNUSED,
   // common fields
-  tag,
-  global_route,
-  count,
-  address,
-  data,
-  payload,
-  stop,
+  TAG,
+  GLOBAL_ROUTE,
+  COUNT,
+  ADDRESS,
+  DATA,
+  PAYLOAD,
+  STOP,
   // registers
-  traffic_enable,
-  dump_enable,
-  DAC_to_ADC_conn,
-  DAC_value,
-  read_delay,
-  write_delay,
-  ADC_small_large_current_0,
-  ADC_small_large_current_1,
-  ADC_output_enable,
+  TRAFFIC_ENABLE,
+  DUMP_ENABLE,
+  DAC_TO_ADC_CONN,
+  DAC_VALUE,
+  READ_DELAY,
+  WRITE_DELAY,
+  ADC_SMALL_LARGE_CURRENT_0,
+  ADC_SMALL_LARGE_CURRENT_1,
+  ADC_OUTPUT_ENABLE,
   // AM data
-  accumulator_value,
-  threshold,
-  next_address,
+  ACCUMULATOR_VALUE,
+  THRESHOLD,
+  NEXT_ADDRESS,
   // MM data
-  weight,
+  WEIGHT,
   // PAT data
-  AM_address,
-  MM_address_lo,
-  MM_address_hi,
+  AM_ADDRESS,
+  MM_ADDRESS_LO,
+  MM_ADDRESS_HI,
   // TAT data
-  MM_address,
-  synapse_address_0,
-  synapse_sign_0,
-  synapse_address_1,
-  synapse_sign_1,
+  MM_ADDRESS,
+  SYNAPSE_ADDRESS_0,
+  SYNAPSE_SIGN_0,
+  SYNAPSE_ADDRESS_1,
+  SYNAPSE_SIGN_1,
   // inputs and outputs
-  synapse_address,
-  synapse_sign,
-  neuron_address,
+  SYNAPSE_ADDRESS,
+  SYNAPSE_SIGN,
+  NEURON_ADDRESS,
 
-  LastWordFieldId = neuron_address
+  LastWordFieldId = NEURON_ADDRESS
 };
 
 enum MiscWidthId {
-  BD_input,
-  BD_output,
+  BD_INPUT,
+  BD_OUTPUT,
 
-  LastMiscWidthId = BD_output
+  LastMiscWidthId = BD_OUTPUT
 };
 
 typedef std::pair<uint32_t, unsigned int> FHRoute; // route val, route len

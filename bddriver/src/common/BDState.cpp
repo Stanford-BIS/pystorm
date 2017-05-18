@@ -104,9 +104,9 @@ const std::pair<const std::vector<unsigned int> *, bool> BDState::GetReg(bdpars:
 void BDState::SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en)
 {
   // just to make sure we've hardcoded the right order
-  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NeuronDumpToggle);
-  assert(toggle_word_struct->at(0).first == bdpars::traffic_enable);
-  assert(toggle_word_struct->at(1).first == bdpars::dump_enable);
+  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NEURON_DUMP_TOGGLE);
+  assert(toggle_word_struct->at(0).first == bdpars::TRAFFIC_ENABLE);
+  assert(toggle_word_struct->at(1).first == bdpars::DUMP_ENABLE);
 
   SetReg(reg_id, {traffic_en, dump_en});
 }
@@ -115,9 +115,9 @@ std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::RegId reg_id) const
 /// Returns traffic_en, dump_en, valid
 {
   // just to make sure we've hardcoded the right order
-  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NeuronDumpToggle);
-  assert(toggle_word_struct->at(0).first == bdpars::traffic_enable);
-  assert(toggle_word_struct->at(1).first == bdpars::dump_enable);
+  const bdpars::WordStructure * toggle_word_struct = bd_pars_->Word(bdpars::NEURON_DUMP_TOGGLE);
+  assert(toggle_word_struct->at(0).first == bdpars::TRAFFIC_ENABLE);
+  assert(toggle_word_struct->at(1).first == bdpars::DUMP_ENABLE);
 
   return std::make_tuple(reg_.at(reg_id)[0], reg_.at(reg_id)[1], reg_valid_.at(reg_id));
 }

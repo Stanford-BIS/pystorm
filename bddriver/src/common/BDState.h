@@ -72,7 +72,7 @@ class BDState {
 
     /// consts
     const std::vector<bdpars::RegId> kTrafficRegs = {
-        bdpars::NeuronDumpToggle, 
+        bdpars::NEURON_DUMP_TOGGLE, 
         bdpars::TOGGLE_PRE_FIFO, 
         bdpars::TOGGLE_POST_FIFO0, 
         bdpars::TOGGLE_POST_FIFO1
