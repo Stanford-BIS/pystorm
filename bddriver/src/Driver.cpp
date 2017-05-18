@@ -139,7 +139,7 @@ bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool e
   return traffic_en;
 }
 
-/// Set toggle dump_en only, keep traffic_en the same, returns previous dump_en
+/// Set toggle dump_en only, keep traffic_en the same, returns previous dump_en.
 /// If register state has not been set, traffic_en -> 0
 bool Driver::SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en)
 {
@@ -549,139 +549,23 @@ std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
   return retval;
 }
 
-std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWord2(uint64_t input, unsigned int input_width) const
-{
-  unsigned int rem = input_width % 2;
-  unsigned int half_width = input_width >> 1;
-  unsigned int half_chunk_width = half_width + rem;
 
-  std::vector<uint64_t> unpacked64;
-  if (rem == 0) {
-    unpacked64 = UnpackV64(input, {half_width, half_width});
-  } else {
-    unpacked64 = UnpackV64(input, {half_width + 1, half_width});
-  }
-
-  return {
-    {static_cast<uint32_t>(unpacked64[0]), static_cast<uint32_t>(unpacked64[1])}, 
-    half_chunk_width
-  };
-}
-
-std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWord4(uint64_t input, unsigned int input_width) const
-{
-  // if you had to recurse, base the i+1 off this
-  // but BD serializers are never deeper than 4 so...
-  
-  std::vector<uint32_t> chunks;
-  unsigned int chunk_width;
-  std::tie(chunks, chunk_width) = SerializeWord2(input, input_width);
-
-  std::vector<uint32_t> retval01;
-  unsigned int chunk_width01;
-  std::tie(retval01, chunk_width01) = SerializeWord2(chunks[0], chunk_width);
-
-  std::vector<uint32_t> retval23;
-  unsigned int chunk_width23;
-  std::tie(retval23, chunk_width23) = SerializeWord2(chunks[1], chunk_width);
-  
-  assert(chunk_width01 == chunk_width23);
-
-  return {
-    {retval01[0], retval01[1], retval23[0], retval23[1]}, 
-    chunk_width01
-  };
-
-}
-
-std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWords(const std::vector<uint64_t> & inputs, bdpars::HornLeafId leaf_id) const
+std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWordsToLeaf(const std::vector<uint64_t> & inputs, bdpars::HornLeafId leaf_id) const
 {
   unsigned int input_width = bd_pars_->Width(leaf_id);
   unsigned int serialization = bd_pars_->Serialization(leaf_id);
 
-  // return values
-  std::vector<uint32_t> serialized_payloads;
-  serialized_payloads.reserve(inputs.size() * serialization);
-  unsigned int serialized_width;
-
-  if (serialization == 1) {
-
-    // XXX this isn't ideal, adds overhead
-    for (auto& input : inputs) {
-      serialized_payloads.push_back(static_cast<uint32_t>(input));
-    }
-    serialized_width = input_width;
-
-  } else if (serialization == 2) {
-
-    std::vector<uint32_t> chunks;
-    unsigned int chunk_width;
-    for (auto& input : inputs) {
-      std::tie(chunks, chunk_width) = SerializeWord2(input, input_width);
-      for (auto& chunk : chunks) {
-        serialized_payloads.push_back(chunk);
-      }
-    }
-    serialized_width = chunk_width;
-
-  } else if (serialization == 4) {
-
-    std::vector<uint32_t> chunks;
-    unsigned int chunk_width;
-    for (auto& input : inputs) {
-      std::tie(chunks, chunk_width) = SerializeWord4(input, input_width);
-      for (auto& chunk : chunks) {
-        serialized_payloads.push_back(chunk);
-      }
-    }
-    serialized_width = chunk_width;
-
-  } else {
-    assert(false && "serialization must be one of {1, 2, 4}");
-  }
-
-  return {serialized_payloads, serialized_width};
+  return SerializeWords<uint64_t, uint32_t>(inputs, input_width, serialization);
 }
 
-
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const
+std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWordsFromLeaf(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const
 {
   unsigned int deserialization = bd_pars_->Serialization(leaf_id); 
   unsigned int deserialized_width = bd_pars_->Width(leaf_id);
 
-  std::vector<uint64_t> deserialized_words;
-  std::vector<uint32_t> remainder;
-  
-  if (deserialization == 1) {
-
-    // XXX this isn't ideal, adds overhead
-    for (auto& input : inputs) {
-      deserialized_words.push_back(static_cast<uint64_t>(input));
-    }
-    remainder = {};
-    
-  } else if (deserialization == 2) {
-
-    unsigned int half_width = deserialized_width >> 1;
-    for (unsigned int i = 0; i < inputs.size() / 2; i++) {
-      uint64_t packed_word = PackV64(
-          {static_cast<uint64_t>(inputs[2*i]), static_cast<uint64_t>(inputs[2*i + 1])}, 
-          {half_width, half_width}
-      );
-      deserialized_words.push_back(packed_word);
-    }
-
-    // there might be a remainder
-    if (inputs.size() % 2 == 1) {
-      remainder = {inputs.front()};
-    }
-
-  } else {
-    assert(false && "deserialization must be one of {1, 2}");
-  }
-
-  return {deserialized_words, remainder};
+  return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
 }
+
 
 void Driver::SendToHorn(
     unsigned int core_id, 
@@ -691,7 +575,7 @@ void Driver::SendToHorn(
   // do serialization 
   std::vector<uint32_t> serialized_words;
   unsigned int serialized_width;
-  std::tie(serialized_words, serialized_width) = SerializeWords(payload, leaf_id);
+  std::tie(serialized_words, serialized_width) = SerializeWordsToLeaf(payload, leaf_id);
 
   // Encoder doesn't know about the enums, cast leaf_id as a uint
   unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id); 
@@ -750,7 +634,7 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
 
   std::vector<uint64_t> deserialized_payloads;
   std::vector<uint32_t> remainder;
-  std::tie(deserialized_payloads, remainder) = DeserializeWords(payloads, leaf_id);
+  std::tie(deserialized_payloads, remainder) = DeserializeWordsFromLeaf(payloads, leaf_id);
   assert(remainder.size() == 0);
 
   return deserialized_payloads;

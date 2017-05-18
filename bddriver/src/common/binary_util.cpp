@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <utility>
+#include <tuple>
 
 namespace pystorm {
 namespace bddriver {
@@ -111,6 +113,177 @@ inline std::pair<unsigned int, TOUT> DecodeFH(
 
   assert(false && "input matched no routes");
   return {0, 0};
+}
+
+
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWord2(TIN input, unsigned int input_width)
+{
+  unsigned int rem = input_width % 2;
+  unsigned int half_width = input_width >> 1;
+  unsigned int half_chunk_width = half_width + rem;
+
+  std::vector<TOUT> unpacked;
+  if (rem == 0) {
+    unpacked = UnpackV<TIN, TOUT>(input, {half_width, half_width});
+  } else {
+    unpacked = UnpackV<TIN, TOUT>(input, {half_width + 1, half_width});
+  }
+
+  return {
+    {unpacked[0], unpacked[1]}, 
+    half_chunk_width
+  };
+}
+
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWord4(TIN input, unsigned int input_width)
+{
+  // if you had to recurse, base the i+1 off this
+  // but BD serializers are never deeper than 4 so...
+  
+  std::vector<TOUT> chunks;
+  unsigned int chunk_width;
+  std::tie(chunks, chunk_width) = SerializeWord2<TIN, TOUT>(input, input_width);
+
+  std::vector<TOUT> retval01;
+  unsigned int chunk_width01;
+  std::tie(retval01, chunk_width01) = SerializeWord2<TOUT, TOUT>(chunks[0], chunk_width);
+
+  std::vector<TOUT> retval23;
+  unsigned int chunk_width23;
+  std::tie(retval23, chunk_width23) = SerializeWord2<TOUT, TOUT>(chunks[1], chunk_width);
+  
+  assert(chunk_width01 == chunk_width23);
+
+  return {
+    {retval01[0], retval01[1], retval23[0], retval23[1]}, 
+    chunk_width01
+  };
+
+}
+
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWords(const std::vector<TIN> & inputs, unsigned int input_width, unsigned int serialization)
+{
+  // return values
+  std::vector<TOUT> serialized_payloads;
+  serialized_payloads.reserve(inputs.size() * serialization);
+  unsigned int serialized_width;
+
+  if (serialization == 1) {
+
+    // XXX this isn't ideal, vector creation adds overhead
+    for (auto& input : inputs) {
+      serialized_payloads.push_back(static_cast<TOUT>(input));
+    }
+    serialized_width = input_width;
+
+  } else if (serialization == 2) {
+
+    std::vector<TOUT> chunks;
+    unsigned int chunk_width;
+    for (auto& input : inputs) {
+      std::tie(chunks, chunk_width) = SerializeWord2<TIN, TOUT>(input, input_width);
+      for (auto& chunk : chunks) {
+        serialized_payloads.push_back(chunk);
+      }
+    }
+    serialized_width = chunk_width;
+
+  } else if (serialization == 4) {
+
+    std::vector<TOUT> chunks;
+    unsigned int chunk_width;
+    for (auto& input : inputs) {
+      std::tie(chunks, chunk_width) = SerializeWord4<TIN, TOUT>(input, input_width);
+      for (auto& chunk : chunks) {
+        serialized_payloads.push_back(chunk);
+      }
+    }
+    serialized_width = chunk_width;
+
+  } else {
+    assert(false && "serialization must be one of {1, 2, 4}");
+  }
+
+  return {serialized_payloads, serialized_width};
+}
+
+
+template <class TIN, class TOUT>
+TOUT DeserializeWord2(std::vector<TIN> inputs, unsigned int output_width)
+{
+  assert(inputs.size() == 2);
+
+  unsigned int half_width = output_width >> 1;
+  unsigned int remainder = output_width % 2;
+
+  uint64_t packed_word = PackV<TIN, TOUT>(
+      {inputs[0], inputs[1]}, 
+      {half_width + remainder, half_width}
+  );
+
+  return packed_word;
+}
+
+template <class TIN, class TOUT>
+TOUT DeserializeWord4(std::vector<TIN> inputs, unsigned int output_width)
+{
+  assert(inputs.size() == 4);
+
+  std::vector<TIN> intermediate_chunks;
+
+  unsigned int half_width = output_width >> 1;
+  unsigned int remainder = output_width % 2;
+
+  intermediate_chunks.push_back(DeserializeWord2<TIN, TIN>({inputs[0], inputs[1]}, half_width + remainder));
+  intermediate_chunks.push_back(DeserializeWord2<TIN, TIN>({inputs[2], inputs[3]}, half_width));
+
+  return DeserializeWord2<TIN, TOUT>(intermediate_chunks, output_width);
+}
+
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, std::vector<TIN> > DeserializeWords(const std::vector<TIN> & inputs, unsigned int output_width, unsigned int deserialization)
+{
+
+  std::vector<TOUT> deserialized_words;
+  std::vector<TIN> remainder;
+  
+  if (deserialization == 1) {
+
+    // XXX this isn't ideal, adds overhead
+    for (auto& input : inputs) {
+      deserialized_words.push_back(static_cast<TOUT>(input));
+    }
+    
+  } else if (deserialization == 2) {
+
+    for (unsigned int i = 0; i < inputs.size() / 2; i++) {
+      deserialized_words.push_back(DeserializeWord2<TIN, TOUT>({inputs[2*i], inputs[2*i + 1]}, output_width));
+    }
+
+  } else if (deserialization == 4) {
+
+    for (unsigned int i = 0; i < inputs.size() / 4; i++) {
+      deserialized_words.push_back(
+          DeserializeWord4<TIN, TOUT>(
+            {inputs[4*i + 0], inputs[4*i + 1], inputs[4*i + 2], inputs[4*i + 3]}, 
+            output_width
+          )
+      );
+    }
+
+  } else {
+    assert(false && "deserialization must be one of {1, 2}");
+  }
+
+  // there might be a remainder
+  for (unsigned int i = inputs.size() % deserialization; i >= 1; i--) { // note weird iterator
+    remainder.push_back(inputs.at(inputs.size() - i));
+  }
+
+  return {deserialized_words, remainder};
 }
 
 

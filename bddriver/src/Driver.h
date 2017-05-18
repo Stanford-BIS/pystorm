@@ -252,11 +252,9 @@ class Driver
     FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word) const;
     FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words) const;
 
-    std::pair<std::vector<uint32_t>, unsigned int> SerializeWord2(uint64_t input, unsigned int input_width) const;
-    std::pair<std::vector<uint32_t>, unsigned int> SerializeWord4(uint64_t input, unsigned int input_width) const;
-    std::pair<std::vector<uint32_t>, unsigned int> SerializeWords(const std::vector<uint64_t> & inputs, bdpars::HornLeafId) const;
+    std::pair<std::vector<uint32_t>, unsigned int> SerializeWordsToLeaf(const std::vector<uint64_t> & inputs, bdpars::HornLeafId) const;
 
-    std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWords(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const;
+    std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWordsFromLeaf(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const;
 
     /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
     ///

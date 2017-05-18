@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <vector>
 #include <string>
+#include <utility>
 
 namespace pystorm {
 namespace bddriver {
@@ -32,6 +33,22 @@ inline std::pair<unsigned int, TOUT> DecodeFH(
     const std::vector<TIN> & leaf_payload_masks,
     const std::vector<unsigned int> & payload_shifts
 );
+
+// serialization/deserialization
+
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWord2(TIN input, unsigned int input_width);
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWord4(TIN input, unsigned int input_width);
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, unsigned int> SerializeWords(const std::vector<TIN> & inputs, unsigned int input_width, unsigned int serialization);
+
+template <class TIN, class TOUT>
+TOUT DeserializeWord2(std::vector<TIN> inputs, unsigned int output_width);
+template <class TIN, class TOUT>
+TOUT DeserializeWord4(std::vector<TIN> inputs, unsigned int output_width);
+template <class TIN, class TOUT>
+std::pair<std::vector<TOUT>, std::vector<TIN> > DeserializeWords(const std::vector<TIN> & inputs, unsigned int output_width, unsigned int deserialization);
 
 // misc helpers
 template <class T>
