@@ -64,6 +64,14 @@ UnpackV64_type const UnpackV64 = &UnpackV<uint64_t, uint64_t>;
 typedef void (*Unpack64_type)(uint64_t val, const unsigned int * widths, uint64_t * unpacked_vals, unsigned int num_fields);
 Unpack64_type const Unpack64 = &Unpack<uint64_t, uint64_t>;
 
+// UnpackV64to32
+typedef std::vector<uint32_t> (*UnpackV64to32_type)(uint64_t val, const std::vector<unsigned int> & widths);
+UnpackV64to32_type const UnpackV64to32 = &UnpackV<uint64_t, uint32_t>;
+
+// Unpack64to32
+typedef void (*Unpack64to32_type)(uint64_t val, const unsigned int * widths, uint32_t * unpacked_vals, unsigned int num_fields);
+Unpack64to32_type const Unpack64to32 = &Unpack<uint64_t, uint32_t>;
+
 ///////////////
 // 32-bit
 
@@ -82,6 +90,14 @@ UnpackV32_type const UnpackV32 = &UnpackV<uint32_t, uint32_t>;
 // Unpack32
 typedef void (*Unpack32_type)(uint32_t val, const unsigned int * widths, uint32_t * unpacked_vals, unsigned int num_fields);
 Unpack32_type const Unpack32 = &Unpack<uint32_t, uint32_t>;
+
+// PackV32to64
+typedef uint64_t (*PackV32to64_type)(const std::vector<uint32_t> &, const std::vector<unsigned int> &);
+PackV32to64_type const PackV32to64 = &PackV<uint32_t, uint64_t>;
+
+// Pack32to64
+typedef uint64_t (*Pack32to64_type)(const uint32_t * vals, const unsigned int * widths, unsigned int num_fields);
+Pack32to64_type const Pack32to64 = &Pack<uint32_t, uint64_t>;
 
 
 } // bddriver
