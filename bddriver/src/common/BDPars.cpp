@@ -15,60 +15,61 @@ BDPars::BDPars()
   //////////////////////////////////////////////////////
   // Funnel/Horn
 
-  //                               {route, route_len, data width, serialization, serialized data width, description}
 
   horn_.resize(LastHornLeafId+1);
-  horn_[NeuronInject]            = {14 , 4  , 11 , 1  , 11 , "direct spike injection to neuron array"};
-  horn_[RI]                      = {0  , 1  , 20 , 1  , 20 , "main tag input to FIFO"};
-  horn_[PROG_AMMM]               = {39 , 6  , 42 , 4  , 11 , "AM/MM programming/diagnostic port"};
-  horn_[PROG_PAT]                = {37 , 6  , 27 , 4  , 7  , "PAT programming/diagnostic port"};
-  horn_[PROG_TAT0]               = {65 , 7  , 31 , 4  , 8  , "TAT 0 programming/diagnostic port"};
-  horn_[PROG_TAT1]               = {67 , 7  , 31 , 4  , 8  , "TAT 1 programming/diagnostic port"};
-  horn_[INIT_FIFO_DCT]           = {70 , 7  , 11 , 1  , 11 , "inserts a tag into the DCT side of the FIFO with ct = 1, needed to clean initial FIFO state"};
-  horn_[INIT_FIFO_HT]            = {136, 8  , 1  , 1  , 1  , "trigger sets FIFO head/tail register to empty state"};
-  horn_[TOGGLE_PRE_FIFO_leaf]    = {137, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO input"};
-  horn_[TOGGLE_POST_FIFO0_leaf]  = {138, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 0 output"};
-  horn_[TOGGLE_POST_FIFO1_leaf]  = {139, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 1 output"};
-  horn_[NeuronDumpToggle_leaf]   = {15 , 4  , 2  , 1  , 2  , "toggles data/dump traffic for neuron array output"};
-  horn_[NeuronConfig]            = {6  , 3  , 18 , 1  , 18 , "programming input for neuron array tile SRAM"};
-  horn_[DAC0_leaf]               = {176, 8  , 11 , 1  , 11 , "DIFF_G DAC bias value"};
-  horn_[DAC1_leaf]               = {177, 8  , 11 , 1  , 11 , "DIFF_R DAC bias value"};
-  horn_[DAC2_leaf]               = {178, 8  , 11 , 1  , 11 , "SOMA_OFFSET DAC bias value"};
-  horn_[DAC3_leaf]               = {179, 8  , 11 , 1  , 11 , "SYN_LK DAC bias value"};
-  horn_[DAC4_leaf]               = {180, 8  , 11 , 1  , 11 , "SYN_DC DAC bias value"};
-  horn_[DAC5_leaf]               = {181, 8  , 11 , 1  , 11 , "SYN_PD DAC bias value"};
-  horn_[DAC6_leaf]               = {182, 8  , 11 , 1  , 11 , "ADC_BIAS_2 DAC bias value"};
-  horn_[DAC7_leaf]               = {183, 8  , 11 , 1  , 11 , "ADC_BIAS_1 DAC bias value"};
-  horn_[DAC8_leaf]               = {184, 8  , 11 , 1  , 11 , "SOMA_REF DAC bias value"};
-  horn_[DAC9_leaf]               = {185, 8  , 11 , 1  , 11 , "SOMA_EXC DAC bias value"};
-  horn_[DAC10_leaf]              = {93 , 7  , 11 , 1  , 11 , "SOMA_INH DAC bias value"};
-  horn_[DAC11_leaf]              = {94 , 7  , 11 , 1  , 11 , "SYN_PU DAC bias value"};
-  horn_[DAC12_leaf]              = {95 , 7  , 11 , 1  , 11 , "UNUSED (ghost DAC)"};
-  horn_[ADC_leaf]                = {10 , 4  , 3  , 1  , 3  , "ADC small/large current enable, output enable"};
-  horn_[DELAY0_leaf]             = {64 , 7  , 8  , 1  , 8  , "FIFO:DCT delay line config"};
-  horn_[DELAY1_leaf]             = {66 , 7  , 8  , 1  , 8  , "FIFO:PG delay line config"};
-  horn_[DELAY2_leaf]             = {142, 8  , 8  , 1  , 8  , "TAT 0 delay line config"};
-  horn_[DELAY3_leaf]             = {143, 8  , 8  , 1  , 8  , "TAT 1 delay line config"};
-  horn_[DELAY4_leaf]             = {36 , 6  , 8  , 1  , 8  , "PAT delay line config"};
-  horn_[DELAY5_leaf]             = {76 , 7  , 8  , 1  , 8  , "MM delay line config"};
-  horn_[DELAY6_leaf]             = {77 , 7  , 8  , 1  , 8  , "AM delay line config"};
+
+  //                               {component type, component, route, route_len, data width, serialization, serialized data width, description}
+  horn_[NeuronInject]            = {Input, static_cast<unsigned int>(InputSpikes)      , 14 , 4  , 11 , 1  , 11 , "direct spike injection to neuron array"};
+  horn_[RI]                      = {Input, static_cast<unsigned int>(InputTags)        , 0  , 1  , 20 , 1  , 20 , "main tag input to FIFO"};
+  horn_[PROG_AMMM]               = {Mem  , static_cast<unsigned int>(MM)               , 39 , 6  , 42 , 4  , 11 , "AM/MM programming/diagnostic port"}; // it's really both AM and MM
+  horn_[PROG_PAT]                = {Mem  , static_cast<unsigned int>(PAT)              , 37 , 6  , 27 , 4  , 7  , "PAT programming/diagnostic port"};
+  horn_[PROG_TAT0]               = {Mem  , static_cast<unsigned int>(TAT0)             , 65 , 7  , 31 , 4  , 8  , "TAT 0 programming/diagnostic port"};
+  horn_[PROG_TAT1]               = {Mem  , static_cast<unsigned int>(TAT1)             , 67 , 7  , 31 , 4  , 8  , "TAT 1 programming/diagnostic port"};
+  horn_[INIT_FIFO_DCT]           = {Input, static_cast<unsigned int>(DCTFIFOInputTags) , 70 , 7  , 11 , 1  , 11 , "inserts a tag into the DCT side of the FIFO with ct = 1, needed to clean initial FIFO state"};
+  horn_[INIT_FIFO_HT]            = {Input, static_cast<unsigned int>(HTFIFOReset)      , 136, 8  , 1  , 1  , 1  , "trigger sets FIFO head/tail register to empty state"};
+  horn_[TOGGLE_PRE_FIFO_leaf]    = {Reg  , static_cast<unsigned int>(TOGGLE_PRE_FIFO)  , 137, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO input"};
+  horn_[TOGGLE_POST_FIFO0_leaf]  = {Reg  , static_cast<unsigned int>(TOGGLE_POST_FIFO0), 138, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 0 output"};
+  horn_[TOGGLE_POST_FIFO1_leaf]  = {Reg  , static_cast<unsigned int>(TOGGLE_POST_FIFO1), 139, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 1 output"};
+  horn_[NeuronDumpToggle_leaf]   = {Reg  , static_cast<unsigned int>(NeuronDumpToggle) , 15 , 4  , 2  , 1  , 2  , "toggles data/dump traffic for neuron array output"};
+  horn_[NeuronConfig]            = {Input, static_cast<unsigned int>(TileSRAMInputs)   , 6  , 3  , 18 , 1  , 18 , "programming input for neuron array tile SRAM"};
+  horn_[DAC0_leaf]               = {Reg  , static_cast<unsigned int>(DAC0)             , 176, 8  , 11 , 1  , 11 , "DIFF_G DAC bias value"};
+  horn_[DAC1_leaf]               = {Reg  , static_cast<unsigned int>(DAC1)             , 177, 8  , 11 , 1  , 11 , "DIFF_R DAC bias value"};
+  horn_[DAC2_leaf]               = {Reg  , static_cast<unsigned int>(DAC2)             , 178, 8  , 11 , 1  , 11 , "SOMA_OFFSET DAC bias value"};
+  horn_[DAC3_leaf]               = {Reg  , static_cast<unsigned int>(DAC3)             , 179, 8  , 11 , 1  , 11 , "SYN_LK DAC bias value"};
+  horn_[DAC4_leaf]               = {Reg  , static_cast<unsigned int>(DAC4)             , 180, 8  , 11 , 1  , 11 , "SYN_DC DAC bias value"};
+  horn_[DAC5_leaf]               = {Reg  , static_cast<unsigned int>(DAC5)             , 181, 8  , 11 , 1  , 11 , "SYN_PD DAC bias value"};
+  horn_[DAC6_leaf]               = {Reg  , static_cast<unsigned int>(DAC6)             , 182, 8  , 11 , 1  , 11 , "ADC_BIAS_2 DAC bias value"};
+  horn_[DAC7_leaf]               = {Reg  , static_cast<unsigned int>(DAC7)             , 183, 8  , 11 , 1  , 11 , "ADC_BIAS_1 DAC bias value"};
+  horn_[DAC8_leaf]               = {Reg  , static_cast<unsigned int>(DAC8)             , 184, 8  , 11 , 1  , 11 , "SOMA_REF DAC bias value"};
+  horn_[DAC9_leaf]               = {Reg  , static_cast<unsigned int>(DAC9)             , 185, 8  , 11 , 1  , 11 , "SOMA_EXC DAC bias value"};
+  horn_[DAC10_leaf]              = {Reg  , static_cast<unsigned int>(DAC10)            , 93 , 7  , 11 , 1  , 11 , "SOMA_INH DAC bias value"};
+  horn_[DAC11_leaf]              = {Reg  , static_cast<unsigned int>(DAC11)            , 94 , 7  , 11 , 1  , 11 , "SYN_PU DAC bias value"};
+  horn_[DAC12_leaf]              = {Reg  , static_cast<unsigned int>(DAC12)            , 95 , 7  , 11 , 1  , 11 , "UNUSED (ghost DAC)"};
+  horn_[ADC_leaf]                = {Reg  , static_cast<unsigned int>(ADC)              , 10 , 4  , 3  , 1  , 3  , "ADC small/large current enable, output enable"};
+  horn_[DELAY0_leaf]             = {Reg  , static_cast<unsigned int>(DELAY0)           , 64 , 7  , 8  , 1  , 8  , "FIFO:DCT delay line config"};
+  horn_[DELAY1_leaf]             = {Reg  , static_cast<unsigned int>(DELAY1)           , 66 , 7  , 8  , 1  , 8  , "FIFO:PG delay line config"};
+  horn_[DELAY2_leaf]             = {Reg  , static_cast<unsigned int>(DELAY2)           , 142, 8  , 8  , 1  , 8  , "TAT 0 delay line config"};
+  horn_[DELAY3_leaf]             = {Reg  , static_cast<unsigned int>(DELAY3)           , 143, 8  , 8  , 1  , 8  , "TAT 1 delay line config"};
+  horn_[DELAY4_leaf]             = {Reg  , static_cast<unsigned int>(DELAY4)           , 36 , 6  , 8  , 1  , 8  , "PAT delay line config"};
+  horn_[DELAY5_leaf]             = {Reg  , static_cast<unsigned int>(DELAY5)           , 76 , 7  , 8  , 1  , 8  , "MM delay line config"};
+  horn_[DELAY6_leaf]             = {Reg  , static_cast<unsigned int>(DELAY6)           , 77 , 7  , 8  , 1  , 8  , "AM delay line config"};
 
 
-  //                               {route, route_len, data width, serialization, serialized data width, description}
+  //                               {component type, component, route, route_len, data width, serialization, serialized data width, description}
   funnel_.resize(LastFunnelLeafId+1);
-  funnel_[RO_ACC]                = {1  , 2  , 28 , 1  , 28 , "tag output from accumulator"};
-  funnel_[RO_TAT]                = {0  , 2  , 32 , 1  , 32 , "tag output from TAT"};
-  funnel_[NRNI]                  = {3  , 2  , 12 , 1  , 12 , "copy of traffic exiting neuron array"};
-  funnel_[DUMP_AM]               = {40 , 6  , 38 , 2  , 19 , "AM diagnostic read output"};
-  funnel_[DUMP_MM]               = {41 , 6  , 8  , 1  , 8  , "MM diagnostic read output"};
-  funnel_[DUMP_PAT]              = {21 , 5  , 20 , 1  , 20 , "PAT diagnostic read output"};
-  funnel_[DUMP_TAT0]             = {8  , 4  , 29 , 1  , 29 , "TAT 0 diagnostic read output"};
-  funnel_[DUMP_TAT1]             = {9  , 4  , 29 , 1  , 29 , "TAT 1 diagnostic read output"};
-  funnel_[DUMP_PRE_FIFO]         = {45 , 6  , 20 , 1  , 20 , "copy of traffic entering FIFO"};
-  funnel_[DUMP_POST_FIFO0]       = {46 , 6  , 19 , 1  , 19 , "copy of tag class 0 traffic exiting FIFO"};
-  funnel_[DUMP_POST_FIFO1]       = {47 , 6  , 19 , 1  , 19 , "copy of tag class 1 traffic exiting FIFO"};
-  funnel_[OVFLW0]                = {88 , 7  , 1  , 1  , 1  , "class 0 FIFO overflow warning"};
-  funnel_[OVFLW1]                = {89 , 7  , 1  , 1  , 1  , "class 1 FIFO overflow warning"};
+  funnel_[RO_ACC]                = {Output, static_cast<unsigned int>(AccOutputTags), 1  , 2  , 28 , 1  , 28 , "tag output from accumulator"};
+  funnel_[RO_TAT]                = {Output, static_cast<unsigned int>(TATOutputTags), 0  , 2  , 32 , 1  , 32 , "tag output from TAT"};
+  funnel_[NRNI]                  = {Output, static_cast<unsigned int>(OutputSpikes) , 3  , 2  , 12 , 1  , 12 , "copy of traffic exiting neuron array"};
+  funnel_[DUMP_AM]               = {Mem   , static_cast<unsigned int>(AM)           , 40 , 6  , 38 , 2  , 19 , "AM diagnostic read output"};
+  funnel_[DUMP_MM]               = {Mem   , static_cast<unsigned int>(MM)           , 41 , 6  , 8  , 1  , 8  , "MM diagnostic read output"};
+  funnel_[DUMP_PAT]              = {Mem   , static_cast<unsigned int>(PAT)          , 21 , 5  , 20 , 1  , 20 , "PAT diagnostic read output"};
+  funnel_[DUMP_TAT0]             = {Mem   , static_cast<unsigned int>(TAT0)         , 8  , 4  , 29 , 1  , 29 , "TAT 0 diagnostic read output"};
+  funnel_[DUMP_TAT1]             = {Mem   , static_cast<unsigned int>(TAT1)         , 9  , 4  , 29 , 1  , 29 , "TAT 1 diagnostic read output"};
+  funnel_[DUMP_PRE_FIFO]         = {Output, static_cast<unsigned int>(PreFIFOTags)  , 45 , 6  , 20 , 1  , 20 , "copy of traffic entering FIFO"};
+  funnel_[DUMP_POST_FIFO0]       = {Output, static_cast<unsigned int>(PostFIFOTags0), 46 , 6  , 19 , 1  , 19 , "copy of tag class 0 traffic exiting FIFO"};
+  funnel_[DUMP_POST_FIFO1]       = {Output, static_cast<unsigned int>(PostFIFOTags1), 47 , 6  , 19 , 1  , 19 , "copy of tag class 1 traffic exiting FIFO"};
+  funnel_[OVFLW0]                = {Output, static_cast<unsigned int>(OverflowTags0), 88 , 7  , 1  , 1  , 1  , "class 0 FIFO overflow warning"};
+  funnel_[OVFLW1]                = {Output, static_cast<unsigned int>(OverflowTags1), 89 , 7  , 1  , 1  , 1  , "class 1 FIFO overflow warning"};
 
   //////////////////////////////////////////////////////
   // Registers

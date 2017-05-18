@@ -24,6 +24,15 @@ namespace bddriver {
 
 namespace bdpars {
 
+enum ComponentTypeId {
+  Reg,
+  Mem,
+  Input,
+  Output,
+
+  LastComponentTypeId = Output
+};
+
 enum RegId {
   TOGGLE_PRE_FIFO,
   TOGGLE_POST_FIFO0,
@@ -63,6 +72,30 @@ enum MemId {
 
   LastMemId = PAT
 };
+
+enum InputId {
+  InputTags,
+  DCTFIFOInputTags,
+  HTFIFOReset,
+  TileSRAMInputs,
+  InputSpikes,
+
+  LastInputId = InputSpikes
+};
+
+enum OutputId {
+  PreFIFOTags,
+  PostFIFOTags0,
+  PostFIFOTags1,
+  OutputSpikes,
+  OverflowTags0,
+  OverflowTags1,
+  AccOutputTags,
+  TATOutputTags,
+
+  LastOutputId = TATOutputTags
+};
+
 
 // XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
 enum DACSignalId {
@@ -200,27 +233,6 @@ enum WordFieldId {
   LastWordFieldId = neuron_address
 };
 
-enum InputId {
-  InputTags,
-  DCTFIFOInputTags,
-  InputSpikes,
-
-  LastInputId = InputSpikes
-};
-
-enum OutputId {
-  PreFIFOTags,
-  PostFIFOTags0,
-  PostFIFOTags1,
-  OutputSpikes,
-  OverflowTags0,
-  OverflowTags1,
-  AccOutputTags,
-  TATOutputTags,
-
-  LastOutputId = TATOutputTags
-};
-
 enum MiscWidthId {
   BD_input,
   BD_output,
@@ -233,6 +245,8 @@ typedef std::vector<std::pair<bdpars::WordFieldId, unsigned int> > WordStructure
 
 struct LeafInfo {
   /// Information describing one funnel/horn leaf in Braindrop
+  ComponentTypeId component_type;
+  unsigned int component;
   uint32_t route_val;         ///< route to leaf
   unsigned int route_len;     ///< depth in funnel/horn tree (# bits in route_val)
   unsigned int data_width;    ///< width of data at leaf
@@ -263,6 +277,13 @@ struct OutputInfo {
   FunnelLeafId leaf;
 };
 
+/// BDPars holds all the nitty-gritty information about the BD hardware's parameters.
+///
+/// BDPars contains several vector data members containing structs, keyed by enums.
+/// The enums refer to particular hardware elements or concepts, such as the name of a memory, 
+/// register, or a particular type of programming word.
+/// The structs contain relevant information about this hardware element or concept,
+/// such as the size of the memory, or the WordStructure that describes the programming word type.
 class BDPars {
   public:
     BDPars();
