@@ -64,7 +64,7 @@ Decoder::Decoder(
 {
   // set up the vectors we use to do the decoding
   // for now not worrying about the order of entries, might be important later
-  for (const auto& it : *(pars_->FunnelRoutes())) {
+  for (const bdpars::FHRoute& it : *(pars_->FunnelRoutes())) {
     uint64_t one = 1;
 
     uint64_t route_val = static_cast<uint64_t>(it.first);
@@ -108,6 +108,9 @@ Decoder::~Decoder()
 void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each) const
 {
   assert(num_popped % bytesPerInput == 0 && "should have used Pop() with a multiple argument");
+
+  std::vector<unsigned int> zero_vect(leaf_routes_.size(), 0);
+
   for (unsigned int i = 0; i < num_popped / bytesPerInput; i++) {
 
     // Pack 5 bytes into uint64_t
@@ -132,11 +135,17 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
     unsigned int core_id = 0;
 
     // decode funnel
-    std::pair<unsigned int, uint32_t> funnel_decoded = DecodeFunnel(input);
-    unsigned int leaf_idx = funnel_decoded.first;
-    uint32_t payload = funnel_decoded.second;
+    unsigned int leaf_idx;
+    uint32_t payload;
+    std::tie(leaf_idx, payload) = DecodeFH<uint64_t, uint32_t>(
+        input,
+        leaf_routes_,
+        leaf_route_masks_,
+        leaf_payload_masks_,
+        zero_vect
+    );
 
-    //cout << leaf_idx << endl;
+    //std::tie(leaf_idx, payload) = DecodeFunnel(input);
 
     unsigned int num_pushed_to_this = num_pushed_to_each->at(leaf_idx);
     (*outputs)[leaf_idx][num_pushed_to_this] = {payload, core_id, time_epoch};
@@ -146,8 +155,10 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
 }
 
 
+
 inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_route) const
 {
+  assert(false && "deprecated");
   // XXX this could probably be optimized to be less branch-y
   // this could also be optimized if the FPGA was used to decode the variable-width
   // route into a fixed-width route, then it would just be a lookup
