@@ -63,7 +63,7 @@ Decoder::Decoder(
 ) : Xcoder(pars, in_buf, out_bufs, chunk_size * bytesPerInput, chunk_size, timeout_us) // call default constructor
 {
   // set up the vectors we use to do the decoding
-  // for now not worrying about the order of entries, might be important later
+  
   for (const bdpars::FHRoute& it : *(pars_->FunnelRoutes())) {
     uint64_t one = 1;
 
@@ -96,8 +96,11 @@ Decoder::Decoder(
 
     //cout << "route shifted " << route_shifted << endl;
   }
-  //num_processed_ = 0;
+  
+  // payload shifts are all zero for decoder
+  leaf_payload_shifts_ = std::vector<unsigned int>(leaf_routes_.size(), 0);
 
+  //num_processed_ = 0;
 }
 
 Decoder::~Decoder()
@@ -108,8 +111,6 @@ Decoder::~Decoder()
 void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vector<DecOutput *> * outputs, std::vector<unsigned int> * num_pushed_to_each) const
 {
   assert(num_popped % bytesPerInput == 0 && "should have used Pop() with a multiple argument");
-
-  std::vector<unsigned int> zero_vect(leaf_routes_.size(), 0);
 
   for (unsigned int i = 0; i < num_popped / bytesPerInput; i++) {
 
@@ -142,7 +143,7 @@ void Decoder::Decode(const DecInput * inputs, unsigned int num_popped, std::vect
         leaf_routes_,
         leaf_route_masks_,
         leaf_payload_masks_,
-        zero_vect
+        leaf_payload_shifts_
     );
 
     //std::tie(leaf_idx, payload) = DecodeFunnel(input);

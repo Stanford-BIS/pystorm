@@ -44,6 +44,7 @@ class Decoder : public Xcoder<DecInput, DecOutput> {
     std::vector<uint64_t> leaf_route_masks_;
     std::vector<uint64_t> leaf_payload_masks_;
     std::vector<unsigned int> leaf_payload_lens_;
+    std::vector<unsigned int> leaf_payload_shifts_;
 
 };
 
