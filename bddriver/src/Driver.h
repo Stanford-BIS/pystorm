@@ -189,6 +189,14 @@ class Driver
     /// Get software state of MM memory contents: this DOES NOT dump the memory.
     inline const std::vector<MMData>    * GetMMState(unsigned int core_id) const { return bd_state_[core_id].GetMM(); }
 
+    // public static helper functions. Maybe going to move somewhere else... DriverTypes maybe
+    static uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id);
+    static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
+
+    static uint64_t PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values);
+    static std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values);
+    static FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word);
+    static FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words);
 
   private:
     // private because singleton. See GetInstance().
@@ -246,14 +254,7 @@ class Driver
     ////////////////////////////////
     // helpers
     
-    uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id) const;
-    uint64_t PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) const;
-    std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values) const;
-    FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word) const;
-    FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words) const;
-
     std::pair<std::vector<uint32_t>, unsigned int> SerializeWordsToLeaf(const std::vector<uint64_t> & inputs, bdpars::HornLeafId) const;
-
     std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWordsFromLeaf(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const;
 
     /// Sends a vector of payloads to a single <core_id> and <leaf_id>.

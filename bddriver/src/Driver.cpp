@@ -662,30 +662,81 @@ void Driver::SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traff
   SetRegister(core_id, toggle_id, {{bdpars::TRAFFIC_ENABLE, traffic_en}, {bdpars::DUMP_ENABLE, dump_en}});
 }
 
-uint64_t Driver::ValueForSpecialFieldId(bdpars::WordFieldId field_id) const {
-  if (field_id == bdpars::UNUSED) { // user need not supply values for unused fields
-    return 0;
-  } else if (field_id == bdpars::FIXED_0) {
-    return 0;
-  } else if (field_id == bdpars::FIXED_1) {
-    return 1;
-  } else if (field_id == bdpars::FIXED_2) {
-    return 2;
-  } else if (field_id == bdpars::FIXED_3) {
-    return 3;
-  } else {
-    assert(false && "no value supplied for a given field");
-    return 0; // suppresses compiler warning
+uint64_t Driver::ValueForSpecialFieldId(bdpars::WordFieldId field_id) 
+{
+  using namespace bdpars;
+
+  switch (field_id)
+  {
+    case UNUSED :
+    {
+      return 0; // don't care
+    }
+    case FIXED_0 :
+    {
+      return 0;
+    }
+    case FIXED_1 :
+    {
+      return 1;
+    }
+    case FIXED_2 :
+    {
+      return 2;
+    }
+    case FIXED_3 :
+    {
+      return 3;
+    }
+    default :
+    {
+      assert(false && "no value supplied for a given field");
+      return 0; // suppresses compiler warning
+    }
   }
 }
 
-uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) const
+bool Driver::SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val)
+{
+  using namespace bdpars;
+
+  switch (field_id)
+  {
+    case UNUSED :
+    {
+      return true; // don't care (although probably should be 0)
+    }
+    case FIXED_0 :
+    {
+      return val == 0;
+    }
+    case FIXED_1 :
+    {
+      return val == 1;
+    }
+    case FIXED_2 :
+    {
+      return val == 2;
+    }
+    case FIXED_3 :
+    {
+      return val == 3;
+    }
+    default :
+    {
+      return true; // for normal fields, we don't care
+    }
+  }
+}
+
+uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) 
 {
   std::vector<unsigned int> widths_as_vect;
   std::vector<uint64_t> field_values_as_vect;
   for (auto& it : word_struct) {
-    bdpars::WordFieldId field_id = it.first;
-    unsigned int field_width = it.second;
+    bdpars::WordFieldId field_id;
+    unsigned int field_width;
+    std::tie(field_id, field_width) = it;
 
     uint64_t field_value;
     if (field_values.count(field_id) > 0) {
@@ -701,7 +752,7 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
-std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values) const
+std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values)
 {
   // check that input is well-formed
   assert(word_struct.size() == field_values.size() && "number of fields in word_struct and field_values");
@@ -753,7 +804,7 @@ std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struc
   return retval;
 }
 
-FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word) const
+FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word)
 {
   std::vector<unsigned int> widths_as_vect;
   for (auto& it : word_struct) {
@@ -767,13 +818,16 @@ FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64
   unsigned int i = 0;
   for (auto& it : word_struct) {
     bdpars::WordFieldId field_id = it.first;
+
+    // check if we're unpacking the right word, return empty object if not
+    if (!SpecialFieldValueMatches(field_id, vals[i])) return {};
     retval[field_id] = vals[i];
     i++;
   }
   return retval;
 }
 
-FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words) const 
+FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words)
 {
   std::vector<unsigned int> widths_as_vect;
   for (auto& it : word_struct) {
@@ -794,6 +848,10 @@ FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std:
     unsigned int j = 0;
     for (auto& it : word_struct) {
       bdpars::WordFieldId field_id = it.first;
+
+      // check if we're unpacking the right word, return empty object if not
+      if (!SpecialFieldValueMatches(field_id, vals[j])) return {};
+
       retval[field_id].push_back(vals[j]);
       j++;
     }
