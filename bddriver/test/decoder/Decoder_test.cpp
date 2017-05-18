@@ -152,7 +152,7 @@ TEST_P(DecoderFixture, Test1xDecoder)
   for (unsigned int i = 0; i < bufs_out.size(); i++) {
     // give up after 10s
     consumers.push_back(
-        std::thread(ConsumeVectNGiveUpAfter<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000, 10e6)
+        std::thread(ConsumeVectNGiveUpAfter<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000, 30e6)
     );
     
     //// expect exact number
