@@ -17,9 +17,10 @@ namespace bddriver {
 
 class Decoder : public Xcoder<DecInput, DecOutput> {
 
-  const static unsigned int bytesPerInput = 5; // BD_output is 34 bits, fits in 5 bytes
-
   public:
+
+    const static unsigned int bytesPerInput = 5; // BD_output is 34 bits, fits in 5 bytes
+
     Decoder(
         const bdpars::BDPars * pars, 
         MutexBuffer<DecInput> * in_buf, 

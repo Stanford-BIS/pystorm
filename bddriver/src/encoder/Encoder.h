@@ -16,9 +16,10 @@ namespace bddriver {
 
 class Encoder : public Xcoder<EncInput, EncOutput> {
 
-  const static unsigned int bytesPerOutput = 3; // BD_input is 21 bits, fits in 3 bytes
-
   public:
+
+    const static unsigned int bytesPerOutput = 3; // BD_input is 21 bits, fits in 3 bytes
+
 
     Encoder(
         const bdpars::BDPars * pars, 
