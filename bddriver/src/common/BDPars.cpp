@@ -138,8 +138,8 @@ BDPars::BDPars()
 
   // these are the words you use to program the memory
   mem_prog_words_.resize(LastMemWordId+1);
-  mem_prog_words_[PAT_write]             = {{address, 6}, {FIXED_0, 2}, {data, 20}};
-  mem_prog_words_[PAT_read]              = {{address, 6}, {FIXED_1, 2}, {unused, 20}};
+  mem_prog_words_[PAT_write]             = {{address, 6}, {FIXED_0, 1}, {data, 20}};
+  mem_prog_words_[PAT_read]              = {{address, 6}, {FIXED_1, 1}, {unused, 20}};
 
   mem_prog_words_[TAT_set_address]       = {{FIXED_0, 2}, {address, 10}, {unused, 19}};
   mem_prog_words_[TAT_write_increment]   = {{FIXED_1, 2}, {data, 29}};
