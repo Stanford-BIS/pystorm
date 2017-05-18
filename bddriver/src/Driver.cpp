@@ -250,7 +250,7 @@ void Driver::SetPAT(
 
   // transmit words
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), prog_words);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::PAT), prog_words);
   ResumeTraffic(core_id);
 }
 
@@ -292,7 +292,7 @@ void Driver::SetTAT(
 
   // transmit data
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->ProgHornId(TAT_id), prog_words);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(TAT_id), prog_words);
   ResumeTraffic(core_id);
 }
 
@@ -321,7 +321,7 @@ void Driver::SetAM(
 
   // transmit to horn
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::AM), prog_words_encapsulated);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::AM), prog_words_encapsulated);
   ResumeTraffic(core_id);
 }
 
@@ -349,7 +349,7 @@ void Driver::SetMM(
 
   // transmit to horn
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::MM), prog_words_encapsulated);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::MM), prog_words_encapsulated);
   ResumeTraffic(core_id);
 }
 
@@ -363,7 +363,7 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
   // transmit dump words, then block until all PAT words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->ProgHornId(bdpars::PAT), dump_words);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::PAT), dump_words);
   std::vector<uint64_t> payloads = RecvFromFunnel(bdpars::DUMP_PAT, core_id, PAT_size);
   ResumeTraffic(core_id);
 
@@ -508,7 +508,7 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
   
   // We look up the width of the synapse and sign fields,
   // but we are hardcoding the order
-  const bdpars::WordStructure * spike_word_struct = bd_pars_->Word(bdpars::NeuronInject);
+  const bdpars::WordStructure * spike_word_struct = bd_pars_->Word(bdpars::InputSpikes);
   unsigned int widths[2] = {spike_word_struct->at(0).second, spike_word_struct->at(1).second};
 
   // we can at least assert that the line we wrote above is consistent with BDPars
@@ -526,7 +526,7 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
     uint32_t sign_and_neuron_id[2] = {static_cast<uint32_t>(SignedValToSignBit(spikes[i].sign)), spikes[i].neuron_id};
     uint32_t payload = Pack32(sign_and_neuron_id, widths, 2);
 
-    unsigned int leaf_id_as_uint = static_cast<unsigned int>(bdpars::NeuronInject);
+    unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::InputSpikes));
 
     // write to memory pointed to by LockBack()
     write_to[i] = {spikes[i].core_id, leaf_id_as_uint, payload};
@@ -538,7 +538,7 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
 
 std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
 {
-  unsigned int buf_idx = bd_pars_->FunnelIdx(bdpars::NRNI);
+  unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OutputSpikes));
   std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RecvSpikes_timeout_us));
 
   std::vector<Spike> retval;
@@ -653,7 +653,7 @@ void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, const Field
   }
   bd_state_[core_id].SetReg(reg_id, field_vals_as_vect);
 
-  SendToHorn(core_id, bd_pars_->ProgHornId(reg_id), {payload});
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(reg_id), {payload});
 }
 
 

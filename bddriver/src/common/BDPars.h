@@ -200,6 +200,27 @@ enum WordFieldId {
   LastWordFieldId = neuron_address
 };
 
+enum InputId {
+  InputTags,
+  DCTFIFOInputTags,
+  InputSpikes,
+
+  LastInputId = InputSpikes
+};
+
+enum OutputId {
+  PreFIFOTags,
+  PostFIFOTags0,
+  PostFIFOTags1,
+  OutputSpikes,
+  OverflowTags0,
+  OverflowTags1,
+  AccOutputTags,
+  TATOutputTags,
+
+  LastOutputId = TATOutputTags
+};
+
 enum MiscWidthId {
   BD_input,
   BD_output,
@@ -229,7 +250,17 @@ struct MemInfo {
 
 struct RegInfo {
   WordStructure word_structure;
-  HornLeafId prog_leaf;
+  HornLeafId leaf;
+};
+
+struct InputInfo {
+  WordStructure word_structure;
+  HornLeafId leaf;
+};
+
+struct OutputInfo {
+  WordStructure word_structure;
+  FunnelLeafId leaf;
 };
 
 class BDPars {
@@ -263,15 +294,17 @@ class BDPars {
     inline unsigned int Width(MiscWidthId object)  const { return misc_widths_.at(object); }
 
     inline const WordStructure * Word(MemId object, unsigned int subtype_idx=0) const { return &(mem_.at(object).word_structures.at(subtype_idx)); }
-    inline const WordStructure * Word(MemWordId object)    const { return &(mem_prog_words_.at(object)); }
-    inline const WordStructure * Word(RegId object)        const { return &(reg_.at(object).word_structure); }
-    inline const WordStructure * Word(HornLeafId object)   const { return &(input_.at(object)); }
-    inline const WordStructure * Word(FunnelLeafId object) const { return &(output_.at(object)); }
+    inline const WordStructure * Word(MemWordId object) const { return &(mem_prog_words_.at(object)); }
+    inline const WordStructure * Word(RegId object)     const { return &(reg_.at(object).word_structure); }
+    inline const WordStructure * Word(InputId object)   const { return &(input_.at(object).word_structure); }
+    inline const WordStructure * Word(OutputId object)  const { return &(output_.at(object).word_structure); }
 
-    inline HornLeafId ProgHornId(MemId object) const { return mem_.at(object).prog_leaf; }
-    inline HornLeafId ProgHornId(RegId object) const { return reg_.at(object).prog_leaf; }
+    inline HornLeafId HornLeafIdFor(MemId object)   const { return mem_.at(object).prog_leaf; }
+    inline HornLeafId HornLeafIdFor(RegId object)   const { return reg_.at(object).leaf; }
+    inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
 
-    inline FunnelLeafId DumpFunnelId(MemId object) const { return mem_.at(object).dump_leaf; }
+    inline FunnelLeafId FunnelLeafIdFor(MemId object)    const { return mem_.at(object).dump_leaf; }
+    inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
 
     inline unsigned int Size(const MemId object) const { return mem_.at(object).size; }
 
@@ -286,10 +319,10 @@ class BDPars {
 
     /// inputs to BD that aren't a register or memory programming word
     /// keyed by HornLeafId
-    std::vector<WordStructure> input_;
+    std::vector<InputInfo> input_;
     /// outputs from BD that aren't a memory dump word
     /// keyed by FunnelLeafId
-    std::vector<WordStructure> output_;
+    std::vector<OutputInfo> output_;
     
     /// horn description
     /// keyed by HornLeafId

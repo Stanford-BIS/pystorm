@@ -158,24 +158,24 @@ BDPars::BDPars()
   //////////////////////////////////////////////////////
   // inputs
   
-  input_.resize(LastHornLeafId+1); // XXX this is kind of janky
-  input_[RI]                  = {{count, 9}, {tag, 11}};
-  input_[INIT_FIFO_DCT]       = {{tag, 11}};
-  input_[NeuronInject]        = {{synapse_sign, 1}, {synapse_address, 10}};
+  input_.resize(LastInputId+1); 
+  input_[InputTags]          = {{{count, 9}, {tag, 11}},                    RI};
+  input_[DCTFIFOInputTags]   = {{{tag, 11}},                                INIT_FIFO_DCT};
+  input_[InputSpikes]        = {{{synapse_sign, 1}, {synapse_address, 10}}, NeuronInject};
 
 
   //////////////////////////////////////////////////////
   // outputs
   
-  output_.resize(LastFunnelLeafId+1); // XXX this is kind of janky
-  output_[DUMP_PRE_FIFO]   = {{count, 9}, {tag, 11}};
-  output_[DUMP_POST_FIFO0] = {{count, 9}, {tag, 10}};
-  output_[DUMP_POST_FIFO1] = {{count, 9}, {tag, 10}};
-  output_[NRNI]            = {{neuron_address, 12}};
-  output_[OVFLW0]          = {{FIXED_1, 1}};
-  output_[OVFLW1]          = {{FIXED_1, 1}};
-  output_[RO_ACC]          = {{count, 9}, {tag, 11}, {global_route, 8}};
-  output_[RO_TAT]          = {{count, 9}, {tag, 11}, {global_route, 12}};
+  output_.resize(LastOutputId+1); // XXX this is kind of janky
+  output_[PreFIFOTags]   = {{{count, 9}, {tag, 11}},                     DUMP_PRE_FIFO};
+  output_[PostFIFOTags0] = {{{count, 9}, {tag, 10}},                     DUMP_POST_FIFO0};
+  output_[PostFIFOTags1] = {{{count, 9}, {tag, 10}},                     DUMP_POST_FIFO1};
+  output_[OutputSpikes]  = {{{neuron_address, 12}},                      NRNI};
+  output_[OverflowTags0] = {{{FIXED_1, 1}},                              OVFLW0};
+  output_[OverflowTags1] = {{{FIXED_1, 1}},                              OVFLW1};
+  output_[AccOutputTags] = {{{count, 9}, {tag, 11}, {global_route, 8}},  RO_ACC};
+  output_[TATOutputTags] = {{{count, 9}, {tag, 11}, {global_route, 12}}, RO_TAT};
 
   //////////////////////////////////////////////////////
   // misc
