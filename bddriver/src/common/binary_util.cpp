@@ -110,7 +110,7 @@ inline std::pair<unsigned int, TOUT> DecodeFH(
   }
 
   assert(false && "input matched no routes");
-  return {0, 0}
+  return {0, 0};
 }
 
 
