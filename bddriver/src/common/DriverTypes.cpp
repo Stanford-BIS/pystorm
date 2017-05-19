@@ -153,5 +153,121 @@ std::vector<MMData> FieldVValuesToMMData(const FieldVValues & field_values)
   return retval;
 }
 
+////////////////////////////////
+// FVV/FV utility functions
+
+FieldVValues FieldValuesAsFieldVValues(const FieldValues & input) 
+{
+  FieldVValues output;
+  for (auto& kv : input) {
+    output[kv.first] = {kv.second};
+  }
+  return output;
+}
+
+std::vector<FieldValues> FieldVValuesAsVFieldValues(const FieldVValues & input)
+{
+  std::vector<FieldValues> output;
+  for (unsigned int i = 0; i < input.begin()->second.size(); i++) {
+    FieldValues fv;
+    for (auto& kv : input) {
+      fv[kv.first] = kv.second[i];
+    }
+    output.push_back(fv);
+  }
+  return output;
+}
+
+bool FVVKeysMatchFV(const FieldVValues & fvv, const FieldValues & fv) 
+{
+  bool keys_match = true;
+  for (auto & kv : fvv) {
+    keys_match = keys_match && (fv.count(kv.first) > 0);
+  }
+  for (auto & kv : fv) {
+    keys_match = keys_match && (fvv.count(kv.first) > 0);
+  }
+  return keys_match;
+}
+
+void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append)
+{
+  assert(FVVKeysMatchFV(*fvv, to_append));
+  for (auto& kv : *fvv) {
+    fvv->at(kv.first).push_back(to_append.at(kv.first));
+  }
+}
+
+std::vector<FieldVValues> VFVAsVFVV(const std::vector<FieldValues> & inputs)
+{
+  std::vector<FieldVValues> vfvv;
+  for (auto& fv : inputs) {
+    if (vfvv.size() == 0) {
+      vfvv.push_back(FieldValuesAsFieldVValues(fv));
+    } else {
+      if (FVVKeysMatchFV(vfvv.back(), fv)) {
+        AppendToFVV(&vfvv.back(), fv);
+      } else {
+        vfvv.push_back(FieldValuesAsFieldVValues(fv));
+      }
+    }
+  }
+  return vfvv;
+}
+
+// packs a bunch of FVVs into one
+FieldVValues CollapseFVVs(const std::vector<std::pair<FieldVValues, bdpars::WordFieldId> > & fvvs)
+{
+  // XXX for performance, this should use swaps
+  // right now, this isn't being used in a way that needs performance
+  using namespace bdpars; 
+
+  FieldVValues collapsed_fvv;
+
+  // iterate through fvv, field_id pairs
+  for (auto& fvv_field : fvvs) {
+    FieldVValues fvv;
+    WordFieldId field_id_to_collapse_into;
+    std::tie(fvv, field_id_to_collapse_into) = fvv_field;
+
+    // iterate through fields within that fvv
+    for (auto& field_vect : fvv) {
+      WordFieldId field_id;
+      std::vector<uint64_t> values;
+      std::tie(field_id, values) = field_vect;
+
+      // if it's not the field we're collapsing (whose values are in the next fvv), put it in the output
+      if (field_id != field_id_to_collapse_into) {
+        collapsed_fvv[field_id] = values;
+      }
+    }
+  }
+
+  // sanity check
+  for (auto& it : collapsed_fvv) {
+    unsigned int first_size = collapsed_fvv.begin()->second.size();
+    assert(it.second.size() == first_size);
+  }
+
+  return collapsed_fvv;
+}
+
+// like CollapseFVVs, but for a FV instead
+FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFieldId> > & fvs) 
+{
+  using namespace bdpars;
+
+  std::vector<std::pair<FieldVValues, WordFieldId> > fvvs;
+  for (auto& fv_and_field : fvs) {
+    FieldValues fv = fv_and_field.first; 
+    WordFieldId field_id = fv_and_field.second;
+
+    fvvs.push_back({FieldValuesAsFieldVValues(fv), field_id});
+  }
+
+  return FieldVValuesAsVFieldValues(CollapseFVVs(fvvs))[0];
+}
+
+
 } // bddriver namespace
 } // pystorm namespace

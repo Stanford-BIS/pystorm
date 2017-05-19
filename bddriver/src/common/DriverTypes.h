@@ -94,6 +94,17 @@ std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & fiel
 std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values);
 std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values);
 
+////////////////////////////////
+// FieldVValues, FieldValues utility functions
+
+FieldVValues FieldValuesAsFieldVValues(const FieldValues & input);
+std::vector<FieldValues> FieldVValuesAsVFieldValues(const FieldVValues & input);
+bool FVVKeysMatchFV(const FieldVValues & fvv, const FieldValues & fv);
+void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append);
+std::vector<FieldVValues> VFVAsVFVV(const std::vector<FieldValues> & inputs);
+FieldVValues CollapseFVVs(const std::vector<std::pair<FieldVValues, bdpars::WordFieldId> > & fvvs);
+FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFieldId> > & fvs);
+
 ////////////////////////////////////////
 // decoder/encoder
 
