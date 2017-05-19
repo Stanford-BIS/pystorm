@@ -494,7 +494,7 @@ std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::ve
       stop_bit = 0;
     }
 
-    uint64_t word = PackWord(*AM_MM_encapsulation, {{bdpars::PAYLOAD, it}, {bdpars::STOP, stop_bit}});
+    uint64_t word = PackWord(*AM_MM_encapsulation, {{bdpars::PAYLOAD, it}, {bdpars::AMMM_STOP, stop_bit}});
     retval.push_back(word);
   }
   return retval;

@@ -110,24 +110,18 @@ BDPars::BDPars()
   // Memories
   
   // this is the packing of the stored value! goes in the data fields of programming words
-  std::vector<WordStructure> AM_words  = {{{ACCUMULATOR_VALUE, 15}, 
-                                           {THRESHOLD, 3}, 
-                                           {STOP, 1}, 
-                                           {NEXT_ADDRESS, 19}}};
-  std::vector<WordStructure> MM_words  = {{{WEIGHT, 8}}};
-  std::vector<WordStructure> PAT_words = {{{AM_ADDRESS, 10}, 
-                                           {MM_ADDRESS_LO, 8}, 
-                                           {MM_ADDRESS_HI, 2}}};
-  std::vector<WordStructure> TAT_words = {{{AM_ADDRESS, 10}, // ACC TYPE
-                                           {MM_ADDRESS, 16}},
-                                          {{SYNAPSE_ADDRESS_0, 11}, // SPIKE TYPE
-                                           {SYNAPSE_SIGN_0, 1}, 
-                                           {SYNAPSE_ADDRESS_1, 11}, 
-                                           {SYNAPSE_SIGN_1, 1}, 
-                                           {UNUSED, 2}},
-                                          {{TAG, 11}, // FANOUT TYPE
-                                           {GLOBAL_ROUTE, 12}, 
-                                           {UNUSED,3}}};
+  std::vector<WordStructure> AM_words  = 
+      {{{ACCUMULATOR_VALUE, 15}, {THRESHOLD, 3}, {STOP, 1}, {NEXT_ADDRESS, 19}}};
+  std::vector<WordStructure> MM_words  = 
+      {{{WEIGHT, 8}}};
+  std::vector<WordStructure> PAT_words = 
+      {{{AM_ADDRESS, 10}, {MM_ADDRESS_LO, 8}, {MM_ADDRESS_HI, 2}}};
+  std::vector<WordStructure> TAT_words = 
+      {
+        {{STOP, 1}, {FIXED_0, 2}, {AM_ADDRESS, 10}, {MM_ADDRESS, 16}}, // ACC TYPE 
+        {{STOP, 1}, {FIXED_1, 2}, {SYNAPSE_ADDRESS_0, 11}, {SYNAPSE_SIGN_0, 1}, {SYNAPSE_ADDRESS_1, 11}, {SYNAPSE_SIGN_1, 1}, {UNUSED, 2}}, // SPIKE TYPE
+        {{STOP, 1}, {FIXED_2, 2}, {TAG, 11}, {GLOBAL_ROUTE, 12}, {UNUSED,3}} // FANOUT TYPE
+      };
 
   mem_.resize(LastMemId+1);
   mem_[AM]   = {1024,    AM_words,  PROG_AMMM, DUMP_AM};
@@ -152,8 +146,8 @@ BDPars::BDPars()
   mem_prog_words_[AM_READ_WRITE]         = {{FIXED_1, 2}, {DATA, 38}};
   mem_prog_words_[AM_INCREMENT]          = {{FIXED_2, 2}, {UNUSED, 38}};
 
-  mem_prog_words_[AM_ENCAPSULATION]      = {{FIXED_0, 1}, {PAYLOAD, 40}, {STOP, 1}};
-  mem_prog_words_[MM_ENCAPSULATION]      = {{FIXED_1, 1}, {PAYLOAD, 40}, {STOP, 1}};
+  mem_prog_words_[AM_ENCAPSULATION]      = {{FIXED_0, 1}, {PAYLOAD, 40}, {AMMM_STOP, 1}};
+  mem_prog_words_[MM_ENCAPSULATION]      = {{FIXED_1, 1}, {PAYLOAD, 40}, {AMMM_STOP, 1}};
 
 
   //////////////////////////////////////////////////////

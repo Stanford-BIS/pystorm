@@ -186,6 +186,7 @@ enum MemWordId {
 
 enum WordFieldId {
   // fields with special meaning
+  INVALID_FIELD, // only used when you want an enum to not match anything
   FIXED_0,
   FIXED_1,
   FIXED_2,
@@ -215,6 +216,8 @@ enum WordFieldId {
   NEXT_ADDRESS,
   // MM data
   WEIGHT,
+  // AMMM encapsulation
+  AMMM_STOP,
   // PAT data
   AM_ADDRESS,
   MM_ADDRESS_LO,
