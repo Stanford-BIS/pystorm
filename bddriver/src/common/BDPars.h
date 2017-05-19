@@ -307,6 +307,22 @@ class BDPars {
     inline unsigned int Serialization(HornLeafId leaf)   const { return funnel_.at(leaf).serialization; }
     inline unsigned int Serialization(FunnelLeafId leaf) const { return horn_.at(leaf).serialization; }
 
+    // going from a component Id to the FH leaf it's associated with
+    inline HornLeafId HornLeafIdFor(MemId object)   const { return mem_.at(object).prog_leaf; }
+    inline HornLeafId HornLeafIdFor(RegId object)   const { return reg_.at(object).leaf; }
+    inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
+
+    inline FunnelLeafId FunnelLeafIdFor(MemId object)    const { return mem_.at(object).dump_leaf; }
+    inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
+
+    // going from a FH leaf to the value of the enum associate with the type of the component it services
+    inline ComponentTypeId ComponentTypeIdFor(HornLeafId leaf)   const { return horn_.at(leaf).component_type; }
+    inline ComponentTypeId ComponentTypeIdFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component_type; }
+
+    // going from a FH leaf to the value of the enum associate with the component it services
+    inline unsigned int ComponentIdxFor(HornLeafId leaf)   const { return horn_.at(leaf).component; }
+    inline unsigned int ComponentIdxFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component; }
+
     /////////////////////////////////////
     // field width queries
     
@@ -314,18 +330,17 @@ class BDPars {
     inline unsigned int Width(FunnelLeafId object) const { return funnel_.at(object).data_width; }
     inline unsigned int Width(MiscWidthId object)  const { return misc_widths_.at(object); }
 
+    /////////////////////////////////////
+    // Word structure queries
+    
     inline const WordStructure * Word(MemId object, unsigned int subtype_idx=0) const { return &(mem_.at(object).word_structures.at(subtype_idx)); }
     inline const WordStructure * Word(MemWordId object) const { return &(mem_prog_words_.at(object)); }
     inline const WordStructure * Word(RegId object)     const { return &(reg_.at(object).word_structure); }
     inline const WordStructure * Word(InputId object)   const { return &(input_.at(object).word_structure); }
     inline const WordStructure * Word(OutputId object)  const { return &(output_.at(object).word_structure); }
 
-    inline HornLeafId HornLeafIdFor(MemId object)   const { return mem_.at(object).prog_leaf; }
-    inline HornLeafId HornLeafIdFor(RegId object)   const { return reg_.at(object).leaf; }
-    inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
-
-    inline FunnelLeafId FunnelLeafIdFor(MemId object)    const { return mem_.at(object).dump_leaf; }
-    inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
+    /////////////////////////////////////
+    // misc
 
     inline unsigned int Size(const MemId object) const { return mem_.at(object).size; }
 
