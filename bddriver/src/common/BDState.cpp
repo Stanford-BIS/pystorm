@@ -167,6 +167,38 @@ void BDState::WaitForTrafficOff() const
   }
 }
 
+/// Compare BDStates to see if all the fields match.
+/// Useful for testing when using BDModel. Can compare Driver's 
+/// BDState to the BDModels BDState
+bool operator==(const BDState& lhs, const BDState rhs)
+// kind of a pain because of all the structs
+{
+  // comparison of vectors works as expected if the comparators for the underlying stored objects is defined.
+  
+  // check memories
+  bool mems_match = (
+      *lhs.GetAM() == *rhs.GetAM() &&
+      *lhs.GetMM() == *rhs.GetMM() &&
+      *lhs.GetTAT0() == *rhs.GetTAT0() &&
+      *lhs.GetTAT1() == *rhs.GetTAT1() &&
+      *lhs.GetPAT() == *rhs.GetPAT()
+  );
+
+  // check registers
+  bool regs_match = true;
+  for (unsigned int i = 0; i < bdpars::LastRegId; i++) {
+    const std::vector<unsigned int> * lhs_vals, * rhs_vals;
+    bool lhs_valid, rhs_valid;
+    std::tie(lhs_vals, lhs_valid) = lhs.GetReg(static_cast<bdpars::RegId>(i));
+    std::tie(rhs_vals, rhs_valid) = rhs.GetReg(static_cast<bdpars::RegId>(i));
+    regs_match &= (lhs_valid == rhs_valid);
+    regs_match &= (*lhs_vals == *rhs_vals);
+  }
+
+  return mems_match && regs_match;
+  
+}
+
 
 } // bddriver
 } // pystorm
