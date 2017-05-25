@@ -140,45 +140,20 @@ std::vector<SynSpike> MakeRandomSynSpikesSameCoreId(unsigned int N, unsigned int
 
 void ComparePATData(const std::vector<PATData> & a, const std::vector<PATData> & b)
 {
-  ASSERT_EQ(a.size(), b.size());
-  for (unsigned int i = 0; i < a.size(); i++) {
-    ASSERT_EQ(a[i].AM_address, b[i].AM_address);
-    ASSERT_EQ(a[i].MM_address_lo, b[i].MM_address_lo);
-    ASSERT_EQ(a[i].MM_address_hi, b[i].MM_address_hi);
-  };
+  ASSERT_EQ(a, b);
 }
 
 void CompareTATData(const std::vector<TATData> & a, const std::vector<TATData> & b)
 {
-  ASSERT_EQ(a.size(), b.size());
-  for (unsigned int i = 0; i < a.size(); i++) {
-    ASSERT_EQ(a[i].stop, b[i].stop);
-    ASSERT_EQ(a[i].type, b[i].type);
-    ASSERT_EQ(a[i].AM_address, b[i].AM_address);
-    ASSERT_EQ(a[i].MM_address, b[i].MM_address);
-    ASSERT_EQ(a[i].synapse_id_0, b[i].synapse_id_0);
-    ASSERT_EQ(a[i].synapse_sign_0, b[i].synapse_sign_0);
-    ASSERT_EQ(a[i].synapse_id_1, b[i].synapse_id_1);
-    ASSERT_EQ(a[i].synapse_sign_1, b[i].synapse_sign_1);
-    ASSERT_EQ(a[i].tag, b[i].tag);
-    ASSERT_EQ(a[i].global_route, b[i].global_route);
-  };
+  ASSERT_EQ(a, b);
 }
 
 void CompareAMData(const std::vector<AMData> & a, const std::vector<AMData> & b)
 {
-  ASSERT_EQ(a.size(), b.size());
-  for (unsigned int i = 0; i < a.size(); i++) {
-    ASSERT_EQ(a[i].threshold, b[i].threshold);
-    ASSERT_EQ(a[i].stop, b[i].stop);
-    ASSERT_EQ(a[i].next_address, b[i].next_address);
-  };
+  ASSERT_EQ(a, b);
 }
 
 void CompareMMData(const std::vector<MMData> & a, const std::vector<MMData> & b)
 {
-  ASSERT_EQ(a.size(), b.size());
-  for (unsigned int i = 0; i < a.size(); i++) {
-    ASSERT_EQ(a[i], b[i]);
-  };
+  ASSERT_EQ(a, b);
 }
