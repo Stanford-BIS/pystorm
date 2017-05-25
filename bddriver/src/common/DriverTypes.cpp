@@ -11,6 +11,57 @@ namespace bddriver {
 
 using namespace bdpars; // XXX should probably just type it in everywhere...
 
+bool operator==(const AMData   & lhs, const AMData   & rhs)
+{
+  return (lhs.threshold    == rhs.threshold &&
+          lhs.stop         == rhs.stop      &&
+          lhs.next_address == rhs.next_address);
+}
+
+bool operator==(const PATData  & lhs, const PATData  & rhs)
+{
+  return (lhs.AM_address    == rhs.AM_address    &&
+          lhs.MM_address_lo == rhs.MM_address_lo &&
+          lhs.MM_address_hi == rhs.MM_address_hi);
+}
+
+bool operator==(const TATData  & lhs, const TATData  & rhs)
+{
+  return (lhs.stop           == rhs.stop           &&
+          lhs.type           == rhs.type           &&
+          lhs.AM_address     == rhs.AM_address     &&
+          lhs.MM_address     == rhs.MM_address     &&
+          lhs.synapse_id_0   == rhs.synapse_id_0   &&
+          lhs.synapse_sign_0 == rhs.synapse_sign_0 &&
+          lhs.synapse_id_1   == rhs.synapse_id_1   &&
+          lhs.synapse_sign_1 == rhs.synapse_sign_1 &&
+          lhs.tag            == rhs.tag            &&
+          lhs.global_route   == rhs.global_route);
+}
+
+bool operator==(const SynSpike & lhs, const SynSpike & rhs)
+{
+  return (lhs.time       == rhs.time       &&
+          lhs.core_id    == rhs.core_id    &&
+          lhs.synapse_id == rhs.synapse_id &&
+          lhs.sign       == rhs.sign);
+}
+
+bool operator==(const NrnSpike & lhs, const NrnSpike & rhs)
+{
+  return (lhs.time       == rhs.time    &&
+          lhs.core_id    == rhs.core_id &&
+          lhs.neuron_id == rhs.neuron_id);
+}
+
+bool operator==(const Tag      & lhs, const Tag      & rhs)
+{
+  return (lhs.time    == rhs.time    &&
+          lhs.core_id == rhs.core_id &&
+          lhs.tag     == rhs.tag     &&
+          lhs.count   == rhs.count);
+}
+
 uint64_t SignedValToSignBit(int sign) 
 {
   assert((sign == 1 || sign == -1) && "sign must be +1 or -1");
@@ -44,9 +95,9 @@ std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data)
 
     } else if (it.type == 1) { // spike type
       field_vals = 
-        {{SYNAPSE_ADDRESS_0, it.synapse_address_0},
+        {{SYNAPSE_ADDRESS_0, it.synapse_id_0},
          {SYNAPSE_SIGN_0,    SignedValToSignBit(it.synapse_sign_0)}, // -1/+1 -> 1/0
-         {SYNAPSE_ADDRESS_1, it.synapse_address_1},
+         {SYNAPSE_ADDRESS_1, it.synapse_id_1},
          {SYNAPSE_SIGN_1,    SignedValToSignBit(it.synapse_sign_1)}, // -1/+1 -> 1/0
          {STOP,              it.stop}};
 
@@ -85,6 +136,35 @@ FieldVValues DataToFieldVValues(const std::vector<MMData> & data)
   return retval;
 }
 
+FieldVValues DataToFieldVValues(const std::vector<SynSpike> & data)
+{
+  FieldVValues retval = {{SYNAPSE_SIGN, {}}, {SYNAPSE_ADDRESS, {}}};
+  for (auto& it : data) {
+    retval[SYNAPSE_ADDRESS].push_back(it.synapse_id);
+    retval[SYNAPSE_SIGN].push_back(it.sign);
+  }
+  return retval;
+}
+
+FieldVValues DataToFieldVValues(const std::vector<NrnSpike> & data)
+{
+  FieldVValues retval = {{NEURON_ADDRESS, {}}};
+  for (auto& it : data) {
+    retval[NEURON_ADDRESS].push_back(it.neuron_id);
+  }
+  return retval;
+}
+
+FieldVValues DataToFieldVValues(const std::vector<Tag> & data)
+{
+  FieldVValues retval = {{COUNT, {}}, {TAG, {}}};
+  for (auto& it : data) {
+    retval[COUNT].push_back(it.count);
+    retval[TAG].push_back(it.tag);
+  }
+  return retval;
+}
+
 std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) 
 {
   std::vector<PATData> retval;
@@ -111,9 +191,9 @@ std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & fiel
       to_push.MM_address = field_values.at(i).at(MM_ADDRESS);
     } else if (field_values.at(i).count(SYNAPSE_ADDRESS_0) > 0) {
       to_push.type = 1;
-      to_push.synapse_address_0 = field_values.at(i).at(SYNAPSE_ADDRESS_0);
+      to_push.synapse_id_0 = field_values.at(i).at(SYNAPSE_ADDRESS_0);
       to_push.synapse_sign_0 = field_values.at(i).at(SYNAPSE_SIGN_0);
-      to_push.synapse_address_1 = field_values.at(i).at(SYNAPSE_ADDRESS_1);
+      to_push.synapse_id_1 = field_values.at(i).at(SYNAPSE_ADDRESS_1);
       to_push.synapse_sign_1 = field_values.at(i).at(SYNAPSE_SIGN_1);
     } else if (field_values[i].count(TAG) > 0) {
       to_push.type = 2;
@@ -153,10 +233,57 @@ std::vector<MMData> FieldVValuesToMMData(const FieldVValues & field_values)
   return retval;
 }
 
+std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+{
+  std::vector<SynSpike> retval;
+  unsigned int num_el = field_values.begin()->second.size();
+  for(unsigned int i = 0; i < num_el; i++) {
+    SynSpike to_push;
+    to_push.time = times[i];
+    to_push.core_id = core_ids[i];
+    to_push.synapse_id = field_values.at(SYNAPSE_ADDRESS).at(i);
+    to_push.sign = field_values.at(SYNAPSE_SIGN).at(i);
+    // ignore value
+    retval.push_back(to_push);
+  }
+  return retval;
+}
+
+std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+{
+  std::vector<NrnSpike> retval;
+  unsigned int num_el = field_values.begin()->second.size();
+  for(unsigned int i = 0; i < num_el; i++) {
+    NrnSpike to_push;
+    to_push.time = times[i];
+    to_push.core_id = core_ids[i];
+    to_push.neuron_id = field_values.at(NEURON_ADDRESS).at(i);
+    // ignore value
+    retval.push_back(to_push);
+  }
+  return retval;
+}
+
+std::vector<Tag> FieldVValuesToTag(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+{
+  std::vector<Tag> retval;
+  unsigned int num_el = field_values.begin()->second.size();
+  for(unsigned int i = 0; i < num_el; i++) {
+    Tag to_push;
+    to_push.time = times[i];
+    to_push.core_id = core_ids[i];
+    to_push.tag = field_values.at(TAG).at(i);
+    to_push.count = field_values.at(COUNT).at(i);
+    // ignore value
+    retval.push_back(to_push);
+  }
+  return retval;
+}
+
 ////////////////////////////////
 // FVV/FV utility functions
 
-FieldVValues FieldValuesAsFieldVValues(const FieldValues & input) 
+FieldVValues FVasFVV(const FieldValues & input) 
 {
   FieldVValues output;
   for (auto& kv : input) {
@@ -165,7 +292,7 @@ FieldVValues FieldValuesAsFieldVValues(const FieldValues & input)
   return output;
 }
 
-std::vector<FieldValues> FieldVValuesAsVFieldValues(const FieldVValues & input)
+std::vector<FieldValues> FVVasVFV(const FieldVValues & input)
 {
   std::vector<FieldValues> output;
   for (unsigned int i = 0; i < input.begin()->second.size(); i++) {
@@ -174,6 +301,18 @@ std::vector<FieldValues> FieldVValuesAsVFieldValues(const FieldVValues & input)
       fv[kv.first] = kv.second[i];
     }
     output.push_back(fv);
+  }
+  return output;
+}
+
+std::vector<FieldValues> VFVVasVFV(const std::vector<FieldVValues> & inputs)
+{
+  std::vector<FieldValues> output;
+  for (auto& input : inputs) {
+    std::vector<FieldValues> this_input_as_VFV = FVVasVFV(input);
+    for (auto& vfv : this_input_as_VFV) {
+      output.push_back(vfv);
+    }
   }
   return output;
 }
@@ -198,17 +337,17 @@ void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append)
   }
 }
 
-std::vector<FieldVValues> VFVAsVFVV(const std::vector<FieldValues> & inputs)
+std::vector<FieldVValues> VFVasVFVV(const std::vector<FieldValues> & inputs)
 {
   std::vector<FieldVValues> vfvv;
   for (auto& fv : inputs) {
     if (vfvv.size() == 0) {
-      vfvv.push_back(FieldValuesAsFieldVValues(fv));
+      vfvv.push_back(FVasFVV(fv));
     } else {
       if (FVVKeysMatchFV(vfvv.back(), fv)) {
         AppendToFVV(&vfvv.back(), fv);
       } else {
-        vfvv.push_back(FieldValuesAsFieldVValues(fv));
+        vfvv.push_back(FVasFVV(fv));
       }
     }
   }
@@ -262,12 +401,30 @@ FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFie
     FieldValues fv = fv_and_field.first; 
     WordFieldId field_id = fv_and_field.second;
 
-    fvvs.push_back({FieldValuesAsFieldVValues(fv), field_id});
+    fvvs.push_back({FVasFVV(fv), field_id});
   }
 
-  return FieldVValuesAsVFieldValues(CollapseFVVs(fvvs))[0];
+  return FVVasVFV(CollapseFVVs(fvvs))[0];
 }
 
+bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct)
+{
+  bool is_word_struct = true;
+  for (std::pair<bdpars::WordFieldId, unsigned int> field : word_struct) {
+    if (fvv.count(field.first) == 0) {
+      is_word_struct = false;
+    }
+  }
+  return is_word_struct;
+}
+
+bool FVVExactlyMatchesWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct)
+{
+  bool is_word_struct = true;
+  if (word_struct.size() != fvv.size()) is_word_struct = false;
+  if (!FVVExactlyMatchesWordStruct(fvv, word_struct)) is_word_struct = false;
+  return is_word_struct;
+}
 
 } // bddriver namespace
 } // pystorm namespace

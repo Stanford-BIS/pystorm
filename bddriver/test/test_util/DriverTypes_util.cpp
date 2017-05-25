@@ -116,12 +116,12 @@ std::vector<MMData> MakeRandomMMData(unsigned int N)
   return data;
 }
 
-std::vector<Spike> MakeRandomSpikesSameCoreId(unsigned int N, unsigned int core_id)
+std::vector<SynSpike> MakeRandomSynSpikesSameCoreId(unsigned int N, unsigned int core_id)
 {
   auto generator = std::default_random_engine(0);
   auto uint_distribution = std::uniform_int_distribution<unsigned int>(0, std::numeric_limits<unsigned int>::max());
 
-  std::vector<Spike> data;
+  std::vector<SynSpike> data;
   data.reserve(N);
   for (unsigned int i = 0; i < N; i++) {
     int sign = 2*(uint_distribution(generator) % 2) - 1;
@@ -135,6 +135,8 @@ std::vector<Spike> MakeRandomSpikesSameCoreId(unsigned int N, unsigned int core_
   return data;
 
 }
+
+// XXX Deprecated? should be able to say ASSERT_EQ(a, b) now that operator== is defined for these
 
 void ComparePATData(const std::vector<PATData> & a, const std::vector<PATData> & b)
 {
@@ -154,9 +156,9 @@ void CompareTATData(const std::vector<TATData> & a, const std::vector<TATData> &
     ASSERT_EQ(a[i].type, b[i].type);
     ASSERT_EQ(a[i].AM_address, b[i].AM_address);
     ASSERT_EQ(a[i].MM_address, b[i].MM_address);
-    ASSERT_EQ(a[i].synapse_address_0, b[i].synapse_address_0);
+    ASSERT_EQ(a[i].synapse_id_0, b[i].synapse_id_0);
     ASSERT_EQ(a[i].synapse_sign_0, b[i].synapse_sign_0);
-    ASSERT_EQ(a[i].synapse_address_1, b[i].synapse_address_1);
+    ASSERT_EQ(a[i].synapse_id_1, b[i].synapse_id_1);
     ASSERT_EQ(a[i].synapse_sign_1, b[i].synapse_sign_1);
     ASSERT_EQ(a[i].tag, b[i].tag);
     ASSERT_EQ(a[i].global_route, b[i].global_route);

@@ -33,9 +33,9 @@ struct TATData {
   unsigned int MM_address;
 
   // type == 1 means neuron entry
-  unsigned int synapse_address_0;
+  unsigned int synapse_id_0;
   int          synapse_sign_0; // -1 or +1
-  unsigned int synapse_address_1;
+  unsigned int synapse_id_1;
   int          synapse_sign_1; // -1 or +1
   
   // type == 2 means fanout entry
@@ -56,21 +56,39 @@ struct AMData {
 /// MMData is just a weight
 unsigned int typedef MMData;
 
-struct Spike {
-  /// A spike going to or from a neuron
+struct SynSpike {
+  /// A spike going to synapse
+  unsigned int time;
+  unsigned int core_id;
+  unsigned int synapse_id;
+  int sign;
+};
+
+struct NrnSpike {
+  /// A spike coming from a neuron
   unsigned int time;
   unsigned int core_id;
   unsigned int neuron_id;
-  int sign;
 };
+
 
 struct Tag {
   /// A tag going to or from the datapath
   unsigned int time;
   unsigned int core_id;
-  unsigned int tag_id;
+  unsigned int tag;
   unsigned int count;
 };
+
+////////////////////////////////////////
+// equality tests
+//bool operator==(const MMData & lhs, const MMData & rhs); // for now, MMData is just a uint, so this exists
+bool operator==(const AMData   & lhs, const AMData   & rhs);
+bool operator==(const PATData  & lhs, const PATData  & rhs);
+bool operator==(const TATData  & lhs, const TATData  & rhs);
+bool operator==(const SynSpike & lhs, const SynSpike & rhs);
+bool operator==(const NrnSpike & lhs, const NrnSpike & rhs);
+bool operator==(const Tag      & lhs, const Tag      & rhs);
 
 ////////////////////////////////////////
 // internal word stream def'ns 
@@ -88,22 +106,39 @@ FieldVValues             DataToFieldVValues(const std::vector<PATData> & data);
 std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data); // TAT can have mixed field types
 FieldVValues             DataToFieldVValues(const std::vector<AMData> & data);
 FieldVValues             DataToFieldVValues(const std::vector<MMData> & data);
+FieldVValues             DataToFieldVValues(const std::vector<SynSpike> & data);
+FieldVValues             DataToFieldVValues(const std::vector<NrnSpike> & data);
+FieldVValues             DataToFieldVValues(const std::vector<Tag> & data);
 
-std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values);
-std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values);
-std::vector<AMData>  FieldVValuesToAMData(const FieldVValues & field_values);
-std::vector<MMData>  FieldVValuesToMMData(const FieldVValues & field_values);
+std::vector<PATData>  FieldVValuesToPATData(const FieldVValues & field_values);
+std::vector<TATData>  FieldVValuesToTATData(const std::vector<FieldValues> & field_values);
+std::vector<AMData>   FieldVValuesToAMData(const FieldVValues & field_values);
+std::vector<MMData>   FieldVValuesToMMData(const FieldVValues & field_values);
+// these need extra args, times and core_ids aren't kept in FVVs ever
+std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids);
+std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids);
+std::vector<Tag>      FieldVValuesToTag(const FieldVValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids);
 
 ////////////////////////////////
 // FieldVValues, FieldValues utility functions
 
-FieldVValues FieldValuesAsFieldVValues(const FieldValues & input);
-std::vector<FieldValues> FieldVValuesAsVFieldValues(const FieldVValues & input);
+FieldVValues FVasFVV(const FieldValues & input);
+std::vector<FieldValues> FVVasVFV(const FieldVValues & input);
+std::vector<FieldValues> VFVVasVFV(const std::vector<FieldVValues> & input);
 bool FVVKeysMatchFV(const FieldVValues & fvv, const FieldValues & fv);
 void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append);
-std::vector<FieldVValues> VFVAsVFVV(const std::vector<FieldValues> & inputs);
+std::vector<FieldVValues> VFVasVFVV(const std::vector<FieldValues> & inputs);
 FieldVValues CollapseFVVs(const std::vector<std::pair<FieldVValues, bdpars::WordFieldId> > & fvvs);
 FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFieldId> > & fvs);
+
+bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct);
+bool FVVExactlyMatchesWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct);
 
 ////////////////////////////////////////
 // decoder/encoder

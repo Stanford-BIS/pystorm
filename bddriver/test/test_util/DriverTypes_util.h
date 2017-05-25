@@ -12,7 +12,7 @@ std::vector<TATData> MakeRandomTATData(unsigned int N);
 std::vector<AMData> MakeRandomAMData(unsigned int N);
 std::vector<MMData> MakeRandomMMData(unsigned int N);
 
-std::vector<Spike> MakeRandomSpikesSameCoreId(unsigned int N, unsigned int core_id);
+std::vector<SynSpike> MakeRandomSynSpikesSameCoreId(unsigned int N, unsigned int core_id);
 
 void ComparePATData(const std::vector<PATData> & a, const std::vector<PATData> & b);
 void CompareTATData(const std::vector<TATData> & a, const std::vector<TATData> & b);
