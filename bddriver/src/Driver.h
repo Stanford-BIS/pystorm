@@ -55,6 +55,9 @@ class Driver
     /// Return a global instance of bddriver
     static Driver * GetInstance();
 
+    inline const bdpars::BDPars * GetBDPars() { return bd_pars_; }
+    inline const driverpars::DriverPars * GetDriverPars() { return driver_pars_; }
+
     void testcall(const std::string& msg);
 
     /// starts child workers, e.g. encoder and decoder
@@ -151,13 +154,13 @@ class Driver
     // Spike/Tag Streams
 
     /// Send a stream of spikes to neurons
-    void SendSpikes(const std::vector<Spike> & spikes);
+    void SendSpikes(const std::vector<SynSpike> & spikes);
 
     /// Send a stream of tags
     void SendTags(std::vector<Tag> spikes);
 
     /// Receive a stream of spikes
-    std::vector<Spike> RecvSpikes(unsigned int max_to_recv);
+    std::vector<NrnSpike> RecvSpikes(unsigned int max_to_recv);
 
     /// Receive a stream of tags
     std::vector<Tag> RecvTags(unsigned int max_to_recv);

@@ -329,7 +329,7 @@ void Driver::SetAM(
 void Driver::SetMM(
     unsigned int core_id,
     const std::vector<MMData> & data, ///< data to program
-    unsigned int start_addr                 ///< PAT memory address to start programming from, default 0
+    unsigned int start_addr           ///< PAT memory address to start programming from, default 0
 )
 {
   bd_state_[core_id].SetMM(start_addr, data);
@@ -501,7 +501,7 @@ std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::ve
 }
 
 
-void Driver::SendSpikes(const std::vector<Spike> & spikes)
+void Driver::SendSpikes(const std::vector<SynSpike> & spikes)
 {
   // XXX this circumvents going through the normal set of calls:
   // no FieldVValues/PackWords and no SerializeWords
@@ -523,8 +523,8 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
     // XXX time? need to figure out what to do in the FPGA
     // probably need to insert delay events here
     
-    uint32_t sign_and_neuron_id[2] = {static_cast<uint32_t>(SignedValToSignBit(spikes[i].sign)), spikes[i].neuron_id};
-    uint32_t payload = Pack32(sign_and_neuron_id, widths, 2);
+    uint32_t sign_and_synapse_id[2] = {static_cast<uint32_t>(SignedValToSignBit(spikes[i].sign)), spikes[i].synapse_id};
+    uint32_t payload = Pack32(sign_and_synapse_id, widths, 2);
 
     unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_SPIKES));
 
@@ -536,15 +536,15 @@ void Driver::SendSpikes(const std::vector<Spike> & spikes)
 }
 
 
-std::vector<Spike> Driver::RecvSpikes(unsigned int max_to_recv)
+std::vector<NrnSpike> Driver::RecvSpikes(unsigned int max_to_recv)
 {
   unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OUTPUT_SPIKES));
   std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RecvSpikes_timeout_us));
 
-  std::vector<Spike> retval;
+  std::vector<NrnSpike> retval;
   for (auto& el : dec_out) {
     // spikes don't have any data fields, payload == nrn addr
-    retval.push_back({el.time_epoch, el.core_id, el.payload, 1});
+    retval.push_back({el.time_epoch, el.core_id, el.payload});
   }
   return retval;
 }
