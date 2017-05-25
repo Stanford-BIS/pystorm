@@ -1,4 +1,5 @@
 #include "Driver.h"
+#include "BDModel.h"
 
 #include <chrono>
 #include <cstdint>
@@ -32,15 +33,20 @@ class DriverFixture : public testing::Test
 
       driver = Driver::GetInstance();
 
+      model = new bdmodel::BDModel(driver->GetBDPars(), driver->GetDriverPars());
+
       driver->Start();
     }
 
     void TearDown() {
       driver->Stop();
+
+      delete model;
     }
 
     const unsigned kCoreId = 0;
     Driver * driver;
+    bdmodel::BDModel * model;
 
 
 };
@@ -62,6 +68,6 @@ TEST_F(DriverFixture, TestDownStreamCalls) {
   //cout << "set AM" << endl;
   driver->SetMM(kCoreId, MakeRandomMMData(M), 0);
   //cout << "set MM" << endl;
-  driver->SendSpikes(MakeRandomSpikesSameCoreId(M, kCoreId));
+  driver->SendSpikes(MakeRandomSynSpikesSameCoreId(M, kCoreId));
   //cout << "sent some spikes" << endl;
 }

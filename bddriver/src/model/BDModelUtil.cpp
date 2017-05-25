@@ -8,12 +8,7 @@ namespace pystorm {
 namespace bddriver {
 namespace bdmodel {
 
-bool BDStatesMatch(const BDState * a, const BDState * b) 
-{
-  // XXX
-}
-
-std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs) 
+std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars * pars) 
 {
   // for now, just deserialize USB bytestream
   
@@ -50,10 +45,10 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t> & inputs, c
 
     uint32_t route_val = static_cast<uint32_t>(it.first);
     uint32_t route_len = static_cast<uint32_t>(it.second);
-    uint32_t payload_len = static_cast<uint32_t>(pars->Width(bdpars::BD_output)) - route_len;
+    uint32_t payload_len = static_cast<uint32_t>(pars->Width(bdpars::BD_OUTPUT)) - route_len;
 
     // route mask looks like 000000001111
-    uint32_t route_mask = (one << route_len) - one
+    uint32_t route_mask = (one << route_len) - one;
     leaf_route_masks.push_back(route_mask);
 
     // payload mask looks like 111111110000
@@ -88,6 +83,7 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t> & inputs, c
     // put decoded outputs into the appropriate vectors
     outputs[horn_id].push_back(payload);
   }
+  return outputs;
 }
 
 std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(const std::vector<uint32_t> & inputs, bdpars::HornLeafId leaf_id, const bdpars::BDPars * bd_pars)
@@ -239,13 +235,13 @@ FieldValues ParseMemDataWord(
 FieldValues ParseAMWord(FieldValues input, const bdpars::BDPars * bd_pars)
 {
   using namespace bdpars;
-  ParseMemDataWord(input, AM, AM_READ_WRITE, {AM_SET_ADDRESS, AM_INCREMENT}, bd_pars);
+  return ParseMemDataWord(input, AM, AM_READ_WRITE, {AM_SET_ADDRESS, AM_INCREMENT}, bd_pars);
 }
 
 FieldValues ParseMMWord(FieldValues input, const bdpars::BDPars * bd_pars)
 {
   using namespace bdpars;
-  ParseMemDataWord(input, MM, MM_WRITE_INCREMENT, {MM_SET_ADDRESS, MM_READ_INCREMENT}, bd_pars);
+  return ParseMemDataWord(input, MM, MM_WRITE_INCREMENT, {MM_SET_ADDRESS, MM_READ_INCREMENT}, bd_pars);
 }
 
 
@@ -276,13 +272,13 @@ FieldValues ParseAMMMWord(uint64_t input, const bdpars::BDPars * bd_pars)
 FieldValues ParsePATWord(uint64_t input, const bdpars::BDPars * bd_pars)
 {
   using namespace bdpars;
-  ParseMemDataWord(input, PAT, PAT_WRITE, {PAT_READ}, bd_pars);
+  return ParseMemDataWord(input, PAT, PAT_WRITE, {PAT_READ}, bd_pars);
 }
 
 FieldValues ParseTATWord(uint64_t input, const bdpars::BDPars * bd_pars)
 {
   using namespace bdpars;
-  ParseMemDataWord(input, TAT0, TAT_WRITE_INCREMENT, {TAT_SET_ADDRESS, TAT_READ_INCREMENT}, bd_pars);
+  return ParseMemDataWord(input, TAT0, TAT_WRITE_INCREMENT, {TAT_SET_ADDRESS, TAT_READ_INCREMENT}, bd_pars);
 }
 
 // helper for ParseHornLeaf, not exposed in header
@@ -355,7 +351,7 @@ std::vector<FieldVValues> ParseHornLeaf(const std::vector<uint64_t> inputs, bdpa
   }
 
   // compress into FieldVValues
-  return VFVAsVFVV(fields);
+  return VFVasVFVV(fields);
 }
 
 

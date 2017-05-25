@@ -9,21 +9,16 @@ namespace pystorm {
 namespace bddriver {
 namespace bdmodel {
 
-/// Compare BDStates <a> and <b> to see if all the fields match.
-/// Useful for testing when using BDModel. Can compare Driver's 
-/// BDState to the BDModels BDState
-bool BDStatesMatch(const BDState * a, const BDState * b);
-
 // "inverse" driver functions: models of what the BD hardware does
 
 ////////////////////////////////////////
 // downstream functions
 
 /// Packs byte stream, will do other stuff at some point
-std::vector<uint32_t> FPGAInput(const std::vector<EncOutput> & inputs);
+std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars * pars);
 
 /// Does horn operation
-std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t> & inputs);
+std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t> & inputs, const bdpars::BDPars * pars);
 
 /// Does deserialization
 std::vector<uint64_t> Deserialize(bdpars::HornLeafId leaf_id, const std::vector<uint32_t> & inputs);

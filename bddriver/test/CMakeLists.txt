@@ -47,6 +47,7 @@ set(INCLUDE_DIRS
     ${SRC_BASE_DIR}/common
     ${SRC_BASE_DIR}/encoder
     ${SRC_BASE_DIR}/decoder
+    ${SRC_BASE_DIR}/model
 )
 
 #-------------------
