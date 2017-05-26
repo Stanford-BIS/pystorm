@@ -307,8 +307,8 @@ class BDPars {
     inline const std::vector<FHRoute> * FunnelRoutes() const { return &funnel_routes_; }
 
     // look up serialization
-    inline unsigned int Serialization(HornLeafId leaf)   const { return funnel_.at(leaf).serialization; }
-    inline unsigned int Serialization(FunnelLeafId leaf) const { return horn_.at(leaf).serialization; }
+    inline unsigned int Serialization(HornLeafId leaf)   const { return horn_.at(leaf).serialization; }
+    inline unsigned int Serialization(FunnelLeafId leaf) const { return funnel_.at(leaf).serialization; }
 
     // going from a component Id to the FH leaf it's associated with
     inline HornLeafId HornLeafIdFor(MemId object)   const { return mem_.at(object).prog_leaf; }
@@ -341,6 +341,14 @@ class BDPars {
     inline const WordStructure * Word(RegId object)     const { return &(reg_.at(object).word_structure); }
     inline const WordStructure * Word(InputId object)   const { return &(input_.at(object).word_structure); }
     inline const WordStructure * Word(OutputId object)  const { return &(output_.at(object).word_structure); }
+
+    // should be template?
+    unsigned int WordFieldWidth(const WordStructure & word, WordFieldId field_id_to_match) const;
+    unsigned int WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx=0) const;
+    unsigned int WordFieldWidth(MemWordId object, WordFieldId field_id) const;
+    unsigned int WordFieldWidth(RegId object, WordFieldId field_id) const;
+    unsigned int WordFieldWidth(InputId object, WordFieldId field_id) const;
+    unsigned int WordFieldWidth(OutputId object, WordFieldId field_id) const;
 
     /////////////////////////////////////
     // misc

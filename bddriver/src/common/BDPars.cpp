@@ -203,6 +203,43 @@ RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const
   return DAC0; // squelch compiler warning for now
 }
 
+unsigned int BDPars::WordFieldWidth(const WordStructure & word, WordFieldId field_id_to_match) const
+{
+  for (auto& it : word) {
+    WordFieldId field_id;
+    unsigned int field_width;
+    std::tie(field_id, field_width) = it;
+    if (field_id == field_id_to_match) return field_width;
+  }
+  assert(false && "couldn't find field_id in word");
+  return 0;
+}
+
+unsigned int BDPars::WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx) const 
+{
+  return WordFieldWidth(*Word(object, subtype_idx), field_id);
+}
+
+unsigned int BDPars::WordFieldWidth(MemWordId object, WordFieldId field_id) const 
+{
+  return WordFieldWidth(*Word(object), field_id);
+}
+
+unsigned int BDPars::WordFieldWidth(RegId object, WordFieldId field_id) const 
+{
+  return WordFieldWidth(*Word(object), field_id);
+}
+
+unsigned int BDPars::WordFieldWidth(InputId object, WordFieldId field_id) const 
+{
+  return WordFieldWidth(*Word(object), field_id);
+}
+
+unsigned int BDPars::WordFieldWidth(OutputId object, WordFieldId field_id) const 
+{
+  return WordFieldWidth(*Word(object), field_id);
+}
+
 } // bdpars
 } // bddriver
 } // pystorm
