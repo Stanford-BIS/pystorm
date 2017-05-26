@@ -64,8 +64,16 @@ bool operator==(const Tag      & lhs, const Tag      & rhs)
 
 uint64_t SignedValToSignBit(int sign) 
 {
-  assert((sign == 1 || sign == -1) && "sign must be +1 or -1");
-  return static_cast<uint64_t>((-1 * sign + 1) / 2);
+  uint64_t bit = static_cast<uint64_t>((-1 * sign + 1) / 2);
+  assert((bit == 0 && sign == 1 || bit == 1 && sign == -1) && "sign(bit) must 0(+1) or 1(-1)");
+  return bit;
+}
+
+int SignBitToSignedVal(uint64_t bit) 
+{
+  int sign = -2*static_cast<int>(bit) + 1;
+  assert((bit == 0 && sign == 1 || bit == 1 && sign == -1) && "sign(bit) must 0(+1) or 1(-1)");
+  return sign;
 }
 
 FieldVValues DataToFieldVValues(const std::vector<PATData> & data)
@@ -141,7 +149,7 @@ FieldVValues DataToFieldVValues(const std::vector<SynSpike> & data)
   FieldVValues retval = {{SYNAPSE_SIGN, {}}, {SYNAPSE_ADDRESS, {}}};
   for (auto& it : data) {
     retval[SYNAPSE_ADDRESS].push_back(it.synapse_id);
-    retval[SYNAPSE_SIGN].push_back(it.sign);
+    retval[SYNAPSE_SIGN].push_back(SignedValToSignBit(it.sign));
   }
   return retval;
 }
@@ -184,7 +192,8 @@ std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & fiel
   std::vector<TATData> retval;
   unsigned int num_el = field_values.size();
   for(unsigned int i = 0; i < num_el; i++) {
-    TATData to_push;
+    // clear all fields, set the ones we need later
+    TATData to_push = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     if (field_values.at(i).count(AM_ADDRESS) > 0) {
       to_push.type = 0;
       to_push.AM_address = field_values.at(i).at(AM_ADDRESS);
@@ -192,9 +201,9 @@ std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & fiel
     } else if (field_values.at(i).count(SYNAPSE_ADDRESS_0) > 0) {
       to_push.type = 1;
       to_push.synapse_id_0 = field_values.at(i).at(SYNAPSE_ADDRESS_0);
-      to_push.synapse_sign_0 = field_values.at(i).at(SYNAPSE_SIGN_0);
+      to_push.synapse_sign_0 = SignBitToSignedVal(field_values.at(i).at(SYNAPSE_SIGN_0));
       to_push.synapse_id_1 = field_values.at(i).at(SYNAPSE_ADDRESS_1);
-      to_push.synapse_sign_1 = field_values.at(i).at(SYNAPSE_SIGN_1);
+      to_push.synapse_sign_1 = SignBitToSignedVal(field_values.at(i).at(SYNAPSE_SIGN_1));
     } else if (field_values[i].count(TAG) > 0) {
       to_push.type = 2;
       to_push.tag = field_values.at(i).at(TAG);
@@ -242,7 +251,7 @@ std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, 
     to_push.time = times[i];
     to_push.core_id = core_ids[i];
     to_push.synapse_id = field_values.at(SYNAPSE_ADDRESS).at(i);
-    to_push.sign = field_values.at(SYNAPSE_SIGN).at(i);
+    to_push.sign = SignBitToSignedVal(field_values.at(SYNAPSE_SIGN).at(i));
     // ignore value
     retval.push_back(to_push);
   }

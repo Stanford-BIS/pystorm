@@ -101,6 +101,7 @@ typedef std::map<bdpars::WordFieldId, std::vector<uint64_t> > FieldVValues;
 // conversion functions from user types to FieldVValues
 
 uint64_t SignedValToSignBit(int sign);
+int SignBitToSignedVal(uint64_t bit);
 
 FieldVValues             DataToFieldVValues(const std::vector<PATData> & data);
 std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data); // TAT can have mixed field types
