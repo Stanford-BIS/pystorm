@@ -92,18 +92,20 @@ class Driver
     /// Turn ADC output on
     void SetADCTrafficState(unsigned int core_id, bool en);
 
-    ////////////////////////////////
-    // Neuron Config
-    // XXX Ben? Gains/Bias, etc
+    ////////////////////////////////////////////////////////////////////////////
+    /// Neuron controls
+    ////////////////////////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////////////////////
-    /// Soma configurations
+    /// Soma controls
     //////////////////////////////////////////////////////////////////////////
 
     /// Enable/Disable Soma (Kill Bit)
     void SetSomaEnableStatus(unsigned int neuron_id, bool status);
+
     /// Enable Soma
     std::function<void(unsigned int)> EnableSoma = std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1, true);
+
     /// Disable Soma
     std::function<void(unsigned int)> DisableSoma = std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1, false);
 
