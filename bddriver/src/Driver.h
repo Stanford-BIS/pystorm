@@ -1,8 +1,9 @@
 #ifndef DRIVER_H
-#define DRIVER_H   
+#define DRIVER_H
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "common/BDPars.h"
 #include "common/BDState.h"
@@ -14,7 +15,7 @@
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
 
-/* 
+/*
  * TODO LIST: funnel/horn leaves that still need their calls finished
  *
  * horn_["RI"]                   (SendTags needs impl)
@@ -61,16 +62,16 @@ class Driver
     void testcall(const std::string& msg);
 
     /// starts child workers, e.g. encoder and decoder
-    void Start(); 
+    void Start();
     /// stops the child workers
     void Stop();
     /// initializes hardware state
-    void InitBD(); 
+    void InitBD();
 
     ////////////////////////////////
     // Traffic Control
 
-    /// Control tag traffic 
+    /// Control tag traffic
     void SetTagTrafficState(unsigned int core_id, bool en);
 
     /// Control spike traffic from neuron array to datapath
@@ -95,19 +96,30 @@ class Driver
     // Neuron Config
     // XXX Ben? Gains/Bias, etc
 
+    //////////////////////////////////////////////////////////////////////////
+    /// Soma configurations
+    //////////////////////////////////////////////////////////////////////////
+
+    /// Enable/Disable Soma (Kill Bit)
+    void SetSomaEnableStatus(unsigned int neuron_id, bool status);
+    /// Enable Soma
+    std::function<void(unsigned int)> EnableSoma = std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1, true);
+    /// Disable Soma
+    std::function<void(unsigned int)> DisableSoma = std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1, false);
+
     ////////////////////////////////
     // memory programming
-    
+
     /// Program Pool Action Table
     void SetPAT(
-        unsigned int core_id, 
+        unsigned int core_id,
         const std::vector<PATData> & data, ///< data to program
         unsigned int start_addr            ///< PAT memory address to start programming from, default 0
     );
 
     /// Program Tag Action Table
     void SetTAT(
-        unsigned int core_id, 
+        unsigned int core_id,
         bool TAT_idx,                      ///< which TAT to program, 0 or 1
         const std::vector<TATData> & data, ///< data to program
         unsigned int start_addr            ///< PAT memory address to start programming from, default 0
@@ -142,7 +154,7 @@ class Driver
     void SetPostFIFO0DumpState(unsigned int core_id, bool dump_en);
     /// Dump copy of traffic post-FIFO, tag msbs = 1
     void SetPostFIFO1DumpState(unsigned int core_id, bool dump_en);
-    
+
     /// Get pre-FIFO tags recorded during dump
     std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
     /// Get post-FIFO tags msbs = 0 recorded during dump
@@ -170,13 +182,13 @@ class Driver
 
     ////////////////////////////////
     // BDState queries
-    
+
     // XXX note that these queries are NOT subject to timing assumptions!
     // this is the SOFTWARE state of the board
-    // for any purpose where a timing assumption has some functional importance, 
+    // for any purpose where a timing assumption has some functional importance,
     // there is a separate call, e.g. for traffic registers
-    
-    /// Get register contents by name. 
+
+    /// Get register contents by name.
     /// XXX this is more low-level than most calls (no other public call requires RegId).
     /// Could break into multiple calls
     inline const std::pair<const std::vector<unsigned int> *, bool> GetRegState(unsigned int core_id, bdpars::RegId reg_id) const { return bd_state_[core_id].GetReg(reg_id); }
@@ -210,9 +222,9 @@ class Driver
     // data members
 
     /// parameters describing parameters of the software (e.g. buffer depths)
-    driverpars::DriverPars * driver_pars_; 
+    driverpars::DriverPars * driver_pars_;
     /// parameters describing BD hardware
-    bdpars::BDPars * bd_pars_; 
+    bdpars::BDPars * bd_pars_;
     /// best-of-driver's-knowledge state of bd hardware
     std::vector<BDState> bd_state_;
 
@@ -232,9 +244,9 @@ class Driver
     std::vector<MutexBuffer<DecOutput> *> dec_bufs_out_;
 
     /// encodes traffic to BD
-    Encoder * enc_; 
+    Encoder * enc_;
     /// decodes traffic from BD
-    Decoder * dec_; 
+    Decoder * dec_;
 
     /// comm module talks to libUSB or to file
     comm::Comm * comm_;
@@ -243,8 +255,8 @@ class Driver
     // traffic helpers
     const std::vector<bdpars::RegId> kTrafficRegs = {
         bdpars::NEURON_DUMP_TOGGLE,
-        bdpars::TOGGLE_PRE_FIFO, 
-        bdpars::TOGGLE_POST_FIFO0, 
+        bdpars::TOGGLE_PRE_FIFO,
+        bdpars::TOGGLE_POST_FIFO0,
         bdpars::TOGGLE_POST_FIFO1
     };
 
@@ -256,66 +268,66 @@ class Driver
 
     ////////////////////////////////
     // helpers
-    
+
     std::pair<std::vector<uint32_t>, unsigned int> SerializeWordsToLeaf(const std::vector<uint64_t> & inputs, bdpars::HornLeafId) const;
     std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWordsFromLeaf(const std::vector<uint32_t> & inputs, bdpars::FunnelLeafId leaf_id) const;
 
     /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
     ///
     /// Determines whether payloads must be serialized based on <leaf_id>.
-    /// For payloads that don't need to be serialized, or that might need to 
+    /// For payloads that don't need to be serialized, or that might need to
     /// go to multiple cores, this isn't the most effective call.
     /// SendSpikes(), for example, pushes directly to the encoder's input buffer.
     void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<uint64_t> & payload);
 
-    /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads 
+    /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
     /// associated with a supplied <core_id>.
     ///
     /// If <num_to_recv> is zero, then receive whatever's currently in the buffer.
-    /// Returns vector of deserialized payloads. For payloads that don't need to be deserialized, 
+    /// Returns vector of deserialized payloads. For payloads that don't need to be deserialized,
     /// that might come from multiple cores, or that need time_epoch information,
     /// This isn't the most effective call.
     std::vector<uint64_t> RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned int num_to_recv=0);
 
     ////////////////////////////////
     // low-level programming calls, breadth of high-level downstream API goes through these
-    
+
     std::vector<uint64_t> PackRWProgWords(
-        const bdpars::WordStructure & word_struct, 
-        const std::vector<uint64_t> & payload, 
+        const bdpars::WordStructure & word_struct,
+        const std::vector<uint64_t> & payload,
         unsigned int start_addr
     ) const;
     std::vector<uint64_t> PackRWDumpWords(
-        const bdpars::WordStructure & word_struct, 
+        const bdpars::WordStructure & word_struct,
         unsigned int start_addr,
         unsigned int end_addr
     ) const;
 
     std::vector<uint64_t> PackRIWIProgWords(
-        const bdpars::WordStructure & addr_word_struct, 
-        const bdpars::WordStructure & write_word_struct, 
-        const std::vector<uint64_t> & payload, 
+        const bdpars::WordStructure & addr_word_struct,
+        const bdpars::WordStructure & write_word_struct,
+        const std::vector<uint64_t> & payload,
         unsigned int start_addr
     ) const;
     std::vector<uint64_t> PackRIWIDumpWords(
-        const bdpars::WordStructure & addr_word_struct, 
-        const bdpars::WordStructure & read_word_struct, 
+        const bdpars::WordStructure & addr_word_struct,
+        const bdpars::WordStructure & read_word_struct,
         unsigned int start_addr,
         unsigned int end_addr
     ) const;
 
     std::vector<uint64_t> PackRMWProgWords(
-        const bdpars::WordStructure & addr_word_struct, 
-        const bdpars::WordStructure & write_word_struct, 
+        const bdpars::WordStructure & addr_word_struct,
+        const bdpars::WordStructure & write_word_struct,
         const bdpars::WordStructure & incr_word_struct,
-        const std::vector<uint64_t> & payload, 
+        const std::vector<uint64_t> & payload,
         unsigned int start_addr
-    ) const; 
+    ) const;
     // note: RMWProgWord can function as RMWDumpWord
 
     std::vector<uint64_t> PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
 
-    
+
     void SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues & field_vals);
     void SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_enable, bool dump_enable);
     bool SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en);
