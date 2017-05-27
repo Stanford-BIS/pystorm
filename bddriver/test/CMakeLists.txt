@@ -61,7 +61,7 @@ target_link_libraries(${PROJECT_NAME_STR}
     ${GTEST_LIBS_DIR}/libgtest.a
     ${GTEST_LIBS_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
-    ${LIB_BASE_DIR}/Driver.so
+    ${LIB_BASE_DIR}/Driver
 )
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
