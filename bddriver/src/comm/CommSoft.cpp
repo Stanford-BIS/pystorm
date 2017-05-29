@@ -62,8 +62,6 @@ CommSoft::~CommSoft() {
     m_state = CommStreamState::STOPPED;
     if (m_control_thread.joinable())
         m_control_thread.join();
-    delete m_write_buffer;
-    delete m_read_buffer;
     delete m_emulator;
 }
 
