@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "common/DriverTypes.h"
+#include "common/binary_util.h"
 #include "common/BDPars.h"
 #include "common/BDState.h"
 #include "common/DriverPars.h" 
@@ -21,6 +22,9 @@ public:
   ~BDModel();
 
   void ParseInput(const std::vector<uint8_t> & input_stream);
+  inline const BDState * GetState() { return state_; }
+  inline const std::vector<SynSpike> * GetSpikes() { return &received_spikes_; }
+  inline const std::vector<Tag> * GetTags() { return &received_tags_; }
 
 private:
 
@@ -45,13 +49,17 @@ private:
   const driverpars::DriverPars * driver_pars_;
   const bdpars::BDPars * bd_pars_;
 
-  void Process(const std::vector<FieldVValues> & inputs);
-  void ProcessReg(bdpars::RegId reg_id, const std::vector<FieldVValues> & inputs);
-  void ProcessInput(bdpars::InputId input_id, const std::vector<FieldVValues> & inputs);
-  void ProcessMM(const std::vector<FieldVValues> & inputs);
-  void ProcessAM(const std::vector<FieldVValues> & inputs);
-  void ProcessTAT(unsigned int TAT_idx, const std::vector<FieldVValues> & inputs);
-  void ProcessPAT(const std::vector<FieldVValues> & inputs);
+  // useful helper for the mem processing calls
+  std::pair<FieldValues, bdpars::MemWordId> UnpackMemWordNWays(uint64_t input, std::vector<bdpars::MemWordId> words_to_try);
+
+  void Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t> & inputs);
+  void ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input);
+  void ProcessReg(bdpars::RegId reg_id, uint64_t input);
+  void ProcessInput(bdpars::InputId input_id, uint64_t input);
+  void ProcessMM(uint64_t input);
+  void ProcessAM(uint64_t input);
+  void ProcessTAT(unsigned int TAT_idx, uint64_t input);
+  void ProcessPAT(uint64_t input);
 
 };
 

@@ -24,56 +24,88 @@ void BDModel::ParseInput(const std::vector<uint8_t> & input_stream)
 
   // perform horn decoding
   std::vector<std::vector<uint32_t> > horn_words = Horn(BD_input_words, bd_pars_);
+  //cout << "did horn" << endl;
+  //cout << "sizes:" << endl;
+  //for (unsigned int i = 0; i < horn_words.size(); i++) {
+  //  if (horn_words[i].size() > 0) cout << i << " : " << horn_words[i].size() << endl;
+  //}
 
   // deserialize at horn leaves where required
   std::vector<std::vector<uint64_t> > des_horn_words = DeserializeAllHornLeaves(horn_words, bd_pars_);
+  //cout << "did des" << endl;
+  //cout << "sizes: " << endl;
+  //for (unsigned int i = 0; i < des_horn_words.size(); i++) {
+  //  if (des_horn_words[i].size() > 0) cout << i << " : " << des_horn_words[i].size() << endl;
+  //}
+  //for(unsigned int i = 0 ; i < des_horn_words.size(); i++) {
+  //  for (auto& it : des_horn_words[i]) {
+  //    cout << it << endl;
+  //  }
+  //}
 
   // iterate through leaves 
   for (unsigned int i = 0; i < des_horn_words.size(); i++) {
     auto leaf_id = static_cast<bdpars::HornLeafId>(i);
-    std::vector<FieldVValues> leaf_vfvv = ParseHornLeaf(des_horn_words[i], leaf_id, bd_pars_);
 
-    Process(leaf_vfvv);
+    //cout << "processing leaf " << i << endl;
+    //if (des_horn_words[i].size() > 0) cout << "  it has something" << endl;
+    
+    Process(leaf_id, des_horn_words[i]);
   }
 }
 
-void BDModel::ProcessReg(bdpars::RegId reg_id, const std::vector<FieldVValues> & inputs) {
-  assert(inputs.size() == 1 && "only one word type per register");
-  assert(FVVExactlyMatchesWordStruct(inputs.back(), *bd_pars_->Word(reg_id)));
+std::pair<FieldValues, bdpars::MemWordId> BDModel::UnpackMemWordNWays(uint64_t input, std::vector<bdpars::MemWordId> words_to_try)
+{
+  bool found = false;
+  bdpars::MemWordId found_id;
+  FieldValues found_field_vals;
+  for (auto& word_id : words_to_try) {
+    FieldValues field_vals = Driver::UnpackWord(*bd_pars_->Word(word_id), input);
+    if (field_vals.size() > 0) {
+      assert(!found && "undefined behavior for multiple matches");
+      found_id = word_id;
+      found_field_vals = field_vals;
+      found = true;
+    }
+  }
+  assert(found && "couldn't find a matching MemWord");
+  return {found_field_vals, found_id};
+}
 
-  // if we set it multiple times, just take the last one
-  std::vector<FieldValues> vfv = VFVVasVFV(inputs);
-  FieldValues last_set_field_vals = vfv.back();
-
+void BDModel::ProcessReg(bdpars::RegId reg_id, uint64_t input)
+{
   const bdpars::WordStructure * reg_word_struct = bd_pars_->Word(reg_id);
+  FieldValues field_vals = Driver::UnpackWord(*reg_word_struct, input);
 
   // form vector of values to set BDState's reg state with, in WordStructure field order
   std::vector<unsigned int> field_vals_as_vect;
   for (auto& it : *reg_word_struct) {
     bdpars::WordFieldId field_id = it.first;
-    field_vals_as_vect.push_back(last_set_field_vals.at(field_id));
+    field_vals_as_vect.push_back(field_vals.at(field_id));
   }
   state_->SetReg(reg_id, field_vals_as_vect);
-
 }
 
-void BDModel::ProcessInput(bdpars::InputId input_id, const std::vector<FieldVValues> & inputs) {
+void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input)
+{
   using namespace bdpars;
-  assert(inputs.size() == 1 && "only one word type per inputs");
-  FieldVValues fvv = inputs.back();
-  assert(FVVExactlyMatchesWordStruct(fvv, *bd_pars_->Word(input_id)));
-  std::vector<unsigned int> zeros(fvv.begin()->second.size(), 0);
+
+  const bdpars::WordStructure * word_struct = bd_pars_->Word(input_id);
+  FieldValues field_vals = Driver::UnpackWord(*word_struct, input);
+  FieldVValues field_vvals = FVasFVV(field_vals);
 
   switch (input_id) {
     case INPUT_TAGS :
     {
-      std::vector<Tag> new_inputs = FieldVValuesToTag(fvv, zeros, zeros); // XXX times and core ids are zero
+      std::vector<Tag> new_inputs = FieldVValuesToTag(field_vvals, {0}, {0}); // XXX times and core ids are zero
       received_tags_.insert(received_tags_.end(), new_inputs.begin(), new_inputs.end()); // concatenate
+      break;
     }
     case INPUT_SPIKES :
     {
-      std::vector<SynSpike> new_inputs = FieldVValuesToSynSpike(fvv, zeros, zeros); // XXX times and core ids are zero
+      std::vector<SynSpike> new_inputs = FieldVValuesToSynSpike(field_vvals, {0}, {0}); // XXX times and core ids are zero
       received_spikes_.insert(received_spikes_.end(), new_inputs.begin(), new_inputs.end()); // concatenate
+      break;
     }
     case DCT_FIFO_INPUT_TAGS :
     {
@@ -98,156 +130,226 @@ void BDModel::ProcessInput(bdpars::InputId input_id, const std::vector<FieldVVal
   }
 }
 
-void BDModel::ProcessMM(const std::vector<FieldVValues> & inputs)
+void BDModel::ProcessMM(uint64_t input)
 {
   using namespace bdpars;
 
-  for (const FieldVValues& input : inputs) {
-    if (FVVContainsWordStruct(input, *bd_pars_->Word(MM_SET_ADDRESS))) {
-      std::vector<uint64_t> addr_vals = input.at(ADDRESS);
-      MM_address_ = addr_vals.back(); // take the last one
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(MM_WRITE_INCREMENT))) {
-      std::vector<MMData> MM_data = FieldVValuesToMMData(input);
-      state_->SetMM(MM_address_, MM_data);
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(MM_READ_INCREMENT))) {
+  FieldValues field_vals;
+  MemWordId word_id;
+  std::tie(field_vals, word_id) = 
+    UnpackMemWordNWays(input, {MM_SET_ADDRESS, MM_WRITE_INCREMENT, MM_READ_INCREMENT});
+
+  switch (word_id) {
+
+    case MM_SET_ADDRESS : 
+      MM_address_ = field_vals.at(ADDRESS);
+      break;
+
+    case MM_WRITE_INCREMENT :
+    {
+      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(MM), field_vals.at(DATA));
+      state_->SetMM(MM_address_, FieldVValuesToMMData(FVasFVV(data_fields)));
+      MM_address_++;
+      break;
+    }
+    case MM_READ_INCREMENT :
       MM_dump_.push_back(state_->GetMM()->at(MM_address_));
-    } else {
+      MM_address_++;
+      break;
+
+    default :
       assert(false && "bad FVV");
-    }
   }
 }
 
-void BDModel::ProcessAM(const std::vector<FieldVValues> & inputs)
+void BDModel::ProcessAM(uint64_t input)
 {
   using namespace bdpars;
 
-  for (const FieldVValues& input : inputs) {
-    if (FVVContainsWordStruct(input, *bd_pars_->Word(AM_SET_ADDRESS))) {
-      std::vector<uint64_t> addr_vals = input.at(ADDRESS);
-      AM_address_ = addr_vals.back(); // take the last one
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(AM_READ_WRITE))) {
+  FieldValues field_vals;
+  MemWordId word_id;
+  std::tie(field_vals, word_id) = 
+    UnpackMemWordNWays(input, {AM_SET_ADDRESS, AM_READ_WRITE, AM_INCREMENT});
+
+  switch (word_id) {
+
+    case AM_SET_ADDRESS : 
+      AM_address_ = field_vals.at(ADDRESS);
+      //cout << "SET " << AM_address_ << endl;
+      break;
+      
+    case AM_READ_WRITE :
+    {
       AM_dump_.push_back(state_->GetAM()->at(AM_address_));
-      std::vector<AMData> AM_data = FieldVValuesToAMData(input);
-      state_->SetAM(AM_address_, AM_data);
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(AM_INCREMENT))) {
+      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(AM), field_vals.at(DATA));
+      state_->SetAM(AM_address_, FieldVValuesToAMData(FVasFVV(data_fields)));
+      //cout << "WRITE AT " << AM_address_ << " : ";
+      //for (auto& it : data_fields) {
+      //  cout << "(" << it.first << ":" << it.second << "), ";
+      //}
+      //cout << endl;
+      break;
+    }
+    case AM_INCREMENT :
       AM_address_++;
-    } else {
+      //cout << "INC " << AM_address_ << endl;
+      break;
+
+    default :
       assert(false && "bad FVV");
-    }
   }
 }
 
-void BDModel::ProcessTAT(unsigned int TAT_idx, const std::vector<FieldVValues> & inputs)
+void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input)
 {
   using namespace bdpars;
 
-  for (const FieldVValues& input : inputs) {
-    if (FVVContainsWordStruct(input, *bd_pars_->Word(TAT_SET_ADDRESS))) {
-      std::vector<uint64_t> addr_vals = input.at(ADDRESS);
-      TAT_address_[TAT_idx] = addr_vals.back(); // take the last one
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(TAT_WRITE_INCREMENT))) {
-      std::vector<TATData> TAT_data = FieldVValuesToTATData(FVVasVFV(input));
-      if(TAT_idx == 0) {
-        state_->SetTAT0(TAT_address_[TAT_idx], TAT_data);
-      } else {
-        state_->SetTAT1(TAT_address_[TAT_idx], TAT_data);
-      }
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(TAT_READ_INCREMENT))) {
-      TATData read_data;
-      if(TAT_idx == 0) {
-        read_data = state_->GetTAT0()->at(TAT_address_[TAT_idx]);
-      } else {
-        read_data = state_->GetTAT1()->at(TAT_address_[TAT_idx]);
-      }
-      TAT_dump_[TAT_idx].push_back(read_data);
-    } else {
-      assert(false && "bad FVV");
-    }
-  }
-}
+  FieldValues field_vals;
+  MemWordId word_id;
+  std::tie(field_vals, word_id) = 
+    UnpackMemWordNWays(input, {TAT_SET_ADDRESS, TAT_READ_INCREMENT, TAT_WRITE_INCREMENT});
 
-void BDModel::ProcessPAT(const std::vector<FieldVValues> & inputs)
-{
-  using namespace bdpars;
+  switch (word_id) {
 
-  for (const FieldVValues& input : inputs) {
-    if (FVVContainsWordStruct(input, *bd_pars_->Word(PAT_READ))) {
-      std::vector<uint64_t> addr_vals = input.at(ADDRESS);
-      for (auto& addr : addr_vals) {
-        PAT_dump_.push_back(state_->GetPAT()->at(addr));
-      }
-    } else if (FVVContainsWordStruct(input, *bd_pars_->Word(PAT_WRITE))) {
-      std::vector<uint64_t> addr_vals = input.at(ADDRESS);
-      std::vector<PATData> PAT_data = FieldVValuesToPATData(input);
-      for (auto& addr : addr_vals) {
-        state_->SetPAT(addr, PAT_data);
-      }
-    } else {
-      assert(false && "bad FVV");
-    }
-  }
-}
+    case TAT_SET_ADDRESS : 
+      TAT_address_[TAT_idx] = field_vals.at(ADDRESS);
+      break;
 
-void BDModel::Process(const std::vector<FieldVValues> & inputs)
-{
-  using namespace bdpars;
-
-  for (unsigned int i = 0; i < inputs.size(); i++) {
-
-    auto leaf_id = static_cast<bdpars::HornLeafId>(i);
-
-    ComponentTypeId component_type = bd_pars_->ComponentTypeIdFor(leaf_id);
-    unsigned int component_idx = bd_pars_->ComponentIdxFor(leaf_id);
-
-    switch (component_type) {
-      case REG :
-      {
-        RegId reg_id = static_cast<RegId>(component_idx);
-        ProcessReg(reg_id, inputs);
-      }
-
-      // reg and input are basically the same
-      case INPUT :
-      {
-        InputId input_id = static_cast<InputId>(component_idx);
-        return ProcessInput(input_id, inputs);
-      }
-
-      // memory is complicated =(
-      case MEM :
-      {
-        MemId mem_id = static_cast<MemId>(component_idx);
-
-        switch (mem_id) {
-          case MM : // actually this catches AM too
-          {
-            return ProcessMM(inputs);
+    case TAT_WRITE_INCREMENT :
+    {
+      // for TAT, have to try all three data word types
+      for (unsigned int i = 0; i < 3; i++) {
+        FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(TAT0, i), field_vals.at(DATA));
+        if (data_fields.size() > 0) {
+          if (TAT_idx == 0) {
+            state_->SetTAT0(TAT_address_[TAT_idx], FieldVValuesToTATData({data_fields}));
+          } else {
+            state_->SetTAT1(TAT_address_[TAT_idx], FieldVValuesToTATData({data_fields}));
           }
-          case PAT :
-          {
-            return ProcessPAT(inputs);
-          }
-          case TAT0 :
-          {
-            return ProcessTAT(0, inputs);
-          }
-          case TAT1 :
-          {
-            return ProcessTAT(1, inputs);
-          }
-          default :
-          {
-            assert(false);
-          }
+          TAT_address_[TAT_idx]++;
         }
       }
-
-      default :
-      {
-        assert(false);
+      break;
+    }
+    case TAT_READ_INCREMENT :
+      if (TAT_idx == 0) {
+        TAT_dump_[TAT_idx].push_back(state_->GetTAT0()->at(TAT_address_[TAT_idx]));
+      } else {
+        TAT_dump_[TAT_idx].push_back(state_->GetTAT1()->at(TAT_address_[TAT_idx]));
       }
+      TAT_address_[TAT_idx]++;
+      break;
+
+    default :
+      assert(false && "bad FVV");
+  }
+}
+
+void BDModel::ProcessPAT(const uint64_t input)
+{
+  using namespace bdpars;
+
+  FieldValues field_vals;
+  MemWordId word_id;
+  std::tie(field_vals, word_id) = 
+    UnpackMemWordNWays(input, {PAT_READ, PAT_WRITE});
+
+  switch (word_id) {
+
+    case PAT_READ :
+      PAT_dump_.push_back(state_->GetPAT()->at(field_vals.at(ADDRESS)));
+      break;
+
+    case PAT_WRITE :
+    {
+      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(PAT), field_vals.at(DATA));
+      state_->SetPAT(field_vals.at(ADDRESS), FieldVValuesToPATData(FVasFVV(data_fields)));
+      break;
+    }
+    default :
+      assert(false && "bad FVV");
+  }
+}
+
+void BDModel::Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t> & inputs)
+{
+  for (auto& input : inputs) {
+    ProcessInput(leaf_id, input);
+  }
+}
+
+void BDModel::ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input)
+{
+  using namespace bdpars;
+
+  ComponentTypeId component_type = bd_pars_->ComponentTypeIdFor(leaf_id);
+  unsigned int component_idx = bd_pars_->ComponentIdxFor(leaf_id);
+  
+  switch (component_type) {
+    case REG :
+    {
+      RegId reg_id = static_cast<RegId>(component_idx);
+      ProcessReg(reg_id, input);
+      break;
     }
 
+    // reg and input are basically the same
+    case INPUT :
+    {
+      InputId input_id = static_cast<InputId>(component_idx);
+      ProcessInput(input_id, input);
+      break;
+    }
+
+    // memory is complicated =(
+    case MEM :
+    {
+      MemId mem_id = static_cast<MemId>(component_idx);
+
+      switch (mem_id) {
+        case MM : // actually this catches AM too
+        {
+          FieldValues field_vals;
+          MemWordId word_id;
+          std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {AM_ENCAPSULATION, MM_ENCAPSULATION});
+          //cout << UintAsString(input, 64) << " to " << endl;
+          //for (auto& it : field_vals) {
+          //  cout << "(" << it.first << ":" << it.second << "), ";
+          //}
+          if (word_id == AM_ENCAPSULATION) {
+            ProcessAM(field_vals.at(PAYLOAD));
+          } else {
+            ProcessMM(field_vals.at(PAYLOAD));
+          }
+          break;
+        }
+        case PAT : 
+        {
+          ProcessPAT(input);
+          break;
+        }
+        case TAT0 :
+        {
+          ProcessTAT(0, input);
+          break;
+        }
+        case TAT1 :
+        {
+          ProcessTAT(1, input);
+          break;
+        }
+        default :
+        {
+          assert(false);
+        }
+      }
+      break;
+    }
+
+    default :
+    {
+      assert(false);
+    }
   }
 }
 
