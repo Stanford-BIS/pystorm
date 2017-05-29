@@ -19,41 +19,40 @@ BDPars::BDPars()
   horn_.resize(LastHornLeafId+1);
 
   //                               {component type, component, route, route_len, data width, serialization, serialized data width, description}
-  horn_[NEURON_INJECT]           = {INPUT, static_cast<unsigned int>(INPUT_SPIKES)       , 14 , 4  , 11 , 1  , 11 , "direct spike injection to neuron array"};
+  horn_[NEURON_INJECT]           = {INPUT, static_cast<unsigned int>(INPUT_SPIKES)       , 7  , 4  , 11 , 1  , 11 , "direct spike injection to neuron array"};
   horn_[RI]                      = {INPUT, static_cast<unsigned int>(INPUT_TAGS)         , 0  , 1  , 20 , 1  , 20 , "main tag input to FIFO"};
-  horn_[PROG_AMMM]               = {MEM , static_cast<unsigned int>(MM)                  , 39 , 6  , 42 , 4  , 11 , "AM/MM programming/diagnostic port"}; // it's really both AM and MM
-  horn_[PROG_PAT]                = {MEM , static_cast<unsigned int>(PAT)                 , 37 , 6  , 27 , 4  , 7  , "PAT programming/diagnostic port"};
+  horn_[PROG_AMMM]               = {MEM , static_cast<unsigned int>(MM)                  , 57 , 6  , 42 , 4  , 11 , "AM/MM programming/diagnostic port"}; // it's really both AM and MM
+  horn_[PROG_PAT]                = {MEM , static_cast<unsigned int>(PAT)                 , 41 , 6  , 27 , 4  , 7  , "PAT programming/diagnostic port"};
   horn_[PROG_TAT0]               = {MEM , static_cast<unsigned int>(TAT0)                , 65 , 7  , 31 , 4  , 8  , "TAT 0 programming/diagnostic port"};
-  horn_[PROG_TAT1]               = {MEM , static_cast<unsigned int>(TAT1)                , 67 , 7  , 31 , 4  , 8  , "TAT 1 programming/diagnostic port"};
-  horn_[INIT_FIFO_DCT]           = {INPUT, static_cast<unsigned int>(DCT_FIFO_INPUT_TAGS), 70 , 7  , 11 , 1  , 11 , "inserts a tag into the DCT side of the FIFO with ct = 1, needed to clean initial FIFO state"};
-  horn_[INIT_FIFO_HT]            = {INPUT, static_cast<unsigned int>(HT_FIFO_RESET)      , 136, 8  , 1  , 1  , 1  , "trigger sets FIFO head/tail register to empty state"};
-  horn_[TOGGLE_PRE_FIFO_LEAF]    = {REG  , static_cast<unsigned int>(TOGGLE_PRE_FIFO)    , 137, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO input"};
-  horn_[TOGGLE_POST_FIFO0_LEAF]  = {REG  , static_cast<unsigned int>(TOGGLE_POST_FIFO0)  , 138, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 0 output"};
-  horn_[TOGGLE_POST_FIFO1_LEAF]  = {REG  , static_cast<unsigned int>(TOGGLE_POST_FIFO1)  , 139, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 1 output"};
+  horn_[PROG_TAT1]               = {MEM , static_cast<unsigned int>(TAT1)                , 97 , 7  , 31 , 4  , 8  , "TAT 1 programming/diagnostic port"};
+  horn_[INIT_FIFO_DCT]           = {INPUT, static_cast<unsigned int>(DCT_FIFO_INPUT_TAGS), 49 , 7  , 11 , 1  , 11 , "inserts a tag into the DCT side of the FIFO with ct = 1, needed to clean initial FIFO state"};
+  horn_[INIT_FIFO_HT]            = {INPUT, static_cast<unsigned int>(HT_FIFO_RESET)      , 17 , 8  , 1  , 1  , 1  , "trigger sets FIFO head/tail register to empty state"};
+  horn_[TOGGLE_PRE_FIFO_LEAF]    = {REG  , static_cast<unsigned int>(TOGGLE_PRE_FIFO)    , 145, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO input"};
+  horn_[TOGGLE_POST_FIFO0_LEAF]  = {REG  , static_cast<unsigned int>(TOGGLE_POST_FIFO0)  , 81 , 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 0 output"};
+  horn_[TOGGLE_POST_FIFO1_LEAF]  = {REG  , static_cast<unsigned int>(TOGGLE_POST_FIFO1)  , 209, 8  , 2  , 1  , 2  , "toggles data/dump traffic for FIFO tag class 1 output"};
   horn_[NEURON_DUMP_TOGGLE_LEAF] = {REG  , static_cast<unsigned int>(NEURON_DUMP_TOGGLE) , 15 , 4  , 2  , 1  , 2  , "toggles data/dump traffic for neuron array output"};
-  horn_[NEURON_CONFIG]           = {INPUT, static_cast<unsigned int>(TILE_SRAM_INPUTS)   , 6  , 3  , 18 , 1  , 18 , "programming input for neuron array tile SRAM"};
-  horn_[DAC0_LEAF]               = {REG  , static_cast<unsigned int>(DAC0)               , 176, 8  , 11 , 1  , 11 , "DIFF_G DAC bias value"};
-  horn_[DAC1_LEAF]               = {REG  , static_cast<unsigned int>(DAC1)               , 177, 8  , 11 , 1  , 11 , "DIFF_R DAC bias value"};
-  horn_[DAC2_LEAF]               = {REG  , static_cast<unsigned int>(DAC2)               , 178, 8  , 11 , 1  , 11 , "SOMA_OFFSET DAC bias value"};
-  horn_[DAC3_LEAF]               = {REG  , static_cast<unsigned int>(DAC3)               , 179, 8  , 11 , 1  , 11 , "SYN_LK DAC bias value"};
-  horn_[DAC4_LEAF]               = {REG  , static_cast<unsigned int>(DAC4)               , 180, 8  , 11 , 1  , 11 , "SYN_DC DAC bias value"};
-  horn_[DAC5_LEAF]               = {REG  , static_cast<unsigned int>(DAC5)               , 181, 8  , 11 , 1  , 11 , "SYN_PD DAC bias value"};
-  horn_[DAC6_LEAF]               = {REG  , static_cast<unsigned int>(DAC6)               , 182, 8  , 11 , 1  , 11 , "ADC_BIAS_2 DAC bias value"};
-  horn_[DAC7_LEAF]               = {REG  , static_cast<unsigned int>(DAC7)               , 183, 8  , 11 , 1  , 11 , "ADC_BIAS_1 DAC bias value"};
-  horn_[DAC8_LEAF]               = {REG  , static_cast<unsigned int>(DAC8)               , 184, 8  , 11 , 1  , 11 , "SOMA_REF DAC bias value"};
-  horn_[DAC9_LEAF]               = {REG  , static_cast<unsigned int>(DAC9)               , 185, 8  , 11 , 1  , 11 , "SOMA_EXC DAC bias value"};
+  horn_[NEURON_CONFIG]           = {INPUT, static_cast<unsigned int>(TILE_SRAM_INPUTS)   , 3  , 3  , 18 , 1  , 18 , "programming input for neuron array tile SRAM"};
+  horn_[DAC0_LEAF]               = {REG  , static_cast<unsigned int>(DAC0)               , 13 , 8  , 11 , 1  , 11 , "DIFF_G DAC bias value"};
+  horn_[DAC1_LEAF]               = {REG  , static_cast<unsigned int>(DAC1)               , 141, 8  , 11 , 1  , 11 , "DIFF_R DAC bias value"};
+  horn_[DAC2_LEAF]               = {REG  , static_cast<unsigned int>(DAC2)               , 77 , 8  , 11 , 1  , 11 , "SOMA_OFFSET DAC bias value"};
+  horn_[DAC3_LEAF]               = {REG  , static_cast<unsigned int>(DAC3)               , 205, 8  , 11 , 1  , 11 , "SYN_LK DAC bias value"};
+  horn_[DAC4_LEAF]               = {REG  , static_cast<unsigned int>(DAC4)               , 45 , 8  , 11 , 1  , 11 , "SYN_DC DAC bias value"};
+  horn_[DAC5_LEAF]               = {REG  , static_cast<unsigned int>(DAC5)               , 173, 8  , 11 , 1  , 11 , "SYN_PD DAC bias value"};
+  horn_[DAC6_LEAF]               = {REG  , static_cast<unsigned int>(DAC6)               , 109, 8  , 11 , 1  , 11 , "ADC_BIAS_2 DAC bias value"};
+  horn_[DAC7_LEAF]               = {REG  , static_cast<unsigned int>(DAC7)               , 237, 8  , 11 , 1  , 11 , "ADC_BIAS_1 DAC bias value"};
+  horn_[DAC8_LEAF]               = {REG  , static_cast<unsigned int>(DAC8)               , 29 , 8  , 11 , 1  , 11 , "SOMA_REF DAC bias value"};
+  horn_[DAC9_LEAF]               = {REG  , static_cast<unsigned int>(DAC9)               , 157, 8  , 11 , 1  , 11 , "SOMA_EXC DAC bias value"};
   horn_[DAC10_LEAF]              = {REG  , static_cast<unsigned int>(DAC10)              , 93 , 7  , 11 , 1  , 11 , "SOMA_INH DAC bias value"};
-  horn_[DAC11_LEAF]              = {REG  , static_cast<unsigned int>(DAC11)              , 94 , 7  , 11 , 1  , 11 , "SYN_PU DAC bias value"};
-  horn_[DAC12_LEAF]              = {REG  , static_cast<unsigned int>(DAC12)              , 95 , 7  , 11 , 1  , 11 , "UNUSED (ghost DAC)"};
-  horn_[ADC_LEAF]                = {REG  , static_cast<unsigned int>(ADC)                , 10 , 4  , 3  , 1  , 3  , "ADC small/large current enable, output enable"};
-  horn_[DELAY0_LEAF]             = {REG  , static_cast<unsigned int>(DELAY0)             , 64 , 7  , 8  , 1  , 8  , "FIFO:DCT delay line config"};
-  horn_[DELAY1_LEAF]             = {REG  , static_cast<unsigned int>(DELAY1)             , 66 , 7  , 8  , 1  , 8  , "FIFO:PG delay line config"};
-  horn_[DELAY2_LEAF]             = {REG  , static_cast<unsigned int>(DELAY2)             , 142, 8  , 8  , 1  , 8  , "TAT 0 delay line config"};
-  horn_[DELAY3_LEAF]             = {REG  , static_cast<unsigned int>(DELAY3)             , 143, 8  , 8  , 1  , 8  , "TAT 1 delay line config"};
-  horn_[DELAY4_LEAF]             = {REG  , static_cast<unsigned int>(DELAY4)             , 36 , 6  , 8  , 1  , 8  , "PAT delay line config"};
-  horn_[DELAY5_LEAF]             = {REG  , static_cast<unsigned int>(DELAY5)             , 76 , 7  , 8  , 1  , 8  , "MM delay line config"};
-  horn_[DELAY6_LEAF]             = {REG  , static_cast<unsigned int>(DELAY6)             , 77 , 7  , 8  , 1  , 8  , "AM delay line config"};
-
+  horn_[DAC11_LEAF]              = {REG  , static_cast<unsigned int>(DAC11)              , 61 , 7  , 11 , 1  , 11 , "SYN_PU DAC bias value"};
+  horn_[DAC12_LEAF]              = {REG  , static_cast<unsigned int>(DAC12)              , 125, 7  , 11 , 1  , 11 , "UNUSED (ghost DAC)"};
+  horn_[ADC_LEAF]                = {REG  , static_cast<unsigned int>(ADC)                , 5  , 4  , 3  , 1  , 3  , "ADC small/large current enable, output enable"};
+  horn_[DELAY0_LEAF]             = {REG  , static_cast<unsigned int>(DELAY0)             , 1  , 7  , 8  , 1  , 8  , "FIFO:DCT delay line config"};
+  horn_[DELAY1_LEAF]             = {REG  , static_cast<unsigned int>(DELAY1)             , 33 , 7  , 8  , 1  , 8  , "FIFO:PG delay line config"};
+  horn_[DELAY2_LEAF]             = {REG  , static_cast<unsigned int>(DELAY2)             , 113, 8  , 8  , 1  , 8  , "TAT 0 delay line config"};
+  horn_[DELAY3_LEAF]             = {REG  , static_cast<unsigned int>(DELAY3)             , 241, 8  , 8  , 1  , 8  , "TAT 1 delay line config"};
+  horn_[DELAY4_LEAF]             = {REG  , static_cast<unsigned int>(DELAY4)             , 9  , 6  , 8  , 1  , 8  , "PAT delay line config"};
+  horn_[DELAY5_LEAF]             = {REG  , static_cast<unsigned int>(DELAY5)             , 25 , 7  , 8  , 1  , 8  , "MM delay line config"};
+  horn_[DELAY6_LEAF]             = {REG  , static_cast<unsigned int>(DELAY6)             , 89 , 7  , 8  , 1  , 8  , "AM delay line config"};
 
   //                               {component type, component, route, route_len, data width, serialization, serialized data width, description}
   funnel_.resize(LastFunnelLeafId+1);

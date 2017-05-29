@@ -217,7 +217,7 @@ enum WordFieldId {
   // MM data
   WEIGHT,
   // AMMM encapsulation
-  AMMM_STOP,
+  AMMM_STOP, 
   // PAT data
   AM_ADDRESS,
   MM_ADDRESS_LO,
