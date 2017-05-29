@@ -53,10 +53,14 @@ class Driver
 
   public:
     /// Return a global instance of bddriver
-    static Driver * GetInstance();
+    //static Driver * GetInstance();
+    // private because singleton. See GetInstance().
+    Driver();
+    ~Driver();
 
     inline const bdpars::BDPars * GetBDPars() { return bd_pars_; }
     inline const driverpars::DriverPars * GetDriverPars() { return driver_pars_; }
+    inline const BDState * GetState(unsigned int core_id) { return &bd_state_[core_id]; }
 
     void testcall(const std::string& msg);
 
@@ -202,9 +206,6 @@ class Driver
     static FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words);
 
   private:
-    // private because singleton. See GetInstance().
-    Driver();
-    ~Driver();
 
     ////////////////////////////////
     // data members

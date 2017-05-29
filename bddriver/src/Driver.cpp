@@ -23,14 +23,14 @@ namespace pystorm {
 namespace bddriver {
 
 
-Driver * Driver::GetInstance()
-{
-    // In C++11, if control from two threads occurs concurrently, execution
-    // shall wait during static variable initialization, therefore, this is 
-    // thread safe
-    static Driver m_instance;
-    return &m_instance;
-}
+//Driver * Driver::GetInstance()
+//{
+//    // In C++11, if control from two threads occurs concurrently, execution
+//    // shall wait during static variable initialization, therefore, this is 
+//    // thread safe
+//    static Driver m_instance;
+//    return &m_instance;
+//}
 
 
 Driver::Driver()
@@ -78,8 +78,8 @@ Driver::Driver()
     comm_ = new comm::CommSoft(
         *(driver_pars_->Get(driverpars::soft_comm_in_fname)),
         *(driver_pars_->Get(driverpars::soft_comm_out_fname)),
-        enc_buf_out_,
-        dec_buf_in_
+        dec_buf_in_,
+        enc_buf_out_
     );
 
   } else if (driver_pars_->Get(driverpars::comm_type) == driverpars::libUSB) {
@@ -475,26 +475,30 @@ std::vector<uint64_t> Driver::PackRMWProgWords(
 std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> & payload_data) const
 // XXX should vectorize, use PackWords
 {
-  const bdpars::WordStructure * AM_MM_encapsulation = nullptr; // assignment to nullptr suppresses compiler warning
+  // the reason for a stop bit type is a bit of a hack
+  // see BDModel, Process() needs to be able to differentiate between AM/MM
+  // collapsed FVVs
+  const bdpars::WordStructure * AM_MM_encapsulation;
   if (AM_or_MM == bdpars::AM) {
     AM_MM_encapsulation = bd_pars_->Word(bdpars::AM_ENCAPSULATION);
   } else if (AM_or_MM == bdpars::MM) {
     AM_MM_encapsulation = bd_pars_->Word(bdpars::MM_ENCAPSULATION);
   } else {
     assert(false && "AM_or_MM must == AM or MM");
+    return {};
   }
 
   std::vector<uint64_t> retval;
-  for (auto& it : payload_data) {
+  for (unsigned int i = 0; i < payload_data.size(); i++) {
 
     uint64_t stop_bit;
-    if (it == *payload_data.end()) {
+    if (i == payload_data.size() - 1) {
       stop_bit = 1;
     } else {
       stop_bit = 0;
     }
 
-    uint64_t word = PackWord(*AM_MM_encapsulation, {{bdpars::PAYLOAD, it}, {bdpars::AMMM_STOP, stop_bit}});
+    uint64_t word = PackWord(*AM_MM_encapsulation, {{bdpars::PAYLOAD, payload_data[i]}, {bdpars::AMMM_STOP, stop_bit}});
     retval.push_back(word);
   }
   return retval;
