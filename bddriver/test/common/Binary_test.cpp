@@ -1,6 +1,7 @@
 #include "binary_util.h"
 #include "gtest/gtest.h"
 
+#include <limits>
 #include <random>
 #include <vector>
 #include <cstdint>
@@ -13,6 +14,76 @@ using std::endl;
 using namespace pystorm;
 using namespace bddriver;
 
+class BinaryFixtureRandom : public testing::TestWithParam<unsigned int>
+
+{
+  public:
+    void SetUp() {
+      auto generator = std::default_random_engine(0);
+      auto uint_distribution = std::uniform_int_distribution<uint64_t>(0, UINT64_MAX);
+      auto field_width_distribution = std::uniform_int_distribution<unsigned int>(1, 64);
+      
+      kMaxFieldWidth = GetParam();
+
+      for (unsigned int i = 0; i < M; i++) {
+
+        initial_field_width.push_back(field_width_distribution(generator)); 
+        uint64_t new_val = uint_distribution(generator) % (static_cast<uint64_t>(1) << initial_field_width.back());
+        vals.push_back(new_val);
+
+        sub_field_widths.push_back({});
+
+        unsigned int total_field_width = 0;
+        while (total_field_width < initial_field_width.back()) {
+          unsigned int sub_field_width = field_width_distribution(generator) % kMaxFieldWidth;
+          unsigned int next_field_width;
+          if (total_field_width + sub_field_width < initial_field_width.back()) {
+            next_field_width = sub_field_width;
+          } else {
+            next_field_width = initial_field_width.back() - total_field_width;
+          }
+          sub_field_widths.back().push_back(next_field_width);
+          total_field_width += next_field_width;
+        }
+        assert(total_field_width == initial_field_width.back());
+      }
+    }
+
+    const unsigned int M = 100;
+    unsigned int kMaxFieldWidth;
+    std::vector<uint64_t> vals;
+    std::vector<unsigned int> initial_field_width;
+    std::vector<std::vector<unsigned int> > sub_field_widths;
+};
+
+TEST_P(BinaryFixtureRandom, TestUnpackPack) {
+  for (unsigned int i = 0; i < initial_field_width.size(); i++) {
+    uint64_t new_val;
+    if (kMaxFieldWidth > 32) {
+      std::vector<uint64_t> unpacked_vals = UnpackV<uint64_t, uint64_t>(vals[i], sub_field_widths[i]);
+      new_val = PackV<uint64_t, uint64_t>(unpacked_vals, sub_field_widths[i]); 
+    } else {
+      //cout << "i = " << i << endl;
+      //cout << "val = " << vals[i] << ", width = " << initial_field_width[i] << endl;
+      std::vector<uint32_t> unpacked_vals = UnpackV<uint64_t, uint32_t>(vals[i], sub_field_widths[i]);
+      //cout << "unpacked = {";
+      //unsigned int j = 0;
+      //for (auto& it : unpacked_vals) {
+      //  cout << it << "(" << sub_field_widths[i][j++] << ") ";
+      //}
+      //cout << "}" << endl;
+      new_val = PackV<uint32_t, uint64_t>(unpacked_vals, sub_field_widths[i]); 
+      //cout << "new val = " << new_val << endl;
+    }
+    ASSERT_EQ(vals[i], new_val);
+  }
+}
+
+INSTANTIATE_TEST_CASE_P(
+    TestBinaryDifferentUintN_t,
+    BinaryFixtureRandom,
+    ::testing::Values(10, 20, 40)
+);
 
 class BinaryFixture : public testing::Test
 {

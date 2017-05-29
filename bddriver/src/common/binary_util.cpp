@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include <cstdint>
+#include <limits>
 #include <vector>
 #include <string>
 #include <utility>
@@ -17,20 +18,22 @@ template <class TIN, class TOUT>
 inline TOUT Pack(const TIN * vals, const unsigned int * widths, unsigned int num_fields)
 {
   TOUT value = 0;
-  unsigned int width = 0;
+  unsigned int total_width = 0;
 
   for (unsigned int idx = 0; idx < num_fields; idx++) {
 
     TIN field_val = vals[idx];
     TIN field_width = widths[idx];
 
+    assert(field_val < std::numeric_limits<TIN>::max());
     assert(field_val < (static_cast<TIN>(1) << field_width) && "packed element value exceeds value allowed by packed element width");
 
-    value = value | static_cast<TOUT>(field_val << width);
+    value += static_cast<TOUT>(field_val) << static_cast<TOUT>(total_width);
 
-    width += field_width;
-    assert(width <= 64 && "total width of packed elements exceeds 64");
+    total_width += field_width;
+    assert(total_width <= 64 && "total width of packed elements exceeds 64");
   }
+  assert(value < std::numeric_limits<TOUT>::max());
   return value;
 }
 
@@ -47,18 +50,22 @@ inline void Unpack(TIN val, const unsigned int * widths, TOUT * unpacked_vals, u
 {
   TIN working_value = val;
 
-  unsigned int total_width = 0;
+  unsigned int total_width = 0; // not used in computation, just checking
   for (unsigned int i = 0; i < num_fields; i++) {
 
     unsigned int field_width = widths[i];
-    total_width += field_width;
-    assert(total_width < 64 && "total sum of widths exceeds 64");
+    TIN one = static_cast<TIN>(1);
 
-    TIN val_mask = (1 << field_width) - 1; // mask[0:field_width-1] = 1, mask[field_width:] = 0 : e.g. 00001111
-    TOUT field_val = static_cast<TOUT>(working_value & val_mask);
+    TOUT field_val = working_value % (one << field_width);
     working_value = working_value >> field_width;
+    assert(working_value < std::numeric_limits<TIN>::max());
 
+    assert(field_val < std::numeric_limits<TOUT>::max());
+    assert(field_val < (static_cast<TOUT>(1) << field_width));
     unpacked_vals[i] = field_val;
+
+    total_width += field_width;
+    assert(total_width <= 64 && "total sum of widths exceeds 64");
   }
 }
 
