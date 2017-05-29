@@ -24,6 +24,7 @@ void Encoder::RunOnce()
   while (!success && do_run_) { // if killed, need to stop trying
     success = out_bufs_[0]->Push(output_chunks_[0], num_popped * bytesPerOutput, timeout_us_);
   }
+  
 }
 
 void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput * outputs) const
@@ -56,6 +57,7 @@ void Encoder::Encode(const EncInput * inputs, unsigned int num_popped, EncOutput
     Unpack32(horn_encoded, byte_widths, unpacked_bytes32, bytesPerOutput);
 
     for (unsigned int j = 0; j < bytesPerOutput; j++) {
+      assert(unpacked_bytes32[j] < (1<<8));
       outputs[i * bytesPerOutput + j] = static_cast<uint8_t>(unpacked_bytes32[j]);
     }
     
