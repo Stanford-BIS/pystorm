@@ -418,10 +418,18 @@ FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFie
 
 bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct)
 {
+  // XXX this is a little sketchy because I ignore DATA/PAYLOAD/UNUSED
+  // these are all fields that get expanded, so they're often not 
+  // present in the word you're actually comparing in BDModel
+  using namespace bdpars;
+
   bool is_word_struct = true;
-  for (std::pair<bdpars::WordFieldId, unsigned int> field : word_struct) {
-    if (fvv.count(field.first) == 0) {
-      is_word_struct = false;
+  for (std::pair<WordFieldId, unsigned int> field : word_struct) {
+    WordFieldId field_id = field.first;
+    if (field_id != DATA && field_id != UNUSED && field_id != PAYLOAD) {
+      if (fvv.count(field_id) == 0) {
+        is_word_struct = false;
+      }
     }
   }
   return is_word_struct;
@@ -431,7 +439,7 @@ bool FVVExactlyMatchesWordStruct(const FieldVValues & fvv, const bdpars::WordStr
 {
   bool is_word_struct = true;
   if (word_struct.size() != fvv.size()) is_word_struct = false;
-  if (!FVVExactlyMatchesWordStruct(fvv, word_struct)) is_word_struct = false;
+  if (!FVVContainsWordStruct(fvv, word_struct)) is_word_struct = false;
   return is_word_struct;
 }
 
