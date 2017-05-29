@@ -17,7 +17,11 @@ std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDP
   std::vector<uint32_t> deserialized_words;
   for (unsigned int i = 0; i < inputs.size() / Encoder::bytesPerOutput; i++) {
     uint32_t word = PackV32(
-        {inputs[i+0], inputs[i+1], inputs[i+2]},
+        {
+          inputs[Encoder::bytesPerOutput * i + 0], 
+          inputs[Encoder::bytesPerOutput * i + 1], 
+          inputs[Encoder::bytesPerOutput * i + 2]
+        },
         {8, 8, 8}
     );
     deserialized_words.push_back(word);
@@ -69,6 +73,8 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t> & inputs, c
 
   // use the routing info to decode
   for (auto& input : inputs) {
+
+    //cout << "horn input: " << UintAsString<uint32_t>(input, 21) << endl;
     
     unsigned int horn_id;
     uint32_t payload;
@@ -96,7 +102,7 @@ std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(const s
 
 std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(const std::vector<std::vector<uint32_t> > & inputs, const bdpars::BDPars * bd_pars)
 {
-  assert(inputs.size() == static_cast<unsigned int>(bdpars::LastHornLeafId));
+  assert(inputs.size() == static_cast<unsigned int>(bdpars::LastHornLeafId)+1);
 
   std::vector<std::vector<uint64_t> > outputs;
   for (unsigned int i = 0; i < inputs.size(); i++) {
@@ -111,9 +117,7 @@ std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(const std::vector<s
     std::tie(deserialized, remainder) = DeserializeHorn(inputs[i], leaf_id, bd_pars);
 
     assert(remainder.size() == 0 && "this call is meant to be used on complete streams only");
-    for (auto& it : deserialized) {
-      outputs[i].push_back(it);
-    }
+    outputs[i].insert(outputs[i].end(), deserialized.begin(), deserialized.end()); // append to outputs[i]
   }
 
   return outputs;
@@ -259,6 +263,8 @@ FieldValues ParseAMMMWord(uint64_t input, const bdpars::BDPars * bd_pars)
       {AM_ENCAPSULATION, MM_ENCAPSULATION}, 
       bd_pars
   );
+  cout << input << endl;
+  cout << AMMM_fields.at(PAYLOAD) << endl;
   
   // unpack AM
   if (AMMM_match_idx == 0) {
