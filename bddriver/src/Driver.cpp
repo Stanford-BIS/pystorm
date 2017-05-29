@@ -756,79 +756,39 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
+// XXX can use this if I write an optimized version of Packwords()
+//uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) 
+//{
+//  FieldVValues fvv = FVasFVV(field_values);
+//  std::vector<uint64_t> words = PackWords(word_struct, fvv);
+//  assert(words.size() == 1);
+//  return words.back();
+//}
+
 std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values)
 {
   // check that input is well-formed
-  assert(word_struct.size() == field_values.size() && "number of fields in word_struct and field_values");
-  unsigned int n_fields = word_struct.size();
-  unsigned int n_words = field_values.begin()->second.size();
+  assert(word_struct.size() >= field_values.size() && "fewer fields in word_struct than field_values"); // can have some extra fields in FVV in some cases
   for (auto& it : field_values) {
     std::vector<uint64_t> vect = it.second;
-    assert(vect.size() == n_words && "FieldVValues vector length mismatch");
+    assert(vect.size() == field_values.begin()->second.size() && "FieldVValues vector length mismatch");
   }
 
-  // XXX not sure if it's better to rearrange first (which needs alloc), then Pack, or just iterate and pack
-  // this is the rearrange then pack option
-  uint64_t * vals = new uint64_t[n_words * n_fields];
-  unsigned int i = 0;
-  for (auto& it : word_struct) {
-    bdpars::WordFieldId field_id = it.first; // field id ~ i
-
-    for (unsigned int j = 0; j < n_words; j++) {
-
-      uint64_t field_value;
-      if (field_values.count(field_id) > 0) {
-        field_value = field_values.at(field_id).at(j);
-      } else {
-        field_value = ValueForSpecialFieldId(field_id);
-      }
-
-      vals[n_fields * j + i] = field_value;
-    }
-    i++;
+  std::vector<uint64_t> output; 
+  std::vector<FieldValues> vfv = FVVasVFV(field_values);
+  for (auto& fv : vfv) {
+    output.push_back(PackWord(word_struct, fv));
   }
 
-  // get the array of field lengths
-  unsigned int * len_arr = new unsigned int[n_fields];
-  i = 0;
-  for (auto& it : word_struct) {
-    len_arr[i++] = it.second;
-  }
-
-  // pack data from rearranged vals
-  std::vector<uint64_t> retval;
-  for (unsigned int i = 0; i < n_words; i++) {
-    retval.push_back(Pack64(&vals[i*n_fields], len_arr, n_fields));
-  }
-
-  // clean up
-  delete[] vals;
-  delete[] len_arr;
-
-  return retval;
+  return output;
 }
 
 FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word)
 {
-  std::vector<unsigned int> widths_as_vect;
-  for (auto& it : word_struct) {
-    unsigned int field_width = it.second;
-    widths_as_vect.push_back(field_width);
-  }
-
-  std::vector<uint64_t> vals = UnpackV64(word, widths_as_vect);
-
-  FieldValues retval;
-  unsigned int i = 0;
-  for (auto& it : word_struct) {
-    bdpars::WordFieldId field_id = it.first;
-
-    // check if we're unpacking the right word, return empty object if not
-    if (!SpecialFieldValueMatches(field_id, vals[i])) return {};
-    retval[field_id] = vals[i];
-    i++;
-  }
-  return retval;
+  FieldVValues fvv = UnpackWords(word_struct, {word});
+  std::vector<FieldValues> vfv = FVVasVFV(fvv);
+  assert(vfv.size() == 1);
+  return vfv.back();
 }
 
 FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words)
