@@ -34,7 +34,10 @@ BDState::BDState(const bdpars::BDPars * bd_pars, const driverpars::DriverPars * 
   MM_valid_   = std::vector<bool>(MM_.size(), false);
 
   // initialize register vectors
-  reg_ = std::vector<std::vector<unsigned int> >(bd_pars->NumReg(), {0});
+  for (unsigned int i = 0; i < bd_pars->NumReg(); i++) {
+    unsigned int num_reg_fields = bd_pars->Word(static_cast<bdpars::RegId>(i))->size();
+    reg_.push_back(std::vector<unsigned int>(num_reg_fields, 0));
+  }
   reg_valid_ = std::vector<bool>(reg_.size(), false);
 
 }
@@ -170,19 +173,18 @@ void BDState::WaitForTrafficOff() const
 /// Compare BDStates to see if all the fields match.
 /// Useful for testing when using BDModel. Can compare Driver's 
 /// BDState to the BDModels BDState
-bool operator==(const BDState& lhs, const BDState rhs)
+bool operator==(const BDState & lhs, const BDState & rhs)
 // kind of a pain because of all the structs
 {
   // comparison of vectors works as expected if the comparators for the underlying stored objects is defined.
   
   // check memories
-  bool mems_match = (
-      *lhs.GetAM() == *rhs.GetAM() &&
-      *lhs.GetMM() == *rhs.GetMM() &&
-      *lhs.GetTAT0() == *rhs.GetTAT0() &&
-      *lhs.GetTAT1() == *rhs.GetTAT1() &&
-      *lhs.GetPAT() == *rhs.GetPAT()
-  );
+  bool AM_matches = *lhs.GetAM() == *rhs.GetAM();
+  bool MM_matches = *lhs.GetMM() == *rhs.GetMM();
+  bool TAT0_matches = *lhs.GetTAT0() == *rhs.GetTAT0();
+  bool TAT1_matches = *lhs.GetTAT1() == *rhs.GetTAT1();
+  bool PAT_matches = *lhs.GetPAT() == *rhs.GetPAT();
+  bool mems_match = AM_matches && MM_matches && TAT0_matches && TAT1_matches && PAT_matches;
 
   // check registers
   bool regs_match = true;
@@ -191,8 +193,20 @@ bool operator==(const BDState& lhs, const BDState rhs)
     bool lhs_valid, rhs_valid;
     std::tie(lhs_vals, lhs_valid) = lhs.GetReg(static_cast<bdpars::RegId>(i));
     std::tie(rhs_vals, rhs_valid) = rhs.GetReg(static_cast<bdpars::RegId>(i));
-    regs_match &= (lhs_valid == rhs_valid);
-    regs_match &= (*lhs_vals == *rhs_vals);
+    bool valid_match = lhs_valid == rhs_valid;
+    bool vals_match = *lhs_vals == *rhs_vals;
+    regs_match = regs_match && valid_match && vals_match;
+    if (!valid_match) {
+      cout << "reg id " << i << " valid failed" << endl;
+      cout << lhs_valid << " vs " << rhs_valid << endl;
+    }
+    if (!vals_match) {
+      cout << "reg id " << i << " vals failed" << endl;
+      cout << "size " << lhs_vals->size() << " vs " << rhs_vals->size() << endl;
+      for (unsigned int i = 0; i < lhs_vals->size(); i++) {
+        cout << lhs_vals->at(i) << " vs " << rhs_vals->at(i) << endl;
+      }
+    }
   }
 
   return mems_match && regs_match;

@@ -86,7 +86,7 @@ class BDState {
 };
 
 // equality test, checks all fields
-bool operator==(const BDState& lhs, const BDState rhs);
+bool operator==(const BDState & lhs, const BDState & rhs);
 
 } // bddriver
 } // pystorm
