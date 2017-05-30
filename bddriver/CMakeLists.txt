@@ -8,7 +8,7 @@ project(bddriver CXX)
 #
 ############################################################################
 
-set(TARGET_NAME "DriverPy")
+set(TARGET_NAME "Driver")
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -18,20 +18,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/comm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/decoder)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/driverifc)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/encoder)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/)
-
-############################################################################
-#
-# Check minimum python version (python 3) is installed
-#
-############################################################################
-function(check_minimum_python_version python_version)
-    if(NOT (${python_version} MATCHES "^3.*$"))
-        message(FATAL_ERROR "Python 3 not found")
-    endif()
-endfunction()
 
 ############################################################################
 #
@@ -40,9 +28,6 @@ endfunction()
 ############################################################################
 
 function(check_multiplatform_system_dependencies)
-    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs REQUIRED)
-    check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
     find_package(Threads REQUIRED)                                                  
     #find_package(GTest REQUIRED)                                                    
 
@@ -59,11 +44,8 @@ endfunction()
 
 function(set_common_properties target_name)
     target_link_libraries(${target_name} 
-        ${PYTHON_LIBRARIES}
-        ${Boost_LIBRARIES}
         ${CMAKE_THREADS_LIB_INIT})
 
-    include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR})
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
     include_directories(${INCLUDE_DIRS})
 
