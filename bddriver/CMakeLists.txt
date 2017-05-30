@@ -66,7 +66,42 @@ function(build_on_linux)
 
     # check pre-build requirements
 
-    if (NOT CMAKE_COMPILER_IS_GNUCXX)
+    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
+    endif()
+
+    # setup build environment variables
+
+    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_MULTHREADED ON)
+    set(Boost_USE_STATIC_RUNTIME ON)
+
+    # define the library being built
+
+    add_library(${TARGET_NAME} SHARED 
+        ${HEADER_FILES}
+        ${SRC_FILES}
+        )
+
+    # set the properties related to the target 
+    # this is a function common to all platforms
+
+    set_common_properties(${TARGET_NAME})
+
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
+    endif()
+
+endfunction()
+
+function(build_on_mac)
+
+    # check pre-build requirements
+
+    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID
+        MATCHES "Clang"))
         message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
     endif()
 
@@ -113,6 +148,8 @@ endif()
 
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
     build_on_linux()
+elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+    build_on_mac()
 else()
     message(FATAL_ERROR "Build does not support system type")
 endif()
