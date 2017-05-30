@@ -166,8 +166,8 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesTimeout)
 {
   vector<unsigned int> consumed;
 
-  unsigned int MProd = 3;
-  unsigned int MCons = 5;
+  unsigned int MProd = 30;
+  unsigned int MCons = 50;
 
   unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
@@ -185,8 +185,8 @@ TEST_F(MutexBufferFixture, Test1to1OddSizesCheckAfter)
 {
   vector<unsigned int> consumed;
 
-  unsigned int MProd = 3;
-  unsigned int MCons = 5;
+  unsigned int MProd = 30;
+  unsigned int MCons = 50;
 
   unsigned int * vals_prod = new unsigned int[N];
   for (unsigned int i = 0; i < N; i++) {
@@ -281,7 +281,7 @@ TEST_F(MutexBufferFixture, Test2to2)
 
 TEST(MutexBufferPerformance, UintThroughput)
 {
-  const unsigned int N = 100e6;
+  const unsigned int N = 20e6;
   const unsigned int M = 1000;
   const unsigned int buf_depth = 100000;
   
@@ -312,7 +312,7 @@ TEST(MutexBufferPerformance, UintThroughput)
 
 TEST(MutexBufferPerformance, UintThroughputLockFrontAndLockBack)
 {
-  const unsigned int N = 100e6;
+  const unsigned int N = 20e6;
   const unsigned int M = 1000;
   const unsigned int buf_depth = 100000;
   
@@ -343,7 +343,7 @@ TEST(MutexBufferPerformance, UintThroughputLockFrontAndLockBack)
 
 TEST(MutexBufferPerformance, UintThroughput2x)
 {
-  const unsigned int N = 100e6;
+  const unsigned int N = 20e6;
   const unsigned int M = 1000;
   const unsigned int buf_depth = 100000;
   
@@ -386,7 +386,7 @@ TEST(MutexBufferPerformance, UintThroughput2x)
 
 TEST(MutexBufferPerformance, PairThroughput)
 {
-  const unsigned int N = 100e6;
+  const unsigned int N = 20e6;
   const unsigned int M = 1000;
   const unsigned int buf_depth = 100000;
 
