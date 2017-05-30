@@ -211,7 +211,7 @@ unsigned int Pop(std::vector<T> * push_to, unsigned int max_to_pop, unsigned int
   push_to->resize(orig_size + max_to_pop); // have to make it big enough to fit the max, we'll size down later
 
   unsigned int num_popped = Pop(&push_to[orig_size], max_to_pop, try_for_us, multiple);
-  push_to.resize(orig_size + num_popped);
+  push_to->resize(orig_size + num_popped);
 
   return num_popped;
 }
