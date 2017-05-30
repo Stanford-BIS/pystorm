@@ -13,7 +13,6 @@
 //        to a Logger (or nothing if logging is not enabled).
 
 #include <iostream>
-#include <boost/current_function.hpp>
 
 //////////////////////////////////
 // Policies                     //
@@ -77,9 +76,6 @@ template< typename LogPolicy >
 class Logger : public LogPolicy {
 public:
     explicit Logger() {
-        // This allows us to use BOOST_CURRENT_FUNCTION to print
-        // the function the Logger is being called from.
-        boost::detail::current_function_helper();
     }
     using LogPolicy::log;
 
