@@ -104,24 +104,7 @@ class DriverFixture : public testing::Test
 
 };
 
-//TEST_F(DriverFixture, TestSetUpAndTearDown) {}
-//
-//TEST_F(DriverFixture, TestDownStreamCalls) {
-//  // just make a bunch of downstream calls. Make sure we don't die.
-//  // XXX no correctness testing yet
-//  driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);
-//  //cout << "set PAT" << endl;
-//  driver->SetTAT(kCoreId, 0, MakeRandomTATData(M), 0);
-//  //cout << "set TAT0" << endl;
-//  driver->SetTAT(kCoreId, 1, MakeRandomTATData(M), 0);
-//  //cout << "set TAT1" << endl;
-//  driver->SetAM(kCoreId, MakeRandomAMData(M), 0);
-//  //cout << "set AM" << endl;
-//  driver->SetMM(kCoreId, MakeRandomMMData(M), 0);
-//  //cout << "set MM" << endl;
-//  driver->SendSpikes(MakeRandomSynSpikesSameCoreId(M, kCoreId));
-//  //cout << "sent some spikes" << endl;
-//}
+TEST_F(DriverFixture, TestSetUpAndTearDown) {}
 
 TEST_F(DriverFixture, TestSetPAT) {
   driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);
@@ -146,3 +129,13 @@ TEST_F(DriverFixture, TestSetMM) {
 TEST_F(DriverFixture, TestSendSpikes) {
   SendSpikes();
 }
+
+TEST_F(DriverFixture, TestDownStreamCalls) {
+  driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);
+  driver->SetTAT(kCoreId, 0, MakeRandomTATData(M), 0);
+  driver->SetTAT(kCoreId, 1, MakeRandomTATData(M), 0);
+  driver->SetAM(kCoreId, MakeRandomAMData(M), 0);
+  driver->SetMM(kCoreId, MakeRandomMMData(M), 0);
+  SendSpikes();
+}
+
