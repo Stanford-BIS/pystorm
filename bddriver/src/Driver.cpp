@@ -756,15 +756,6 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
-// XXX can use this if I write an optimized version of Packwords()
-//uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) 
-//{
-//  FieldVValues fvv = FVasFVV(field_values);
-//  std::vector<uint64_t> words = PackWords(word_struct, fvv);
-//  assert(words.size() == 1);
-//  return words.back();
-//}
-
 std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values)
 {
   // check that input is well-formed
@@ -787,8 +778,14 @@ FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64
 {
   FieldVValues fvv = UnpackWords(word_struct, {word});
   std::vector<FieldValues> vfv = FVVasVFV(fvv);
-  assert(vfv.size() == 1);
-  return vfv.back();
+  if (vfv.size() == 1) {
+    return vfv.back();
+  } else if (vfv.size() == 0) {
+    return {};
+  } else {
+    assert(false);
+    return {};
+  }
 }
 
 FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words)

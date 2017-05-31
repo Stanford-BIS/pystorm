@@ -91,7 +91,7 @@ inline std::pair<unsigned int, TOUT> DecodeFH(
   assert(leaf_routes.size() == leaf_payload_masks.size());
   assert(leaf_routes.size() == payload_shifts.size());
 
-  bool had_some_match; // used to make sure route table is well-formed
+  bool had_some_match = false; // used to make sure route table is well-formed
   for (unsigned int i = 0; i < leaf_routes.size(); i++) {
 
     // iterate through all the input vectors together, over leaves

@@ -65,14 +65,14 @@ bool operator==(const Tag      & lhs, const Tag      & rhs)
 uint64_t SignedValToSignBit(int sign) 
 {
   uint64_t bit = static_cast<uint64_t>((-1 * sign + 1) / 2);
-  assert((bit == 0 && sign == 1 || bit == 1 && sign == -1) && "sign(bit) must 0(+1) or 1(-1)");
+  assert(((bit == 0 && sign == 1) || (bit == 1 && sign == -1)) && "sign(bit) must 0(+1) or 1(-1)");
   return bit;
 }
 
 int SignBitToSignedVal(uint64_t bit) 
 {
   int sign = -2*static_cast<int>(bit) + 1;
-  assert((bit == 0 && sign == 1 || bit == 1 && sign == -1) && "sign(bit) must 0(+1) or 1(-1)");
+  assert(((bit == 0 && sign == 1) || (bit == 1 && sign == -1)) && "sign(bit) must 0(+1) or 1(-1)");
   return sign;
 }
 
@@ -175,8 +175,14 @@ FieldVValues DataToFieldVValues(const std::vector<Tag> & data)
 
 std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) 
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<PATData> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     PATData to_push;
     to_push.AM_address = field_values.at(AM_ADDRESS).at(i);
@@ -218,8 +224,14 @@ std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & fiel
 
 std::vector<AMData> FieldVValuesToAMData(const FieldVValues & field_values)
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<AMData> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     AMData to_push;
     to_push.threshold = field_values.at(THRESHOLD).at(i);
@@ -233,8 +245,14 @@ std::vector<AMData> FieldVValuesToAMData(const FieldVValues & field_values)
 
 std::vector<MMData> FieldVValuesToMMData(const FieldVValues & field_values)
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<MMData> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     MMData to_push = field_values.at(WEIGHT).at(i);
     retval.push_back(to_push);
@@ -244,8 +262,14 @@ std::vector<MMData> FieldVValuesToMMData(const FieldVValues & field_values)
 
 std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<SynSpike> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     SynSpike to_push;
     to_push.time = times[i];
@@ -260,8 +284,14 @@ std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, 
 
 std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<NrnSpike> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     NrnSpike to_push;
     to_push.time = times[i];
@@ -275,8 +305,14 @@ std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, 
 
 std::vector<Tag> FieldVValuesToTag(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
 {
+  unsigned int num_el;
+  if (field_values.size() > 0) {
+    num_el = field_values.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<Tag> retval;
-  unsigned int num_el = field_values.begin()->second.size();
   for(unsigned int i = 0; i < num_el; i++) {
     Tag to_push;
     to_push.time = times[i];
@@ -303,8 +339,15 @@ FieldVValues FVasFVV(const FieldValues & input)
 
 std::vector<FieldValues> FVVasVFV(const FieldVValues & input)
 {
+  unsigned int num_el;
+  if (input.size() > 0) {
+    num_el = input.begin()->second.size();
+  } else {
+    num_el = 0;
+  }
+
   std::vector<FieldValues> output;
-  for (unsigned int i = 0; i < input.begin()->second.size(); i++) {
+  for (unsigned int i = 0; i < num_el; i++) {
     FieldValues fv;
     for (auto& kv : input) {
       fv[kv.first] = kv.second[i];
