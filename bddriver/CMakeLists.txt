@@ -50,14 +50,12 @@ function(set_common_properties target_name)
     include_directories(${INCLUDE_DIRS})
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${target_name} PROPERTY PREFIX "")
 endfunction()
 
 
 ############################################################################
 #
 # Entry function to build on Linux
-# On entry, we know that Boost is present on the system
 # We need to make sure that the compiler is correct
 #
 ############################################################################
@@ -71,10 +69,6 @@ function(build_on_linux)
     endif()
 
     # setup build environment variables
-
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_MULTHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
 
     # define the library being built
 
@@ -106,10 +100,6 @@ function(build_on_mac)
     endif()
 
     # setup build environment variables
-
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_MULTHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
 
     # define the library being built
 
