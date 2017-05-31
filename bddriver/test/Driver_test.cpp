@@ -30,7 +30,7 @@ class DriverFixture : public testing::Test
 
       // we need to make sure that the comm input file exists
       driverpars::DriverPars tmp_pars; // just want the SoftComm input file name
-      const std::string * comm_in_fname = tmp_pars.Get(driverpars::soft_comm_in_fname);
+      const std::string * comm_in_fname = tmp_pars.Get(driverpars::SOFT_COMM_IN_FNAME);
       std::ofstream comm_input_file(*comm_in_fname);
       comm_input_file.close();
 
@@ -49,7 +49,7 @@ class DriverFixture : public testing::Test
       // compare states for every test!
 
       // read soft comm's output file (the raw data that would get sent over USB)
-      const std::string * fname = driver->GetDriverPars()->Get(driverpars::soft_comm_out_fname);
+      const std::string * fname = driver->GetDriverPars()->Get(driverpars::SOFT_COMM_OUT_FNAME);
       std::ifstream file(*fname, ios::in|ios::binary|ios::ate);
       std::vector<char> usb_data;
       if (file.is_open()) {

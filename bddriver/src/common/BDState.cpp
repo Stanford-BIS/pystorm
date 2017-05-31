@@ -143,7 +143,7 @@ bool BDState::AreTrafficRegsOff() const
 int BDState::TrafficRegWaitTimeLeftUs() const
 {
   auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
-  std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(driverpars::bd_state_traffic_drain_us));
+  std::chrono::duration<unsigned int, std::micro> traffic_drain_time(driver_pars_->Get(driverpars::BD_STATE_TRAFFIC_DRAIN_US));
   std::chrono::duration<int, std::micro> wait_time_left = std::chrono::duration_cast<std::chrono::microseconds>(traffic_drain_time - time_since);
   return wait_time_left.count();
 }

@@ -46,12 +46,12 @@ Driver::Driver()
   }
 
   // initialize buffers
-  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(driverpars::enc_buf_in_capacity));
-  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::enc_buf_out_capacity));
-  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::dec_buf_in_capacity));
+  enc_buf_in_ = new MutexBuffer<EncInput>(driver_pars_->Get(driverpars::ENC_BUF_IN_CAPACITY));
+  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::ENC_BUF_OUT_CAPACITY));
+  dec_buf_in_ = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY));
 
   for (unsigned int i = 0; i < bd_pars_->FunnelRoutes()->size(); i++) {
-    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::dec_buf_out_capacity));
+    MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY));
     dec_bufs_out_.push_back(buf_ptr);
   }
 
@@ -60,29 +60,29 @@ Driver::Driver()
       bd_pars_,
       enc_buf_in_, 
       enc_buf_out_, 
-      driver_pars_->Get(driverpars::enc_chunk_size), 
-      driver_pars_->Get(driverpars::enc_timeout_us)
+      driver_pars_->Get(driverpars::ENC_CHUNK_SIZE), 
+      driver_pars_->Get(driverpars::ENC_TIMEOUT_US)
   );
 
   dec_ = new Decoder(
       bd_pars_, 
       dec_buf_in_, 
       dec_bufs_out_, 
-      driver_pars_->Get(driverpars::dec_chunk_size), 
-      driver_pars_->Get(driverpars::dec_timeout_us)
+      driver_pars_->Get(driverpars::DEC_CHUNK_SIZE), 
+      driver_pars_->Get(driverpars::DEC_TIMEOUT_US)
   );
 
   // initialize Comm
-  if (driver_pars_->Get(driverpars::comm_type) == driverpars::soft) {
+  if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::SOFT) {
 
     comm_ = new comm::CommSoft(
-        *(driver_pars_->Get(driverpars::soft_comm_in_fname)),
-        *(driver_pars_->Get(driverpars::soft_comm_out_fname)),
+        *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
+        *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
         dec_buf_in_,
         enc_buf_out_
     );
 
-  } else if (driver_pars_->Get(driverpars::comm_type) == driverpars::libUSB) {
+  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::LIBUSB) {
     assert(false && "libUSB Comm is not implemented");
   } else {
     assert(false && "unhandled comm_type");
@@ -544,7 +544,7 @@ void Driver::SendSpikes(const std::vector<SynSpike> & spikes)
 std::vector<NrnSpike> Driver::RecvSpikes(unsigned int max_to_recv)
 {
   unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OUTPUT_SPIKES));
-  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RecvSpikes_timeout_us));
+  std::vector<DecOutput> dec_out = dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RECVSPIKES_TIMEOUT_US));
 
   std::vector<NrnSpike> retval;
   for (auto& el : dec_out) {
@@ -625,7 +625,7 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
     }
   } else {
     // if num_to_recv=0, just take whatever's in the queue
-    unsigned int num_to_pop = driver_pars_->Get(driverpars::dec_buf_out_capacity);
+    unsigned int num_to_pop = driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY);
     this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
   }
 

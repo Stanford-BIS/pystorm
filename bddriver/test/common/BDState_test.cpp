@@ -47,7 +47,7 @@ TEST_F(BDStateFixture, TestTrafficTurnsOff)
   }
 
   // XXX there's a race here, we won't check this if the delay is set short enough
-  if (driver_pars->Get(driverpars::bd_state_traffic_drain_us) > 100) {
+  if (driver_pars->Get(driverpars::BD_STATE_TRAFFIC_DRAIN_US) > 100) {
     // an immediate query should return false still because of the delay
     ASSERT_FALSE(state->IsTrafficOff());
   }
