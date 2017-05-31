@@ -20,7 +20,7 @@
  * horn_["RI"]                   (SendTags needs impl)
  * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
  * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
- * horn_["NeuronConfig"]         (SetTileSRAMMemory needs impl)
+ * horn_["NeuronConfig"]         (? needs impl)
  * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl)
  * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl)
  * horn_["DELAY[*]"]             (SetMemDelay needs impl)
@@ -48,6 +48,66 @@ namespace bddriver {
  *
  */
 
+/// Driver provides low-level, but not dead-stupid, control over the BD hardware.
+/// Driver tries to provide a complete but not needlessly tedious interface to BD.
+/// It also tries to prevent the user to do anything that would crash the chip.
+///
+/// Driver looks like this:
+///                                                                
+///                                    (user)                                    
+///                                                                
+///  ---[fns]--[fns]--[fns]------------[fns]-----------------------[fns]----  API
+///       |      |      |                A                           A 
+///       V      V      V                |                           |
+///  [private fns, e.g. PackWords]  [XXXX private fns, e.g. UnpackWords XXXX]
+///          |        |                  A                           A
+///          V        V                  |                           |
+///   [MutexBuffer:enc_buf_in_]   [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
+///              |                             A                   A                            
+///              V                             |                   |                            
+///      [Encoder:encoder_]          [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
+///              |                                   A                                       
+///              V                                   |                                       
+///   [MutexBuffer:enc_buf_out_]          [MutexBuffer:dec_buf_in_]                                              
+///              |                                   A                       [BDPars]
+///              V                                   |                       [BDState]
+///         [XXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXX]
+///                             |      A                         
+///                             V      |                          
+///  ----------------------------------------------------------------------- USB
+///                                                               
+///                            (Braindrop)                                
+///
+/// At the heart of driver are a few primary components:
+/// 
+/// - Encoder
+///     Inputs: raw payloads (already serialized, if necessary) and BD horn ids to send them to
+///     Outputs: inputs suitable to send to BD, packed into char stream
+///     Spawns its own thread.
+///
+/// - Decoder
+///     Inputs: char stream of outputs from BD
+///     Outputs: one stream per horn leaf of raw payloads from that leaf
+///     Spawns its own thread.
+/// 
+/// - Comm
+///     Communicates with BD using libUSB, taking inputs from/giving outputs to
+///     the Encoder/Decoder. Spawns its own thread.
+/// 
+/// - MutexBuffers
+///     Provide thread-safe communication and buffering for the inputs and outputs of Encoder
+///     and decoder. Note that there are many decoder output buffers, one per funnel leaf.
+/// 
+/// - BDPars
+///     Holds all the nitty-gritty hardware information. The rest of the driver doesn't know
+///     anything about word field orders or sizes, for example. 
+///
+/// - BDState
+///     Software model of the hardware state. Keep track of all the memory words that have
+///     been programmed, registers that have been set, etc.
+///     Also keeps track of timing assumptions, e.g. whether the traffic has drained after
+///     turning off all of the toggles that stop it.
+/// 
 class Driver
 {
 
@@ -69,7 +129,8 @@ class Driver
     /// stops the child workers
     void Stop();
     /// initializes hardware state
-    void InitBD(); 
+    void InitBD(); // XXX not implemented
+    void InitFIFO(unsigned int core_id); // XXX not implemented
 
     ////////////////////////////////
     // Traffic Control
@@ -86,14 +147,14 @@ class Driver
     // ADC/DAC Config
 
     /// Program DAC value
-    void SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id,  unsigned int value);
+    void SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id,  unsigned int value); // XXX not implemented 
     /// Make DAC-to-ADC connection for calibration for a particular DAC
-    void SetDACtoADCConnectionState(unsigned int core_id, bdpars::DACSignalId dac_signal_id, bool en);
+    void SetDACtoADCConnectionState(unsigned int core_id, bdpars::DACSignalId dac_signal_id, bool en); // XXX not implemented 
 
     /// Set large/small current scale for either ADC
-    void SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large);
+    void SetADCScale(unsigned int core_id, bool adc_id, const std::string & small_or_large); // XXX not implemented
     /// Turn ADC output on
-    void SetADCTrafficState(unsigned int core_id, bool en);
+    void SetADCTrafficState(unsigned int core_id, bool en); // XXX not implemented
 
     ////////////////////////////////
     // Neuron Config
@@ -134,25 +195,25 @@ class Driver
     /// Dump PAT contents
     std::vector<PATData> DumpPAT(unsigned int core_id);
     /// Dump TAT contents
-    std::vector<TATData> DumpTAT(unsigned int core_id);
+    std::vector<TATData> DumpTAT(unsigned int core_id); // XXX not implemented
     /// Dump AM contents
-    std::vector<AMData> DumpAM(unsigned int core_id);
+    std::vector<AMData> DumpAM(unsigned int core_id); // XXX not implemented
     /// Dump MM contents
-    std::vector<unsigned int> DumpMM(unsigned int core_id);
+    std::vector<unsigned int> DumpMM(unsigned int core_id); // XXX not implemented
 
     /// Dump copy of traffic pre-FIFO
-    void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
+    void SetPreFIFODumpState(unsigned int core_id, bool dump_en); // XXX not implemented
     /// Dump copy of traffic post-FIFO, tag msbs = 0
-    void SetPostFIFO0DumpState(unsigned int core_id, bool dump_en);
+    void SetPostFIFO0DumpState(unsigned int core_id, bool dump_en); // XXX not implemented
     /// Dump copy of traffic post-FIFO, tag msbs = 1
-    void SetPostFIFO1DumpState(unsigned int core_id, bool dump_en);
+    void SetPostFIFO1DumpState(unsigned int core_id, bool dump_en); // XXX not implemented
     
     /// Get pre-FIFO tags recorded during dump
-    std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+    std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags); // XXX not implemented
     /// Get post-FIFO tags msbs = 0 recorded during dump
-    std::vector<Tag> GetPostFIFO0Dump(unsigned int core_id, unsigned int n_tags);
+    std::vector<Tag> GetPostFIFO0Dump(unsigned int core_id, unsigned int n_tags); // XXX not implemented
     /// Get post-FIFO tags msbs = 1 recorded during dump
-    std::vector<Tag> GetPostFIFO1Dump(unsigned int core_id, unsigned int n_tags);
+    std::vector<Tag> GetPostFIFO1Dump(unsigned int core_id, unsigned int n_tags); // XXX not implemented
 
     ////////////////////////////////
     // Spike/Tag Streams
@@ -161,16 +222,16 @@ class Driver
     void SendSpikes(const std::vector<SynSpike> & spikes);
 
     /// Send a stream of tags
-    void SendTags(std::vector<Tag> spikes);
+    void SendTags(std::vector<Tag> spikes); // XXX not implemented
 
     /// Receive a stream of spikes
     std::vector<NrnSpike> RecvSpikes(unsigned int max_to_recv);
 
     /// Receive a stream of tags
-    std::vector<Tag> RecvTags(unsigned int max_to_recv);
+    std::vector<Tag> RecvTags(unsigned int max_to_recv); // XXX not implemented
 
     /// Get warning count
-    std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts();
+    std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(); // XXX not implemented
 
     ////////////////////////////////
     // BDState queries
@@ -197,9 +258,6 @@ class Driver
     inline const std::vector<MMData>    * GetMMState(unsigned int core_id) const { return bd_state_[core_id].GetMM(); }
 
     // public static helper functions. Maybe going to move somewhere else... DriverTypes maybe
-    static uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id);
-    static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
-
     static uint64_t PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values);
     static std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const VFieldValues & vfv);
     static FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word);
@@ -279,7 +337,7 @@ class Driver
     std::vector<uint64_t> RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned int num_to_recv=0);
 
     ////////////////////////////////
-    // low-level programming calls, breadth of high-level downstream API goes through these
+    // memory programming helpers
     
     std::vector<uint64_t> PackRWProgWords(
         const bdpars::WordStructure & word_struct, 
@@ -313,23 +371,19 @@ class Driver
         unsigned int start_addr
     ) const; 
     // note: RMWProgWord can function as RMWDumpWord
-
+    
     std::vector<uint64_t> PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> & payload) const;
 
-    
+    ////////////////////////////////
+    // register programming helpers
+
     void SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues & field_vals);
     void SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_enable, bool dump_enable);
     bool SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en);
     bool SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en);
 
-    void SetRIWIMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRMWMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetRWMemory(unsigned int core_id, bdpars::MemId mem_id, unsigned int start_addr, const std::vector<unsigned int> vals);
-    void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int value);
-
-    void SetTileSRAMMemory(unsigned int core_id, const std::vector<unsigned int> vals);
-
-    void InitFIFO(unsigned int core_id);
+    /// Set memory delay line value
+    void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int value); // XXX not implemented
 
 };
 

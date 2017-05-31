@@ -198,6 +198,7 @@ void Driver::ResumeTraffic(unsigned int core_id)
 
 void Driver::SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id, unsigned int value)
 {
+  assert(false && "not implemented"); // fix the ADC connection state thing below
   bdpars::RegId DAC_reg_id = bd_pars_->DACSignalIdToDACRegisterId(signal_id);
 
   // look up state of connection to ADC XXX
@@ -666,73 +667,6 @@ void Driver::SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traff
   SetRegister(core_id, toggle_id, {{bdpars::TRAFFIC_ENABLE, traffic_en}, {bdpars::DUMP_ENABLE, dump_en}});
 }
 
-uint64_t Driver::ValueForSpecialFieldId(bdpars::WordFieldId field_id) 
-{
-  using namespace bdpars;
-
-  switch (field_id)
-  {
-    case UNUSED :
-    {
-      return 0; // don't care
-    }
-    case FIXED_0 :
-    {
-      return 0;
-    }
-    case FIXED_1 :
-    {
-      return 1;
-    }
-    case FIXED_2 :
-    {
-      return 2;
-    }
-    case FIXED_3 :
-    {
-      return 3;
-    }
-    default :
-    {
-      assert(false && "no value supplied for a given field");
-      return 0; // suppresses compiler warning
-    }
-  }
-}
-
-bool Driver::SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val)
-{
-  using namespace bdpars;
-
-  switch (field_id)
-  {
-    case UNUSED :
-    {
-      return true; // don't care (although probably should be 0)
-    }
-    case FIXED_0 :
-    {
-      return val == 0;
-    }
-    case FIXED_1 :
-    {
-      return val == 1;
-    }
-    case FIXED_2 :
-    {
-      return val == 2;
-    }
-    case FIXED_3 :
-    {
-      return val == 3;
-    }
-    default :
-    {
-      return true; // for normal fields, we don't care
-    }
-  }
-}
-
 uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values) 
 {
   std::vector<unsigned int> widths_as_vect;
@@ -746,7 +680,7 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
     if (FVContains(field_values, field_id)) {
       field_value = FVGet(field_values, field_id);
     } else {
-      field_value = ValueForSpecialFieldId(field_id);
+      field_value = bdpars::BDPars::ValueForSpecialFieldId(field_id);
     }
     
     widths_as_vect.push_back(field_width);
@@ -779,7 +713,7 @@ FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64
   FieldValues output;
   for (unsigned int i = 0; i < word_struct.size(); i++) {
     bdpars::WordFieldId field_id = word_struct.at(i).first;
-    if (!SpecialFieldValueMatches(field_id, vals[i])) return {};
+    if (!bdpars::BDPars::SpecialFieldValueMatches(field_id, vals[i])) return {};
     output.push_back({field_id, vals[i]});
   }
   return output;

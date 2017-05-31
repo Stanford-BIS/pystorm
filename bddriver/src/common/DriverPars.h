@@ -44,6 +44,7 @@ enum CommType {
   LastCommType = libUSB
 };
 
+/// Stores parameters that modify driver object parameters/functions
 class DriverPars {
   public:
     // init from yaml file describing driver parameters

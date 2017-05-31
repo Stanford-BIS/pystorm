@@ -93,7 +93,11 @@ bool operator==(const Tag      & lhs, const Tag      & rhs);
 ////////////////////////////////////////
 // internal word stream def'ns 
 
-// typedefs: words and word streams
+/// An unordered list of field-to-value mappings.
+/// This is used against a WordStructure to pack/unpack multiple fields into/from words.
+/// This allows for some separation of functionality: the only part of the
+/// driver that knows anything about the structure of the words is BDPars.
+/// Higher-level driver functionality only has to associate values with field ids
 typedef std::vector<std::pair<bdpars::WordFieldId, uint64_t> > FieldValues;
 typedef std::vector<FieldValues> VFieldValues;
 

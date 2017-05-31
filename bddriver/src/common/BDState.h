@@ -39,6 +39,7 @@ class BDState {
     void SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> & data);
     const std::pair<const std::vector<unsigned int> *, bool> GetReg(bdpars::RegId reg_id) const;
 
+    // A toggle is a special case of register
     void SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en);
     std::tuple<bool, bool, bool> GetToggle(bdpars::RegId reg_id) const;
 
@@ -48,29 +49,29 @@ class BDState {
 
   private:
 
-    /// const pointer to driver's pars objects
+    // const pointer to driver's pars objects
     const bdpars::BDPars * bd_pars_;
     const driverpars::DriverPars * driver_pars_;
 
-    /// register contents
+    // register contents
     std::vector<std::vector<unsigned int> > reg_;
     std::vector<bool> reg_valid_;
 
-    /// memory contents
+    // memory contents
     std::vector<PATData> PAT_;
     std::vector<TATData> TAT0_;
     std::vector<TATData> TAT1_;
     std::vector<AMData> AM_;
     std::vector<MMData> MM_;
 
-    /// binary vectors denote whether memory entries have been programmed
+    // binary vectors denote whether memory entries have been programmed
     std::vector<bool> PAT_valid_;
     std::vector<bool> TAT0_valid_;
     std::vector<bool> TAT1_valid_;
     std::vector<bool> AM_valid_;
     std::vector<bool> MM_valid_;
 
-    /// consts
+    // I iterate through these a lot, this is for convenience
     const std::vector<bdpars::RegId> kTrafficRegs = {
         bdpars::NEURON_DUMP_TOGGLE, 
         bdpars::TOGGLE_PRE_FIFO, 
@@ -78,7 +79,7 @@ class BDState {
         bdpars::TOGGLE_POST_FIFO1
     };
 
-    /// timing: when certain things happened
+    // timing: when certain things happened
     std::chrono::high_resolution_clock::time_point all_traffic_off_start_;
 
     int TrafficRegWaitTimeLeftUs() const; 

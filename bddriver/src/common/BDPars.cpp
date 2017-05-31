@@ -239,6 +239,70 @@ unsigned int BDPars::WordFieldWidth(OutputId object, WordFieldId field_id) const
   return WordFieldWidth(*Word(object), field_id);
 }
 
+uint64_t BDPars::ValueForSpecialFieldId(bdpars::WordFieldId field_id) 
+{
+  switch (field_id)
+  {
+    case UNUSED :
+    {
+      return 0; // don't care
+    }
+    case FIXED_0 :
+    {
+      return 0;
+    }
+    case FIXED_1 :
+    {
+      return 1;
+    }
+    case FIXED_2 :
+    {
+      return 2;
+    }
+    case FIXED_3 :
+    {
+      return 3;
+    }
+    default :
+    {
+      assert(false && "no value supplied for a given field");
+      return 0; // suppresses compiler warning
+    }
+  }
+}
+
+bool BDPars::SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val)
+{
+  switch (field_id)
+  {
+    case UNUSED :
+    {
+      return true; // don't care (although probably should be 0)
+    }
+    case FIXED_0 :
+    {
+      return val == 0;
+    }
+    case FIXED_1 :
+    {
+      return val == 1;
+    }
+    case FIXED_2 :
+    {
+      return val == 2;
+    }
+    case FIXED_3 :
+    {
+      return val == 3;
+    }
+    default :
+    {
+      return true; // for normal fields, we don't care
+    }
+  }
+}
+
+
 } // bdpars
 } // bddriver
 } // pystorm
