@@ -94,52 +94,74 @@ bool operator==(const Tag      & lhs, const Tag      & rhs);
 // internal word stream def'ns 
 
 // typedefs: words and word streams
-typedef std::map<bdpars::WordFieldId, uint64_t> FieldValues;
-typedef std::map<bdpars::WordFieldId, std::vector<uint64_t> > FieldVValues;
+typedef std::vector<std::pair<bdpars::WordFieldId, uint64_t> > FieldValues;
+typedef std::vector<FieldValues> VFieldValues;
 
 ////////////////////////////////
-// conversion functions from user types to FieldVValues
+// conversion functions from user types to FieldValues
 
 uint64_t SignedValToSignBit(int sign);
 int SignBitToSignedVal(uint64_t bit);
 
-FieldVValues             DataToFieldVValues(const std::vector<PATData> & data);
-std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data); // TAT can have mixed field types
-FieldVValues             DataToFieldVValues(const std::vector<AMData> & data);
-FieldVValues             DataToFieldVValues(const std::vector<MMData> & data);
-FieldVValues             DataToFieldVValues(const std::vector<SynSpike> & data);
-FieldVValues             DataToFieldVValues(const std::vector<NrnSpike> & data);
-FieldVValues             DataToFieldVValues(const std::vector<Tag> & data);
+FieldValues DataToFieldValues(const PATData & data);
+FieldValues DataToFieldValues(const TATData & data); 
+FieldValues DataToFieldValues(const AMData & data);
+FieldValues DataToFieldValues(const MMData & data);
+FieldValues DataToFieldValues(const SynSpike & data);
+FieldValues DataToFieldValues(const NrnSpike & data);
+FieldValues DataToFieldValues(const Tag & data);
 
-std::vector<PATData>  FieldVValuesToPATData(const FieldVValues & field_values);
-std::vector<TATData>  FieldVValuesToTATData(const std::vector<FieldValues> & field_values);
-std::vector<AMData>   FieldVValuesToAMData(const FieldVValues & field_values);
-std::vector<MMData>   FieldVValuesToMMData(const FieldVValues & field_values);
+PATData  FieldValuesToPATData(const FieldValues & field_values);
+TATData  FieldValuesToTATData(const FieldValues & field_values);
+AMData   FieldValuesToAMData(const FieldValues & field_values);
+MMData   FieldValuesToMMData(const FieldValues & field_values);
 // these need extra args, times and core_ids aren't kept in FVVs ever
-std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, 
+SynSpike FieldValuesToSynSpike(const FieldValues & field_values, 
+                               unsigned int times, 
+                               unsigned int core_ids);
+NrnSpike FieldValuesToNrnSpike(const FieldValues & field_values, 
+                               unsigned int times, 
+                               unsigned int core_ids);
+Tag      FieldValuesToTag(const FieldValues & field_values, 
+                               unsigned int times, 
+                               unsigned int core_ids);
+
+////////////////////////////////
+// conversion functions from user types to VFieldValues
+// just calling the above functions in a loop
+
+VFieldValues DataToVFieldValues(const std::vector<PATData> & data);
+VFieldValues DataToVFieldValues(const std::vector<TATData> & data);
+VFieldValues DataToVFieldValues(const std::vector<AMData> & data);
+VFieldValues DataToVFieldValues(const std::vector<MMData> & data);
+VFieldValues DataToVFieldValues(const std::vector<SynSpike> & data);
+VFieldValues DataToVFieldValues(const std::vector<NrnSpike> & data);
+VFieldValues DataToVFieldValues(const std::vector<Tag> & data);
+
+std::vector<PATData>  VFieldValuesToPATData(const VFieldValues & field_values);
+std::vector<TATData>  VFieldValuesToTATData(const VFieldValues & field_values);
+std::vector<AMData>   VFieldValuesToAMData(const VFieldValues & field_values);
+std::vector<MMData>   VFieldValuesToMMData(const VFieldValues & field_values);
+// these need extra args, times and core_ids aren't kept in FVVs ever
+std::vector<SynSpike> VFieldValuesToSynSpike(const VFieldValues & field_values, 
                                              const std::vector<unsigned int> & times, 
                                              const std::vector<unsigned int> & core_ids);
-std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, 
+std::vector<NrnSpike> VFieldValuesToNrnSpike(const VFieldValues & field_values, 
                                              const std::vector<unsigned int> & times, 
                                              const std::vector<unsigned int> & core_ids);
-std::vector<Tag>      FieldVValuesToTag(const FieldVValues & field_values, 
+std::vector<Tag>      VFieldValuesToTag(const VFieldValues & field_values, 
                                              const std::vector<unsigned int> & times, 
                                              const std::vector<unsigned int> & core_ids);
 
 ////////////////////////////////
-// FieldVValues, FieldValues utility functions
+// FieldValues utility functions
 
-FieldVValues FVasFVV(const FieldValues & input);
-std::vector<FieldValues> FVVasVFV(const FieldVValues & input);
-std::vector<FieldValues> VFVVasVFV(const std::vector<FieldVValues> & input);
-bool FVVKeysMatchFV(const FieldVValues & fvv, const FieldValues & fv);
-void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append);
-std::vector<FieldVValues> VFVasVFVV(const std::vector<FieldValues> & inputs);
-FieldVValues CollapseFVVs(const std::vector<std::pair<FieldVValues, bdpars::WordFieldId> > & fvvs);
-FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFieldId> > & fvs);
-
-bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct);
-bool FVVExactlyMatchesWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct);
+const uint64_t * FVGetPtr(const FieldValues & fv, bdpars::WordFieldId field_id);
+uint64_t FVGet(const FieldValues & fv, bdpars::WordFieldId field_id);
+bool FVContains(const FieldValues & fv, bdpars::WordFieldId field_id);
+  
+bool FVContainsWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct);
+bool FVExactlyMatchesWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct);
 
 ////////////////////////////////////////
 // decoder/encoder

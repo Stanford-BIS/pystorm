@@ -201,9 +201,9 @@ class Driver
     static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
 
     static uint64_t PackWord(const bdpars::WordStructure & word_struct, const FieldValues & field_values);
-    static std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values);
+    static std::vector<uint64_t> PackWords(const bdpars::WordStructure & word_struct, const VFieldValues & vfv);
     static FieldValues UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word);
-    static FieldVValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words);
+    static VFieldValues UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words);
 
   private:
 

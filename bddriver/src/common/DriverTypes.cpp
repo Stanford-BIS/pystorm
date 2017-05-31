@@ -76,392 +76,330 @@ int SignBitToSignedVal(uint64_t bit)
   return sign;
 }
 
-FieldVValues DataToFieldVValues(const std::vector<PATData> & data)
+FieldValues DataToFieldValues(const PATData & data)
 {
-  FieldVValues retval = {{AM_ADDRESS, {}}, {MM_ADDRESS_LO, {}}, {MM_ADDRESS_HI, {}}};
-  for (auto& it : data) {
-    retval[AM_ADDRESS].push_back(it.AM_address);
-    retval[MM_ADDRESS_LO].push_back(it.MM_address_lo);
-    retval[MM_ADDRESS_HI].push_back(it.MM_address_hi);
-  }
-  return retval;
+  return {{AM_ADDRESS,    data.AM_address},
+          {MM_ADDRESS_LO, data.MM_address_lo},
+          {MM_ADDRESS_HI, data.MM_address_hi}};
 }
 
-std::vector<FieldValues> DataToFieldVValues(const std::vector<TATData> & data)
+FieldValues DataToFieldValues(const TATData & data)
 {
-  // TAT is super complicated, has three possible data packings, different return type for this fn than the others
-  std::vector<FieldValues> retval;
+  // TAT is more complicated, has three possible data packings, different return type for this fn than the others
 
-  for (auto& it : data) {
+  if (data.type == 0) { // address type
+    return {{AM_ADDRESS, data.AM_address}, 
+            {MM_ADDRESS, data.MM_address},
+            {STOP,       data.stop}};
 
-    FieldValues field_vals;
-    if (it.type == 0) { // address type
-      field_vals = 
-        {{AM_ADDRESS, it.AM_address}, 
-         {MM_ADDRESS, it.MM_address},
-         {STOP,       it.stop}};
+  } else if (data.type == 1) { // spike type
+    return {{SYNAPSE_ADDRESS_0, data.synapse_id_0},
+            {SYNAPSE_SIGN_0,    SignedValToSignBit(data.synapse_sign_0)}, // -1/+1 -> 1/0
+            {SYNAPSE_ADDRESS_1, data.synapse_id_1},
+            {SYNAPSE_SIGN_1,    SignedValToSignBit(data.synapse_sign_1)}, // -1/+1 -> 1/0
+            {STOP,              data.stop}};
 
-    } else if (it.type == 1) { // spike type
-      field_vals = 
-        {{SYNAPSE_ADDRESS_0, it.synapse_id_0},
-         {SYNAPSE_SIGN_0,    SignedValToSignBit(it.synapse_sign_0)}, // -1/+1 -> 1/0
-         {SYNAPSE_ADDRESS_1, it.synapse_id_1},
-         {SYNAPSE_SIGN_1,    SignedValToSignBit(it.synapse_sign_1)}, // -1/+1 -> 1/0
-         {STOP,              it.stop}};
-
-    } else if (it.type == 2) { // fanout type
-        field_vals = 
-          {{TAG,          it.tag}, 
-           {GLOBAL_ROUTE, it.global_route},
-           {STOP,         it.stop}};
-    }
-
-    retval.push_back(field_vals);
+  } else if (data.type == 2) { // fanout type
+    return {{TAG,          data.tag}, 
+            {GLOBAL_ROUTE, data.global_route},
+            {STOP,         data.stop}};
+  } else { 
+    assert(false);
+    return {};
   }
-
-  return retval;
 }
 
-FieldVValues DataToFieldVValues(const std::vector<AMData> & data)
+FieldValues DataToFieldValues(const AMData & data)
 {
-  FieldVValues retval = {{ACCUMULATOR_VALUE, {}}, {THRESHOLD, {}}, {STOP, {}}, {NEXT_ADDRESS, {}}};
-  for (auto& it : data) {
-    retval[ACCUMULATOR_VALUE].push_back(0);
-    retval[THRESHOLD].push_back(it.threshold);
-    retval[STOP].push_back(it.stop);
-    retval[NEXT_ADDRESS].push_back(it.next_address);
-  }
-  return retval;
+  return {{ACCUMULATOR_VALUE, 0},
+          {THRESHOLD,         data.threshold},
+          {STOP,              data.stop},
+          {NEXT_ADDRESS,      data.next_address}};
 }
 
-FieldVValues DataToFieldVValues(const std::vector<MMData> & data)
+FieldValues DataToFieldValues(const MMData & data)
 {
   // XXX should do two's complement -> one's complement here
-  FieldVValues retval = {{WEIGHT, {}}};
-  for (auto& it : data) {
-    retval[WEIGHT].push_back(it);
-  }
-  return retval;
+  return {{WEIGHT, data}};
 }
 
-FieldVValues DataToFieldVValues(const std::vector<SynSpike> & data)
+FieldValues DataToFieldValues(const SynSpike & data)
 {
-  FieldVValues retval = {{SYNAPSE_SIGN, {}}, {SYNAPSE_ADDRESS, {}}};
-  for (auto& it : data) {
-    retval[SYNAPSE_ADDRESS].push_back(it.synapse_id);
-    retval[SYNAPSE_SIGN].push_back(SignedValToSignBit(it.sign));
-  }
-  return retval;
+  return {{SYNAPSE_ADDRESS, data.synapse_id},
+          {SYNAPSE_SIGN,    data.sign}};
 }
 
-FieldVValues DataToFieldVValues(const std::vector<NrnSpike> & data)
+FieldValues DataToFieldValues(const NrnSpike & data)
 {
-  FieldVValues retval = {{NEURON_ADDRESS, {}}};
-  for (auto& it : data) {
-    retval[NEURON_ADDRESS].push_back(it.neuron_id);
-  }
-  return retval;
+  return {{NEURON_ADDRESS, data.neuron_id}};
 }
 
-FieldVValues DataToFieldVValues(const std::vector<Tag> & data)
+FieldValues DataToFieldValues(const Tag & data)
 {
-  FieldVValues retval = {{COUNT, {}}, {TAG, {}}};
-  for (auto& it : data) {
-    retval[COUNT].push_back(it.count);
-    retval[TAG].push_back(it.tag);
-  }
-  return retval;
+  return {{COUNT, data.count},
+          {TAG,   data.tag}};
 }
 
-std::vector<PATData> FieldVValuesToPATData(const FieldVValues & field_values) 
+/// XXX these are all exactly the same, could be templated
+VFieldValues DataToVFieldValues(const std::vector<PATData> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<PATData> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    PATData to_push;
-    to_push.AM_address = field_values.at(AM_ADDRESS).at(i);
-    to_push.MM_address_lo = field_values.at(MM_ADDRESS_LO).at(i);
-    to_push.MM_address_hi = field_values.at(MM_ADDRESS_HI).at(i);
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
 
-std::vector<TATData> FieldVValuesToTATData(const std::vector<FieldValues> & field_values) 
+VFieldValues DataToVFieldValues(const std::vector<TATData> & data)
 {
-  std::vector<TATData> retval;
-  unsigned int num_el = field_values.size();
-  for(unsigned int i = 0; i < num_el; i++) {
-    // clear all fields, set the ones we need later
-    TATData to_push = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    if (field_values.at(i).count(AM_ADDRESS) > 0) {
-      to_push.type = 0;
-      to_push.AM_address = field_values.at(i).at(AM_ADDRESS);
-      to_push.MM_address = field_values.at(i).at(MM_ADDRESS);
-    } else if (field_values.at(i).count(SYNAPSE_ADDRESS_0) > 0) {
-      to_push.type = 1;
-      to_push.synapse_id_0 = field_values.at(i).at(SYNAPSE_ADDRESS_0);
-      to_push.synapse_sign_0 = SignBitToSignedVal(field_values.at(i).at(SYNAPSE_SIGN_0));
-      to_push.synapse_id_1 = field_values.at(i).at(SYNAPSE_ADDRESS_1);
-      to_push.synapse_sign_1 = SignBitToSignedVal(field_values.at(i).at(SYNAPSE_SIGN_1));
-    } else if (field_values[i].count(TAG) > 0) {
-      to_push.type = 2;
-      to_push.tag = field_values.at(i).at(TAG);
-      to_push.global_route = field_values.at(i).at(GLOBAL_ROUTE);
-    }
-    to_push.stop = field_values.at(i).at(STOP);
-
-    retval.push_back(to_push);
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-  return retval;
+  return output;
 }
 
-std::vector<AMData> FieldVValuesToAMData(const FieldVValues & field_values)
+VFieldValues DataToVFieldValues(const std::vector<AMData> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<AMData> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    AMData to_push;
-    to_push.threshold = field_values.at(THRESHOLD).at(i);
-    to_push.stop = field_values.at(STOP).at(i);
-    to_push.next_address = field_values.at(NEXT_ADDRESS).at(i);
-    // ignore value
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
 
-std::vector<MMData> FieldVValuesToMMData(const FieldVValues & field_values)
+VFieldValues DataToVFieldValues(const std::vector<MMData> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<MMData> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    MMData to_push = field_values.at(WEIGHT).at(i);
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
 
-std::vector<SynSpike> FieldVValuesToSynSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+VFieldValues DataToVFieldValues(const std::vector<SynSpike> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<SynSpike> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    SynSpike to_push;
-    to_push.time = times[i];
-    to_push.core_id = core_ids[i];
-    to_push.synapse_id = field_values.at(SYNAPSE_ADDRESS).at(i);
-    to_push.sign = SignBitToSignedVal(field_values.at(SYNAPSE_SIGN).at(i));
-    // ignore value
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
 
-std::vector<NrnSpike> FieldVValuesToNrnSpike(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+VFieldValues DataToVFieldValues(const std::vector<NrnSpike> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<NrnSpike> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    NrnSpike to_push;
-    to_push.time = times[i];
-    to_push.core_id = core_ids[i];
-    to_push.neuron_id = field_values.at(NEURON_ADDRESS).at(i);
-    // ignore value
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
 
-std::vector<Tag> FieldVValuesToTag(const FieldVValues & field_values, const std::vector<unsigned int> & times, const std::vector<unsigned int> & core_ids)
+VFieldValues DataToVFieldValues(const std::vector<Tag> & data)
 {
-  unsigned int num_el;
-  if (field_values.size() > 0) {
-    num_el = field_values.begin()->second.size();
-  } else {
-    num_el = 0;
+  VFieldValues output;
+  for (auto& el : data) {
+    output.push_back(DataToFieldValues(el));
   }
-
-  std::vector<Tag> retval;
-  for(unsigned int i = 0; i < num_el; i++) {
-    Tag to_push;
-    to_push.time = times[i];
-    to_push.core_id = core_ids[i];
-    to_push.tag = field_values.at(TAG).at(i);
-    to_push.count = field_values.at(COUNT).at(i);
-    // ignore value
-    retval.push_back(to_push);
-  }
-  return retval;
+  return output;
 }
+
+
+PATData FieldValuesToPATData(const FieldValues & field_values) 
+{
+  PATData data;
+  data.AM_address    = FVGet(field_values, AM_ADDRESS);
+  data.MM_address_lo = FVGet(field_values, MM_ADDRESS_LO);
+  data.MM_address_hi = FVGet(field_values, MM_ADDRESS_HI);
+  return data;
+}
+
+std::vector<PATData> FieldValuesToPATData(const VFieldValues & vfv)
+{
+  std::vector<PATData> outputs;
+  for (auto& fv : vfv) {
+    outputs.push_back(FieldValuesToPATData(fv));
+  }
+  return outputs;
+}
+
+TATData FieldValuesToTATData(const FieldValues & field_values) 
+{
+  // clear all fields, set the ones we need later
+  TATData data = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  data.stop = FVGet(field_values, STOP);
+  if (FVContains(field_values, AM_ADDRESS)) {
+
+    data.type       = 0;
+    data.AM_address = FVGet(field_values, AM_ADDRESS);
+    data.MM_address = FVGet(field_values, MM_ADDRESS);
+
+  } else if (FVContains(field_values, SYNAPSE_ADDRESS_0)) {
+
+    data.type           = 1;
+    data.synapse_id_0   =                    FVGet(field_values, SYNAPSE_ADDRESS_0);
+    data.synapse_sign_0 = SignBitToSignedVal(FVGet(field_values, SYNAPSE_SIGN_0));
+    data.synapse_id_1   =                    FVGet(field_values, SYNAPSE_ADDRESS_1);
+    data.synapse_sign_1 = SignBitToSignedVal(FVGet(field_values, SYNAPSE_SIGN_1));
+
+  } else if (FVContains(field_values, TAG)) {
+
+    data.type         = 2;
+    data.tag          = FVGet(field_values, TAG);
+    data.global_route = FVGet(field_values, GLOBAL_ROUTE);
+
+  }
+  return data;
+}
+
+AMData FieldValuesToAMData(const FieldValues & field_values)
+{
+  AMData data;
+  data.threshold    = FVGet(field_values, THRESHOLD);
+  data.stop         = FVGet(field_values, STOP);
+  data.next_address = FVGet(field_values, NEXT_ADDRESS);
+  // ignore value
+  return data;
+}
+
+MMData FieldValuesToMMData(const FieldValues & field_values)
+{
+  // XXX should un-convert from one's complement
+  return FVGet(field_values, WEIGHT);
+}
+
+SynSpike FieldValuesToSynSpike(const FieldValues & field_values, unsigned int time, unsigned int core_id)
+{
+  SynSpike data;
+  data.time = time;
+  data.core_id = core_id;
+  data.synapse_id = FVGet(field_values, SYNAPSE_ADDRESS);
+  data.sign = SignBitToSignedVal(FVGet(field_values, SYNAPSE_SIGN));
+  return data;
+}
+
+NrnSpike FieldValuesToNrnSpike(const FieldValues & field_values, unsigned int time, unsigned int core_id)
+{
+  NrnSpike data;
+  data.time = time;
+  data.core_id = core_id;
+  data.neuron_id = FVGet(field_values, NEURON_ADDRESS);
+  return data;
+}
+
+Tag FieldValuesToTag(const FieldValues & field_values, unsigned int time, unsigned int core_id)
+{
+  Tag data;
+  data.time = time;
+  data.core_id = core_id;
+  data.tag = FVGet(field_values, TAG);
+  data.count = FVGet(field_values, COUNT);
+  return data;
+}
+
+std::vector<PATData>  VFieldValuesToPATData(const VFieldValues & field_values)
+{
+  std::vector<PATData> output;
+  for (auto& fv : field_values) {
+    output.push_back(FieldValuesToPATData(fv));
+  }
+  return output;
+}
+
+std::vector<TATData>  VFieldValuesToTATData(const VFieldValues & field_values)
+{
+  std::vector<TATData> output;
+  for (auto& fv : field_values) {
+    output.push_back(FieldValuesToTATData(fv));
+  }
+  return output;
+}
+
+std::vector<AMData>   VFieldValuesToAMData(const VFieldValues & field_values)
+{
+  std::vector<AMData> output;
+  for (auto& fv : field_values) {
+    output.push_back(FieldValuesToAMData(fv));
+  }
+  return output;
+}
+
+std::vector<MMData>   VFieldValuesToMMData(const VFieldValues & field_values)
+{
+  std::vector<MMData> output;
+  for (auto& fv : field_values) {
+    output.push_back(FieldValuesToMMData(fv));
+  }
+  return output;
+}
+
+std::vector<SynSpike> VFieldValuesToSynSpike(const VFieldValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids)
+{
+  std::vector<SynSpike> output;
+  for (unsigned int i = 0; i < field_values.size(); i++) {
+    output.push_back(FieldValuesToSynSpike(field_values[i], times[i], core_ids[i]));
+  }
+  return output;
+}
+
+std::vector<NrnSpike> VFieldValuesToNrnSpike(const VFieldValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids)
+{
+  std::vector<NrnSpike> output;
+  for (unsigned int i = 0; i < field_values.size(); i++) {
+    output.push_back(FieldValuesToNrnSpike(field_values[i], times[i], core_ids[i]));
+  }
+  return output;
+}
+
+std::vector<Tag>      VFieldValuesToTag(const VFieldValues & field_values, 
+                                             const std::vector<unsigned int> & times, 
+                                             const std::vector<unsigned int> & core_ids)
+{
+  std::vector<Tag> output;
+  for (unsigned int i = 0; i < field_values.size(); i++) {
+    output.push_back(FieldValuesToTag(field_values[i], times[i], core_ids[i]));
+  }
+  return output;
+}
+
 
 ////////////////////////////////
 // FVV/FV utility functions
 
-FieldVValues FVasFVV(const FieldValues & input) 
+/// Exhaustively search for field id
+/// FVs are always short: this is likely to be the fastest approach
+/// returns nullptr if key not found
+const uint64_t * FVGetPtr(const FieldValues & fv, bdpars::WordFieldId field_id)
 {
-  FieldVValues output;
-  for (auto& kv : input) {
-    output[kv.first] = {kv.second};
-  }
-  return output;
-}
+  for (auto& field_and_val : fv) {
 
-std::vector<FieldValues> FVVasVFV(const FieldVValues & input)
-{
-  unsigned int num_el;
-  if (input.size() > 0) {
-    num_el = input.begin()->second.size();
-  } else {
-    num_el = 0;
-  }
-
-  std::vector<FieldValues> output;
-  for (unsigned int i = 0; i < num_el; i++) {
-    FieldValues fv;
-    for (auto& kv : input) {
-      fv[kv.first] = kv.second[i];
-    }
-    output.push_back(fv);
-  }
-  return output;
-}
-
-std::vector<FieldValues> VFVVasVFV(const std::vector<FieldVValues> & inputs)
-{
-  std::vector<FieldValues> output;
-  for (auto& input : inputs) {
-    std::vector<FieldValues> this_input_as_VFV = FVVasVFV(input);
-    for (auto& vfv : this_input_as_VFV) {
-      output.push_back(vfv);
+    if (field_and_val.first == field_id) {
+      return &field_and_val.second;
     }
   }
-  return output;
+  return nullptr; // we fell through without finding anything
 }
 
-bool FVVKeysMatchFV(const FieldVValues & fvv, const FieldValues & fv) 
+uint64_t FVGet(const FieldValues & fv, bdpars::WordFieldId field_id)
 {
-  bool keys_match = true;
-  for (auto & kv : fvv) {
-    keys_match = keys_match && (fv.count(kv.first) > 0);
-  }
-  for (auto & kv : fv) {
-    keys_match = keys_match && (fvv.count(kv.first) > 0);
-  }
-  return keys_match;
+  const uint64_t * ptr = FVGetPtr(fv, field_id);
+  assert(ptr != nullptr && "shouldn't be using this where you aren't guaranteed the key is present");
+  return *ptr;
 }
 
-void AppendToFVV(FieldVValues * fvv, const FieldValues & to_append)
+bool FVContains(const FieldValues & fv, bdpars::WordFieldId field_id)
 {
-  assert(FVVKeysMatchFV(*fvv, to_append));
-  for (auto& kv : *fvv) {
-    fvv->at(kv.first).push_back(to_append.at(kv.first));
-  }
+  const uint64_t * ptr = FVGetPtr(fv, field_id);
+  return ptr != nullptr;
 }
 
-std::vector<FieldVValues> VFVasVFVV(const std::vector<FieldValues> & inputs)
+bool FVContainsWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct)
 {
-  std::vector<FieldVValues> vfvv;
-  for (auto& fv : inputs) {
-    if (vfvv.size() == 0) {
-      vfvv.push_back(FVasFVV(fv));
-    } else {
-      if (FVVKeysMatchFV(vfvv.back(), fv)) {
-        AppendToFVV(&vfvv.back(), fv);
-      } else {
-        vfvv.push_back(FVasFVV(fv));
-      }
-    }
-  }
-  return vfvv;
-}
-
-// packs a bunch of FVVs into one
-FieldVValues CollapseFVVs(const std::vector<std::pair<FieldVValues, bdpars::WordFieldId> > & fvvs)
-{
-  // XXX for performance, this should use swaps
-  // right now, this isn't being used in a way that needs performance
-  using namespace bdpars; 
-
-  FieldVValues collapsed_fvv;
-
-  // iterate through fvv, field_id pairs
-  for (auto& fvv_field : fvvs) {
-    FieldVValues fvv;
-    WordFieldId field_id_to_collapse_into;
-    std::tie(fvv, field_id_to_collapse_into) = fvv_field;
-
-    // iterate through fields within that fvv
-    for (auto& field_vect : fvv) {
-      WordFieldId field_id;
-      std::vector<uint64_t> values;
-      std::tie(field_id, values) = field_vect;
-
-      // if it's not the field we're collapsing (whose values are in the next fvv), put it in the output
-      if (field_id != field_id_to_collapse_into) {
-        collapsed_fvv[field_id] = values;
-      }
-    }
-  }
-
-  // sanity check
-  for (auto& it : collapsed_fvv) {
-    unsigned int first_size = collapsed_fvv.begin()->second.size();
-    assert(it.second.size() == first_size);
-  }
-
-  return collapsed_fvv;
-}
-
-// like CollapseFVVs, but for a FV instead
-FieldValues CollapseFVs(const std::vector<std::pair<FieldValues, bdpars::WordFieldId> > & fvs) 
-{
-  using namespace bdpars;
-
-  std::vector<std::pair<FieldVValues, WordFieldId> > fvvs;
-  for (auto& fv_and_field : fvs) {
-    FieldValues fv = fv_and_field.first; 
-    WordFieldId field_id = fv_and_field.second;
-
-    fvvs.push_back({FVasFVV(fv), field_id});
-  }
-
-  return FVVasVFV(CollapseFVVs(fvvs))[0];
-}
-
-bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct)
-{
-  // XXX this is a little sketchy because I ignore DATA/PAYLOAD/UNUSED
+  // XXX this is a little sketchy because I ignore DATA/PAYLOAD/UNUSED in the word struct
   // these are all fields that get expanded, so they're often not 
   // present in the word you're actually comparing in BDModel
   using namespace bdpars;
@@ -470,19 +408,17 @@ bool FVVContainsWordStruct(const FieldVValues & fvv, const bdpars::WordStructure
   for (std::pair<WordFieldId, unsigned int> field : word_struct) {
     WordFieldId field_id = field.first;
     if (field_id != DATA && field_id != UNUSED && field_id != PAYLOAD) {
-      if (fvv.count(field_id) == 0) {
-        is_word_struct = false;
-      }
+      is_word_struct = is_word_struct && FVContains(fv, field_id);
     }
   }
   return is_word_struct;
 }
 
-bool FVVExactlyMatchesWordStruct(const FieldVValues & fvv, const bdpars::WordStructure & word_struct)
+bool FVExactlyMatchesWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct)
 {
   bool is_word_struct = true;
-  if (word_struct.size() != fvv.size()) is_word_struct = false;
-  if (!FVVContainsWordStruct(fvv, word_struct)) is_word_struct = false;
+  if (word_struct.size() != fv.size()) is_word_struct = false;
+  if (!FVContainsWordStruct(fv, word_struct)) is_word_struct = false;
   return is_word_struct;
 }
 

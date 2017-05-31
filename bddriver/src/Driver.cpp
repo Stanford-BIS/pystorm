@@ -243,7 +243,7 @@ void Driver::SetPAT(
   bd_state_[core_id].SetPAT(start_addr, data);
   
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::PAT)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::PAT)), DataToVFieldValues(data));
 
   // encapsulate according to RW format
   std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(bdpars::PAT_WRITE)), data_fields, start_addr);
@@ -276,10 +276,10 @@ void Driver::SetTAT(
   }
   
   // pack data fields
-  std::vector<FieldValues> field_vals = DataToFieldVValues(data);
+  VFieldValues field_vals = DataToVFieldValues(data);
   std::vector<uint64_t> data_fields;
   for (unsigned int i = 0; i < field_vals.size(); i++) {
-    unsigned int word_type = data[i].type; // XXX this is a little janky, we just iterated through data
+    unsigned int word_type = data[i].type; 
     data_fields.push_back(PackWord(*(bd_pars_->Word(TAT_id, word_type)), field_vals[i]));
   }
 
@@ -306,7 +306,7 @@ void Driver::SetAM(
   bd_state_[core_id].SetAM(start_addr, data);
  
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::AM)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::AM)), DataToVFieldValues(data));
 
   // encapsulate according to RMW format
   std::vector<uint64_t> prog_words = PackRMWProgWords(
@@ -335,7 +335,7 @@ void Driver::SetMM(
   bd_state_[core_id].SetMM(start_addr, data);
 
   // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::MM)), DataToFieldVValues(data));
+  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::MM)), DataToVFieldValues(data));
 
   // encapsulate according to RIWI format
   std::vector<uint64_t> prog_words = PackRIWIProgWords(
@@ -368,8 +368,8 @@ std::vector<PATData> Driver::DumpPAT(unsigned int core_id)
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to pat word format
-  FieldVValues fields = UnpackWords(*bd_pars_->Word(bdpars::PAT), payloads);
-  std::vector<PATData> PAT_contents = FieldVValuesToPATData(fields);
+  VFieldValues fields = UnpackWords(*bd_pars_->Word(bdpars::PAT), payloads);
+  std::vector<PATData> PAT_contents = VFieldValuesToPATData(fields);
 
   return PAT_contents;
 }
@@ -508,7 +508,7 @@ std::vector<uint64_t> Driver::PackAMMMWord(bdpars::MemId AM_or_MM, const std::ve
 void Driver::SendSpikes(const std::vector<SynSpike> & spikes)
 {
   // XXX this circumvents going through the normal set of calls:
-  // no FieldVValues/PackWords and no SerializeWords
+  // no VFieldValues/PackWords and no SerializeWords
   
   // We look up the width of the synapse and sign fields,
   // but we are hardcoding the order
@@ -653,7 +653,7 @@ void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, const Field
   std::vector<unsigned int> field_vals_as_vect;
   for (auto& it : *reg_word_struct) {
     bdpars::WordFieldId field_id = it.first;
-    field_vals_as_vect.push_back(field_vals.at(field_id));
+    field_vals_as_vect.push_back(FVGet(field_vals, field_id));
   }
   bd_state_[core_id].SetReg(reg_id, field_vals_as_vect);
 
@@ -743,8 +743,8 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
     std::tie(field_id, field_width) = it;
 
     uint64_t field_value;
-    if (field_values.count(field_id) > 0) {
-      field_value = field_values.at(field_id);
+    if (FVContains(field_values, field_id)) {
+      field_value = FVGet(field_values, field_id);
     } else {
       field_value = ValueForSpecialFieldId(field_id);
     }
@@ -756,39 +756,17 @@ uint64_t Driver::PackWord(const bdpars::WordStructure & word_struct, const Field
   return PackV64(field_values_as_vect, widths_as_vect);
 }
 
-std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const FieldVValues & field_values)
+std::vector<uint64_t> Driver::PackWords(const bdpars::WordStructure & word_struct, const VFieldValues & vfv)
 {
-  // check that input is well-formed
-  assert(word_struct.size() >= field_values.size() && "fewer fields in word_struct than field_values"); // can have some extra fields in FVV in some cases
-  for (auto& it : field_values) {
-    std::vector<uint64_t> vect = it.second;
-    assert(vect.size() == field_values.begin()->second.size() && "FieldVValues vector length mismatch");
-  }
-
   std::vector<uint64_t> output; 
-  std::vector<FieldValues> vfv = FVVasVFV(field_values);
+  output.reserve(vfv.size());
   for (auto& fv : vfv) {
     output.push_back(PackWord(word_struct, fv));
   }
-
   return output;
 }
 
 FieldValues Driver::UnpackWord(const bdpars::WordStructure & word_struct, uint64_t word)
-{
-  FieldVValues fvv = UnpackWords(word_struct, {word});
-  std::vector<FieldValues> vfv = FVVasVFV(fvv);
-  if (vfv.size() == 1) {
-    return vfv.back();
-  } else if (vfv.size() == 0) {
-    return {};
-  } else {
-    assert(false);
-    return {};
-  }
-}
-
-FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words)
 {
   std::vector<unsigned int> widths_as_vect;
   for (auto& it : word_struct) {
@@ -796,29 +774,24 @@ FieldVValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std:
     widths_as_vect.push_back(field_width);
   }
 
-  // set up retval, init vectors
-  FieldVValues retval;
-  for (auto& it : word_struct) {
-    bdpars::WordFieldId field_id = it.first;
-    retval[field_id] = {};
+  std::vector<uint64_t> vals = UnpackV64(word, widths_as_vect);
+
+  FieldValues output;
+  for (unsigned int i = 0; i < word_struct.size(); i++) {
+    bdpars::WordFieldId field_id = word_struct.at(i).first;
+    if (!SpecialFieldValueMatches(field_id, vals[i])) return {};
+    output.push_back({field_id, vals[i]});
   }
+  return output;
+}
 
-  // fill in vectors
-  for (unsigned int i = 0; i < words.size(); i++) {
-    std::vector<uint64_t> vals = UnpackV64(words[i], widths_as_vect);
-    unsigned int j = 0;
-    for (auto& it : word_struct) {
-      bdpars::WordFieldId field_id = it.first;
-
-      // check if we're unpacking the right word, return empty object if not
-      if (!SpecialFieldValueMatches(field_id, vals[j])) return {};
-
-      retval[field_id].push_back(vals[j]);
-      j++;
-    }
+VFieldValues Driver::UnpackWords(const bdpars::WordStructure & word_struct, std::vector<uint64_t> words)
+{
+  VFieldValues outputs;
+  for (auto& word : words) {
+    outputs.push_back(UnpackWord(word_struct, word));
   }
-
-  return retval;
+  return outputs;
 }
 
 } // bddriver namespace
