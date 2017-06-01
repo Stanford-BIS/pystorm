@@ -40,6 +40,7 @@ class DriverFixture : public testing::Test
       model = new bdmodel::BDModel(driver->GetBDPars(), driver->GetDriverPars());
 
       driver->Start();
+      driver->InitBD();
     }
 
     void TearDown() {
@@ -104,7 +105,7 @@ class DriverFixture : public testing::Test
 
 };
 
-TEST_F(DriverFixture, TestSetUpAndTearDown) {}
+//TEST_F(DriverFixture, TestSetUpAndTearDown) {}
 
 TEST_F(DriverFixture, TestSetPAT) {
   driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);

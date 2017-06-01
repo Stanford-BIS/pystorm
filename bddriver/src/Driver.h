@@ -112,11 +112,11 @@ class Driver
 {
 
   public:
-    /// Return a global instance of bddriver
-    //static Driver * GetInstance();
-    // private because singleton. See GetInstance().
     Driver();
     ~Driver();
+
+    /// Return a global instance of bddriver
+    //static Driver * GetInstance();
 
     inline const bdpars::BDPars * GetBDPars() { return bd_pars_; }
     inline const driverpars::DriverPars * GetDriverPars() { return driver_pars_; }
@@ -129,7 +129,7 @@ class Driver
     /// stops the child workers
     void Stop();
     /// initializes hardware state
-    void InitBD(); // XXX not implemented
+    void InitBD(); // XXX partially implemented
     void InitFIFO(unsigned int core_id); // XXX not implemented
 
     ////////////////////////////////

@@ -14,7 +14,9 @@ namespace driverifc
 
 void testcall(const std::string& msg)
 {
-    Driver::GetInstance()->testcall(msg);
+    // XXX this is just a stopgap while we fix the singleton business
+    Driver * driver = new Driver();
+    driver->testcall(msg);
 }
 
 BOOST_PYTHON_MODULE(DriverPy)

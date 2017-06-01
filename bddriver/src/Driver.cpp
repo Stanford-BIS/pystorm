@@ -105,6 +105,21 @@ Driver::~Driver()
   delete comm_;
 }
 
+void Driver::InitBD()
+{
+  for (unsigned int i = 0; i < bd_pars_->NumCores(); i++) {
+    // clear all memories
+    SetPAT(i, std::vector<PATData>(bd_pars_->Size(bdpars::PAT), {0, 0, 0}), 0);
+    SetTAT(i, 0, std::vector<TATData>(bd_pars_->Size(bdpars::TAT0), {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 0);
+    SetTAT(i, 1, std::vector<TATData>(bd_pars_->Size(bdpars::TAT1), {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 0);
+    SetAM(i, std::vector<AMData>(bd_pars_->Size(bdpars::AM), {0, 0, 0}), 0);
+    SetMM(i, std::vector<MMData>(bd_pars_->Size(bdpars::MM), 0), 0);
+
+    SetTagTrafficState(i, false);
+
+    // XXX theres a lot of other stuff that should happen, e.g. InitFIFO
+  }
+}
 
 void Driver::testcall(const std::string& msg)
 {
@@ -585,13 +600,21 @@ void Driver::SendToHorn(
   // Encoder doesn't know about the enums, cast leaf_id as a uint
   unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id); 
 
-  // package into EncInput
+
+  // have to make sure that we don't send something bigger than the buffer
   std::vector<EncInput> enc_inputs;
-  for (auto& serialized_word : serialized_words) {
-    enc_inputs.push_back({core_id, leaf_id_as_uint, serialized_word});
+  unsigned int i = 0;
+  while (i < serialized_words.size()) {
+    // package into EncInput
+    enc_inputs.push_back({core_id, leaf_id_as_uint, serialized_words[i]});
+    i++;
+    if (i % driver_pars_->Get(driverpars::ENC_BUF_IN_CAPACITY) == 0) {
+      enc_buf_in_->Push(enc_inputs);
+      enc_inputs.clear();
+    }
   }
+  enc_buf_in_->Push(enc_inputs); // push any remainder
  
-  enc_buf_in_->Push(enc_inputs);
 }
 
 std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned num_to_recv) 
