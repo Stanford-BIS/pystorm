@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bddriver_test)
-#project(${PROJECT_NAME_STR} C CXX)
 project(${PROJECT_NAME_STR} CXX)
 
 set(PYSTORM_BASE_LIB_DIR $ENV{HOME}/pystorm/lib)
@@ -61,11 +60,10 @@ target_link_libraries(${PROJECT_NAME_STR}
     ${GTEST_LIBS_DIR}/libgtest.a
     ${GTEST_LIBS_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
-    ${LIB_BASE_DIR}/Driver
+    Driver
 )
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
-set_property(TARGET ${PROJECT_NAME_STR} PROPERTY PREFIX "")
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 
 enable_testing()

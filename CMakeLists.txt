@@ -53,6 +53,8 @@ function(build_on_linux)
         message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
     endif()
 
+    link_directories(${PROJECT_SOURCE_DIR}/bddriver/lib)
+
     # build and install external dependencies into lib/ directory
     add_subdirectory(${EXT_PROJECTS_DIR}/yaml-cpp)     
 
