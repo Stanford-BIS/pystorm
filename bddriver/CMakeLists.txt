@@ -8,7 +8,7 @@ project(bddriver CXX)
 #
 ############################################################################
 
-set(TARGET_NAME "DriverPy")
+set(TARGET_NAME "Driver")
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
@@ -18,21 +18,9 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/comm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/decoder)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/driverifc)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/encoder)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/model)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/)
-
-############################################################################
-#
-# Check minimum python version (python 3) is installed
-#
-############################################################################
-function(check_minimum_python_version python_version)
-    if(NOT (${python_version} MATCHES "^3.*$"))
-        message(FATAL_ERROR "Python 3 not found")
-    endif()
-endfunction()
 
 ############################################################################
 #
@@ -41,9 +29,6 @@ endfunction()
 ############################################################################
 
 function(check_multiplatform_system_dependencies)
-    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs REQUIRED)
-    check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
     find_package(Threads REQUIRED)                                                  
     #find_package(GTest REQUIRED)                                                    
 
@@ -60,11 +45,8 @@ endfunction()
 
 function(set_common_properties target_name)
     target_link_libraries(${target_name} 
-        ${PYTHON_LIBRARIES}
-        ${Boost_LIBRARIES}
         ${CMAKE_THREADS_LIB_INIT})
 
-    include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR})
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
     include_directories(${INCLUDE_DIRS})
 
@@ -85,7 +67,42 @@ function(build_on_linux)
 
     # check pre-build requirements
 
-    if (NOT CMAKE_COMPILER_IS_GNUCXX)
+    if (NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+        message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
+    endif()
+
+    # setup build environment variables
+
+    set(Boost_USE_STATIC_LIBS ON)
+    set(Boost_USE_MULTHREADED ON)
+    set(Boost_USE_STATIC_RUNTIME ON)
+
+    # define the library being built
+
+    add_library(${TARGET_NAME} SHARED 
+        ${HEADER_FILES}
+        ${SRC_FILES}
+        )
+
+    # set the properties related to the target 
+    # this is a function common to all platforms
+
+    set_common_properties(${TARGET_NAME})
+
+    if(CMAKE_COMPILER_IS_GNUCXX)
+        set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
+    endif()
+
+endfunction()
+
+function(build_on_mac)
+
+    # check pre-build requirements
+
+    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID
+        MATCHES "Clang"))
         message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
     endif()
 
@@ -132,6 +149,8 @@ endif()
 
 if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
     build_on_linux()
+elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
+    build_on_mac()
 else()
     message(FATAL_ERROR "Build does not support system type")
 endif()

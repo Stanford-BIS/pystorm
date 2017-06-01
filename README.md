@@ -37,9 +37,11 @@ The following diagram illustrates the structure
         │   │   ├── driverifc                                                       
         │   │   └── decoder                                                         
         │   │                                                                       
-        │   └── include                 (public bddriver API)                            
+        │   └── include                 (public bddriver API)
         │                                                                           
         ├── bdhal                                                                   
+        │                                                                           
+        ├── bindings                                                                   
         │                                                                           
         ├── ext                         (externally sourced libraries)
         │                                                                           

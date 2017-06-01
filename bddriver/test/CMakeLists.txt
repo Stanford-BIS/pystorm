@@ -5,27 +5,6 @@ project(${PROJECT_NAME_STR} CXX)
 
 set(PYSTORM_BASE_LIB_DIR $ENV{HOME}/pystorm/lib)
 
-############################################################################       
-#                                                                               
-# Check minimum python version (python 3) is installed                          
-#                                                                               
-############################################################################       
-function(check_minimum_python_version python_version)                           
-    if(NOT (${python_version} MATCHES "^3.*$"))                                 
-        message(FATAL_ERROR "Python 3 not found")                               
-    endif()                                                                     
-endfunction()   
-
-find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-
-if(NOT Boost_FOUND)                                                         
-    message(FATAL_ERROR "Unable to find correct Boost version.")        
-endif()              
-
-find_package(PythonLibs REQUIRED)
-
-check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
-
 find_package(Threads REQUIRED)
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -57,7 +36,6 @@ set(INCLUDE_DIRS
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 
-include_directories(${Boost_INCLUDE_DIRS} ${PYTHON_INCLUDE_DIR})
 include_directories(${INC_BASE_DIR})                                        
                                                                             
 #-------------------
@@ -89,9 +67,7 @@ target_link_libraries(${PROJECT_NAME_STR}
     ${GTEST_LIBS_DIR}/libgtest.a
     ${GTEST_LIBS_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
-    ${LIB_BASE_DIR}/DriverPy 
-    ${PYTHON_LIBRARIES}                                                     
-    ${Boost_LIBRARIES}
+    ${LIB_BASE_DIR}/Driver
 )
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
