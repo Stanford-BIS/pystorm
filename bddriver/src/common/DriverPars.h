@@ -37,7 +37,7 @@ enum DriverStringParId {
   LastDriverStringParId = SOFT_COMM_OUT_FNAME
 };
 
-enum CommType { 
+enum CommType {
   SOFT,
   LIBUSB,
 
@@ -46,24 +46,21 @@ enum CommType {
 
 /// Stores parameters that modify driver object parameters/functions
 class DriverPars {
-  public:
-    // init from yaml file describing driver parameters
-    DriverPars();
-    ~DriverPars();
+ public:
+  // init from yaml file describing driver parameters
+  DriverPars();
+  ~DriverPars();
 
-    inline unsigned int Get(DriverParId par_id) const 
-      { return pars_.at(par_id); }
-    inline const std::string * Get(DriverStringParId par_id) const 
-      { return &(string_pars_.at(par_id)); }
+  inline unsigned int Get(DriverParId par_id) const { return pars_.at(par_id); }
+  inline const std::string* Get(DriverStringParId par_id) const { return &(string_pars_.at(par_id)); }
 
-  private:
-    std::vector<unsigned int> pars_;
-    std::vector<std::string> string_pars_;
-
+ private:
+  std::vector<unsigned int> pars_;
+  std::vector<std::string> string_pars_;
 };
 
-} // driverpars
-} // bddriver
-} // pystorm
+}  // driverpars
+}  // bddriver
+}  // pystorm
 
 #endif

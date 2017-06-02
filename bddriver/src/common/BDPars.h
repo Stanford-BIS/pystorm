@@ -1,10 +1,10 @@
 #ifndef BDPARS_H
 #define BDPARS_H
 
+#include <iostream>
+#include <map>
 #include <string>
 #include <vector>
-#include <map>
-#include <iostream>
 
 using std::cout;
 using std::endl;
@@ -95,7 +95,6 @@ enum OutputId {
 
   LastOutputId = TAT_OUTPUT_TAGS
 };
-
 
 /// Identifier for particular DAC signal name
 // XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
@@ -191,11 +190,11 @@ enum MemWordId {
 /// Identifier for particular BD word field
 enum WordFieldId {
   // fields with special meaning
-  INVALID_FIELD, // only used when you want an enum to not match anything
+  INVALID_FIELD,  // only used when you want an enum to not match anything
   FIXED_0,
   FIXED_1,
   FIXED_2,
-  FIXED_3, // if you need a higher FIXED value, need to add it here and encode meaning (or use multiple fields)
+  FIXED_3,  // if you need a higher FIXED value, need to add it here and encode meaning (or use multiple fields)
   UNUSED,
   // common fields
   TAG,
@@ -222,7 +221,7 @@ enum WordFieldId {
   // MM data
   WEIGHT,
   // AMMM encapsulation
-  AMMM_STOP, 
+  AMMM_STOP,
   // PAT data
   AM_ADDRESS,
   MM_ADDRESS_LO,
@@ -251,7 +250,8 @@ enum MiscWidthId {
 
 /// Describes the structure of a word in the BD hardware.
 /// stores the word's sub-fields as (field_ids, field_lengths), in LSB to MSB order
-typedef std::vector<std::pair<bdpars::WordFieldId, unsigned int> > WordStructure; // field name, field width, in order lsb -> msb
+typedef std::vector<std::pair<bdpars::WordFieldId, unsigned int> >
+    WordStructure;  // field name, field width, in order lsb -> msb
 
 /// route val, route len
 typedef std::pair<uint32_t, unsigned int> FHRoute;
@@ -260,12 +260,12 @@ struct LeafInfo {
   /// Information describing one funnel/horn leaf in Braindrop
   ComponentTypeId component_type;
   unsigned int component;
-  uint32_t route_val;         ///< route to leaf
-  unsigned int route_len;     ///< depth in funnel/horn tree (# bits in route_val)
-  unsigned int data_width;    ///< width of data at leaf
-  unsigned int serialization; ///< number of serializers/deserializers
-  unsigned int chunk_width;   ///< width of data before/after any deserializers/serializers
-  std::string description;    ///< brief description of leaf purpose
+  uint32_t route_val;          ///< route to leaf
+  unsigned int route_len;      ///< depth in funnel/horn tree (# bits in route_val)
+  unsigned int data_width;     ///< width of data at leaf
+  unsigned int serialization;  ///< number of serializers/deserializers
+  unsigned int chunk_width;    ///< width of data before/after any deserializers/serializers
+  std::string description;     ///< brief description of leaf purpose
 };
 
 struct MemInfo {
@@ -293,169 +293,170 @@ struct OutputInfo {
 /// BDPars holds all the nitty-gritty information about the BD hardware's parameters.
 ///
 /// BDPars contains several vector data members containing structs, keyed by enums.
-/// The enums refer to particular hardware elements or concepts, such as the name of a memory, 
+/// The enums refer to particular hardware elements or concepts, such as the name of a memory,
 /// register, or a particular type of programming word.
 /// The structs contain relevant information about this hardware element or concept,
 /// such as the size of the memory, or the WordStructure that describes the programming word type.
 class BDPars {
-  public:
-    BDPars();
+ public:
+  BDPars();
 
-    /////////////////////////////////////
-    // funnel/horn queries
-    
-    /// Get the route to a given horn leaf
-    inline FHRoute HornRoute(HornLeafId leaf)     const { return horn_routes_[leaf]; }
-    /// Get the route to a given horn leaf
-    inline FHRoute HornRoute(unsigned int leaf)   const { return horn_routes_[leaf]; }
-    /// Get the route to a given funnel leaf
-    inline FHRoute FunnelRoute(FunnelLeafId leaf) const { return funnel_routes_[leaf]; }
-    /// Get the route to a given funnel leaf
-    inline FHRoute FunnelRoute(unsigned int leaf) const { return funnel_routes_[leaf]; }
+  /////////////////////////////////////
+  // funnel/horn queries
 
-    /// Horn leaf ids may be used to index tables, this performs that mapping
-    inline unsigned int HornIdx(HornLeafId leaf)     const { return static_cast<unsigned int>(leaf); }
-    /// Funnel leaf ids may be used to index tables, this performs that mapping
-    inline unsigned int FunnelIdx(FunnelLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  /// Get the route to a given horn leaf
+  inline FHRoute HornRoute(HornLeafId leaf) const { return horn_routes_[leaf]; }
+  /// Get the route to a given horn leaf
+  inline FHRoute HornRoute(unsigned int leaf) const { return horn_routes_[leaf]; }
+  /// Get the route to a given funnel leaf
+  inline FHRoute FunnelRoute(FunnelLeafId leaf) const { return funnel_routes_[leaf]; }
+  /// Get the route to a given funnel leaf
+  inline FHRoute FunnelRoute(unsigned int leaf) const { return funnel_routes_[leaf]; }
 
-    // useful if you need to iterate through routing table, returns const ptr
-    /// return reference to Horn routing table
-    inline const std::vector<FHRoute> * HornRoutes()   const { return &horn_routes_; }
-    /// return reference to Funnel routing table
-    inline const std::vector<FHRoute> * FunnelRoutes() const { return &funnel_routes_; }
+  /// Horn leaf ids may be used to index tables, this performs that mapping
+  inline unsigned int HornIdx(HornLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  /// Funnel leaf ids may be used to index tables, this performs that mapping
+  inline unsigned int FunnelIdx(FunnelLeafId leaf) const { return static_cast<unsigned int>(leaf); }
 
-    // look up serialization
-    /// Get serialization for a given horn leaf.
-    /// This many messages are concatenated at the horn leaf before being sent on.
-    inline unsigned int Serialization(HornLeafId leaf)   const { return horn_.at(leaf).serialization; }
-    /// Get serialization for a given funnel leaf
-    /// The driver should concatenate this many messages from this leaf before interpreting it.
-    inline unsigned int Serialization(FunnelLeafId leaf) const { return funnel_.at(leaf).serialization; }
+  // useful if you need to iterate through routing table, returns const ptr
+  /// return reference to Horn routing table
+  inline const std::vector<FHRoute>* HornRoutes() const { return &horn_routes_; }
+  /// return reference to Funnel routing table
+  inline const std::vector<FHRoute>* FunnelRoutes() const { return &funnel_routes_; }
 
-    // going from a component Id to the FH leaf it's associated with
-    /// Map from a memory to it's programming horn leaf
-    inline HornLeafId HornLeafIdFor(MemId object)   const { return mem_.at(object).prog_leaf; }
-    /// Map from a register to it's horn leaf
-    inline HornLeafId HornLeafIdFor(RegId object)   const { return reg_.at(object).leaf; }
-    /// Map from an input to it's horn leaf
-    inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
+  // look up serialization
+  /// Get serialization for a given horn leaf.
+  /// This many messages are concatenated at the horn leaf before being sent on.
+  inline unsigned int Serialization(HornLeafId leaf) const { return horn_.at(leaf).serialization; }
+  /// Get serialization for a given funnel leaf
+  /// The driver should concatenate this many messages from this leaf before interpreting it.
+  inline unsigned int Serialization(FunnelLeafId leaf) const { return funnel_.at(leaf).serialization; }
 
-    /// Map from a memory to it's dump funnel leaf
-    inline FunnelLeafId FunnelLeafIdFor(MemId object)    const { return mem_.at(object).dump_leaf; }
-    /// Map from an output to it's funnel leaf
-    inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
+  // going from a component Id to the FH leaf it's associated with
+  /// Map from a memory to it's programming horn leaf
+  inline HornLeafId HornLeafIdFor(MemId object) const { return mem_.at(object).prog_leaf; }
+  /// Map from a register to it's horn leaf
+  inline HornLeafId HornLeafIdFor(RegId object) const { return reg_.at(object).leaf; }
+  /// Map from an input to it's horn leaf
+  inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
 
-    /// going from a FH leaf to the value of the enum associate with the type of the component it services
-    inline ComponentTypeId ComponentTypeIdFor(HornLeafId leaf)   const { return horn_.at(leaf).component_type; }
-    /// going from a FH leaf to the value of the enum associate with the type of the component it services
-    inline ComponentTypeId ComponentTypeIdFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component_type; }
+  /// Map from a memory to it's dump funnel leaf
+  inline FunnelLeafId FunnelLeafIdFor(MemId object) const { return mem_.at(object).dump_leaf; }
+  /// Map from an output to it's funnel leaf
+  inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
 
-    /// going from a FH leaf to the value of the enum associate with the component it services
-    inline unsigned int ComponentIdxFor(HornLeafId leaf)   const { return horn_.at(leaf).component; }
-    /// going from a FH leaf to the value of the enum associate with the component it services
-    inline unsigned int ComponentIdxFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component; }
+  /// going from a FH leaf to the value of the enum associate with the type of the component it services
+  inline ComponentTypeId ComponentTypeIdFor(HornLeafId leaf) const { return horn_.at(leaf).component_type; }
+  /// going from a FH leaf to the value of the enum associate with the type of the component it services
+  inline ComponentTypeId ComponentTypeIdFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component_type; }
 
-    /////////////////////////////////////
-    // field width queries
-    
-    /// Get data width (after deserialization) at horn leaf
-    inline unsigned int Width(HornLeafId object)   const { return horn_.at(object).data_width; }
-    /// Get data width (after deserialization) at funnel leaf
-    inline unsigned int Width(FunnelLeafId object) const { return funnel_.at(object).data_width; }
-    /// Get data width of some misc hardware thing
-    inline unsigned int Width(MiscWidthId object)  const { return misc_widths_.at(object); }
+  /// going from a FH leaf to the value of the enum associate with the component it services
+  inline unsigned int ComponentIdxFor(HornLeafId leaf) const { return horn_.at(leaf).component; }
+  /// going from a FH leaf to the value of the enum associate with the component it services
+  inline unsigned int ComponentIdxFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component; }
 
-    /////////////////////////////////////
-    // Word structure queries. These all look up word structures associated with the supplied object
-    
-    /// Get word structure for a memory data word (e.g. the packing of the AM's data word)
-    /// The TAT has three sub-words, which can be accessed by supplying subtype_idx
-    inline const WordStructure * Word(MemId object, unsigned int subtype_idx=0) const { return &(mem_.at(object).word_structures.at(subtype_idx)); }
-    /// Get word structure for a memory programming word (e.g. RW write, RMW increment)
-    inline const WordStructure * Word(MemWordId object) const { return &(mem_prog_words_.at(object)); }
-    /// Get word structure for a register data word
-    inline const WordStructure * Word(RegId object)     const { return &(reg_.at(object).word_structure); }
-    /// Get word structure for an input word
-    inline const WordStructure * Word(InputId object)   const { return &(input_.at(object).word_structure); }
-    /// Get word structure for an output word
-    inline const WordStructure * Word(OutputId object)  const { return &(output_.at(object).word_structure); }
+  /////////////////////////////////////
+  // field width queries
 
-    // XXX should be template? just used for testing for now anyway 
-    // (to ensure that the random test inputs aren't too big for their field)
-    unsigned int WordFieldWidth(const WordStructure & word, WordFieldId field_id_to_match) const;
-    unsigned int WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx=0) const;
-    unsigned int WordFieldWidth(MemWordId object, WordFieldId field_id) const;
-    unsigned int WordFieldWidth(RegId object, WordFieldId field_id) const;
-    unsigned int WordFieldWidth(InputId object, WordFieldId field_id) const;
-    unsigned int WordFieldWidth(OutputId object, WordFieldId field_id) const;
+  /// Get data width (after deserialization) at horn leaf
+  inline unsigned int Width(HornLeafId object) const { return horn_.at(object).data_width; }
+  /// Get data width (after deserialization) at funnel leaf
+  inline unsigned int Width(FunnelLeafId object) const { return funnel_.at(object).data_width; }
+  /// Get data width of some misc hardware thing
+  inline unsigned int Width(MiscWidthId object) const { return misc_widths_.at(object); }
 
-    /////////////////////////////////////
-    // misc
+  /////////////////////////////////////
+  // Word structure queries. These all look up word structures associated with the supplied object
 
-    /// return the capacity of a memory
-    inline unsigned int Size(const MemId object) const { return mem_.at(object).size; }
+  /// Get word structure for a memory data word (e.g. the packing of the AM's data word)
+  /// The TAT has three sub-words, which can be accessed by supplying subtype_idx
+  inline const WordStructure* Word(MemId object, unsigned int subtype_idx = 0) const {
+    return &(mem_.at(object).word_structures.at(subtype_idx));
+  }
+  /// Get word structure for a memory programming word (e.g. RW write, RMW increment)
+  inline const WordStructure* Word(MemWordId object) const { return &(mem_prog_words_.at(object)); }
+  /// Get word structure for a register data word
+  inline const WordStructure* Word(RegId object) const { return &(reg_.at(object).word_structure); }
+  /// Get word structure for an input word
+  inline const WordStructure* Word(InputId object) const { return &(input_.at(object).word_structure); }
+  /// Get word structure for an output word
+  inline const WordStructure* Word(OutputId object) const { return &(output_.at(object).word_structure); }
 
-    /// Map from a DAC signal name to it's register id
-    RegId DACSignalIdToDACRegisterId(DACSignalId id) const; // XXX not implemented
+  // XXX should be template? just used for testing for now anyway
+  // (to ensure that the random test inputs aren't too big for their field)
+  unsigned int WordFieldWidth(const WordStructure& word, WordFieldId field_id_to_match) const;
+  unsigned int WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx = 0) const;
+  unsigned int WordFieldWidth(MemWordId object, WordFieldId field_id) const;
+  unsigned int WordFieldWidth(RegId object, WordFieldId field_id) const;
+  unsigned int WordFieldWidth(InputId object, WordFieldId field_id) const;
+  unsigned int WordFieldWidth(OutputId object, WordFieldId field_id) const;
 
-    /// Get the total number of registers
-    inline unsigned int NumReg() const { return reg_.size(); }
-    /// Get the total number of cores
-    inline unsigned int NumCores() const { return num_cores_; }
+  /////////////////////////////////////
+  // misc
 
+  /// return the capacity of a memory
+  inline unsigned int Size(const MemId object) const { return mem_.at(object).size; }
 
-    /////////////////////////////////////
-    // Value Mapping/Checking for special field ids
-    // note: static functions
+  /// Map from a DAC signal name to it's register id
+  RegId DACSignalIdToDACRegisterId(DACSignalId id) const;  // XXX not implemented
 
-    /// Some field ids are have fixed values. This function maps from field_ids to the those values
-    static uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id);
-    /// returns true if value is consistent with the provided field id
-    static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
+  /// Get the total number of registers
+  inline unsigned int NumReg() const { return reg_.size(); }
+  /// Get the total number of cores
+  inline unsigned int NumCores() const { return num_cores_; }
 
-  private:
-    unsigned int num_cores_;
+  /////////////////////////////////////
+  // Value Mapping/Checking for special field ids
+  // note: static functions
 
-    /// inputs to BD that aren't a register or memory programming word
-    /// keyed by HornLeafId
-    std::vector<InputInfo> input_;
-    /// outputs from BD that aren't a memory dump word
-    /// keyed by FunnelLeafId
-    std::vector<OutputInfo> output_;
-    
-    /// horn description
-    /// keyed by HornLeafId
-    std::vector<LeafInfo> horn_;
-    /// funnel description
-    /// keyed by FunnelLeafId
-    std::vector<LeafInfo> funnel_;
+  /// Some field ids are have fixed values. This function maps from field_ids to the those values
+  static uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id);
+  /// returns true if value is consistent with the provided field id
+  static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
 
-    /// memory descriptions (data field packing + misc info)
-    /// keyed by MemId
-    std::vector<MemInfo> mem_;
+ private:
+  unsigned int num_cores_;
 
-    /// memory programming words
-    /// keyed by MemId
-    std::vector<WordStructure> mem_prog_words_;
+  /// inputs to BD that aren't a register or memory programming word
+  /// keyed by HornLeafId
+  std::vector<InputInfo> input_;
+  /// outputs from BD that aren't a memory dump word
+  /// keyed by FunnelLeafId
+  std::vector<OutputInfo> output_;
 
-    /// register descriptions (data field packing + misc info)
-    /// keyed by RegId
-    std::vector<RegInfo> reg_;
+  /// horn description
+  /// keyed by HornLeafId
+  std::vector<LeafInfo> horn_;
+  /// funnel description
+  /// keyed by FunnelLeafId
+  std::vector<LeafInfo> funnel_;
 
-    /// horn route tables
-    /// keyed by HornLeafId
-    std::vector<FHRoute> horn_routes_;
-    /// funnel route tables
-    /// keyed by FunnelLeafId
-    std::vector<FHRoute> funnel_routes_;
+  /// memory descriptions (data field packing + misc info)
+  /// keyed by MemId
+  std::vector<MemInfo> mem_;
 
-    /// miscellaneous hardware widths
-    /// keyed by MiscFieldId
-    std::vector<unsigned int> misc_widths_;
+  /// memory programming words
+  /// keyed by MemId
+  std::vector<WordStructure> mem_prog_words_;
+
+  /// register descriptions (data field packing + misc info)
+  /// keyed by RegId
+  std::vector<RegInfo> reg_;
+
+  /// horn route tables
+  /// keyed by HornLeafId
+  std::vector<FHRoute> horn_routes_;
+  /// funnel route tables
+  /// keyed by FunnelLeafId
+  std::vector<FHRoute> funnel_routes_;
+
+  /// miscellaneous hardware widths
+  /// keyed by MiscFieldId
+  std::vector<unsigned int> misc_widths_;
 };
 
-} // bdpars
-} // bddriver
-} // pystorm
+}  // bdpars
+}  // bddriver
+}  // pystorm
 
 #endif

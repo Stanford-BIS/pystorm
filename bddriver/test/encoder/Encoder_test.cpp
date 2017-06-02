@@ -75,11 +75,9 @@ std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(
   return std::make_pair(enc_inputs, enc_outputs);
 }
 
-class EncoderFixture : public testing::Test
-{
+class EncoderFixture : public testing::Test {
   public:
-    void SetUp() 
-    {
+    void SetUp() {
       buf_in = new MutexBuffer<EncInput>(buf_depth);
       buf_out = new MutexBuffer<EncOutput>(buf_depth);
 
@@ -88,8 +86,7 @@ class EncoderFixture : public testing::Test
       std::tie(enc_inputs, enc_outputs) = MakeEncInputAndOutput(pars, N, LastHornLeafId);
     }
 
-    void TearDown()
-    {
+    void TearDown() {
       delete buf_in;
       delete buf_out;
       delete pars;
@@ -115,8 +112,7 @@ class EncoderFixture : public testing::Test
 };
 
 
-TEST_F(EncoderFixture, Test1xEncoder)
-{
+TEST_F(EncoderFixture, Test1xEncoder) {
   Encoder enc(pars, buf_in, buf_out, M);
 
   // start producer/consumer threads
@@ -150,8 +146,7 @@ TEST_F(EncoderFixture, Test1xEncoder)
 
 }
 
-TEST_F(EncoderFixture, Test2xEncoder)
-{
+TEST_F(EncoderFixture, Test2xEncoder) {
   // two identical Encoders in this test
   Encoder enc0(pars, buf_in, buf_out, M);
   Encoder enc1(pars, buf_in, buf_out, M);

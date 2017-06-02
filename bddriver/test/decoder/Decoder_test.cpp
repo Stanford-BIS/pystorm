@@ -80,8 +80,7 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
   return make_pair(dec_inputs, dec_outputs);
 }
 
-class DecoderFixture : public testing::TestWithParam<unsigned int>
-{
+class DecoderFixture : public testing::TestWithParam<unsigned int> {
   public:
     void SetUp() 
     {
@@ -131,8 +130,8 @@ class DecoderFixture : public testing::TestWithParam<unsigned int>
 };
 
 
-TEST_P(DecoderFixture, Test1xDecoder)
-{
+TEST_P(DecoderFixture, Test1xDecoder) {
+
   Decoder dec(pars, buf_in, bufs_out, M);
 
   // start producer/consumer threads
@@ -201,8 +200,7 @@ TEST_P(DecoderFixture, Test1xDecoder)
 INSTANTIATE_TEST_CASE_P(
     TestDecoderDifferentNumLeaves,
     DecoderFixture,
-    ::testing::Values(LastFunnelLeafId, 1, 0)
-);
+    ::testing::Values(LastFunnelLeafId, 1, 0));
 
 //TEST_F(DecoderFixture, Test2xDecoder)
 //{

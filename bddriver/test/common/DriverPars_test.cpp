@@ -10,17 +10,12 @@ using namespace pystorm;
 using namespace bddriver;
 using namespace driverpars;
 
-class DriverParsFixture : public testing::Test
-{
-  public:
-    void SetUp() {
-      pars = new DriverPars();
-    }
-    void TearDown() {
-      delete pars;
-    }
+class DriverParsFixture : public testing::Test {
+ public:
+  void SetUp() { pars = new DriverPars(); }
+  void TearDown() { delete pars; }
 
-    DriverPars * pars;
+  DriverPars* pars;
 };
 
 TEST_F(DriverParsFixture, TestSetUpTearDown) {}

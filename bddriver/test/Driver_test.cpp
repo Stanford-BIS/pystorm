@@ -23,8 +23,7 @@ using namespace pystorm;
 using namespace bddriver;
 
 
-class DriverFixture : public testing::Test
-{
+class DriverFixture : public testing::Test {
   public:
     void SetUp() {
 

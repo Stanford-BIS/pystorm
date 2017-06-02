@@ -20,7 +20,7 @@ struct PATData {
 };
 
 struct TATData {
-  /// Contents of a single TAT memory entry. 
+  /// Contents of a single TAT memory entry.
   ///
   /// Has three field classes depending on what type of data is stored
   // (this implementation is wasteful but simple).
@@ -34,10 +34,10 @@ struct TATData {
 
   // type == 1 means neuron entry
   unsigned int synapse_id_0;
-  int          synapse_sign_0; // -1 or +1
+  int synapse_sign_0;  // -1 or +1
   unsigned int synapse_id_1;
-  int          synapse_sign_1; // -1 or +1
-  
+  int synapse_sign_1;  // -1 or +1
+
   // type == 2 means fanout entry
   unsigned int tag;
   unsigned int global_route;
@@ -46,7 +46,7 @@ struct TATData {
 struct AMData {
   /// Contents of a single AM memory entry.
   ///
-  /// (the value field is not exposed to the programmer, 
+  /// (the value field is not exposed to the programmer,
   ///  programming the AM sets this field to 0)
   unsigned int threshold;
   unsigned int stop;
@@ -71,7 +71,6 @@ struct NrnSpike {
   unsigned int neuron_id;
 };
 
-
 struct Tag {
   /// A tag going to or from the datapath
   unsigned int time;
@@ -82,16 +81,16 @@ struct Tag {
 
 ////////////////////////////////////////
 // equality tests
-//bool operator==(const MMData & lhs, const MMData & rhs); // for now, MMData is just a uint, so this exists
-bool operator==(const AMData   & lhs, const AMData   & rhs);
-bool operator==(const PATData  & lhs, const PATData  & rhs);
-bool operator==(const TATData  & lhs, const TATData  & rhs);
-bool operator==(const SynSpike & lhs, const SynSpike & rhs);
-bool operator==(const NrnSpike & lhs, const NrnSpike & rhs);
-bool operator==(const Tag      & lhs, const Tag      & rhs);
+// bool operator==(const MMData & lhs, const MMData & rhs); // for now, MMData is just a uint, so this exists
+bool operator==(const AMData& lhs, const AMData& rhs);
+bool operator==(const PATData& lhs, const PATData& rhs);
+bool operator==(const TATData& lhs, const TATData& rhs);
+bool operator==(const SynSpike& lhs, const SynSpike& rhs);
+bool operator==(const NrnSpike& lhs, const NrnSpike& rhs);
+bool operator==(const Tag& lhs, const Tag& rhs);
 
 ////////////////////////////////////////
-// internal word stream def'ns 
+// internal word stream def'ns
 
 /// An unordered list of field-to-value mappings.
 /// This is used against a WordStructure to pack/unpack multiple fields into/from words.
@@ -107,65 +106,56 @@ typedef std::vector<FieldValues> VFieldValues;
 uint64_t SignedValToSignBit(int sign);
 int SignBitToSignedVal(uint64_t bit);
 
-FieldValues DataToFieldValues(const PATData & data);
-FieldValues DataToFieldValues(const TATData & data); 
-FieldValues DataToFieldValues(const AMData & data);
-FieldValues DataToFieldValues(const MMData & data);
-FieldValues DataToFieldValues(const SynSpike & data);
-FieldValues DataToFieldValues(const NrnSpike & data);
-FieldValues DataToFieldValues(const Tag & data);
+FieldValues DataToFieldValues(const PATData& data);
+FieldValues DataToFieldValues(const TATData& data);
+FieldValues DataToFieldValues(const AMData& data);
+FieldValues DataToFieldValues(const MMData& data);
+FieldValues DataToFieldValues(const SynSpike& data);
+FieldValues DataToFieldValues(const NrnSpike& data);
+FieldValues DataToFieldValues(const Tag& data);
 
-PATData  FieldValuesToPATData(const FieldValues & field_values);
-TATData  FieldValuesToTATData(const FieldValues & field_values);
-AMData   FieldValuesToAMData(const FieldValues & field_values);
-MMData   FieldValuesToMMData(const FieldValues & field_values);
+PATData FieldValuesToPATData(const FieldValues& field_values);
+TATData FieldValuesToTATData(const FieldValues& field_values);
+AMData FieldValuesToAMData(const FieldValues& field_values);
+MMData FieldValuesToMMData(const FieldValues& field_values);
 // these need extra args, times and core_ids aren't kept in FVVs ever
-SynSpike FieldValuesToSynSpike(const FieldValues & field_values, 
-                               unsigned int times, 
-                               unsigned int core_ids);
-NrnSpike FieldValuesToNrnSpike(const FieldValues & field_values, 
-                               unsigned int times, 
-                               unsigned int core_ids);
-Tag      FieldValuesToTag(const FieldValues & field_values, 
-                               unsigned int times, 
-                               unsigned int core_ids);
+SynSpike FieldValuesToSynSpike(const FieldValues& field_values, unsigned int times, unsigned int core_ids);
+NrnSpike FieldValuesToNrnSpike(const FieldValues& field_values, unsigned int times, unsigned int core_ids);
+Tag FieldValuesToTag(const FieldValues& field_values, unsigned int times, unsigned int core_ids);
 
 ////////////////////////////////
 // conversion functions from user types to VFieldValues
 // just calling the above functions in a loop
 
-VFieldValues DataToVFieldValues(const std::vector<PATData> & data);
-VFieldValues DataToVFieldValues(const std::vector<TATData> & data);
-VFieldValues DataToVFieldValues(const std::vector<AMData> & data);
-VFieldValues DataToVFieldValues(const std::vector<MMData> & data);
-VFieldValues DataToVFieldValues(const std::vector<SynSpike> & data);
-VFieldValues DataToVFieldValues(const std::vector<NrnSpike> & data);
-VFieldValues DataToVFieldValues(const std::vector<Tag> & data);
+VFieldValues DataToVFieldValues(const std::vector<PATData>& data);
+VFieldValues DataToVFieldValues(const std::vector<TATData>& data);
+VFieldValues DataToVFieldValues(const std::vector<AMData>& data);
+VFieldValues DataToVFieldValues(const std::vector<MMData>& data);
+VFieldValues DataToVFieldValues(const std::vector<SynSpike>& data);
+VFieldValues DataToVFieldValues(const std::vector<NrnSpike>& data);
+VFieldValues DataToVFieldValues(const std::vector<Tag>& data);
 
-std::vector<PATData>  VFieldValuesToPATData(const VFieldValues & field_values);
-std::vector<TATData>  VFieldValuesToTATData(const VFieldValues & field_values);
-std::vector<AMData>   VFieldValuesToAMData(const VFieldValues & field_values);
-std::vector<MMData>   VFieldValuesToMMData(const VFieldValues & field_values);
+std::vector<PATData> VFieldValuesToPATData(const VFieldValues& field_values);
+std::vector<TATData> VFieldValuesToTATData(const VFieldValues& field_values);
+std::vector<AMData> VFieldValuesToAMData(const VFieldValues& field_values);
+std::vector<MMData> VFieldValuesToMMData(const VFieldValues& field_values);
 // these need extra args, times and core_ids aren't kept in FVVs ever
-std::vector<SynSpike> VFieldValuesToSynSpike(const VFieldValues & field_values, 
-                                             const std::vector<unsigned int> & times, 
-                                             const std::vector<unsigned int> & core_ids);
-std::vector<NrnSpike> VFieldValuesToNrnSpike(const VFieldValues & field_values, 
-                                             const std::vector<unsigned int> & times, 
-                                             const std::vector<unsigned int> & core_ids);
-std::vector<Tag>      VFieldValuesToTag(const VFieldValues & field_values, 
-                                             const std::vector<unsigned int> & times, 
-                                             const std::vector<unsigned int> & core_ids);
+std::vector<SynSpike> VFieldValuesToSynSpike(const VFieldValues& field_values, const std::vector<unsigned int>& times,
+                                             const std::vector<unsigned int>& core_ids);
+std::vector<NrnSpike> VFieldValuesToNrnSpike(const VFieldValues& field_values, const std::vector<unsigned int>& times,
+                                             const std::vector<unsigned int>& core_ids);
+std::vector<Tag> VFieldValuesToTag(const VFieldValues& field_values, const std::vector<unsigned int>& times,
+                                   const std::vector<unsigned int>& core_ids);
 
 ////////////////////////////////
 // FieldValues utility functions
 
-const uint64_t * FVGetPtr(const FieldValues & fv, bdpars::WordFieldId field_id);
-uint64_t FVGet(const FieldValues & fv, bdpars::WordFieldId field_id);
-bool FVContains(const FieldValues & fv, bdpars::WordFieldId field_id);
-  
-bool FVContainsWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct);
-bool FVExactlyMatchesWordStruct(const FieldValues & fv, const bdpars::WordStructure & word_struct);
+const uint64_t* FVGetPtr(const FieldValues& fv, bdpars::WordFieldId field_id);
+uint64_t FVGet(const FieldValues& fv, bdpars::WordFieldId field_id);
+bool FVContains(const FieldValues& fv, bdpars::WordFieldId field_id);
+
+bool FVContainsWordStruct(const FieldValues& fv, const bdpars::WordStructure& word_struct);
+bool FVExactlyMatchesWordStruct(const FieldValues& fv, const bdpars::WordStructure& word_struct);
 
 ////////////////////////////////////////
 // decoder/encoder
@@ -186,7 +176,7 @@ struct EncInput {
 };
 typedef uint8_t EncOutput;
 
-} // bddriver
-} // pystorm
+}  // bddriver
+}  // pystorm
 
 #endif

@@ -1,10 +1,10 @@
 #include "Xcoder.h"
 
 #include <cstdint>
-#include <vector>
-#include <unordered_map>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <vector>
 
 #include "common/BDPars.h"
 #include "common/MutexBuffer.h"
@@ -17,22 +17,17 @@ namespace pystorm {
 namespace bddriver {
 
 template <class TIN, class TOUT>
-Xcoder<TIN, TOUT>::Xcoder(
-    const bdpars::BDPars * pars, 
-    MutexBuffer<TIN> * in_buf, 
-    const std::vector<MutexBuffer<TOUT> *> & out_bufs, 
-    unsigned int input_chunk_size, 
-    unsigned int output_chunk_size, 
-    unsigned int timeout_us) 
-{
-  pars_ = pars;  
-  in_buf_ = in_buf;
-  out_bufs_ = out_bufs;
+Xcoder<TIN, TOUT>::Xcoder(const bdpars::BDPars* pars, MutexBuffer<TIN>* in_buf,
+                          const std::vector<MutexBuffer<TOUT>*>& out_bufs, unsigned int input_chunk_size,
+                          unsigned int output_chunk_size, unsigned int timeout_us) {
+  pars_       = pars;
+  in_buf_     = in_buf;
+  out_bufs_   = out_bufs;
   timeout_us_ = timeout_us;
 
   // allocate working arrays
-  input_chunk_size_ = input_chunk_size;
-  output_chunk_size_ = output_chunk_size; 
+  input_chunk_size_  = input_chunk_size;
+  output_chunk_size_ = output_chunk_size;
 
   input_chunk_ = new TIN[input_chunk_size_];
 
@@ -45,8 +40,7 @@ Xcoder<TIN, TOUT>::Xcoder(
 }
 
 template <class TIN, class TOUT>
-Xcoder<TIN, TOUT>::~Xcoder()
-{
+Xcoder<TIN, TOUT>::~Xcoder() {
   if (do_run_) {
     Stop();
   }
@@ -57,23 +51,20 @@ Xcoder<TIN, TOUT>::~Xcoder()
 }
 
 template <class TIN, class TOUT>
-void Xcoder<TIN, TOUT>::Run()
-{
-  while(do_run_) {
+void Xcoder<TIN, TOUT>::Run() {
+  while (do_run_) {
     RunOnce();
   }
 }
 
 template <class TIN, class TOUT>
-void Xcoder<TIN, TOUT>::Start()
-{
+void Xcoder<TIN, TOUT>::Start() {
   do_run_ = true;
-  thread_ = new std::thread([this]{ this->Run(); });
+  thread_ = new std::thread([this] { this->Run(); });
 }
 
 template <class TIN, class TOUT>
-void Xcoder<TIN, TOUT>::Stop()
-{
+void Xcoder<TIN, TOUT>::Stop() {
   do_run_ = false;
   if (thread_ != nullptr) {
     if (thread_->joinable()) {
@@ -83,5 +74,5 @@ void Xcoder<TIN, TOUT>::Stop()
   }
 }
 
-} // bddriver
-} // pystorm
+}  // bddriver
+}  // pystorm

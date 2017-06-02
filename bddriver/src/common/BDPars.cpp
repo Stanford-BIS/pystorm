@@ -1,8 +1,8 @@
 #include "BDPars.h"
 
-#include <vector>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include "common/binary_util.h"
 
@@ -10,8 +10,9 @@ namespace pystorm {
 namespace bddriver {
 namespace bdpars {
 
-BDPars::BDPars() 
-{
+// clang-format off
+
+BDPars::BDPars() {
   //////////////////////////////////////////////////////
   // Funnel/Horn
 
@@ -117,9 +118,9 @@ BDPars::BDPars()
       {{{AM_ADDRESS, 10}, {MM_ADDRESS_LO, 8}, {MM_ADDRESS_HI, 2}}};
   std::vector<WordStructure> TAT_words = 
       {
-        {{STOP, 1}, {FIXED_0, 2}, {AM_ADDRESS, 10}, {MM_ADDRESS, 16}}, // ACC TYPE 
-        {{STOP, 1}, {FIXED_1, 2}, {SYNAPSE_ADDRESS_0, 11}, {SYNAPSE_SIGN_0, 1}, {SYNAPSE_ADDRESS_1, 11}, {SYNAPSE_SIGN_1, 1}, {UNUSED, 2}}, // SPIKE TYPE
-        {{STOP, 1}, {FIXED_2, 2}, {TAG, 11}, {GLOBAL_ROUTE, 12}, {UNUSED,3}} // FANOUT TYPE
+          {{STOP, 1}, {FIXED_0, 2}, {AM_ADDRESS, 10}, {MM_ADDRESS, 16}}, // ACC TYPE 
+          {{STOP, 1}, {FIXED_1, 2}, {SYNAPSE_ADDRESS_0, 11}, {SYNAPSE_SIGN_0, 1}, {SYNAPSE_ADDRESS_1, 11}, {SYNAPSE_SIGN_1, 1}, {UNUSED, 2}}, // SPIKE TYPE
+          {{STOP, 1}, {FIXED_2, 2}, {TAG, 11}, {GLOBAL_ROUTE, 12}, {UNUSED,3}} // FANOUT TYPE
       };
 
   mem_.resize(LastMemId+1);
@@ -196,14 +197,14 @@ BDPars::BDPars()
 
 }
 
-RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const
-{
+// clang-format on
+
+RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const {
   assert(false && "not implemented");
-  return DAC0; // squelch compiler warning for now
+  return DAC0;  // squelch compiler warning for now
 }
 
-unsigned int BDPars::WordFieldWidth(const WordStructure & word, WordFieldId field_id_to_match) const
-{
+unsigned int BDPars::WordFieldWidth(const WordStructure& word, WordFieldId field_id_to_match) const {
   for (auto& it : word) {
     WordFieldId field_id;
     unsigned int field_width;
@@ -214,95 +215,73 @@ unsigned int BDPars::WordFieldWidth(const WordStructure & word, WordFieldId fiel
   return 0;
 }
 
-unsigned int BDPars::WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx) const 
-{
+unsigned int BDPars::WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx) const {
   return WordFieldWidth(*Word(object, subtype_idx), field_id);
 }
 
-unsigned int BDPars::WordFieldWidth(MemWordId object, WordFieldId field_id) const 
-{
+unsigned int BDPars::WordFieldWidth(MemWordId object, WordFieldId field_id) const {
   return WordFieldWidth(*Word(object), field_id);
 }
 
-unsigned int BDPars::WordFieldWidth(RegId object, WordFieldId field_id) const 
-{
+unsigned int BDPars::WordFieldWidth(RegId object, WordFieldId field_id) const {
   return WordFieldWidth(*Word(object), field_id);
 }
 
-unsigned int BDPars::WordFieldWidth(InputId object, WordFieldId field_id) const 
-{
+unsigned int BDPars::WordFieldWidth(InputId object, WordFieldId field_id) const {
   return WordFieldWidth(*Word(object), field_id);
 }
 
-unsigned int BDPars::WordFieldWidth(OutputId object, WordFieldId field_id) const 
-{
+unsigned int BDPars::WordFieldWidth(OutputId object, WordFieldId field_id) const {
   return WordFieldWidth(*Word(object), field_id);
 }
 
-uint64_t BDPars::ValueForSpecialFieldId(bdpars::WordFieldId field_id) 
-{
-  switch (field_id)
-  {
-    case UNUSED :
-    {
-      return 0; // don't care
+uint64_t BDPars::ValueForSpecialFieldId(bdpars::WordFieldId field_id) {
+  switch (field_id) {
+    case UNUSED: {
+      return 0;  // don't care
     }
-    case FIXED_0 :
-    {
+    case FIXED_0: {
       return 0;
     }
-    case FIXED_1 :
-    {
+    case FIXED_1: {
       return 1;
     }
-    case FIXED_2 :
-    {
+    case FIXED_2: {
       return 2;
     }
-    case FIXED_3 :
-    {
+    case FIXED_3: {
       return 3;
     }
-    default :
-    {
+    default: {
       assert(false && "no value supplied for a given field");
-      return 0; // suppresses compiler warning
+      return 0;  // suppresses compiler warning
     }
   }
 }
 
-bool BDPars::SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val)
-{
-  switch (field_id)
-  {
-    case UNUSED :
-    {
-      return true; // don't care (although probably should be 0)
+bool BDPars::SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val) {
+  switch (field_id) {
+    case UNUSED: {
+      return true;  // don't care (although probably should be 0)
     }
-    case FIXED_0 :
-    {
+    case FIXED_0: {
       return val == 0;
     }
-    case FIXED_1 :
-    {
+    case FIXED_1: {
       return val == 1;
     }
-    case FIXED_2 :
-    {
+    case FIXED_2: {
       return val == 2;
     }
-    case FIXED_3 :
-    {
+    case FIXED_3: {
       return val == 3;
     }
-    default :
-    {
-      return true; // for normal fields, we don't care
+    default: {
+      return true;  // for normal fields, we don't care
     }
   }
 }
 
-
-} // bdpars
-} // bddriver
-} // pystorm
+}  // bdpars
+}  // bddriver
+}  // pystorm

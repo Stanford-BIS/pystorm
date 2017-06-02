@@ -1,0 +1,9 @@
+---
+BasedOnStyle:  Google
+AlignConsecutiveAssignments:    true
+ColumnLimit:                    120                           # 80 is too restrictive, IMO
+BinPackArguments:               false                         # if arguments have to be broken, one per line
+BinPackParameters:              false                         # if fn parameters have to be broken, one per line
+AlignAfterOpenBracket:          AlwaysBreak                   # if one of the 2 above have to be broken, start on a new line
+ConstructorInitializerAllOnOneLineOrOnePerLine: true          # if brace constructor arguments have to be broken, one per line
+...
