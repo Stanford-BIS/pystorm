@@ -102,6 +102,12 @@ class DriverFixture : public testing::Test {
       sent_spikes.insert(sent_spikes.end(), spikes.begin(), spikes.end());
     }
 
+    void SendTags() {
+      std::vector<Tag> tags = MakeRandomTags(M, std::vector<unsigned int>(M, 0), std::vector<unsigned int>(M, kCoreId));
+      driver->SendTags(tags);
+      sent_tags.insert(sent_tags.end(), tags.begin(), tags.end());
+    }
+
 };
 
 //TEST_F(DriverFixture, TestSetUpAndTearDown) {}
@@ -128,6 +134,10 @@ TEST_F(DriverFixture, TestSetMM) {
 
 TEST_F(DriverFixture, TestSendSpikes) {
   SendSpikes();
+}
+
+TEST_F(DriverFixture, TestSendTags) {
+  SendTags();
 }
 
 TEST_F(DriverFixture, TestDownStreamCalls) {

@@ -19,20 +19,20 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
   // perform horn decoding
   std::vector<std::vector<uint32_t> > horn_words = Horn(BD_input_words, bd_pars_);
-  // cout << "did horn" << endl;
-  // cout << "sizes:" << endl;
-  // for (unsigned int i = 0; i < horn_words.size(); i++) {
+  //cout << "did horn" << endl;
+  //cout << "sizes:" << endl;
+  //for (unsigned int i = 0; i < horn_words.size(); i++) {
   //  if (horn_words[i].size() > 0) cout << i << " : " << horn_words[i].size() << endl;
   //}
 
   // deserialize at horn leaves where required
   std::vector<std::vector<uint64_t> > des_horn_words = DeserializeAllHornLeaves(horn_words, bd_pars_);
-  // cout << "did des" << endl;
-  // cout << "sizes: " << endl;
-  // for (unsigned int i = 0; i < des_horn_words.size(); i++) {
+  //cout << "did des" << endl;
+  //cout << "sizes: " << endl;
+  //for (unsigned int i = 0; i < des_horn_words.size(); i++) {
   //  if (des_horn_words[i].size() > 0) cout << i << " : " << des_horn_words[i].size() << endl;
   //}
-  // for(unsigned int i = 0 ; i < des_horn_words.size(); i++) {
+  //for(unsigned int i = 0 ; i < des_horn_words.size(); i++) {
   //  for (auto& it : des_horn_words[i]) {
   //    cout << it << endl;
   //  }
@@ -88,6 +88,8 @@ void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input) {
 
   switch (input_id) {
     case INPUT_TAGS: {
+      //cout << "got tag" << endl;
+      //cout << FVGet(field_vals, TAG) << ", " << FVGet(field_vals, COUNT) << endl;
       Tag new_input = FieldValuesToTag(field_vals, 0, 0);  // XXX times and core ids are zero
       received_tags_.push_back(new_input);
       break;

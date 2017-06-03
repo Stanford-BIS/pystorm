@@ -220,11 +220,11 @@ class Driver {
   /// Send a stream of spikes to neurons
   void SendSpikes(const std::vector<SynSpike> &spikes);
 
-  /// Send a stream of tags
-  void SendTags(std::vector<Tag> spikes);  // XXX not implemented
-
   /// Receive a stream of spikes
   std::vector<NrnSpike> RecvSpikes(unsigned int max_to_recv);
+
+  /// Send a stream of tags
+  void SendTags(const std::vector<Tag> &tags);  // XXX not implemented
 
   /// Receive a stream of tags
   std::vector<Tag> RecvTags(unsigned int max_to_recv);  // XXX not implemented

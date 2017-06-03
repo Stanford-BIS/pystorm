@@ -467,7 +467,7 @@ void Driver::SendSpikes(const std::vector<SynSpike>& spikes) {
   const bdpars::WordStructure* spike_word_struct = bd_pars_->Word(bdpars::INPUT_SPIKES);
   unsigned int widths[2]                         = {spike_word_struct->at(0).second, spike_word_struct->at(1).second};
 
-  // we can at least assert that the line we wrote above is consistent with BDPars
+  // we can at least assert that what we're writing is consistent with BDPars
   // if BDPars were to change, we want to know about it
   assert(spike_word_struct->at(0).first == bdpars::SYNAPSE_SIGN);
   assert(spike_word_struct->at(1).first == bdpars::SYNAPSE_ADDRESS);
@@ -490,16 +490,75 @@ void Driver::SendSpikes(const std::vector<SynSpike>& spikes) {
   enc_buf_in_->UnlockBack();
 }
 
+void Driver::SendTags(const std::vector<Tag> &tags) {
+
+  // look up word structure of tag to use later in packing
+  const bdpars::WordStructure * tag_word_struct = bd_pars_->Word(bdpars::INPUT_TAGS);
+
+  // get reference to enc_buf_in_'s memory
+  EncInput* write_to = enc_buf_in_->LockBack(tags.size());
+  for (unsigned int i = 0; i <tags.size(); i++) {
+    // XXX time? need to figure out what to do in the FPGA
+    // probably need to insert delay events here
+
+    FieldValues fv = DataToFieldValues(tags[i]);
+    uint32_t payload = static_cast<uint32_t>(PackWord(*tag_word_struct, fv));
+
+    unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_TAGS));
+
+    // write to memory pointed to by LockBack()
+    write_to[i] = {tags[i].core_id, leaf_id_as_uint, payload};
+  }
+  // unlock
+  enc_buf_in_->UnlockBack();
+}
+
+
 std::vector<NrnSpike> Driver::RecvSpikes(unsigned int max_to_recv) {
   unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OUTPUT_SPIKES));
-  std::vector<DecOutput> dec_out =
-      dec_bufs_out_[buf_idx]->PopVect(max_to_recv, driver_pars_->Get(driverpars::RECVSPIKES_TIMEOUT_US));
+  unsigned int timeout = driver_pars_->Get(driverpars::RECVSPIKES_TIMEOUT_US);
+
+  const DecOutput *MB_front;
+  unsigned int num_readable;
+  std::tie(MB_front, num_readable) = dec_bufs_out_[buf_idx]->LockFront(max_to_recv, timeout);
 
   std::vector<NrnSpike> retval;
-  for (auto& el : dec_out) {
+  for (unsigned int i = 0; i < num_readable; i++) {
+    DecOutput this_spike = MB_front[i];
     // spikes don't have any data fields, payload == nrn addr
-    retval.push_back({el.time_epoch, el.core_id, el.payload});
+    retval.push_back({this_spike.time_epoch, this_spike.core_id, this_spike.payload});
   }
+  
+  return retval;
+}
+
+std::vector<Tag> Driver::RecvTags(unsigned int max_to_recv) {
+
+  // look up word structure of tag to use later in unpacking
+  const bdpars::WordStructure * tag_word_struct = bd_pars_->Word(bdpars::TAT_OUTPUT_TAGS);
+  
+  // receive from both tag output leaves, the acc and TAT
+  std::vector<Tag> retval;
+  unsigned int num_to_recv_remaining = max_to_recv;
+  for (auto& output_id : {bdpars::TAT_OUTPUT_TAGS, bdpars::ACC_OUTPUT_TAGS}) {
+    unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(output_id));
+    unsigned int timeout = driver_pars_->Get(driverpars::RECVTAGS_TIMEOUT_US);
+
+    const DecOutput *MB_front;
+    unsigned int num_readable;
+    std::tie(MB_front, num_readable) = dec_bufs_out_[buf_idx]->LockFront(num_to_recv_remaining, timeout);
+    for (unsigned int i = 0; i < num_readable; i++) {
+      DecOutput this_tag = MB_front[i];
+
+      // XXX could dodge Unpack'ing by hardcoding
+      // unpack tag and count
+      FieldValues fv = UnpackWord(*tag_word_struct, this_tag.payload);
+      retval.push_back(FieldValuesToTag(fv, this_tag.time_epoch, this_tag.core_id));
+           
+    }
+    dec_bufs_out_[buf_idx]->UnlockFront();
+  }
+
   return retval;
 }
 

@@ -43,7 +43,7 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, co
 
     uint32_t route_val   = static_cast<uint32_t>(it.first);
     uint32_t route_len   = static_cast<uint32_t>(it.second);
-    uint32_t payload_len = static_cast<uint32_t>(pars->Width(bdpars::BD_OUTPUT)) - route_len;
+    uint32_t payload_len = static_cast<uint32_t>(pars->Width(bdpars::BD_INPUT)) - route_len;
 
     // route mask looks like 000000001111
     uint32_t route_mask = (one << route_len) - one;
