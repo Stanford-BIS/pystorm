@@ -51,14 +51,12 @@ function(set_common_properties target_name)
     include_directories(${INCLUDE_DIRS})
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${target_name} PROPERTY PREFIX "")
 endfunction()
 
 
 ############################################################################
 #
 # Entry function to build on Linux
-# On entry, we know that Boost is present on the system
 # We need to make sure that the compiler is correct
 #
 ############################################################################
@@ -72,10 +70,6 @@ function(build_on_linux)
     endif()
 
     # setup build environment variables
-
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_MULTHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
 
     # define the library being built
 
@@ -98,7 +92,6 @@ function(build_on_linux)
 endfunction()
 
 function(build_on_mac)
-
     # check pre-build requirements
 
     if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR CMAKE_CXX_COMPILER_ID
@@ -107,10 +100,6 @@ function(build_on_mac)
     endif()
 
     # setup build environment variables
-
-    set(Boost_USE_STATIC_LIBS ON)
-    set(Boost_USE_MULTHREADED ON)
-    set(Boost_USE_STATIC_RUNTIME ON)
 
     # define the library being built
 
@@ -126,6 +115,10 @@ function(build_on_mac)
 
     if(CMAKE_COMPILER_IS_GNUCXX)
         set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
+        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
+    elseif(${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+        set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
     endif()
