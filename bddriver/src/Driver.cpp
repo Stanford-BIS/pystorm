@@ -210,134 +210,118 @@ void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string& s
 /// Turn ADC output on
 void Driver::SetADCTrafficState(unsigned int core_id, bool en) { assert(false && "not implemented"); }
 
-void Driver::SetPAT(
+void Driver::SetMem(
     unsigned int core_id,
-    const std::vector<PATData>& data,  ///< data to program
-    unsigned int start_addr            ///< PAT memory address to start programming from, default 0
-    ) {
-  bd_state_[core_id].SetPAT(start_addr, data);
+    bdpars::MemId mem_id,
+    const VFieldValues &data,
+    unsigned int start_addr) {
 
-  // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::PAT)), DataToVFieldValues(data));
-
-  // encapsulate according to RW format
-  std::vector<uint64_t> prog_words = PackRWProgWords(*(bd_pars_->Word(bdpars::PAT_WRITE)), data_fields, start_addr);
-
-  // transmit words
-  PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::PAT), prog_words);
-  ResumeTraffic(core_id);
-}
-
-void Driver::SetTAT(
-    unsigned int core_id,
-    bool TAT_idx,                      ///< which TAT to program, 0 or 1
-    const std::vector<TATData>& data,  ///< data to program
-    unsigned int start_addr            ///< PAT memory address to start programming from, default 0
-    ) {
-  // TAT_idx -> TAT_id
-  bdpars::MemId TAT_id;
-  if (TAT_idx == 0) {
-    bd_state_[core_id].SetTAT0(start_addr, data);
-    TAT_id = bdpars::TAT0;
-  } else if (TAT_idx == 1) {
-    bd_state_[core_id].SetTAT1(start_addr, data);
-    TAT_id = bdpars::TAT1;
-  } else {
-    assert(false && "TAT_idx must == 0 or 1");
-  }
-
-  // pack data fields
-  VFieldValues field_vals = DataToVFieldValues(data);
+  // pack data fields, TAT is special
   std::vector<uint64_t> data_fields;
-  for (unsigned int i = 0; i < field_vals.size(); i++) {
-    unsigned int word_type = data[i].type;
-    data_fields.push_back(PackWord(*(bd_pars_->Word(TAT_id, word_type)), field_vals[i]));
+  if (mem_id == bdpars::TAT0 || mem_id == bdpars::TAT1) { 
+    unsigned int TAT_word_type;
+    for (auto& fv : data) {
+      if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
+      else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
+      else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
+      data_fields.push_back(PackWord(*bd_pars_->Word(mem_id, TAT_word_type), fv));
+    }
+  } else {
+    data_fields = PackWords(*bd_pars_->Word(mem_id), data);
   }
 
-  // encapsulate data fields according to RIWI format
-  std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(bdpars::TAT_SET_ADDRESS)),
-      *(bd_pars_->Word(bdpars::TAT_WRITE_INCREMENT)),
-      data_fields,
-      start_addr);
+  // depending on which memory this is, encapsulate differently
+  std::vector<uint64_t> encapsulated_words;
+  if (mem_id == bdpars::PAT) {
+    encapsulated_words = PackRWProgWords(*(bd_pars_->Word(bdpars::PAT_WRITE)), data_fields, start_addr);
+  } else if (mem_id == bdpars::TAT0 || mem_id == bdpars::TAT1) {
+    encapsulated_words = PackRIWIProgWords(
+        *(bd_pars_->Word(bdpars::TAT_SET_ADDRESS)),
+        *(bd_pars_->Word(bdpars::TAT_WRITE_INCREMENT)),
+        data_fields,
+        start_addr);
+  } else if (mem_id == bdpars::MM) {
+    encapsulated_words = PackRIWIProgWords(
+        *(bd_pars_->Word(bdpars::MM_SET_ADDRESS)),
+        *(bd_pars_->Word(bdpars::MM_WRITE_INCREMENT)),
+        data_fields,
+        start_addr);
+  } else if (mem_id == bdpars::AM) {
+    encapsulated_words = PackRMWProgWords(
+        *(bd_pars_->Word(bdpars::AM_SET_ADDRESS)),
+        *(bd_pars_->Word(bdpars::AM_READ_WRITE)),
+        *(bd_pars_->Word(bdpars::AM_INCREMENT)),
+        data_fields,
+        start_addr);
+  }
 
-  // transmit data
-  PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(TAT_id), prog_words);
-  ResumeTraffic(core_id);
-}
-
-void Driver::SetAM(
-    unsigned int core_id,
-    const std::vector<AMData>& data,  ///< data to program
-    unsigned int start_addr           ///< PAT memory address to start programming from, default 0
-    ) {
-  bd_state_[core_id].SetAM(start_addr, data);
-
-  // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::AM)), DataToVFieldValues(data));
-
-  // encapsulate according to RMW format
-  std::vector<uint64_t> prog_words = PackRMWProgWords(
-      *(bd_pars_->Word(bdpars::AM_SET_ADDRESS)),
-      *(bd_pars_->Word(bdpars::AM_READ_WRITE)),
-      *(bd_pars_->Word(bdpars::AM_INCREMENT)),
-      data_fields,
-      start_addr);
-
-  // encapsulate AM/MM
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::AM, prog_words);
+  // if it's an AM or MM word, need further encapsulation
+  if (mem_id == bdpars::MM || mem_id == bdpars::AM) {
+    encapsulated_words = PackAMMMWord(mem_id, encapsulated_words);
+  }
 
   // transmit to horn
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::AM), prog_words_encapsulated);
+  SendToHorn(core_id, bd_pars_->HornLeafIdFor(mem_id), encapsulated_words);
   ResumeTraffic(core_id);
 }
 
-void Driver::SetMM(
-    unsigned int core_id,
-    const std::vector<MMData>& data,  ///< data to program
-    unsigned int start_addr           ///< PAT memory address to start programming from, default 0
-    ) {
-  bd_state_[core_id].SetMM(start_addr, data);
 
-  // pack data fields
-  std::vector<uint64_t> data_fields = PackWords(*(bd_pars_->Word(bdpars::MM)), DataToVFieldValues(data));
+VFieldValues Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) {
 
-  // encapsulate according to RIWI format
-  std::vector<uint64_t> prog_words = PackRIWIProgWords(
-      *(bd_pars_->Word(bdpars::MM_SET_ADDRESS)),
-      *(bd_pars_->Word(bdpars::MM_WRITE_INCREMENT)),
-      data_fields,
-      start_addr);
-
-  // encapsulate AM/MM
-  std::vector<uint64_t> prog_words_encapsulated = PackAMMMWord(bdpars::MM, prog_words);
-
-  // transmit to horn
-  PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::MM), prog_words_encapsulated);
-  ResumeTraffic(core_id);
-}
-
-std::vector<PATData> Driver::DumpPAT(unsigned int core_id) {
   // make dump words
-  unsigned int PAT_size            = bd_pars_->Size(bdpars::PAT);
-  std::vector<uint64_t> dump_words = PackRWDumpWords(*(bd_pars_->Word(bdpars::PAT_READ)), 0, PAT_size);
+  unsigned int mem_size = bd_pars_->Size(mem_id);
 
-  // transmit dump words, then block until all PAT words have been received
+  std::vector<uint64_t> read_words;
+  switch (mem_id) {
+    case bdpars::PAT: {
+      read_words = PackRWDumpWords(*(bd_pars_->Word(bdpars::PAT_READ)), 0, mem_size);
+      break;
+    }
+    case bdpars::TAT0: {
+      read_words = PackRIWIDumpWords(*(bd_pars_->Word(bdpars::TAT_SET_ADDRESS)), *(bd_pars_->Word(bdpars::TAT_READ_INCREMENT)), 0, mem_size);
+      break;
+    }
+    case bdpars::TAT1: {
+      read_words = PackRIWIDumpWords(*(bd_pars_->Word(bdpars::TAT_SET_ADDRESS)), *(bd_pars_->Word(bdpars::TAT_READ_INCREMENT)), 0, mem_size);
+      break;
+    }
+    case bdpars::MM: {
+      read_words = PackRIWIDumpWords(*(bd_pars_->Word(bdpars::MM_SET_ADDRESS)), *(bd_pars_->Word(bdpars::MM_READ_INCREMENT)), 0, mem_size);
+      break;
+    }
+    case bdpars::AM: {
+      // a little tricky, reprogramming is the same as dump
+      // need to write back whatever is currently in memory
+      std::vector<uint64_t> curr_data_fields = PackWords(
+          *bd_pars_->Word(mem_id), 
+          DataToVFieldValues(*bd_state_.at(core_id).GetAM()));
+      read_words = PackRMWProgWords(
+          *(bd_pars_->Word(bdpars::AM_SET_ADDRESS)), 
+          *(bd_pars_->Word(bdpars::AM_READ_WRITE)), 
+          *(bd_pars_->Word(bdpars::AM_INCREMENT)), 
+          curr_data_fields,
+          0);
+      break;
+    }
+    default: {
+      assert(false);
+      break;
+    }
+  }
+
+  // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
+  bdpars::HornLeafId horn_leaf = bd_pars_->HornLeafIdFor(mem_id);
+  bdpars::FunnelLeafId funnel_leaf = bd_pars_->FunnelLeafIdFor(mem_id);
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(bdpars::PAT), dump_words);
-  std::vector<uint64_t> payloads = RecvFromFunnel(bdpars::DUMP_PAT, core_id, PAT_size);
+  SendToHorn(core_id, horn_leaf, read_words);
+  std::vector<uint64_t> payloads = RecvFromFunnel(funnel_leaf, core_id, mem_size);
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to pat word format
-  VFieldValues fields               = UnpackWords(*bd_pars_->Word(bdpars::PAT), payloads);
-  std::vector<PATData> PAT_contents = VFieldValuesToPATData(fields);
-
-  return PAT_contents;
+  VFieldValues fields = UnpackWords(*bd_pars_->Word(mem_id), payloads);
+  return fields;
 }
 
 std::vector<uint64_t> Driver::PackRWProgWords(

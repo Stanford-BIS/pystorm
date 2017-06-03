@@ -17,7 +17,6 @@
 /*
  * TODO LIST: funnel/horn leaves that still need their calls finished
  *
- * horn_["RI"]                   (SendTags needs impl)
  * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
  * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
  * horn_["NeuronConfig"]         (? needs impl)
@@ -25,8 +24,6 @@
  * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl)
  * horn_["DELAY[*]"]             (SetMemDelay needs impl)
  *
- * funnel_["RO_ACC"]             (RecvTags needs impl)
- * funnel_["RO_TAT"]             (RecvTags needs impl)
  * funnel_["DUMP_AM"]            (DumpAM needs impl, see DumpPAT)
  * funnel_["DUMP_MM"]            (DumpMM needs impl, see DumpPAT)
  * funnel_["DUMP_TAT[0]"]        (DumpTAT needs impl, see DumpPAT)
@@ -163,42 +160,64 @@ class Driver {
   // memory programming
 
   /// Program Pool Action Table
-  void SetPAT(
+  inline void SetPAT(
       unsigned int core_id,
       const std::vector<PATData> &data,  ///< data to program
-      unsigned int start_addr            ///< PAT memory address to start programming from, default 0
-      );
+      unsigned int start_addr) {         ///< memory address to start programming from, default 0
+    bd_state_[core_id].SetPAT(start_addr, data);
+    SetMem(core_id, bdpars::PAT, DataToVFieldValues(data), start_addr);
+  }
 
   /// Program Tag Action Table
-  void SetTAT(
+  inline void SetTAT(
       unsigned int core_id,
       bool TAT_idx,                      ///< which TAT to program, 0 or 1
       const std::vector<TATData> &data,  ///< data to program
-      unsigned int start_addr            ///< PAT memory address to start programming from, default 0
-      );
+      unsigned int start_addr) {         ///< memory address to start programming from, default 0
+    if (TAT_idx == 0) {
+      bd_state_[core_id].SetTAT0(start_addr, data);
+      SetMem(core_id, bdpars::TAT0, DataToVFieldValues(data), start_addr);
+    } else if (TAT_idx == 1) {
+      bd_state_[core_id].SetTAT1(start_addr, data);
+      SetMem(core_id, bdpars::TAT1, DataToVFieldValues(data), start_addr);
+    }
+  }
 
   /// Program Accumulator Memory
-  void SetAM(
+  inline void SetAM(
       unsigned int core_id,
       const std::vector<AMData> &data,  ///< data to program
-      unsigned int start_addr           ///< PAT memory address to start programming from, default 0
-      );
+      unsigned int start_addr) {        ///< memory address to start programming from, default 0
+    bd_state_[core_id].SetAM(start_addr, data);
+    SetMem(core_id, bdpars::AM, DataToVFieldValues(data), start_addr);
+  }
 
   /// Program Main Memory (a.k.a. Weight Memory)
-  void SetMM(
+  inline void SetMM(
       unsigned int core_id,
       const std::vector<MMData> &data,  ///< data to program
-      unsigned int start_addr           ///< PAT memory address to start programming from, default 0
-      );
+      unsigned int start_addr) {        ///< memory address to start programming from, default 0
+    bd_state_[core_id].SetMM(start_addr, data);
+    SetMem(core_id, bdpars::MM, DataToVFieldValues(data), start_addr);
+  }
 
   /// Dump PAT contents
-  std::vector<PATData> DumpPAT(unsigned int core_id);
+  inline std::vector<PATData> DumpPAT(unsigned int core_id) 
+    { return VFieldValuesToPATData(DumpMem(core_id, bdpars::PAT)); }
   /// Dump TAT contents
-  std::vector<TATData> DumpTAT(unsigned int core_id);  // XXX not implemented
+  inline std::vector<TATData> DumpTAT(unsigned int core_id, unsigned int tat_idx) { 
+      bdpars::MemId mem_id; 
+      if (tat_idx == 0) mem_id = bdpars::TAT0;
+      else if (tat_idx == 1) mem_id = bdpars::TAT1;
+      else assert(false);
+      return VFieldValuesToTATData(DumpMem(core_id, mem_id));
+  }
   /// Dump AM contents
-  std::vector<AMData> DumpAM(unsigned int core_id);  // XXX not implemented
+  inline std::vector<AMData> DumpAM(unsigned int core_id) 
+    { return VFieldValuesToAMData(DumpMem(core_id, bdpars::AM)); }
   /// Dump MM contents
-  std::vector<unsigned int> DumpMM(unsigned int core_id);  // XXX not implemented
+  inline std::vector<MMData> DumpMM(unsigned int core_id) 
+    { return VFieldValuesToMMData(DumpMem(core_id, bdpars::MM)); }
 
   /// Dump copy of traffic pre-FIFO
   void SetPreFIFODumpState(unsigned int core_id, bool dump_en);  // XXX not implemented
@@ -364,6 +383,15 @@ class Driver {
   // note: RMWProgWord can function as RMWDumpWord
 
   std::vector<uint64_t> PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> &payload) const;
+
+  /// Core logic for all Dump calls
+  VFieldValues DumpMem(unsigned int core_id, bdpars::MemId mem_id);
+  /// Core logic for all Set calls
+  void SetMem(
+      unsigned int core_id,
+      bdpars::MemId mem_id,
+      const VFieldValues &data,
+      unsigned int start_addr);
 
   ////////////////////////////////
   // register programming helpers
