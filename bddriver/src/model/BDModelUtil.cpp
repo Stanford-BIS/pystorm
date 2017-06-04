@@ -25,6 +25,23 @@ std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDP
   return deserialized_words;
 }
 
+std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDPars* pars) {
+
+  std::vector<unsigned int> byte_widths;
+  for (unsigned int i = 0; i < Decoder::bytesPerInput; i++) {
+    byte_widths.push_back(8);
+  }
+
+  std::vector<DecInput> retval;
+  for (auto& input : inputs) {
+    std::vector<uint8_t> bytes = UnpackV<uint32_t, uint8_t>(input, byte_widths);
+    retval.insert(retval.end(), bytes.begin(), bytes.end());
+  }
+
+  assert(retval.size() % Decoder::bytesPerInput == 0);
+  return retval;
+}
+
 std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, const bdpars::BDPars* pars) {
   // this code is based on the Decoder's, but the fields are arranged differently
 
@@ -80,6 +97,33 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, co
   return outputs;
 }
 
+std::vector<uint32_t> Funnel(const std::vector<std::pair<std::vector<uint32_t>, unsigned int> >& inputs, const bdpars::BDPars* pars) {
+  // msb <- lsb
+  // [ route | X | payload ]
+  
+  assert(inputs.size() == bdpars::LastHornLeafId+1);
+
+  std::vector<uint32_t> outputs;
+  
+  for (unsigned int i = 0; i < inputs.size(); i++) {
+    uint32_t route_val;
+    unsigned int route_len;
+    std::tie(route_val, route_len) = pars->FunnelRoute(i);
+    unsigned int payload_chunk_width = inputs.at(i).second;
+    unsigned int word_width = pars->Width(bdpars::BD_OUTPUT);
+    unsigned int unused_width = word_width - payload_chunk_width - route_len;
+
+    std::vector<unsigned int> field_widths = {payload_chunk_width, unused_width, route_len};
+
+    for (uint32_t input : inputs.at(i).first) {
+      std::vector<uint32_t> field_vals = {input, 0, route_val};
+      uint32_t new_word = PackV32(field_vals, field_widths);
+      outputs.push_back(new_word);
+    }
+  }
+  return outputs;
+}
+
 std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(
     const std::vector<uint32_t>& inputs, bdpars::HornLeafId leaf_id, const bdpars::BDPars* bd_pars) {
   unsigned int deserialization    = bd_pars->Serialization(leaf_id);
@@ -94,10 +138,6 @@ std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(
 
   std::vector<std::vector<uint64_t> > outputs;
   for (unsigned int i = 0; i < inputs.size(); i++) {
-    outputs.push_back({});
-  }
-
-  for (unsigned int i = 0; i < inputs.size(); i++) {
     bdpars::HornLeafId leaf_id = static_cast<bdpars::HornLeafId>(i);
 
     std::vector<uint64_t> deserialized;
@@ -105,7 +145,31 @@ std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(
     std::tie(deserialized, remainder) = DeserializeHorn(inputs[i], leaf_id, bd_pars);
 
     assert(remainder.size() == 0 && "this call is meant to be used on complete streams only");
-    outputs[i].insert(outputs[i].end(), deserialized.begin(), deserialized.end());  // append to outputs[i]
+    outputs.push_back(deserialized);
+  }
+
+  return outputs;
+}
+
+std::pair<std::vector<uint32_t>, unsigned int> SerializeFunnel(
+    const std::vector<uint64_t>& inputs, bdpars::FunnelLeafId leaf_id, const bdpars::BDPars* bd_pars) {
+  unsigned int serialization = bd_pars->Serialization(leaf_id);
+  unsigned int input_width   = bd_pars->Width(leaf_id);
+
+  return SerializeWords<uint64_t, uint32_t>(inputs, input_width, serialization);
+}
+
+/// pairs are (serialized words, chunk widths)
+std::vector<std::pair<std::vector<uint32_t>, unsigned int> > SerializeAllFunnelLeaves(
+    const std::vector<std::vector<uint64_t> >& inputs, const bdpars::BDPars* bd_pars) {
+
+  assert(inputs.size() == static_cast<unsigned int>(bdpars::LastFunnelLeafId) + 1);
+
+  std::vector<std::pair<std::vector<uint32_t>, unsigned int> > outputs;
+
+  for (unsigned int i = 0; i < inputs.size(); i++) {
+    bdpars::FunnelLeafId leaf_id = static_cast<bdpars::FunnelLeafId>(i);
+    outputs.push_back(SerializeFunnel(inputs[i], leaf_id, bd_pars));
   }
 
   return outputs;

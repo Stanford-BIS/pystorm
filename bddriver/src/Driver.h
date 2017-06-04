@@ -19,15 +19,11 @@
  *
  * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
  * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
- * horn_["NeuronConfig"]         (? needs impl)
- * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl)
- * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl)
+ * horn_["NeuronConfig"]         (? needs impl (Ben))
+ * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
+ * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
  * horn_["DELAY[*]"]             (SetMemDelay needs impl)
  *
- * funnel_["DUMP_AM"]            (DumpAM needs impl, see DumpPAT)
- * funnel_["DUMP_MM"]            (DumpMM needs impl, see DumpPAT)
- * funnel_["DUMP_TAT[0]"]        (DumpTAT needs impl, see DumpPAT)
- * funnel_["DUMP_TAT[1]"]        (DumpTAT needs impl, see DumpPAT)
  * funnel_["DUMP_PRE_FIFO"]      (SetPreFIFODumpState/GetPreFIFODump needs impl)
  * funnel_["DUMP_POST_FIFO[0]"]  (SetPostFIFO0DumpState/GetPostFIFO0Dump needs impl)
  * funnel_["DUMP_POST_FIFO[1]"]  (SetPostFIFO1DumpState/GetPostFIFO1Dump needs impl)

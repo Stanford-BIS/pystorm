@@ -49,6 +49,86 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   }
 }
 
+std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
+  using namespace bdpars;
+
+  switch (leaf_id) {
+    case RO_ACC: {
+      VFieldValues vfv = DataToVFieldValues(acc_tags_to_send_);
+      return Driver::PackWords(*bd_pars_->Word(ACC_OUTPUT_TAGS), vfv);
+    }
+    case RO_TAT: {
+      VFieldValues vfv = DataToVFieldValues(TAT_tags_to_send_);
+      return Driver::PackWords(*bd_pars_->Word(TAT_OUTPUT_TAGS), vfv);
+    }
+    case NRNI: {
+      VFieldValues vfv = DataToVFieldValues(spikes_to_send_);
+      return Driver::PackWords(*bd_pars_->Word(OUTPUT_SPIKES), vfv);
+    }
+    case DUMP_AM: {
+      VFieldValues vfv = DataToVFieldValues(AM_dump_);
+      return Driver::PackWords(*bd_pars_->Word(AM), vfv);
+    }
+    case DUMP_MM: {
+      VFieldValues vfv = DataToVFieldValues(MM_dump_);
+      return Driver::PackWords(*bd_pars_->Word(MM), vfv);
+    }
+    case DUMP_PAT: {
+      VFieldValues vfv = DataToVFieldValues(PAT_dump_);
+      return Driver::PackWords(*bd_pars_->Word(PAT), vfv);
+    }
+    case DUMP_TAT0: {
+      VFieldValues vfv = DataToVFieldValues(TAT_dump_[0]);
+      return Driver::PackWords(*bd_pars_->Word(TAT0), vfv);
+    }
+    case DUMP_TAT1: {
+      VFieldValues vfv = DataToVFieldValues(TAT_dump_[1]);
+      return Driver::PackWords(*bd_pars_->Word(TAT1), vfv);
+    }
+    case DUMP_PRE_FIFO: {
+      VFieldValues vfv = DataToVFieldValues(pre_fifo_tags_to_send_);
+      return Driver::PackWords(*bd_pars_->Word(PRE_FIFO_TAGS), vfv);
+    }
+    case DUMP_POST_FIFO0: {
+      VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[0]);
+      return Driver::PackWords(*bd_pars_->Word(POST_FIFO_TAGS0), vfv);
+    }
+    case DUMP_POST_FIFO1: {
+      VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[1]);
+      return Driver::PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
+    }
+    case OVFLW0: {
+      assert(false && "not implemented");
+    }
+    case OVFLW1: {
+      assert(false && "not implemented");
+    }
+    default: {
+      assert(false);
+    }
+  }
+}
+
+std::vector<uint8_t> BDModel::GenerateOutputs() {
+
+  // get packed words for each funnel leaf feeder
+  std::vector<std::vector<uint64_t> > packed_words;
+  for (unsigned int i = 0; i < bdpars::LastFunnelLeafId+1; i++) {
+    auto leaf_id = static_cast<bdpars::FunnelLeafId>(i);
+    packed_words.push_back(Generate(leaf_id));
+  }
+
+  // serialize if necessary (AM word only?)
+  auto serialized_chunks_and_widths = SerializeAllFunnelLeaves(packed_words, bd_pars_);
+
+  // then funnel-encode them
+  std::vector<uint32_t> funnel_out_stream = Funnel(serialized_chunks_and_widths, bd_pars_);
+  
+  // then FPGA-byte-pack them
+  return FPGAOutput(funnel_out_stream, bd_pars_);
+}
+
+
 std::pair<FieldValues, bdpars::MemWordId> BDModel::UnpackMemWordNWays(
     uint64_t input, std::vector<bdpars::MemWordId> words_to_try) {
   bool found = false;
