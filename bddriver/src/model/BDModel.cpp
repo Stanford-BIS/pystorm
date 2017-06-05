@@ -14,6 +14,9 @@ BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
 BDModel::~BDModel() { delete state_; }
 
 void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
+
+  std::unique_lock<std::mutex>(mutex_);
+
   // pack uint8_t stream into uint32_ts, other FPGA stuff
   std::vector<uint32_t> BD_input_words = FPGAInput(input_stream, bd_pars_);
 
@@ -51,6 +54,8 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
 std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
   using namespace bdpars;
+
+  std::unique_lock<std::mutex>(mutex_);
 
   switch (leaf_id) {
     case RO_ACC: {

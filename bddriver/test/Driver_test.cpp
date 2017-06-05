@@ -75,11 +75,13 @@ class DriverFixture : public testing::Test {
       model->ParseInput(usb_data_uint);
 
       // compare the state
-      ASSERT_EQ(*model->GetState(), *driver->GetState(kCoreId));
+      const BDState * model_state = model->LockState();
+      ASSERT_EQ(*model_state, *driver->GetState(kCoreId));
+      model->UnlockState();
 
       // compare the stuff that isn't captured by state
-      ASSERT_EQ(*model->GetSpikes(), sent_spikes); // make sure the spikes came through OK
-      ASSERT_EQ(*model->GetTags(), sent_tags); // make sure the spikes came through OK
+      ASSERT_EQ(model->PopSpikes(), sent_spikes); // make sure the spikes came through OK
+      ASSERT_EQ(model->PopTags(), sent_tags); // make sure the spikes came through OK
       
       driver->Stop();
 
