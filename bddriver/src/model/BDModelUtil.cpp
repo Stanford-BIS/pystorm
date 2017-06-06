@@ -139,7 +139,6 @@ std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t>
 
   std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > outputs;
   for (unsigned int i = 0; i < inputs.size(); i++) {
-    //cout << "input to D.A.H.L leaf " << i << " size was: " << inputs[i].size() << endl;
     bdpars::HornLeafId leaf_id = static_cast<bdpars::HornLeafId>(i);
 
     std::vector<uint64_t> deserialized;

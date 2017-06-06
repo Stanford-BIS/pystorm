@@ -15,6 +15,11 @@ DriverPars::DriverPars() {
   string_pars_[SOFT_COMM_IN_FNAME]  = "soft_comm_in.dat";
   string_pars_[SOFT_COMM_OUT_FNAME] = "soft_comm_out.dat";
 
+  // BDModelComm parametesr
+  pars_[BDMODELCOMM_TRY_FOR_US] = 1000;
+  pars_[BDMODELCOMM_MAX_TO_READ] = 1000;
+  pars_[BDMODELCOMM_SLEEP_FOR_US] = 1;
+
   // buffer capacities
   pars_[ENC_BUF_IN_CAPACITY]  = 10000;
   pars_[ENC_BUF_OUT_CAPACITY] = 10000;

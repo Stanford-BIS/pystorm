@@ -25,6 +25,7 @@ class BDModelDriver : public Driver {
     delete comm_;
     comm_ = new comm::CommBDModel( // overwrite comm_ assignment from base constructor
         model_,
+        driver_pars_,
         dec_buf_in_,
         enc_buf_out_);
   }

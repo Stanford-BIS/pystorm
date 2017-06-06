@@ -7,6 +7,7 @@
 
 #include "model/BDModel.h"
 #include "common/MutexBuffer.h"
+#include "common/DriverPars.h"
 
 namespace pystorm {
 namespace bddriver {
@@ -21,6 +22,7 @@ class CommBDModel : public Comm {
 
   CommBDModel(
       bdmodel::BDModel * model,
+      const driverpars::DriverPars * driver_pars,
       MutexBuffer<COMMWord>* read_buffer,
       MutexBuffer<COMMWord>* write_buffer);
   ~CommBDModel();
@@ -43,9 +45,7 @@ class CommBDModel : public Comm {
   MutexBuffer<COMMWord>* read_buffer_; /// output buffer
   MutexBuffer<COMMWord>* write_buffer_; /// input buffer
 
-  const unsigned int kTryForUS = 1000;
-  const unsigned int kMaxToRead = 1000;
-  const unsigned int kSleepMS = 1;
+  const driverpars::DriverPars * driver_pars_;
 
   // feed write_buffer_ into BDModel, use BDModel to feed read_buffer_
   void Run();
