@@ -112,6 +112,9 @@ class BDModel {
   std::vector<NrnSpike> spikes_to_send_; /// upstream spikes to send, enqueued by user
   unsigned int n_ovflw_to_send_[2]; /// upstream overflow warnings to send, enqueued by user
 
+  // word remainders that couldn't be completely deserialized
+  std::vector<std::vector<uint32_t> > remainders_;
+
   // memory address register states
 
   unsigned int MM_address_     = 0;

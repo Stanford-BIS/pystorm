@@ -9,6 +9,8 @@ BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
   bd_pars_     = bd_pars;
 
   state_ = new BDState(bd_pars_, driver_pars_);
+
+  remainders_ = std::vector<std::vector<uint32_t> >(bdpars::LastHornLeafId+1, std::vector<uint32_t>());
 }
 
 BDModel::~BDModel() { delete state_; }
@@ -21,7 +23,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   std::vector<uint32_t> BD_input_words = FPGAInput(input_stream, bd_pars_);
 
   // perform horn decoding
-  std::vector<std::vector<uint32_t> > horn_words = Horn(BD_input_words, bd_pars_);
+  std::vector<std::vector<uint32_t> > new_horn_words = Horn(BD_input_words, bd_pars_);
   //cout << "did horn" << endl;
   //cout << "sizes:" << endl;
   //for (unsigned int i = 0; i < horn_words.size(); i++) {
@@ -29,7 +31,15 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   //}
 
   // deserialize at horn leaves where required
-  std::vector<std::vector<uint64_t> > des_horn_words = DeserializeAllHornLeaves(horn_words, bd_pars_);
+  std::vector<std::vector<uint32_t> > horn_words;
+  horn_words.swap(remainders_);
+  for (unsigned int i = 0 ; i < new_horn_words.size(); i++) {
+    horn_words.at(i).insert(horn_words.at(i).end(), new_horn_words.at(i).begin(), new_horn_words.at(i).end());
+  }
+
+  std::vector<std::vector<uint64_t> > des_horn_words;
+  std::tie(des_horn_words, remainders_) = DeserializeAllHornLeaves(horn_words, bd_pars_);
+
   //cout << "did des" << endl;
   //cout << "sizes: " << endl;
   //for (unsigned int i = 0; i < des_horn_words.size(); i++) {
@@ -103,10 +113,12 @@ std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
       return PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
     }
     case OVFLW0: {
-      assert(false && "not implemented");
+      return {};
+      // XXX implement me
     }
     case OVFLW1: {
-      assert(false && "not implemented");
+      return {};
+      // XXX implement me
     }
     default: {
       assert(false);

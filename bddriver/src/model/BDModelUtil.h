@@ -22,7 +22,7 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, co
 /// Does deserialization
 std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(
     const std::vector<uint32_t>& inputs, bdpars::HornLeafId leaf_id, const bdpars::BDPars* bd_pars);
-std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(
+std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > DeserializeAllHornLeaves(
     const std::vector<std::vector<uint32_t> >& inputs, const bdpars::BDPars* bd_pars);
 
 ////////////////////////////////////////

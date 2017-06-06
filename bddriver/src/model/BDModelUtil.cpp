@@ -102,7 +102,7 @@ std::vector<uint32_t> Funnel(const std::vector<std::pair<std::vector<uint32_t>, 
   // msb <- lsb
   // [ route | X | payload ]
   
-  assert(inputs.size() == bdpars::LastHornLeafId+1);
+  assert(inputs.size() == bdpars::LastFunnelLeafId+1);
 
   std::vector<uint32_t> outputs;
   
@@ -133,20 +133,21 @@ std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(
   return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
 }
 
-std::vector<std::vector<uint64_t> > DeserializeAllHornLeaves(
+std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > DeserializeAllHornLeaves(
     const std::vector<std::vector<uint32_t> >& inputs, const bdpars::BDPars* bd_pars) {
   assert(inputs.size() == static_cast<unsigned int>(bdpars::LastHornLeafId) + 1);
 
-  std::vector<std::vector<uint64_t> > outputs;
+  std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > outputs;
   for (unsigned int i = 0; i < inputs.size(); i++) {
+    //cout << "input to D.A.H.L leaf " << i << " size was: " << inputs[i].size() << endl;
     bdpars::HornLeafId leaf_id = static_cast<bdpars::HornLeafId>(i);
 
     std::vector<uint64_t> deserialized;
     std::vector<uint32_t> remainder;
     std::tie(deserialized, remainder) = DeserializeHorn(inputs[i], leaf_id, bd_pars);
 
-    assert(remainder.size() == 0 && "this call is meant to be used on complete streams only");
-    outputs.push_back(deserialized);
+    outputs.first.push_back(deserialized);
+    outputs.second.push_back(remainder);
   }
 
   return outputs;
