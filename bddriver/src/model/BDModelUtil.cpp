@@ -2,7 +2,8 @@
 
 #include "common/BDState.h"
 #include "common/binary_util.h"
-#include "encoder/Encoder.h"
+#include "encoder/Encoder.h" // for bytesPerOutput (XXX should be in BDPars??)
+#include "decoder/Decoder.h" // for bytesPerInput (XXX should be in BDPars??)
 
 namespace pystorm {
 namespace bddriver {

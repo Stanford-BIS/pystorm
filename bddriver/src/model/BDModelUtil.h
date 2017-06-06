@@ -1,7 +1,6 @@
 #ifndef BDMODELUTIL_H
 #define BDMODELUTIL_H
 
-#include "Driver.h"
 #include "common/BDState.h"
 #include "common/DriverTypes.h"
 
