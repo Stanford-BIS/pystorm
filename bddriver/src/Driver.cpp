@@ -78,6 +78,10 @@ Driver::Driver() {
 
   } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::LIBUSB) {
     assert(false && "libUSB Comm is not implemented");
+  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::BDMODEL) {
+    // XXX hmm... this is iffy
+    // should be using BDModelDriver, which handles this in its own ctor
+    comm_ = nullptr;
   } else {
     assert(false && "unhandled comm_type");
   }

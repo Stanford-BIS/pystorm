@@ -10,12 +10,14 @@ DriverPars::DriverPars() {
   pars_.resize(LastDriverParId + 1);
   string_pars_.resize(LastDriverStringParId + 1);
 
-  // Comm parameters
-  pars_[COMM_TYPE]                  = SOFT;
+  // Comm type
+  pars_[COMM_TYPE] = BDMODEL;
+
+  // CommSoft parameters
   string_pars_[SOFT_COMM_IN_FNAME]  = "soft_comm_in.dat";
   string_pars_[SOFT_COMM_OUT_FNAME] = "soft_comm_out.dat";
 
-  // BDModelComm parametesr
+  // CommBDModel parameters (XXX some of these might be more general--CommSoft should have DriverPars too)
   pars_[BDMODELCOMM_TRY_FOR_US] = 1000;
   pars_[BDMODELCOMM_MAX_TO_READ] = 1000;
   pars_[BDMODELCOMM_SLEEP_FOR_US] = 1;

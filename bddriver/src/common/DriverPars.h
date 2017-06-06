@@ -42,6 +42,7 @@ enum DriverStringParId {
 
 enum CommType {
   SOFT,
+  BDMODEL,
   LIBUSB,
 
   LastCommType = LIBUSB
