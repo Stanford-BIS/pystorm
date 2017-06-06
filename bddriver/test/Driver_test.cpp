@@ -1,4 +1,4 @@
-#include "Driver.h"
+#include "model/BDModelDriver.h"
 #include "BDModel.h"
 
 #include <chrono>
@@ -27,16 +27,9 @@ class DriverFixture : public testing::Test {
   public:
     void SetUp() {
 
-      // we need to make sure that the comm input file exists
-      driverpars::DriverPars tmp_pars; // just want the SoftComm input file name
-      const std::string * comm_in_fname = tmp_pars.Get(driverpars::SOFT_COMM_IN_FNAME);
-      std::ofstream comm_input_file(*comm_in_fname);
-      comm_input_file.close();
-
       //driver = Driver::GetInstance();
-      driver = new Driver();
-
-      model = new bdmodel::BDModel(driver->GetBDPars(), driver->GetDriverPars());
+      driver = new BDModelDriver();
+      model = driver->GetBDModel();
 
       driver->Start();
       driver->InitBD();
@@ -47,34 +40,10 @@ class DriverFixture : public testing::Test {
       std::this_thread::sleep_for(std::chrono::seconds(kSleepS));
       
       // compare states for every test!
-
-      // read soft comm's output file (the raw data that would get sent over USB)
-      const std::string * fname = driver->GetDriverPars()->Get(driverpars::SOFT_COMM_OUT_FNAME);
-      std::ifstream file(*fname, ios::in|ios::binary|ios::ate);
-      std::vector<char> usb_data;
-      if (file.is_open()) {
-        unsigned int size = file.tellg();
-        usb_data.resize(size);
-        file.seekg(0, ios::beg);
-        file.read(&usb_data[0], size);
-        file.close();
-      } else {
-        cout << "couldn't open the soft comm out file (" << fname << ") for some reason" << endl;
-        ASSERT_TRUE(false);
-      }
-
-      //cout << "STREAM SIZE" << endl;
-      //cout << usb_data.size() << endl;
-      
-      std::vector<uint8_t> usb_data_uint;
-      for (char& char_el : usb_data) {
-        usb_data_uint.push_back(static_cast<uint8_t>(char_el));
-      }
-
-      // parse the file with BDModel
-      model->ParseInput(usb_data_uint);
+      driver->Stop();
 
       // compare the state
+      // lock/unlock should be unecessary: we stopped the driver
       const BDState * model_state = model->LockState();
       ASSERT_EQ(*model_state, *driver->GetState(kCoreId));
       model->UnlockState();
@@ -82,17 +51,14 @@ class DriverFixture : public testing::Test {
       // compare the stuff that isn't captured by state
       ASSERT_EQ(model->PopSpikes(), sent_spikes); // make sure the spikes came through OK
       ASSERT_EQ(model->PopTags(), sent_tags); // make sure the spikes came through OK
-      
-      driver->Stop();
 
       delete driver;
-      delete model;
     }
 
     const unsigned int kSleepS = 1;
     const unsigned int M = 64; // be careful, keep it smaller than the memories, the PAT has 64 entries
     const unsigned kCoreId = 0;
-    Driver * driver;
+    BDModelDriver * driver;
     bdmodel::BDModel * model;
 
     std::vector<SynSpike> sent_spikes;

@@ -28,7 +28,7 @@ class CommBDModel : public Comm {
   void StartStreaming();
   void StopStreaming();
 
-  CommStreamState GetStreamState() { return run_state_; }
+  CommStreamState GetStreamState() { return stream_state_; }
   MutexBuffer<COMMWord>* getReadBuffer() { return read_buffer_; }
   MutexBuffer<COMMWord>* getWriteBuffer() { return write_buffer_; }
 
@@ -37,7 +37,7 @@ class CommBDModel : public Comm {
   
   std::thread thread_; /// worker thread 
   
-  std::atomic<CommStreamState> run_state_; // atomic because StartStreaming/StopStreaming don't gain lock
+  std::atomic<CommStreamState> stream_state_; // atomic because StartStreaming/StopStreaming don't gain lock
   bdmodel::BDModel * model_;
 
   MutexBuffer<COMMWord>* read_buffer_; /// output buffer
