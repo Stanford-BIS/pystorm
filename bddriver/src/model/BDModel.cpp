@@ -60,47 +60,47 @@ std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
   switch (leaf_id) {
     case RO_ACC: {
       VFieldValues vfv = DataToVFieldValues(acc_tags_to_send_);
-      return Driver::PackWords(*bd_pars_->Word(ACC_OUTPUT_TAGS), vfv);
+      return PackWords(*bd_pars_->Word(ACC_OUTPUT_TAGS), vfv);
     }
     case RO_TAT: {
       VFieldValues vfv = DataToVFieldValues(TAT_tags_to_send_);
-      return Driver::PackWords(*bd_pars_->Word(TAT_OUTPUT_TAGS), vfv);
+      return PackWords(*bd_pars_->Word(TAT_OUTPUT_TAGS), vfv);
     }
     case NRNI: {
       VFieldValues vfv = DataToVFieldValues(spikes_to_send_);
-      return Driver::PackWords(*bd_pars_->Word(OUTPUT_SPIKES), vfv);
+      return PackWords(*bd_pars_->Word(OUTPUT_SPIKES), vfv);
     }
     case DUMP_AM: {
       VFieldValues vfv = DataToVFieldValues(AM_dump_);
-      return Driver::PackWords(*bd_pars_->Word(AM), vfv);
+      return PackWords(*bd_pars_->Word(AM), vfv);
     }
     case DUMP_MM: {
       VFieldValues vfv = DataToVFieldValues(MM_dump_);
-      return Driver::PackWords(*bd_pars_->Word(MM), vfv);
+      return PackWords(*bd_pars_->Word(MM), vfv);
     }
     case DUMP_PAT: {
       VFieldValues vfv = DataToVFieldValues(PAT_dump_);
-      return Driver::PackWords(*bd_pars_->Word(PAT), vfv);
+      return PackWords(*bd_pars_->Word(PAT), vfv);
     }
     case DUMP_TAT0: {
       VFieldValues vfv = DataToVFieldValues(TAT_dump_[0]);
-      return Driver::PackWords(*bd_pars_->Word(TAT0), vfv);
+      return PackWords(*bd_pars_->Word(TAT0), vfv);
     }
     case DUMP_TAT1: {
       VFieldValues vfv = DataToVFieldValues(TAT_dump_[1]);
-      return Driver::PackWords(*bd_pars_->Word(TAT1), vfv);
+      return PackWords(*bd_pars_->Word(TAT1), vfv);
     }
     case DUMP_PRE_FIFO: {
       VFieldValues vfv = DataToVFieldValues(pre_fifo_tags_to_send_);
-      return Driver::PackWords(*bd_pars_->Word(PRE_FIFO_TAGS), vfv);
+      return PackWords(*bd_pars_->Word(PRE_FIFO_TAGS), vfv);
     }
     case DUMP_POST_FIFO0: {
       VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[0]);
-      return Driver::PackWords(*bd_pars_->Word(POST_FIFO_TAGS0), vfv);
+      return PackWords(*bd_pars_->Word(POST_FIFO_TAGS0), vfv);
     }
     case DUMP_POST_FIFO1: {
       VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[1]);
-      return Driver::PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
+      return PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
     }
     case OVFLW0: {
       assert(false && "not implemented");
@@ -140,7 +140,7 @@ std::pair<FieldValues, bdpars::MemWordId> BDModel::UnpackMemWordNWays(
   bdpars::MemWordId found_id;
   FieldValues found_field_vals;
   for (auto& word_id : words_to_try) {
-    FieldValues field_vals = Driver::UnpackWord(*bd_pars_->Word(word_id), input);
+    FieldValues field_vals = UnpackWord(*bd_pars_->Word(word_id), input);
     if (field_vals.size() > 0) {
       assert(!found && "undefined behavior for multiple matches");
       found_id         = word_id;
@@ -154,7 +154,7 @@ std::pair<FieldValues, bdpars::MemWordId> BDModel::UnpackMemWordNWays(
 
 void BDModel::ProcessReg(bdpars::RegId reg_id, uint64_t input) {
   const bdpars::WordStructure* reg_word_struct = bd_pars_->Word(reg_id);
-  FieldValues field_vals                       = Driver::UnpackWord(*reg_word_struct, input);
+  FieldValues field_vals                       = UnpackWord(*reg_word_struct, input);
 
   // form vector of values to set BDState's reg state with, in WordStructure field order
   std::vector<unsigned int> field_vals_as_vect;
@@ -169,7 +169,7 @@ void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input) {
   using namespace bdpars;
 
   const bdpars::WordStructure* word_struct = bd_pars_->Word(input_id);
-  FieldValues field_vals                   = Driver::UnpackWord(*word_struct, input);
+  FieldValues field_vals                   = UnpackWord(*word_struct, input);
 
   switch (input_id) {
     case INPUT_TAGS: {
@@ -216,7 +216,7 @@ void BDModel::ProcessMM(uint64_t input) {
       break;
 
     case MM_WRITE_INCREMENT: {
-      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(MM), FVGet(field_vals, DATA));
+      FieldValues data_fields = UnpackWord(*bd_pars_->Word(MM), FVGet(field_vals, DATA));
       state_->SetMM(MM_address_, {FieldValuesToMMData(data_fields)});
       MM_address_++;
       break;
@@ -246,7 +246,7 @@ void BDModel::ProcessAM(uint64_t input) {
 
     case AM_READ_WRITE: {
       AM_dump_.push_back(state_->GetAM()->at(AM_address_));
-      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(AM), FVGet(field_vals, DATA));
+      FieldValues data_fields = UnpackWord(*bd_pars_->Word(AM), FVGet(field_vals, DATA));
       state_->SetAM(AM_address_, {FieldValuesToAMData(data_fields)});
       // cout << "WRITE AT " << AM_address_ << " : ";
       // for (auto& it : data_fields) {
@@ -280,7 +280,7 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
     case TAT_WRITE_INCREMENT: {
       // for TAT, have to try all three data word types
       for (unsigned int i = 0; i < 3; i++) {
-        FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(TAT0, i), FVGet(field_vals, DATA));
+        FieldValues data_fields = UnpackWord(*bd_pars_->Word(TAT0, i), FVGet(field_vals, DATA));
         if (data_fields.size() > 0) {
           if (TAT_idx == 0) {
             state_->SetTAT0(TAT_address_[TAT_idx], {FieldValuesToTATData(data_fields)});
@@ -319,7 +319,7 @@ void BDModel::ProcessPAT(const uint64_t input) {
       break;
 
     case PAT_WRITE: {
-      FieldValues data_fields = Driver::UnpackWord(*bd_pars_->Word(PAT), FVGet(field_vals, DATA));
+      FieldValues data_fields = UnpackWord(*bd_pars_->Word(PAT), FVGet(field_vals, DATA));
       state_->SetPAT(FVGet(field_vals, ADDRESS), {FieldValuesToPATData(data_fields)});
       break;
     }

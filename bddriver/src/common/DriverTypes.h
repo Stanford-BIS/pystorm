@@ -150,12 +150,33 @@ std::vector<Tag> VFieldValuesToTag(const VFieldValues& field_values, const std::
 ////////////////////////////////
 // FieldValues utility functions
 
+/// Get ptr to value of FV field with field_id, returns nullptr if value not found
 const uint64_t* FVGetPtr(const FieldValues& fv, bdpars::WordFieldId field_id);
+
+/// Get value of FV field with field_id, assertion failure if value not found
 uint64_t FVGet(const FieldValues& fv, bdpars::WordFieldId field_id);
+
+/// Returns true if FV has field with field_id
 bool FVContains(const FieldValues& fv, bdpars::WordFieldId field_id);
 
+/// Returns true if FV contains all field_ids in word_struct
 bool FVContainsWordStruct(const FieldValues& fv, const bdpars::WordStructure& word_struct);
+
+/// Returns true if FV contains all field_ids in word_struct and has no other fields
 bool FVExactlyMatchesWordStruct(const FieldValues& fv, const bdpars::WordStructure& word_struct);
+
+
+/// Packs FV into a uint64_t according to word_struct
+uint64_t PackWord(const bdpars::WordStructure &word_struct, const FieldValues &field_values);
+
+/// calls PackWord for a VFV, generating a vector of uint64_ts
+std::vector<uint64_t> PackWords(const bdpars::WordStructure &word_struct, const VFieldValues &vfv);
+
+/// Unpack a uint64_t into a FV according to word_struct
+FieldValues UnpackWord(const bdpars::WordStructure &word_struct, uint64_t word);
+
+/// calls UnpackWord for a vector of uint64_ts, generating a VFV
+VFieldValues UnpackWords(const bdpars::WordStructure &word_struct, std::vector<uint64_t> words);
 
 ////////////////////////////////////////
 // decoder/encoder

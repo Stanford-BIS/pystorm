@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "BDPars.h"
+#include "binary_util.h"
 
 namespace pystorm {
 namespace bddriver {
@@ -364,6 +365,63 @@ bool FVExactlyMatchesWordStruct(const FieldValues& fv, const bdpars::WordStructu
   if (word_struct.size() != fv.size()) is_word_struct = false;
   if (!FVContainsWordStruct(fv, word_struct)) is_word_struct = false;
   return is_word_struct;
+}
+
+uint64_t PackWord(const bdpars::WordStructure& word_struct, const FieldValues& field_values) {
+  std::vector<unsigned int> widths_as_vect;
+  std::vector<uint64_t> field_values_as_vect;
+  for (auto& it : word_struct) {
+    bdpars::WordFieldId field_id;
+    unsigned int field_width;
+    std::tie(field_id, field_width) = it;
+
+    uint64_t field_value;
+    if (FVContains(field_values, field_id)) {
+      field_value = FVGet(field_values, field_id);
+    } else {
+      field_value = bdpars::BDPars::ValueForSpecialFieldId(field_id);
+    }
+
+    widths_as_vect.push_back(field_width);
+    field_values_as_vect.push_back(field_value);
+  }
+
+  return PackV64(field_values_as_vect, widths_as_vect);
+}
+
+std::vector<uint64_t> PackWords(const bdpars::WordStructure& word_struct, const VFieldValues& vfv) {
+  std::vector<uint64_t> output;
+  output.reserve(vfv.size());
+  for (auto& fv : vfv) {
+    output.push_back(PackWord(word_struct, fv));
+  }
+  return output;
+}
+
+FieldValues UnpackWord(const bdpars::WordStructure& word_struct, uint64_t word) {
+  std::vector<unsigned int> widths_as_vect;
+  for (auto& it : word_struct) {
+    unsigned int field_width = it.second;
+    widths_as_vect.push_back(field_width);
+  }
+
+  std::vector<uint64_t> vals = UnpackV64(word, widths_as_vect);
+
+  FieldValues output;
+  for (unsigned int i = 0; i < word_struct.size(); i++) {
+    bdpars::WordFieldId field_id = word_struct.at(i).first;
+    if (!bdpars::BDPars::SpecialFieldValueMatches(field_id, vals[i])) return {};
+    output.push_back({field_id, vals[i]});
+  }
+  return output;
+}
+
+VFieldValues UnpackWords(const bdpars::WordStructure& word_struct, std::vector<uint64_t> words) {
+  VFieldValues outputs;
+  for (auto& word : words) {
+    outputs.push_back(UnpackWord(word_struct, word));
+  }
+  return outputs;
 }
 
 }  // bddriver namespace

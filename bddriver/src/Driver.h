@@ -103,6 +103,7 @@ namespace bddriver {
 ///
 class Driver {
  public:
+  /// can supply your own comm if you're doing something funky
   Driver();
   ~Driver();
 
@@ -274,13 +275,7 @@ class Driver {
   /// Get software state of MM memory contents: this DOES NOT dump the memory.
   inline const std::vector<MMData> *GetMMState(unsigned int core_id) const { return bd_state_[core_id].GetMM(); }
 
-  // public static helper functions. Maybe going to move somewhere else... DriverTypes maybe
-  static uint64_t PackWord(const bdpars::WordStructure &word_struct, const FieldValues &field_values);
-  static std::vector<uint64_t> PackWords(const bdpars::WordStructure &word_struct, const VFieldValues &vfv);
-  static FieldValues UnpackWord(const bdpars::WordStructure &word_struct, uint64_t word);
-  static VFieldValues UnpackWords(const bdpars::WordStructure &word_struct, std::vector<uint64_t> words);
-
- private:
+ protected:
   ////////////////////////////////
   // data members
 
