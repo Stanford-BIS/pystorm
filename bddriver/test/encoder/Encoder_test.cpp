@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "MutexBuffer.h"
 #include "binary_util.h"
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/Producer_Consumer.h"
 
 #define BYTES_PER_WORD 3
 
@@ -17,6 +17,7 @@ using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
+using namespace bdpars;
 
 std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(BDPars * pars, unsigned int N, unsigned int max_leaf_idx_to_use) {
 
@@ -74,17 +75,21 @@ std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(
   return std::make_pair(enc_inputs, enc_outputs);
 }
 
-class EncoderFixture : public testing::Test
-{
+class EncoderFixture : public testing::Test {
   public:
-    void SetUp() 
-    {
+    void SetUp() {
       buf_in = new MutexBuffer<EncInput>(buf_depth);
       buf_out = new MutexBuffer<EncOutput>(buf_depth);
 
       pars = new BDPars(); // filename unused for now
 
       std::tie(enc_inputs, enc_outputs) = MakeEncInputAndOutput(pars, N, LastHornLeafId);
+    }
+
+    void TearDown() {
+      delete buf_in;
+      delete buf_out;
+      delete pars;
     }
 
     unsigned int N = 10e6;
@@ -107,8 +112,7 @@ class EncoderFixture : public testing::Test
 };
 
 
-TEST_F(EncoderFixture, Test1xEncoder)
-{
+TEST_F(EncoderFixture, Test1xEncoder) {
   Encoder enc(pars, buf_in, buf_out, M);
 
   // start producer/consumer threads
@@ -142,8 +146,7 @@ TEST_F(EncoderFixture, Test1xEncoder)
 
 }
 
-TEST_F(EncoderFixture, Test2xEncoder)
-{
+TEST_F(EncoderFixture, Test2xEncoder) {
   // two identical Encoders in this test
   Encoder enc0(pars, buf_in, buf_out, M);
   Encoder enc1(pars, buf_in, buf_out, M);

@@ -11,12 +11,13 @@
 #include "binary_util.h"
 #include "BDPars.h"
 #include "gtest/gtest.h"
-#include "test_util/Producer_Consumer.cpp"
+#include "test_util/Producer_Consumer.h"
 
 using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
+using namespace bdpars;
 
 #define BYTES_PER_WORD 5
 
@@ -46,7 +47,7 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
     std::tie(route_val, route_len) = pars->FunnelRoute(leaf_idx); 
     
     // look up data width and output width
-    unsigned int BD_output_width = pars->Width(BD_output);
+    unsigned int BD_output_width = pars->Width(BD_OUTPUT);
     unsigned int payload_width = pars->Width(static_cast<FunnelLeafId>(leaf_idx));
 
     // mask payload value
@@ -79,8 +80,7 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
   return make_pair(dec_inputs, dec_outputs);
 }
 
-class DecoderFixture : public testing::TestWithParam<unsigned int>
-{
+class DecoderFixture : public testing::TestWithParam<unsigned int> {
   public:
     void SetUp() 
     {
@@ -104,6 +104,7 @@ class DecoderFixture : public testing::TestWithParam<unsigned int>
     void TearDown() 
     {
       delete pars;
+      delete buf_in;
       for (auto& buf_out : bufs_out) {
         delete buf_out;
       }
@@ -129,8 +130,8 @@ class DecoderFixture : public testing::TestWithParam<unsigned int>
 };
 
 
-TEST_P(DecoderFixture, Test1xDecoder)
-{
+TEST_P(DecoderFixture, Test1xDecoder) {
+
   Decoder dec(pars, buf_in, bufs_out, M);
 
   // start producer/consumer threads
@@ -150,7 +151,7 @@ TEST_P(DecoderFixture, Test1xDecoder)
   for (unsigned int i = 0; i < bufs_out.size(); i++) {
     // give up after 10s
     consumers.push_back(
-        std::thread(ConsumeVectNGiveUpAfter<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000, 10e6)
+        std::thread(ConsumeVectNGiveUpAfter<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000, 30e6)
     );
     
     //// expect exact number
@@ -199,8 +200,7 @@ TEST_P(DecoderFixture, Test1xDecoder)
 INSTANTIATE_TEST_CASE_P(
     TestDecoderDifferentNumLeaves,
     DecoderFixture,
-    ::testing::Values(LastFunnelLeafId, 1, 0)
-);
+    ::testing::Values(LastFunnelLeafId, 1, 0));
 
 //TEST_F(DecoderFixture, Test2xDecoder)
 //{

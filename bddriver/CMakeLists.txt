@@ -19,6 +19,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/comm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/decoder)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/encoder)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/src/model)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/test/)
 
 ############################################################################

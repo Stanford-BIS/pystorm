@@ -6,43 +6,65 @@
 
 namespace pystorm {
 namespace bddriver {
+namespace driverpars {
 
 enum DriverParId {
   // objects
-  enc_buf_in_capacity,
-  dec_buf_in_capacity,
-  enc_buf_out_capacity,
-  dec_buf_out_capacity,
-  enc_chunk_size,
-  enc_timeout_us,
-  dec_chunk_size,
-  dec_timeout_us,
-  bd_state_traffic_drain_us,
+  ENC_BUF_IN_CAPACITY,
+  DEC_BUF_IN_CAPACITY,
+  ENC_BUF_OUT_CAPACITY,
+  DEC_BUF_OUT_CAPACITY,
+  ENC_CHUNK_SIZE,
+  ENC_TIMEOUT_US,
+  DEC_CHUNK_SIZE,
+  DEC_TIMEOUT_US,
+  BD_STATE_TRAFFIC_DRAIN_US,
+  COMM_TYPE,
+  BDMODELCOMM_TRY_FOR_US,
+  BDMODELCOMM_MAX_TO_READ,
+  BDMODELCOMM_SLEEP_FOR_US,
   // functions
-  DumpPAT_timeout_us,
-  DumpTAT_timeout_us,
-  DumpMM_timeout_us,
-  RecvSpikes_timeout_us,
-  RecvTags_timeout_us,
+  DUMPPAT_TIMEOUT_US,
+  DUMPTAT_TIMEOUT_US,
+  DUMPMM_TIMEOUT_US,
+  RECVSPIKES_TIMEOUT_US,
+  RECVTAGS_TIMEOUT_US,
 
-  LastDriverParId = RecvTags_timeout_us
+  LastDriverParId = RECVTAGS_TIMEOUT_US
 };
 
+enum DriverStringParId {
+  SOFT_COMM_IN_FNAME,
+  SOFT_COMM_OUT_FNAME,
+
+  LastDriverStringParId = SOFT_COMM_OUT_FNAME
+};
+
+enum CommType {
+  SOFT,
+  BDMODEL,
+  LIBUSB,
+
+  LastCommType = LIBUSB
+};
+
+/// Stores parameters that modify driver object parameters/functions
 class DriverPars {
-  public:
-    // init from yaml file describing driver parameters
-    DriverPars();
-    ~DriverPars();
+ public:
+  // init from yaml file describing driver parameters
+  DriverPars();
+  ~DriverPars();
 
-    inline unsigned int Get(DriverParId par_id) const 
-      { return pars_.at(par_id); }
+  inline unsigned int Get(DriverParId par_id) const { return pars_.at(par_id); }
+  inline const std::string* Get(DriverStringParId par_id) const { return &(string_pars_.at(par_id)); }
 
-  private:
-    std::vector<unsigned int> pars_;
-
+ private:
+  std::vector<unsigned int> pars_;
+  std::vector<std::string> string_pars_;
 };
 
-} // bddriver
-} // pystorm
+}  // driverpars
+}  // bddriver
+}  // pystorm
 
 #endif

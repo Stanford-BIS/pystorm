@@ -25,6 +25,7 @@ set(INCLUDE_DIRS
     ${SRC_BASE_DIR}/common
     ${SRC_BASE_DIR}/encoder
     ${SRC_BASE_DIR}/decoder
+    ${SRC_BASE_DIR}/model
 )
 
 #-------------------
@@ -42,13 +43,18 @@ include_directories(${INC_BASE_DIR})
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
-    ${PROJECT_SOURCE_DIR}/test_util/Producer_Consumer.cpp
+    ${PROJECT_SOURCE_DIR}/test_util/DriverTypes_util.cpp
     ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
     ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
     ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
     ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/DriverTypes_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/BDPars_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/DriverPars_test.cpp
+    ${PROJECT_SOURCE_DIR}/common/BDState_test.cpp
+    ${PROJECT_SOURCE_DIR}/Driver_test.cpp
     ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
 )
 
