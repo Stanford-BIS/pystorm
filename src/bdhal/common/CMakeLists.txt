@@ -1,0 +1,18 @@
+set(HEADER_FILES
+    ${HEADER_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/ConnectableObject.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MappedNetwork.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Network.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Pool.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/StateSpace.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Transform.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/WeightedConnection.h
+    PARENT_SCOPE
+)
+
+set(SRC_FILES
+    ${SRC_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Network.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Pool.cpp
+    PARENT_SCOPE
+)
