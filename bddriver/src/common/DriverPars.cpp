@@ -25,8 +25,8 @@ DriverPars::DriverPars() {
   // buffer capacities
   pars_[ENC_BUF_IN_CAPACITY]  = 10000;
   pars_[ENC_BUF_OUT_CAPACITY] = 10000;
-  pars_[DEC_BUF_IN_CAPACITY]  = 10000;
-  pars_[DEC_BUF_OUT_CAPACITY] = 10000;
+  pars_[DEC_BUF_IN_CAPACITY]  = 64*1024;
+  pars_[DEC_BUF_OUT_CAPACITY] = 64*1024;
 
   // encoder/decoder working chunk sizes
   pars_[ENC_CHUNK_SIZE] = 1 * ms;

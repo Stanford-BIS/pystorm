@@ -233,19 +233,31 @@ void BDModel::ProcessMM(uint64_t input) {
   switch (word_id) {
     case MM_SET_ADDRESS:
       MM_address_ = FVGet(field_vals, ADDRESS);
+      //cout << "SET " << MM_address_ << endl;
       break;
 
     case MM_WRITE_INCREMENT: {
       FieldValues data_fields = UnpackWord(*bd_pars_->Word(MM), FVGet(field_vals, DATA));
       state_->SetMM(MM_address_, {FieldValuesToMMData(data_fields)});
+      //cout << "WRITE INC " << MM_address_ << " : ";
+      //for (auto& it : data_fields) {
+      //  cout << "(" << it.first << ":" << it.second << "), ";
+      //}
+      //cout << endl;
       MM_address_++;
       break;
     }
-    case MM_READ_INCREMENT:
-      MM_dump_.push_back(state_->GetMM()->at(MM_address_));
+    case MM_READ_INCREMENT: {
+      MMData data = state_->GetMM()->at(MM_address_);
+      MM_dump_.push_back(data);
+      //cout << "READ INC " << MM_address_ << " : ";
+      //for (auto& it : DataToFieldValues(data)) {
+      //  cout << "(" << it.first << ":" << it.second << "), ";
+      //}
+      //cout << endl;
       MM_address_++;
       break;
-
+    }
     default:
       assert(false && "bad FVV");
   }
@@ -268,7 +280,7 @@ void BDModel::ProcessAM(uint64_t input) {
       AM_dump_.push_back(state_->GetAM()->at(AM_address_));
       FieldValues data_fields = UnpackWord(*bd_pars_->Word(AM), FVGet(field_vals, DATA));
       state_->SetAM(AM_address_, {FieldValuesToAMData(data_fields)});
-      //cout << "WRITE AT " << AM_address_ << " : ";
+      //cout << "READ/WRITE AT " << AM_address_ << " : ";
       // for (auto& it : data_fields) {
       //  cout << "(" << it.first << ":" << it.second << "), ";
       //}

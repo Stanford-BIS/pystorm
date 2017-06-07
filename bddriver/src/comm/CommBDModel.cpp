@@ -32,7 +32,6 @@ void CommBDModel::RunOnce() {
   model_->ParseInput(inputs);
   std::vector<COMMWord> outputs = model_->GenerateOutputs();
 
-  //read_buffer_->Push(outputs, kTryForUS);
   // have to make sure that we don't send something bigger than the buffer
   std::vector<COMMWord> output_chunk;
   unsigned int i = 0;
@@ -40,11 +39,11 @@ void CommBDModel::RunOnce() {
     output_chunk.push_back(outputs.at(i));
     i++;
     if (i % driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY) == 0) {
-      read_buffer_->Push(output_chunk, try_for_us);
+      read_buffer_->Push(output_chunk);
       output_chunk.clear();
     }
   }
-  read_buffer_->Push(output_chunk, try_for_us);
+  read_buffer_->Push(output_chunk);
 }
 
 void CommBDModel::Run() {
