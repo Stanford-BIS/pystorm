@@ -261,23 +261,23 @@ void BDModel::ProcessAM(uint64_t input) {
   switch (word_id) {
     case AM_SET_ADDRESS:
       AM_address_ = FVGet(field_vals, ADDRESS);
-      // cout << "SET " << AM_address_ << endl;
+      //cout << "SET " << AM_address_ << endl;
       break;
 
     case AM_READ_WRITE: {
       AM_dump_.push_back(state_->GetAM()->at(AM_address_));
       FieldValues data_fields = UnpackWord(*bd_pars_->Word(AM), FVGet(field_vals, DATA));
       state_->SetAM(AM_address_, {FieldValuesToAMData(data_fields)});
-      // cout << "WRITE AT " << AM_address_ << " : ";
+      //cout << "WRITE AT " << AM_address_ << " : ";
       // for (auto& it : data_fields) {
       //  cout << "(" << it.first << ":" << it.second << "), ";
       //}
-      // cout << endl;
+      //cout << endl;
       break;
     }
     case AM_INCREMENT:
       AM_address_++;
-      // cout << "INC " << AM_address_ << endl;
+      //cout << "INC " << AM_address_ << endl;
       break;
 
     default:

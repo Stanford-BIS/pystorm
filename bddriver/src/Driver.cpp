@@ -268,6 +268,9 @@ void Driver::SetMem(
   // transmit to horn
   PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->HornLeafIdFor(mem_id), encapsulated_words);
+  if (mem_id == bdpars::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
+    RecvFromFunnel(bd_pars_->FunnelLeafIdFor(mem_id), core_id, data.size());
+  }
   ResumeTraffic(core_id);
 }
 
@@ -313,6 +316,11 @@ VFieldValues Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) {
       assert(false);
       break;
     }
+  }
+
+  // if it's an AM or MM word, need further encapsulation
+  if (mem_id == bdpars::MM || mem_id == bdpars::AM) {
+    read_words = PackAMMMWord(mem_id, read_words);
   }
 
   // transmit read words, then block until all dump words have been received

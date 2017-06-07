@@ -127,21 +127,21 @@ TEST_F(DriverFixture, TestDumpPAT) {
   ASSERT_EQ(data, dumped);
 }
 
-//TEST_F(DriverFixture, TestDumpAM) {
-//  unsigned int size = driver->GetBDPars()->Size(bdpars::AM);
-//  auto data = MakeRandomAMData(size);
-//  driver->SetAM(kCoreId, data, 0);
-//  auto dumped = driver->DumpAM(kCoreId);
-//  ASSERT_EQ(data, dumped);
-//}
-//
-//TEST_F(DriverFixture, TestDumpMM) {
-//  unsigned int size = driver->GetBDPars()->Size(bdpars::MM);
-//  auto data = MakeRandomMMData(size);
-//  driver->SetMM(kCoreId, data, 0);
-//  auto dumped = driver->DumpMM(kCoreId);
-//  ASSERT_EQ(data, dumped);
-//}
+TEST_F(DriverFixture, TestDumpAM) {
+  unsigned int size = driver->GetBDPars()->Size(bdpars::AM);
+  auto data = MakeRandomAMData(size);
+  driver->SetAM(kCoreId, data, 0);
+  auto dumped = driver->DumpAM(kCoreId);
+  ASSERT_EQ(data, dumped);
+}
+
+TEST_F(DriverFixture, TestDumpMM) {
+  unsigned int size = driver->GetBDPars()->Size(bdpars::MM);
+  auto data = MakeRandomMMData(size);
+  driver->SetMM(kCoreId, data, 0);
+  auto dumped = driver->DumpMM(kCoreId);
+  ASSERT_EQ(data, dumped);
+}
 
 TEST_F(DriverFixture, TestDumpTAT0) {
   unsigned int size = driver->GetBDPars()->Size(bdpars::TAT0);
