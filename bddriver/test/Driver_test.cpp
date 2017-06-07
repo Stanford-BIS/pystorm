@@ -78,7 +78,7 @@ class DriverFixture : public testing::Test {
 
 };
 
-//TEST_F(DriverFixture, TestSetUpAndTearDown) {}
+TEST_F(DriverFixture, TestInitBD) {}
 
 TEST_F(DriverFixture, TestSetPAT) {
   driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);
@@ -117,3 +117,44 @@ TEST_F(DriverFixture, TestDownStreamCalls) {
   SendSpikes();
 }
 
+// for dump tests, need to program before dumping
+
+TEST_F(DriverFixture, TestDumpPAT) {
+  unsigned int size = driver->GetBDPars()->Size(bdpars::PAT);
+  auto data = MakeRandomPATData(size);
+  driver->SetPAT(kCoreId, data, 0);
+  auto dumped = driver->DumpPAT(kCoreId);
+  ASSERT_EQ(data, dumped);
+}
+
+//TEST_F(DriverFixture, TestDumpAM) {
+//  unsigned int size = driver->GetBDPars()->Size(bdpars::AM);
+//  auto data = MakeRandomAMData(size);
+//  driver->SetAM(kCoreId, data, 0);
+//  auto dumped = driver->DumpAM(kCoreId);
+//  ASSERT_EQ(data, dumped);
+//}
+//
+//TEST_F(DriverFixture, TestDumpMM) {
+//  unsigned int size = driver->GetBDPars()->Size(bdpars::MM);
+//  auto data = MakeRandomMMData(size);
+//  driver->SetMM(kCoreId, data, 0);
+//  auto dumped = driver->DumpMM(kCoreId);
+//  ASSERT_EQ(data, dumped);
+//}
+//
+//TEST_F(DriverFixture, TestDumpTAT0) {
+//  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT0);
+//  auto data = MakeRandomTATData(size);
+//  driver->SetTAT(kCoreId, 0, data, 0);
+//  auto dumped = driver->DumpTAT(kCoreId, 0);
+//  ASSERT_EQ(data, dumped);
+//}
+
+//TEST_F(DriverFixture, TestDumpTAT1) {
+//  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT1);
+//  auto data = MakeRandomTATData(size);
+//  driver->SetTAT(kCoreId, 1, data, 0);
+//  auto dumped = driver->DumpTAT(kCoreId, 1);
+//  ASSERT_EQ(data, dumped);
+//}

@@ -228,6 +228,7 @@ void Driver::SetMem(
       if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
       else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
       else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
+      else assert(false);
       data_fields.push_back(PackWord(*bd_pars_->Word(mem_id, TAT_word_type), fv));
     }
   } else {
@@ -323,7 +324,7 @@ VFieldValues Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) {
   std::vector<uint64_t> payloads = RecvFromFunnel(funnel_leaf, core_id, mem_size);
   ResumeTraffic(core_id);
 
-  // unpack payload field of DecOutput according to pat word format
+  // unpack payload field of DecOutput according to word format
   VFieldValues fields = UnpackWords(*bd_pars_->Word(mem_id), payloads);
   return fields;
 }
@@ -602,7 +603,7 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
   // Decoder doesn't know about enums, cast leaf_id as uint
   // this is the index of the dec_bufs_out[] we want to pull from
   unsigned int leaf_id_as_uint     = static_cast<unsigned int>(leaf_id);
-  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[leaf_id_as_uint];
+  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(leaf_id_as_uint);
 
   // look up serialization, we really need num_to_recv * serialiazation
   unsigned int deserialization = bd_pars_->Serialization(leaf_id);
@@ -615,12 +616,13 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
 
     while (outputs.size() < DecOutput_needed) {
       unsigned int num_to_pop = DecOutput_needed - outputs.size();
-      this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+      std::vector<DecOutput> new_outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
+      outputs.insert(outputs.end(), new_outputs.begin(), new_outputs.end());
     }
   } else {
     // if num_to_recv=0, just take whatever's in the queue
     unsigned int num_to_pop = driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY);
-    this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+    outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
   }
 
   // deserialize (pull out payloads first)

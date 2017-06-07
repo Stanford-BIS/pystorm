@@ -63,6 +63,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 }
 
 std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
+  // XXX this is pretty damn repetitive: template?
   using namespace bdpars;
 
   std::unique_lock<std::mutex>(mutex_);
@@ -70,46 +71,66 @@ std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
   switch (leaf_id) {
     case RO_ACC: {
       VFieldValues vfv = DataToVFieldValues(acc_tags_to_send_);
+      acc_tags_to_send_.clear();
       return PackWords(*bd_pars_->Word(ACC_OUTPUT_TAGS), vfv);
     }
     case RO_TAT: {
       VFieldValues vfv = DataToVFieldValues(TAT_tags_to_send_);
+      TAT_tags_to_send_.clear();
       return PackWords(*bd_pars_->Word(TAT_OUTPUT_TAGS), vfv);
     }
     case NRNI: {
       VFieldValues vfv = DataToVFieldValues(spikes_to_send_);
+      spikes_to_send_.clear();
       return PackWords(*bd_pars_->Word(OUTPUT_SPIKES), vfv);
     }
     case DUMP_AM: {
       VFieldValues vfv = DataToVFieldValues(AM_dump_);
+      AM_dump_.clear();
       return PackWords(*bd_pars_->Word(AM), vfv);
     }
     case DUMP_MM: {
       VFieldValues vfv = DataToVFieldValues(MM_dump_);
+      MM_dump_.clear();
       return PackWords(*bd_pars_->Word(MM), vfv);
     }
     case DUMP_PAT: {
       VFieldValues vfv = DataToVFieldValues(PAT_dump_);
+      PAT_dump_.clear();
       return PackWords(*bd_pars_->Word(PAT), vfv);
     }
     case DUMP_TAT0: {
       VFieldValues vfv = DataToVFieldValues(TAT_dump_[0]);
-      return PackWords(*bd_pars_->Word(TAT0), vfv);
+      TAT_dump_[0].clear();
+      std::vector<uint64_t> retval;
+      for (auto& fv : vfv) {
+        unsigned int TAT_word_type = 0;
+        if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
+        else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
+        else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
+        else assert(false);
+        retval.push_back(PackWord(*bd_pars_->Word(TAT0, TAT_word_type), fv));
+      }
+      return retval;
     }
     case DUMP_TAT1: {
       VFieldValues vfv = DataToVFieldValues(TAT_dump_[1]);
+      TAT_dump_[1].clear();
       return PackWords(*bd_pars_->Word(TAT1), vfv);
     }
     case DUMP_PRE_FIFO: {
       VFieldValues vfv = DataToVFieldValues(pre_fifo_tags_to_send_);
+      pre_fifo_tags_to_send_.clear();
       return PackWords(*bd_pars_->Word(PRE_FIFO_TAGS), vfv);
     }
     case DUMP_POST_FIFO0: {
       VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[0]);
+      post_fifo_tags_to_send_[0].clear();
       return PackWords(*bd_pars_->Word(POST_FIFO_TAGS0), vfv);
     }
     case DUMP_POST_FIFO1: {
       VFieldValues vfv = DataToVFieldValues(post_fifo_tags_to_send_[1]);
+      post_fifo_tags_to_send_[1].clear();
       return PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
     }
     case OVFLW0: {
@@ -139,10 +160,12 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
   auto serialized_chunks_and_widths = SerializeAllFunnelLeaves(packed_words, bd_pars_);
 
   // then funnel-encode them
-  std::vector<uint32_t> funnel_out_stream = Funnel(serialized_chunks_and_widths, bd_pars_);
+  std::vector<uint64_t> funnel_out_stream = Funnel(serialized_chunks_and_widths, bd_pars_);
   
   // then FPGA-byte-pack them
-  return FPGAOutput(funnel_out_stream, bd_pars_);
+  std::vector<uint8_t> FPGA_output = FPGAOutput(funnel_out_stream, bd_pars_);
+
+  return FPGA_output;
 }
 
 

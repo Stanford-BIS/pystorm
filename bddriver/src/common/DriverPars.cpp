@@ -19,8 +19,8 @@ DriverPars::DriverPars() {
 
   // CommBDModel parameters (XXX some of these might be more general--CommSoft should have DriverPars too)
   pars_[BDMODELCOMM_TRY_FOR_US] = 1000;
-  pars_[BDMODELCOMM_MAX_TO_READ] = 1000;
-  pars_[BDMODELCOMM_SLEEP_FOR_US] = 1;
+  pars_[BDMODELCOMM_MAX_TO_READ] = 10000;
+  pars_[BDMODELCOMM_SLEEP_FOR_US] = 10 * ms;
 
   // buffer capacities
   pars_[ENC_BUF_IN_CAPACITY]  = 10000;
