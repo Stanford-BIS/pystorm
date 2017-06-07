@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bddriver_test)
 project(${PROJECT_NAME_STR} CXX)
 
-set(PYSTORM_BASE_LIB_DIR $ENV{HOME}/pystorm/lib)
+set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 find_package(Threads REQUIRED)
 
@@ -14,9 +14,11 @@ endif()
 #-------------------
 # Set global variables
 #-------------------
-set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../src) 
-set(INC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include) 
-set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../lib)
+set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/bddriver) 
+set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include 
+                 ${CMAKE_CURRENT_SOURCE_DIR}/../../include/bddriver
+) 
+set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 set(INCLUDE_DIRS 
     ${PROJECT_SOURCE_DIR}
@@ -35,7 +37,7 @@ set(INCLUDE_DIRS
 set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 
-include_directories(${INC_BASE_DIR})                                        
+include_directories(${INC_BASE_DIRS})                                        
                                                                             
 #-------------------
 # Build Test

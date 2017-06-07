@@ -1,8 +1,0 @@
-if(${BUILD_STEP} STREQUAL "install")
-    message("BUILD_STEP: install")
-    file(GLOB LIBS ${BUILD_DIR}/libyaml-cpp*)
-    foreach(lib ${LIBS})
-        file(COPY ${lib} DESTINATION ${BASE_DIR}/lib)
-    endforeach()
-    execute_process(COMMAND cmake -E copy_directory ${BUILD_INCLUDE_DIR} ${DEST_INCLUDE_DIR})
-endif()
