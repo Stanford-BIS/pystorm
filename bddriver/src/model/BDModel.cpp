@@ -62,6 +62,22 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   }
 }
 
+// helper for Generate
+std::vector<uint64_t> BDModel::GenerateTAT(unsigned int tat_idx) {
+  VFieldValues vfv = DataToVFieldValues(TAT_dump_[tat_idx]);
+  TAT_dump_[tat_idx].clear();
+  std::vector<uint64_t> retval;
+  for (auto& fv : vfv) {
+    unsigned int TAT_word_type = 0;
+    if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
+    else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
+    else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
+    else assert(false);
+    retval.push_back(PackWord(*bd_pars_->Word(bdpars::TAT0, TAT_word_type), fv));
+  }
+  return retval;
+}
+
 std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
   // XXX this is pretty damn repetitive: template?
   using namespace bdpars;
@@ -100,23 +116,10 @@ std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
       return PackWords(*bd_pars_->Word(PAT), vfv);
     }
     case DUMP_TAT0: {
-      VFieldValues vfv = DataToVFieldValues(TAT_dump_[0]);
-      TAT_dump_[0].clear();
-      std::vector<uint64_t> retval;
-      for (auto& fv : vfv) {
-        unsigned int TAT_word_type = 0;
-        if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
-        else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
-        else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
-        else assert(false);
-        retval.push_back(PackWord(*bd_pars_->Word(TAT0, TAT_word_type), fv));
-      }
-      return retval;
+      return GenerateTAT(0);
     }
     case DUMP_TAT1: {
-      VFieldValues vfv = DataToVFieldValues(TAT_dump_[1]);
-      TAT_dump_[1].clear();
-      return PackWords(*bd_pars_->Word(TAT1), vfv);
+      return GenerateTAT(1);
     }
     case DUMP_PRE_FIFO: {
       VFieldValues vfv = DataToVFieldValues(pre_fifo_tags_to_send_);
@@ -168,24 +171,6 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
   return FPGA_output;
 }
 
-
-std::pair<FieldValues, bdpars::MemWordId> BDModel::UnpackMemWordNWays(
-    uint64_t input, std::vector<bdpars::MemWordId> words_to_try) {
-  bool found = false;
-  bdpars::MemWordId found_id;
-  FieldValues found_field_vals;
-  for (auto& word_id : words_to_try) {
-    FieldValues field_vals = UnpackWord(*bd_pars_->Word(word_id), input);
-    if (field_vals.size() > 0) {
-      assert(!found && "undefined behavior for multiple matches");
-      found_id         = word_id;
-      found_field_vals = field_vals;
-      found            = true;
-    }
-  }
-  assert(found && "couldn't find a matching MemWord");
-  return {found_field_vals, found_id};
-}
 
 void BDModel::ProcessReg(bdpars::RegId reg_id, uint64_t input) {
   const bdpars::WordStructure* reg_word_struct = bd_pars_->Word(reg_id);
@@ -243,7 +228,7 @@ void BDModel::ProcessMM(uint64_t input) {
 
   FieldValues field_vals;
   MemWordId word_id;
-  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {MM_SET_ADDRESS, MM_WRITE_INCREMENT, MM_READ_INCREMENT});
+  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {MM_SET_ADDRESS, MM_WRITE_INCREMENT, MM_READ_INCREMENT}, bd_pars_);
 
   switch (word_id) {
     case MM_SET_ADDRESS:
@@ -271,7 +256,7 @@ void BDModel::ProcessAM(uint64_t input) {
 
   FieldValues field_vals;
   MemWordId word_id;
-  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {AM_SET_ADDRESS, AM_READ_WRITE, AM_INCREMENT});
+  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {AM_SET_ADDRESS, AM_READ_WRITE, AM_INCREMENT}, bd_pars_);
 
   switch (word_id) {
     case AM_SET_ADDRESS:
@@ -305,7 +290,7 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
 
   FieldValues field_vals;
   MemWordId word_id;
-  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {TAT_SET_ADDRESS, TAT_READ_INCREMENT, TAT_WRITE_INCREMENT});
+  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {TAT_SET_ADDRESS, TAT_READ_INCREMENT, TAT_WRITE_INCREMENT}, bd_pars_);
 
   switch (word_id) {
     case TAT_SET_ADDRESS:
@@ -346,7 +331,7 @@ void BDModel::ProcessPAT(const uint64_t input) {
 
   FieldValues field_vals;
   MemWordId word_id;
-  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {PAT_READ, PAT_WRITE});
+  std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {PAT_READ, PAT_WRITE}, bd_pars_);
 
   switch (word_id) {
     case PAT_READ:
@@ -398,7 +383,7 @@ void BDModel::ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input) {
         {
           FieldValues field_vals;
           MemWordId word_id;
-          std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {AM_ENCAPSULATION, MM_ENCAPSULATION});
+          std::tie(field_vals, word_id) = UnpackMemWordNWays(input, {AM_ENCAPSULATION, MM_ENCAPSULATION}, bd_pars_);
           // cout << UintAsString(input, 64) << " to " << endl;
           // for (auto& it : field_vals) {
           //  cout << "(" << it.first << ":" << it.second << "), ";

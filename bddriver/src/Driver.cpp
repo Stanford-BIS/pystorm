@@ -325,8 +325,29 @@ VFieldValues Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) {
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to word format
-  VFieldValues fields = UnpackWords(*bd_pars_->Word(mem_id), payloads);
-  return fields;
+  VFieldValues vfv;
+  if (mem_id == bdpars::TAT0 || mem_id == bdpars::TAT1) { // TAT is special, three word types
+
+    const std::vector<const bdpars::WordStructure *> words_to_try = {
+      bd_pars_->Word(bdpars::TAT0, 0),
+      bd_pars_->Word(bdpars::TAT0, 1),
+      bd_pars_->Word(bdpars::TAT0, 2)};
+
+    for (auto& payload : payloads) {
+      bool found = false;
+      for (auto* word : words_to_try) {
+        FieldValues fv = UnpackWord(*word, payload);
+        if (fv.size() > 0) {
+          assert(!found);
+          vfv.push_back(fv);
+          found = true;
+        }
+      }
+    }
+  } else {
+    vfv = UnpackWords(*bd_pars_->Word(mem_id), payloads);
+  }
+  return vfv;
 }
 
 std::vector<uint64_t> Driver::PackRWProgWords(

@@ -253,7 +253,6 @@ uint64_t BDPars::ValueForSpecialFieldId(bdpars::WordFieldId field_id) {
       return 3;
     }
     default: {
-               cout << field_id << endl;
       assert(false && "no value supplied for a given field");
       return 0;  // suppresses compiler warning
     }

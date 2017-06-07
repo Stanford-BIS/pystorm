@@ -142,19 +142,19 @@ TEST_F(DriverFixture, TestDumpPAT) {
 //  auto dumped = driver->DumpMM(kCoreId);
 //  ASSERT_EQ(data, dumped);
 //}
-//
-//TEST_F(DriverFixture, TestDumpTAT0) {
-//  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT0);
-//  auto data = MakeRandomTATData(size);
-//  driver->SetTAT(kCoreId, 0, data, 0);
-//  auto dumped = driver->DumpTAT(kCoreId, 0);
-//  ASSERT_EQ(data, dumped);
-//}
 
-//TEST_F(DriverFixture, TestDumpTAT1) {
-//  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT1);
-//  auto data = MakeRandomTATData(size);
-//  driver->SetTAT(kCoreId, 1, data, 0);
-//  auto dumped = driver->DumpTAT(kCoreId, 1);
-//  ASSERT_EQ(data, dumped);
-//}
+TEST_F(DriverFixture, TestDumpTAT0) {
+  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT0);
+  auto data = MakeRandomTATData(size);
+  driver->SetTAT(kCoreId, 0, data, 0);
+  auto dumped = driver->DumpTAT(kCoreId, 0);
+  ASSERT_EQ(data, dumped);
+}
+
+TEST_F(DriverFixture, TestDumpTAT1) {
+  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT1);
+  auto data = MakeRandomTATData(size);
+  driver->SetTAT(kCoreId, 1, data, 0);
+  auto dumped = driver->DumpTAT(kCoreId, 1);
+  ASSERT_EQ(data, dumped);
+}

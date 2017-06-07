@@ -424,5 +424,25 @@ VFieldValues UnpackWords(const bdpars::WordStructure& word_struct, std::vector<u
   return outputs;
 }
 
+std::pair<FieldValues, bdpars::MemWordId> UnpackMemWordNWays(
+    uint64_t input, 
+    std::vector<bdpars::MemWordId> words_to_try,
+    const bdpars::BDPars * bd_pars) {
+  bool found = false;
+  bdpars::MemWordId found_id;
+  FieldValues found_field_vals;
+  for (auto& word_id : words_to_try) {
+    FieldValues field_vals = UnpackWord(*bd_pars->Word(word_id), input);
+    if (field_vals.size() > 0) {
+      assert(!found && "undefined behavior for multiple matches");
+      found_id         = word_id;
+      found_field_vals = field_vals;
+      found            = true;
+    }
+  }
+  assert(found && "couldn't find a matching MemWord");
+  return {found_field_vals, found_id};
+}
+
 }  // bddriver namespace
 }  // pystorm namespace

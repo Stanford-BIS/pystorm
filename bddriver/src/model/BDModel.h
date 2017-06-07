@@ -126,10 +126,6 @@ class BDModel {
   const driverpars::DriverPars* driver_pars_;
   const bdpars::BDPars* bd_pars_;
 
-  // useful helper for the mem processing calls
-  std::pair<FieldValues, bdpars::MemWordId> UnpackMemWordNWays(
-      uint64_t input, std::vector<bdpars::MemWordId> words_to_try);
-
   // used in ParseInput, once words have been horn-decoded and deserialized
   
   void Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t>& inputs);
@@ -144,6 +140,9 @@ class BDModel {
   // used in GenerateOutputs
   
   std::vector<uint64_t> Generate(bdpars::FunnelLeafId leaf_id);
+
+  // more complicated than the other cases
+  std::vector<uint64_t> GenerateTAT(unsigned int tat_idx);
 };
 
 }  // bdmodel

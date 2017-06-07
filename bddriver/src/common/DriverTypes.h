@@ -178,6 +178,13 @@ FieldValues UnpackWord(const bdpars::WordStructure &word_struct, uint64_t word);
 /// calls UnpackWord for a vector of uint64_ts, generating a VFV
 VFieldValues UnpackWords(const bdpars::WordStructure &word_struct, std::vector<uint64_t> words);
 
+// useful helper for the mem processing calls in model
+std::pair<FieldValues, bdpars::MemWordId> UnpackMemWordNWays(
+    uint64_t input, 
+    std::vector<bdpars::MemWordId> words_to_try,
+    const bdpars::BDPars * bd_pars);
+
+
 ////////////////////////////////////////
 // decoder/encoder
 
