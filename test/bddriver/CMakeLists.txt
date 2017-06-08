@@ -62,11 +62,13 @@ set(TEST_SRC_FILES
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
-#add_dependencies(${PROJECT_NAME_STR} gtest)
+add_dependencies(${PROJECT_NAME_STR} gtest)
+add_dependencies(${PROJECT_NAME_STR} gtest_main)
 
+link_directories(${PYSTORM_BASE_LIB_DIR})
 target_link_libraries(${PROJECT_NAME_STR}
-    ${PYSTORM_BASE_LIB_DIR}/libgtest.a
-    ${PYSTORM_BASE_LIB_DIR}/libgtest_main.a
+    gtest
+    gtest_main
     ${CMAKE_THREAD_LIBS_INIT} 
     Driver
 )

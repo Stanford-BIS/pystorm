@@ -11,10 +11,8 @@ RUN ln -s /usr/lib/x86_64-linux-gnu/libboost_python-py35.so /usr/lib/x86_64-linu
     && cd /home/git/pystorm \ 
     && mkdir build \
     && cd build \
-    && cmake .. \
+    && cmake ..  \
     && make 
 
 WORKDIR /home/git/pystorm/build/
 ENTRYPOINT ["make"]
-#\
-    #&& make test ARGS="-V"
