@@ -34,8 +34,8 @@ set(INCLUDE_DIRS
 # Install and build external dependencies 
 #-------------------
 
-set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
-add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
+#set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
+#add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 
 include_directories(${INC_BASE_DIRS})                                        
                                                                             
@@ -62,11 +62,11 @@ set(TEST_SRC_FILES
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
-add_dependencies(${PROJECT_NAME_STR} googletest)
+#add_dependencies(${PROJECT_NAME_STR} gtest)
 
 target_link_libraries(${PROJECT_NAME_STR}
-    ${GTEST_LIBS_DIR}/libgtest.a
-    ${GTEST_LIBS_DIR}/libgtest_main.a
+    ${PYSTORM_BASE_LIB_DIR}/libgtest.a
+    ${PYSTORM_BASE_LIB_DIR}/libgtest_main.a
     ${CMAKE_THREAD_LIBS_INIT} 
     Driver
 )

@@ -148,6 +148,11 @@ function(cxx_library_with_type name type cxx_flags)
   # ARGN refers to additional arguments after 'cxx_flags'.
   add_library(${name} ${type} ${ARGN})
   set_target_properties(${name}
+    PROPERTIES                                                                  
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib              
+    LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../../lib              
+  )    
+  set_target_properties(${name}
     PROPERTIES
     COMPILE_FLAGS "${cxx_flags}")
   if (BUILD_SHARED_LIBS OR type STREQUAL "SHARED")
