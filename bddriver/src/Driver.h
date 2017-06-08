@@ -17,16 +17,10 @@
 /*
  * TODO LIST: funnel/horn leaves that still need their calls finished
  *
- * horn_["INIT_FIFO_DCT"]        (InitFIFO needs impl)
- * horn_["INIT_FIFO_HT"]         (InitFIFO needs impl)
  * horn_["NeuronConfig"]         (? needs impl (Ben))
  * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
  * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
- * horn_["DELAY[*]"]             (SetMemDelay needs impl)
  *
- * funnel_["DUMP_PRE_FIFO"]      (SetPreFIFODumpState/GetPreFIFODump needs impl)
- * funnel_["DUMP_POST_FIFO[0]"]  (SetPostFIFO0DumpState/GetPostFIFO0Dump needs impl)
- * funnel_["DUMP_POST_FIFO[1]"]  (SetPostFIFO1DumpState/GetPostFIFO1Dump needs impl)
  * funnel_["OVFLW[0]"]           (GetFIFOOverflows needs impl)
  * funnel_["OVFLW[1]"]           (GetFIFOOverflows needs impl)
  *
@@ -122,7 +116,7 @@ class Driver {
   void Stop();
   /// initializes hardware state
   void InitBD();                        // XXX partially implemented
-  void InitFIFO(unsigned int core_id);  // XXX not implemented
+  void InitFIFO(unsigned int core_id); 
 
   ////////////////////////////////
   // Traffic Control
@@ -217,18 +211,14 @@ class Driver {
     { return VFieldValuesToMMData(DumpMem(core_id, bdpars::MM)); }
 
   /// Dump copy of traffic pre-FIFO
-  void SetPreFIFODumpState(unsigned int core_id, bool dump_en);  // XXX not implemented
+  void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
   /// Dump copy of traffic post-FIFO, tag msbs = 0
-  void SetPostFIFO0DumpState(unsigned int core_id, bool dump_en);  // XXX not implemented
-  /// Dump copy of traffic post-FIFO, tag msbs = 1
-  void SetPostFIFO1DumpState(unsigned int core_id, bool dump_en);  // XXX not implemented
+  void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
 
   /// Get pre-FIFO tags recorded during dump
-  std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);  // XXX not implemented
-  /// Get post-FIFO tags msbs = 0 recorded during dump
-  std::vector<Tag> GetPostFIFO0Dump(unsigned int core_id, unsigned int n_tags);  // XXX not implemented
-  /// Get post-FIFO tags msbs = 1 recorded during dump
-  std::vector<Tag> GetPostFIFO1Dump(unsigned int core_id, unsigned int n_tags);  // XXX not implemented
+  std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+  /// Get post-FIFO tags recorded during dump
+  std::vector<Tag> GetPostFIFODump(unsigned int core_id, unsigned int n_tags);
 
   ////////////////////////////////
   // Spike/Tag Streams
@@ -240,13 +230,13 @@ class Driver {
   std::vector<NrnSpike> RecvSpikes(unsigned int max_to_recv);
 
   /// Send a stream of tags
-  void SendTags(const std::vector<Tag> &tags);  // XXX not implemented
+  void SendTags(const std::vector<Tag> &tags);
 
   /// Receive a stream of tags
-  std::vector<Tag> RecvTags(unsigned int max_to_recv);  // XXX not implemented
+  std::vector<Tag> RecvTags(unsigned int max_to_recv);
 
   /// Get warning count
-  std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts();  // XXX not implemented
+  std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(); // XXX not implemented
 
   ////////////////////////////////
   // BDState queries
@@ -344,7 +334,9 @@ class Driver {
   /// that might come from multiple cores, or that need time_epoch information,
   /// This isn't the most effective call.
   std::vector<uint64_t> RecvFromFunnel(
-      bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned int num_to_recv = 0);
+      unsigned int core_id, 
+      bdpars::FunnelLeafId leaf_id, 
+      unsigned int num_to_recv = 0);
 
   ////////////////////////////////
   // memory programming helpers
@@ -393,7 +385,10 @@ class Driver {
   bool SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en);
 
   /// Set memory delay line value
-  void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int value);  // XXX not implemented
+  void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int read_value, unsigned int write_value);
+
+  std::vector<Tag> GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags);
+
 };
 
 }  // bddriver namespace

@@ -80,6 +80,24 @@ class DriverFixture : public testing::Test {
 
 TEST_F(DriverFixture, TestInitBD) {}
 
+TEST_F(DriverFixture, TestSetPreFIFODumpStateOn) {
+  driver->SetPreFIFODumpState(kCoreId, true);
+}
+
+TEST_F(DriverFixture, TestSetPostFIFODumpStateOn) {
+  driver->SetPostFIFODumpState(kCoreId, true);
+}
+
+TEST_F(DriverFixture, TestSetPreFIFODumpStateOnOff) {
+  driver->SetPreFIFODumpState(kCoreId, true);
+  driver->SetPreFIFODumpState(kCoreId, false);
+}
+
+TEST_F(DriverFixture, TestSetPostFIFODumpStateOnOff) {
+  driver->SetPostFIFODumpState(kCoreId, true);
+  driver->SetPostFIFODumpState(kCoreId, false);
+}
+
 TEST_F(DriverFixture, TestSetPAT) {
   driver->SetPAT(kCoreId, MakeRandomPATData(M), 0);
 }

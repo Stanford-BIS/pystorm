@@ -123,12 +123,18 @@ BDPars::BDPars() {
           {{STOP, 1}, {FIXED_2, 2}, {TAG, 11}, {GLOBAL_ROUTE, 12}, {UNUSED,3}} // FANOUT TYPE
       };
 
+  // FIFO doesn't have proper programming and dump ports, store this so an attempt to access will fail
+  HornLeafId   bad_hleaf = static_cast<HornLeafId>(LastHornLeafId+1);
+  FunnelLeafId bad_fleaf = static_cast<FunnelLeafId>(LastFunnelLeafId+1);
+
   mem_.resize(LastMemId+1);
-  mem_[AM]   = {1024,    AM_words,  PROG_AMMM, DUMP_AM};
-  mem_[MM]   = {64*1024, MM_words,  PROG_AMMM, DUMP_MM};
-  mem_[TAT0] = {1024,    TAT_words, PROG_TAT0, DUMP_TAT0};
-  mem_[TAT1] = {1024,    TAT_words, PROG_TAT1, DUMP_TAT1};
-  mem_[PAT]  = {64,      PAT_words, PROG_PAT,  DUMP_PAT};
+  mem_[AM]       = {1024,    AM_words,  PROG_AMMM, DUMP_AM,   DELAY6};
+  mem_[MM]       = {64*1024, MM_words,  PROG_AMMM, DUMP_MM,   DELAY5};
+  mem_[TAT0]     = {1024,    TAT_words, PROG_TAT0, DUMP_TAT0, DELAY2};
+  mem_[TAT1]     = {1024,    TAT_words, PROG_TAT1, DUMP_TAT1, DELAY3};
+  mem_[PAT]      = {64,      PAT_words, PROG_PAT,  DUMP_PAT,  DELAY4};
+  mem_[FIFO_DCT] = {2048,    {{}},      bad_hleaf, bad_fleaf, DELAY0};
+  mem_[FIFO_PG]  = {2048,    {{}},      bad_hleaf, bad_fleaf, DELAY1};
 
   // these are the words you use to program the memory
   mem_prog_words_.resize(LastMemWordId+1);

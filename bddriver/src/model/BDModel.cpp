@@ -205,11 +205,11 @@ void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input) {
       break;
     }
     case DCT_FIFO_INPUT_TAGS: {
-      assert(false && "not implemented");
+      // nothing to do. Not tracking state for this
       break;
     }
     case HT_FIFO_RESET: {
-      assert(false && "not implemented");
+      // nothing to do. Not tracking state for this
       break;
     }
     case TILE_SRAM_INPUTS: {

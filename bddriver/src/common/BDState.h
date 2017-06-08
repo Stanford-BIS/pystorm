@@ -71,8 +71,11 @@ class BDState {
   std::vector<bool> MM_valid_;
 
   // I iterate through these a lot, this is for convenience
-  const std::vector<bdpars::RegId> kTrafficRegs = {bdpars::NEURON_DUMP_TOGGLE, bdpars::TOGGLE_PRE_FIFO,
-                                                   bdpars::TOGGLE_POST_FIFO0, bdpars::TOGGLE_POST_FIFO1};
+  const std::vector<bdpars::RegId> kTrafficRegs = {
+    bdpars::NEURON_DUMP_TOGGLE, 
+    bdpars::TOGGLE_PRE_FIFO,
+    bdpars::TOGGLE_POST_FIFO0, 
+    bdpars::TOGGLE_POST_FIFO1};
 
   // timing: when certain things happened
   std::chrono::high_resolution_clock::time_point all_traffic_off_start_;
