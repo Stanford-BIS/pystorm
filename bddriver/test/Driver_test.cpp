@@ -25,12 +25,13 @@ using namespace bddriver;
 
 class DriverFixture : public testing::Test {
   public:
-    void SetUp() {
-
+    DriverFixture() {
       //driver = Driver::GetInstance();
       driver = new BDModelDriver();
       model = driver->GetBDModel();
+    }
 
+    void SetUp() {
       driver->Start();
       driver->InitBD();
     }
@@ -51,7 +52,9 @@ class DriverFixture : public testing::Test {
       // compare the stuff that isn't captured by state
       ASSERT_EQ(model->PopSpikes(), sent_spikes); // make sure the spikes came through OK
       ASSERT_EQ(model->PopTags(), sent_tags); // make sure the spikes came through OK
+    }
 
+    ~DriverFixture() {
       delete driver;
     }
 
@@ -77,6 +80,8 @@ class DriverFixture : public testing::Test {
     }
 
 };
+
+// Downstream-only tests (almost, programing AM has an upstream component)
 
 TEST_F(DriverFixture, TestInitBD) {}
 
@@ -135,6 +140,8 @@ TEST_F(DriverFixture, TestDownStreamCalls) {
   SendSpikes();
 }
 
+// upstream-downstream tests
+
 // for dump tests, need to program before dumping
 
 TEST_F(DriverFixture, TestDumpPAT) {
@@ -176,3 +183,66 @@ TEST_F(DriverFixture, TestDumpTAT1) {
   auto dumped = driver->DumpTAT(kCoreId, 1);
   ASSERT_EQ(data, dumped);
 }
+
+// upstream-only tests
+
+TEST_F(DriverFixture, TestRecvSpikes) {
+  auto to_send = MakeRandomNrnSpikes(M, std::vector<unsigned int>(M, 0), std::vector<unsigned int>(M, kCoreId));
+  model->PushUpstreamSpikes(to_send);
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->RecvSpikes(to_send.size()), to_send);
+}
+
+TEST_F(DriverFixture, TestRecvTags) {
+  auto to_send = MakeRandomTags(M, std::vector<unsigned int>(M, 0), std::vector<unsigned int>(M, kCoreId));
+  model->PushUpstreamTATTags(to_send); // XXX not testing acc, has a smaller gtag width, would have to limit gtag size
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->RecvTags(to_send.size()), to_send);
+}
+
+TEST_F(DriverFixture, TestGetPreFIFOTags) {
+  auto to_send = MakeRandomTags(M, std::vector<unsigned int>(M, 0), std::vector<unsigned int>(M, kCoreId));
+  model->PushPreFIFOTags(to_send); 
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->GetPreFIFODump(kCoreId, to_send.size()), to_send);
+}
+
+TEST_F(DriverFixture, TestGetPostFIFOTags) {
+  auto to_send_orig = MakeRandomTags(M, std::vector<unsigned int>(M, 0), std::vector<unsigned int>(M, kCoreId));
+  std::vector<Tag> to_send0, to_send1;
+  // sort into class 0 and class 1 tags:
+  for (auto& tag : to_send_orig) {
+    Tag mod_tag = tag;
+    mod_tag.tag = mod_tag.tag % driver->GetBDPars()->Size(bdpars::FIFO_DCT) / 2;
+    to_send0.push_back(mod_tag);
+
+    mod_tag.tag = mod_tag.tag + driver->GetBDPars()->Size(bdpars::FIFO_DCT) / 2;
+    to_send1.push_back(mod_tag);
+  }
+
+  model->PushPostFIFOTags(to_send0, 0); // try PostFIFO0 first
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->GetPostFIFODump(kCoreId, to_send0.size(), 0), to_send0);
+
+  // still send to_send0, use to_send1 to compare
+  model->PushPostFIFOTags(to_send0, 1); // try PostFIFO1 now
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->GetPostFIFODump(kCoreId, 0, to_send0.size()), to_send1);
+}
+
+TEST_F(DriverFixture, TestFIFOOverflow) {
+  const std::pair<unsigned int, unsigned int> to_push = {10, 20};
+  model->PushFIFOOverflow(to_push.first, 0);
+  model->PushFIFOOverflow(to_push.second, 1);
+
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+
+  ASSERT_EQ(driver->GetFIFOOverflowCounts(kCoreId), to_push);
+}
+
+

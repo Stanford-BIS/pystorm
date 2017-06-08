@@ -75,6 +75,7 @@ struct Tag {
   /// A tag going to or from the datapath
   unsigned int time;
   unsigned int core_id;
+  unsigned int global_tag;
   unsigned int tag;
   unsigned int count;
 };

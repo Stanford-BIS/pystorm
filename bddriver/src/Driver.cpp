@@ -245,9 +245,14 @@ std::vector<Tag> Driver::GetPreFIFODump(unsigned int core_id, unsigned int n_tag
   return GetFIFODump(core_id, bdpars::PRE_FIFO_TAGS, n_tags);
 }
 
-std::vector<Tag> Driver::GetPostFIFODump(unsigned int core_id, unsigned int n_tags) {
-  std::vector<Tag> tags0 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS0, n_tags);
-  std::vector<Tag> tags1 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS1, n_tags - tags0.size());
+std::vector<Tag> Driver::GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1) {
+  std::vector<Tag> tags0, tags1;
+  if (n_tags0 > 0) { // zero has special meaning: grab something
+    tags0 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS0, n_tags0);
+  }
+  if (n_tags1 > 0) { // zero has special meaning: grab something
+    tags1 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS1, n_tags1);
+  }
 
   // increment tag values for tags1 by 1024 (== half of DCT fifo size)
   for (auto& tag : tags1) {
@@ -259,6 +264,12 @@ std::vector<Tag> Driver::GetPostFIFODump(unsigned int core_id, unsigned int n_ta
   retval.swap(tags0);
   retval.insert(retval.end(), tags1.begin(), tags1.end());
   return retval;
+}
+
+std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int core_id) {
+  std::vector<uint64_t> ovflw0 = RecvFromFunnel(core_id, bdpars::OVFLW0);
+  std::vector<uint64_t> ovflw1 = RecvFromFunnel(core_id, bdpars::OVFLW1);
+  return {ovflw0.size(), ovflw1.size()};
 }
 
 void Driver::SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id, unsigned int value) {

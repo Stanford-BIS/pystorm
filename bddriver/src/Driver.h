@@ -21,9 +21,6 @@
  * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
  * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
  *
- * funnel_["OVFLW[0]"]           (GetFIFOOverflows needs impl)
- * funnel_["OVFLW[1]"]           (GetFIFOOverflows needs impl)
- *
  * XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
  */
 
@@ -218,7 +215,10 @@ class Driver {
   /// Get pre-FIFO tags recorded during dump
   std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
   /// Get post-FIFO tags recorded during dump
-  std::vector<Tag> GetPostFIFODump(unsigned int core_id, unsigned int n_tags);
+  std::vector<Tag> GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1);
+
+  /// Get warning count
+  std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(unsigned int core_id);
 
   ////////////////////////////////
   // Spike/Tag Streams
@@ -234,9 +234,6 @@ class Driver {
 
   /// Receive a stream of tags
   std::vector<Tag> RecvTags(unsigned int max_to_recv);
-
-  /// Get warning count
-  std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(); // XXX not implemented
 
   ////////////////////////////////
   // BDState queries

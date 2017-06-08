@@ -11,6 +11,8 @@ BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
   state_ = new BDState(bd_pars_, driver_pars_);
 
   remainders_ = std::vector<std::vector<uint32_t> >(bdpars::LastHornLeafId+1, std::vector<uint32_t>());
+  n_ovflw_to_send_[0] = 0;
+  n_ovflw_to_send_[1] = 0;
 }
 
 BDModel::~BDModel() { delete state_; }
@@ -137,12 +139,14 @@ std::vector<uint64_t> BDModel::Generate(bdpars::FunnelLeafId leaf_id) {
       return PackWords(*bd_pars_->Word(POST_FIFO_TAGS1), vfv);
     }
     case OVFLW0: {
-      return {};
-      // XXX implement me
+      VFieldValues vfv= std::vector<FieldValues>(n_ovflw_to_send_[0], {{}});
+      n_ovflw_to_send_[0] = 0;
+      return PackWords(*bd_pars_->Word(OVERFLOW_TAGS0), vfv);
     }
     case OVFLW1: {
-      return {};
-      // XXX implement me
+      VFieldValues vfv= std::vector<FieldValues>(n_ovflw_to_send_[1], {{}});
+      n_ovflw_to_send_[1] = 0;
+      return PackWords(*bd_pars_->Word(OVERFLOW_TAGS0), vfv);
     }
     default: {
       assert(false);
