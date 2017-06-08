@@ -169,6 +169,24 @@ std::vector<SynSpike> MakeRandomSynSpikes(
   return data;
 }
 
+std::vector<NrnSpike> MakeRandomNrnSpikes(
+    unsigned int N, const std::vector<unsigned int>& time, const std::vector<unsigned int>& core_id) {
+  using namespace bdpars;
+  BDPars pars = BDPars();
+
+  auto generator         = std::default_random_engine(0);
+  auto uint_distribution = std::uniform_int_distribution<unsigned int>(0, std::numeric_limits<unsigned int>::max());
+
+  std::vector<NrnSpike> data;
+  data.resize(N);
+  for (unsigned int i = 0; i < N; i++) {
+    data[i]  = {time[i],
+               core_id[i],
+               uint_distribution(generator) % (1 << pars.WordFieldWidth(OUTPUT_SPIKES, NEURON_ADDRESS))};
+  }
+  return data;
+}
+
 std::vector<Tag> MakeRandomTags(
     unsigned int N, const std::vector<unsigned int>& time, const std::vector<unsigned int>& core_id) {
 
@@ -184,6 +202,7 @@ std::vector<Tag> MakeRandomTags(
   for (unsigned int i = 0; i < N; i++) {
     data[i]  = {time[i],
                core_id[i],
+               0, 
                uint_distribution(generator) % (1 << pars.WordFieldWidth(INPUT_TAGS, TAG)),
                uint_distribution(generator) % (1 << pars.WordFieldWidth(INPUT_TAGS, COUNT))};
   }

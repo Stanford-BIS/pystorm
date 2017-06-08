@@ -67,8 +67,10 @@ enum MemId {
   TAT0,
   TAT1,
   PAT,
+  FIFO_DCT,
+  FIFO_PG,
 
-  LastMemId = PAT
+  LastMemId = FIFO_PG
 };
 
 /// Identifier for particular BD input stream
@@ -273,6 +275,7 @@ struct MemInfo {
   std::vector<WordStructure> word_structures;
   HornLeafId prog_leaf;
   FunnelLeafId dump_leaf;
+  RegId delay_reg;
 };
 
 struct RegInfo {
@@ -344,6 +347,8 @@ class BDPars {
   inline FunnelLeafId FunnelLeafIdFor(MemId object) const { return mem_.at(object).dump_leaf; }
   /// Map from an output to it's funnel leaf
   inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
+
+  inline RegId DelayRegForMem(MemId object) const { return mem_.at(object).delay_reg; }
 
   /// going from a FH leaf to the value of the enum associate with the type of the component it services
   inline ComponentTypeId ComponentTypeIdFor(HornLeafId leaf) const { return horn_.at(leaf).component_type; }

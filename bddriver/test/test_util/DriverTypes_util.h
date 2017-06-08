@@ -14,6 +14,7 @@ std::vector<MMData> MakeRandomMMData(unsigned int N);
 
 std::vector<SynSpike> MakeRandomSynSpikesSameCoreId(unsigned int N, unsigned int core_id);
 std::vector<SynSpike> MakeRandomSynSpikes(unsigned int N, const std::vector<unsigned int> & time, const std::vector<unsigned int> & core_id);
+std::vector<NrnSpike> MakeRandomNrnSpikes(unsigned int N, const std::vector<unsigned int>& time, const std::vector<unsigned int>& core_id);
 std::vector<Tag> MakeRandomTags(unsigned int N, const std::vector<unsigned int>& time, const std::vector<unsigned int>& core_id);
 
 void ComparePATData(const std::vector<PATData> & a, const std::vector<PATData> & b);

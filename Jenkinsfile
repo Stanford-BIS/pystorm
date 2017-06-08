@@ -4,12 +4,18 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh 'docker build --file docker/Dockerfile_JENKINS_CI -t ${BRANCH_NAME}-${BUILD_NUMBER} .'
+                script {
+                    def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
+                    sh "docker build --file docker/Dockerfile_JENKINS_CI -t ${lowercase_tag} ."
+                }
             }
         }
         stage('Test') {
             steps {
-                sh 'docker run --rm -i ${BRANCH_NAME}-${BUILD_NUMBER} test ARGS="-V"'
+                script {
+                    def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
+                    sh "docker run --rm -i ${lowercase_tag} test ARGS=\"-V\" "
+                }
             }
         }
     }
