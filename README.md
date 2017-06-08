@@ -16,42 +16,34 @@ The following diagram illustrates the structure
         │                                                                           
 	    ├── CMakeLists.txt                                                          
         │                                                                           
-        ├── bddriver                                                                
-        │   ├── CMakeLists.txt                                                      
-        │   ├── build                   (out-of-source tree)                        
-        │   ├── lib                     (out-of-source tree)                        
-        │   ├── docs                    (out-of-source tree)                        
-        │   ├── test                    (out-of-source tree)                        
-        │   │   ├── CMakeLists.txt                                                  
-        │   │   ├── comm                                                            
-        │   │   ├── common                                                          
-        │   │   ├── encoder                                                         
-        │   │   ├── driverifc                                                       
-        │   │   └── decoder                                                         
-        │   │                                                                       
-        │   ├── src                                                                 
-        │   │   ├── CMakeLists.txt                                                  
-        │   │   ├── comm                                                            
-        │   │   ├── common                                                          
-        │   │   ├── encoder                                                         
-        │   │   ├── driverifc                                                       
-        │   │   └── decoder                                                         
-        │   │                                                                       
-        │   └── include                 (public bddriver API)
-        │                                                                           
-        ├── bdhal                                                                   
+	    ├── Jenkinsfile
         │                                                                           
         ├── bindings                                                                   
+        │   └── python 
+        │       └── 3.5
+        │           └── src
+        ├── docker                                                              
+        │   └── Dockerfile_JENKINS_CI 
         │                                                                           
         ├── ext                         (externally sourced libraries)
+        │   ├── yaml-cpp                                                                 
+        │   └── gtest
         │                                                                           
         ├── include                     (public shared headers)
         │                                                                           
         ├── lib                         (public shared libs)
         │                                                                           
-        ├── neuromorph                                                              
+        ├── src                                                                
+        │   ├── bddriver                                                      
+        │   ├── bdhal                                                      
+        │   └── neuromorph 
         │                                                                           
-        └── docker 
+        ├── test                                                                
+        │   ├── bddriver
+        │   ├── bdhal
+        │   └── neuromorph 
+
+
 
 # Build
 
@@ -79,7 +71,7 @@ following command.
 Pystorm was built and is dependent on the following software packages:
 
     Ubuntu 16.04 
-    CMake 3.5           
+    CMake 3.5
     Python 3.5 
     GCC 5.4 (or later) (g++ component)
     Boost 1.58 with Python3.5 component
