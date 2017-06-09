@@ -38,29 +38,35 @@ namespace bddriver {
 ///
 /// Driver looks like this:
 ///
-///                                    (user)
+///                              (user/HAL)
 ///
-///  ---[fns]--[fns]--[fns]------------[fns]-----------------------[fns]----  API
-///       |      |      |                A                           A
-///       V      V      V                |                           |
-///  [private fns, e.g. PackWords]  [XXXX private fns, e.g. UnpackWords XXXX]
-///          |        |                  A                           A
-///          V        V                  |                           |
-///   [MutexBuffer:enc_buf_in_]   [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
-///              |                             A                   A
-///              V                             |                   |
-///      [Encoder:encoder_]          [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
-///              |                                   A
-///              V                                   |
-///   [MutexBuffer:enc_buf_out_]          [MutexBuffer:dec_buf_in_]
-///              |                                   A                       [BDPars]
-///              V                                   |                       [BDState]
-///         [XXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXX]
-///                             |      A
-///                             V      |
-///  ----------------------------------------------------------------------- USB
+///  ---[fns]--[fns]--[fns]----------------------[fns]-----------------------[fns]----  API
+///       |      |      |            |             A                           A
+///       V      V      V            |             |                           |
+///  [private fns, e.g. PackWords]   |        [XXXX private fns, e.g. UnpackWords XXXX]
+///          |        |              |             A                           A
+///          V        V           [BDState]        |                           |
+///   [MutexBuffer:enc_buf_in_]      |      [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
+///              |                   |                   A                   A
+///              |                   |                   |                   |
+///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads, 
+///              |                   |                   |                   |           organized by leaf
+///              V                   |                   |                   |
+///      [Encoder:encoder_]          |        [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
+///              |                   |                        A
+///              V                   |                        |
+///   [MutexBuffer:enc_buf_out_]     |           [MutexBuffer:dec_buf_in_]
+///              |                   |                      A                       
+///              |                   |                      |                       
+///  --------------------------------------------------------------------------------- raw data
+///              |                                          |                       
+///              V                                          |                       
+///         [XXXXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXXXXX]
+///                               |      A
+///                               V      |
+///  --------------------------------------------------------------------------------- USB
 ///
-///                            (Braindrop)
+///                              (Braindrop)
 ///
 /// At the heart of driver are a few primary components:
 ///
