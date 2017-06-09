@@ -9,8 +9,6 @@ project(pystorm CXX)
 
 enable_testing()
 
-set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)                                 
-
 ############################################################################
 #
 # Check minimum python version (python 3) is installed
@@ -53,13 +51,16 @@ function(build_on_linux)
         message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
     endif()
 
-    link_directories(${PROJECT_SOURCE_DIR}/bddriver/lib)
+    link_directories(${PROJECT_SOURCE_DIR}/lib)
 
     # build and install external dependencies into lib/ directory
-    add_subdirectory(${EXT_PROJECTS_DIR}/yaml-cpp)     
+    add_subdirectory(${PROJECT_SOURCE_DIR}/ext)     
 
-    # Build driver
-    add_subdirectory(${PROJECT_SOURCE_DIR}/bddriver)
+    # Build modules
+    add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+
+    # Build tests
+    add_subdirectory(${PROJECT_SOURCE_DIR}/test/)                             
 
 endfunction()
 
