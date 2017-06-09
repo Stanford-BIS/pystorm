@@ -19,14 +19,14 @@ DriverPars::DriverPars() {
 
   // CommBDModel parameters (XXX some of these might be more general--CommSoft should have DriverPars too)
   pars_[BDMODELCOMM_TRY_FOR_US] = 1000;
-  pars_[BDMODELCOMM_MAX_TO_READ] = 1000;
-  pars_[BDMODELCOMM_SLEEP_FOR_US] = 1;
+  pars_[BDMODELCOMM_MAX_TO_READ] = 10000;
+  pars_[BDMODELCOMM_SLEEP_FOR_US] = 10 * ms;
 
   // buffer capacities
   pars_[ENC_BUF_IN_CAPACITY]  = 10000;
   pars_[ENC_BUF_OUT_CAPACITY] = 10000;
-  pars_[DEC_BUF_IN_CAPACITY]  = 10000;
-  pars_[DEC_BUF_OUT_CAPACITY] = 10000;
+  pars_[DEC_BUF_IN_CAPACITY]  = 64*1024;
+  pars_[DEC_BUF_OUT_CAPACITY] = 64*1024;
 
   // encoder/decoder working chunk sizes
   pars_[ENC_CHUNK_SIZE] = 1 * ms;

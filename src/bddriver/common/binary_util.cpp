@@ -23,7 +23,7 @@ inline TOUT Pack(const TIN* vals, const unsigned int* widths, unsigned int num_f
     TIN field_val   = vals[idx];
     TIN field_width = widths[idx];
 
-    assert(field_val < std::numeric_limits<TIN>::max());
+    assert(field_val <= std::numeric_limits<TIN>::max());
     assert(field_val < (static_cast<TIN>(1) << field_width) &&
            "packed element value exceeds value allowed by packed element width");
 
@@ -32,7 +32,7 @@ inline TOUT Pack(const TIN* vals, const unsigned int* widths, unsigned int num_f
     total_width += field_width;
     assert(total_width <= 64 && "total width of packed elements exceeds 64");
   }
-  assert(value < std::numeric_limits<TOUT>::max());
+  assert(value <= std::numeric_limits<TOUT>::max());
   return value;
 }
 
@@ -53,9 +53,9 @@ inline void Unpack(TIN val, const unsigned int* widths, TOUT* unpacked_vals, uns
 
     TOUT field_val = working_value % (one << field_width);
     working_value  = working_value >> field_width;
-    assert(working_value < std::numeric_limits<TIN>::max());
+    assert(working_value <= std::numeric_limits<TIN>::max());
 
-    assert(field_val < std::numeric_limits<TOUT>::max());
+    assert(field_val <= std::numeric_limits<TOUT>::max());
     assert(field_val < (static_cast<TOUT>(1) << field_width));
     unpacked_vals[i] = field_val;
 

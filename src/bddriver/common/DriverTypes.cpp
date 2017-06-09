@@ -61,10 +61,11 @@ bool operator==(const NrnSpike& lhs, const NrnSpike& rhs) {
 
 bool operator==(const Tag& lhs, const Tag& rhs) {
   // clang-format off
-  return (lhs.time    == rhs.time    &&
-          lhs.core_id == rhs.core_id &&
-          lhs.tag     == rhs.tag     &&
-          lhs.count   == rhs.count);
+  return (lhs.time       == rhs.time       &&
+          lhs.core_id    == rhs.core_id    &&
+          lhs.tag        == rhs.tag        &&
+          lhs.global_tag == rhs.global_tag &&
+          lhs.count      == rhs.count);
   // clang-format on
 }
 
@@ -120,7 +121,7 @@ FieldValues DataToFieldValues(const SynSpike& data) {
 
 FieldValues DataToFieldValues(const NrnSpike& data) { return {{NEURON_ADDRESS, data.neuron_id}}; }
 
-FieldValues DataToFieldValues(const Tag& data) { return {{COUNT, data.count}, {TAG, data.tag}}; }
+FieldValues DataToFieldValues(const Tag& data) { return {{COUNT, data.count}, {TAG, data.tag}, {GLOBAL_ROUTE, data.global_tag}}; }
 
 /// XXX these are all exactly the same, could be templated
 VFieldValues DataToVFieldValues(const std::vector<PATData>& data) {
@@ -256,6 +257,12 @@ Tag FieldValuesToTag(const FieldValues& field_values, unsigned int time, unsigne
   data.core_id = core_id;
   data.tag     = FVGet(field_values, TAG);
   data.count   = FVGet(field_values, COUNT);
+  // some tags have a global route, others don't 
+  if (FVContains(field_values, GLOBAL_ROUTE)) {
+    data.global_tag = FVGet(field_values, GLOBAL_ROUTE);
+  } else {
+    data.global_tag = 0;
+  }
   return data;
 }
 
@@ -422,6 +429,26 @@ VFieldValues UnpackWords(const bdpars::WordStructure& word_struct, std::vector<u
     outputs.push_back(UnpackWord(word_struct, word));
   }
   return outputs;
+}
+
+std::pair<FieldValues, bdpars::MemWordId> UnpackMemWordNWays(
+    uint64_t input, 
+    std::vector<bdpars::MemWordId> words_to_try,
+    const bdpars::BDPars * bd_pars) {
+  bool found = false;
+  bdpars::MemWordId found_id;
+  FieldValues found_field_vals;
+  for (auto& word_id : words_to_try) {
+    FieldValues field_vals = UnpackWord(*bd_pars->Word(word_id), input);
+    if (field_vals.size() > 0) {
+      assert(!found && "undefined behavior for multiple matches");
+      found_id         = word_id;
+      found_field_vals = field_vals;
+      found            = true;
+    }
+  }
+  assert(found && "couldn't find a matching MemWord");
+  return {found_field_vals, found_id};
 }
 
 }  // bddriver namespace

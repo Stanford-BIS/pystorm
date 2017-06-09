@@ -29,16 +29,16 @@ std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t>
 // downstream functions
 
 /// Does serialization, returns pairs of {serialized words chunks, word chunk widths}
-std::pair<std::vector<uint32_t>, unsigned int> SerializeFunnel(
+std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
     const std::vector<uint64_t>& inputs, bdpars::FunnelLeafId leaf_id, const bdpars::BDPars* bd_pars);
-std::vector<std::pair<std::vector<uint32_t>, unsigned int> > SerializeAllFunnelLeaves(
+std::vector<std::pair<std::vector<uint64_t>, unsigned int> > SerializeAllFunnelLeaves(
     const std::vector<std::vector<uint64_t> >& inputs, const bdpars::BDPars* bd_pars);
 
 /// Does funnel operation
-std::vector<uint32_t> Funnel(const std::vector<std::pair<std::vector<uint32_t>, unsigned int> >& inputs, const bdpars::BDPars* pars);
+std::vector<uint64_t> Funnel(const std::vector<std::pair<std::vector<uint64_t>, unsigned int> >& inputs, const bdpars::BDPars* pars);
 
 /// Unpacks byte stream, will do other stuff eventually
-std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDPars* pars);
+std::vector<DecInput> FPGAOutput(std::vector<uint64_t> inputs, const bdpars::BDPars* pars);
 
 }  // bdmodel
 }  // bddriver

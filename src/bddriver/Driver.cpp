@@ -103,6 +103,19 @@ Driver::~Driver() {
 
 void Driver::InitBD() {
   for (unsigned int i = 0; i < bd_pars_->NumCores(); i++) {
+    // turn off traffic
+    SetTagTrafficState(i, false);
+    SetSpikeTrafficState(i, false);
+
+    // Set the memory delays
+    for(auto& mem : {bdpars::AM, bdpars::MM, bdpars::FIFO_PG, bdpars::FIFO_DCT, bdpars::TAT0, bdpars::TAT1, bdpars::PAT}) {
+      const unsigned delay_val = 0;
+      SetMemoryDelay(i, mem, delay_val, delay_val);
+    }
+
+    // init the FIFO
+    InitFIFO(i);
+
     // clear all memories
     SetPAT(i, std::vector<PATData>(bd_pars_->Size(bdpars::PAT), {0, 0, 0}), 0);
     SetTAT(i, 0, std::vector<TATData>(bd_pars_->Size(bdpars::TAT0), {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}), 0);
@@ -110,10 +123,27 @@ void Driver::InitBD() {
     SetAM(i, std::vector<AMData>(bd_pars_->Size(bdpars::AM), {0, 0, 0}), 0);
     SetMM(i, std::vector<MMData>(bd_pars_->Size(bdpars::MM), 0), 0);
 
-    SetTagTrafficState(i, false);
-
-    // XXX theres a lot of other stuff that should happen, e.g. InitFIFO
+    // XXX other stuff to do?
   }
+}
+
+void Driver::InitFIFO(unsigned int core_id) {
+  // turn traffic off around FIFO (just kill everything to hijack the traffic drain timer in BDState)
+  PauseTraffic(core_id);
+
+  // make FIFO_HT head = tail (doesn't matter what you send)
+  SendToHorn(core_id, bdpars::INIT_FIFO_HT, {0}); 
+
+  // send all tag values to DCT FIF0 to dirty them
+  // XXX this circumvents FVs
+  std::vector<uint64_t> all_tag_vals;
+  for (unsigned int i = 0; i < bd_pars_->Size(bdpars::FIFO_DCT); i++) {
+    all_tag_vals.push_back(i);
+  }
+  SendToHorn(core_id, bdpars::INIT_FIFO_DCT, all_tag_vals);
+  
+  // resume traffic will wait for the traffic drain timer before turning traffic regs back on
+  ResumeTraffic(core_id);
 }
 
 void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
@@ -189,6 +219,59 @@ void Driver::ResumeTraffic(unsigned int core_id) {
   last_traffic_state_[core_id] = {};
 }
 
+
+void Driver::SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int read_value, unsigned int write_value) {
+  FieldValues fv = {{bdpars::READ_DELAY, read_value}, {bdpars::WRITE_DELAY, write_value}};
+  SetRegister(core_id, bd_pars_->DelayRegForMem(mem_id), fv);
+}
+
+void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
+  SetToggleDump(core_id, bdpars::TOGGLE_PRE_FIFO, dump_en);
+}
+
+void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
+  SetToggleDump(core_id, bdpars::TOGGLE_POST_FIFO0, dump_en);
+  SetToggleDump(core_id, bdpars::TOGGLE_POST_FIFO1, dump_en);
+}
+
+std::vector<Tag> Driver::GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags) {
+  bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(output_id);
+  std::vector<uint64_t> data = RecvFromFunnel(core_id, leaf_id, n_tags);
+  VFieldValues vfv = UnpackWords(*bd_pars_->Word(output_id), data);
+  return VFieldValuesToTag(vfv, std::vector<unsigned int>(vfv.size(), 0), std::vector<unsigned int>(vfv.size(), core_id));
+}
+
+std::vector<Tag> Driver::GetPreFIFODump(unsigned int core_id, unsigned int n_tags) {
+  return GetFIFODump(core_id, bdpars::PRE_FIFO_TAGS, n_tags);
+}
+
+std::vector<Tag> Driver::GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1) {
+  std::vector<Tag> tags0, tags1;
+  if (n_tags0 > 0) { // zero has special meaning: grab something
+    tags0 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS0, n_tags0);
+  }
+  if (n_tags1 > 0) { // zero has special meaning: grab something
+    tags1 = GetFIFODump(core_id, bdpars::POST_FIFO_TAGS1, n_tags1);
+  }
+
+  // increment tag values for tags1 by 1024 (== half of DCT fifo size)
+  for (auto& tag : tags1) {
+    tag.tag += bd_pars_->Size(bdpars::FIFO_DCT) / 2;
+  }
+
+  // concatenate
+  std::vector<Tag> retval;
+  retval.swap(tags0);
+  retval.insert(retval.end(), tags1.begin(), tags1.end());
+  return retval;
+}
+
+std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int core_id) {
+  std::vector<uint64_t> ovflw0 = RecvFromFunnel(core_id, bdpars::OVFLW0);
+  std::vector<uint64_t> ovflw1 = RecvFromFunnel(core_id, bdpars::OVFLW1);
+  return {ovflw0.size(), ovflw1.size()};
+}
+
 void Driver::SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id, unsigned int value) {
   assert(false && "not implemented");  // fix the ADC connection state thing below
   bdpars::RegId DAC_reg_id = bd_pars_->DACSignalIdToDACRegisterId(signal_id);
@@ -228,6 +311,7 @@ void Driver::SetMem(
       if (FVContains(fv, bdpars::AM_ADDRESS))             TAT_word_type = 0;
       else if (FVContains(fv, bdpars::SYNAPSE_ADDRESS_0)) TAT_word_type = 1;
       else if (FVContains(fv, bdpars::TAG))               TAT_word_type = 2;
+      else assert(false);
       data_fields.push_back(PackWord(*bd_pars_->Word(mem_id, TAT_word_type), fv));
     }
   } else {
@@ -267,6 +351,9 @@ void Driver::SetMem(
   // transmit to horn
   PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->HornLeafIdFor(mem_id), encapsulated_words);
+  if (mem_id == bdpars::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
+    RecvFromFunnel(core_id, bd_pars_->FunnelLeafIdFor(mem_id), data.size());
+  }
   ResumeTraffic(core_id);
 }
 
@@ -314,18 +401,44 @@ VFieldValues Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) {
     }
   }
 
+  // if it's an AM or MM word, need further encapsulation
+  if (mem_id == bdpars::MM || mem_id == bdpars::AM) {
+    read_words = PackAMMMWord(mem_id, read_words);
+  }
+
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::HornLeafId horn_leaf = bd_pars_->HornLeafIdFor(mem_id);
   bdpars::FunnelLeafId funnel_leaf = bd_pars_->FunnelLeafIdFor(mem_id);
   PauseTraffic(core_id);
   SendToHorn(core_id, horn_leaf, read_words);
-  std::vector<uint64_t> payloads = RecvFromFunnel(funnel_leaf, core_id, mem_size);
+  std::vector<uint64_t> payloads = RecvFromFunnel(core_id, funnel_leaf, mem_size);
   ResumeTraffic(core_id);
 
-  // unpack payload field of DecOutput according to pat word format
-  VFieldValues fields = UnpackWords(*bd_pars_->Word(mem_id), payloads);
-  return fields;
+  // unpack payload field of DecOutput according to word format
+  VFieldValues vfv;
+  if (mem_id == bdpars::TAT0 || mem_id == bdpars::TAT1) { // TAT is special, three word types
+
+    const std::vector<const bdpars::WordStructure *> words_to_try = {
+      bd_pars_->Word(bdpars::TAT0, 0),
+      bd_pars_->Word(bdpars::TAT0, 1),
+      bd_pars_->Word(bdpars::TAT0, 2)};
+
+    for (auto& payload : payloads) {
+      bool found = false;
+      for (auto* word : words_to_try) {
+        FieldValues fv = UnpackWord(*word, payload);
+        if (fv.size() > 0) {
+          assert(!found);
+          vfv.push_back(fv);
+          found = true;
+        }
+      }
+    }
+  } else {
+    vfv = UnpackWords(*bd_pars_->Word(mem_id), payloads);
+  }
+  return vfv;
 }
 
 std::vector<uint64_t> Driver::PackRWProgWords(
@@ -590,7 +703,7 @@ void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const 
   enc_buf_in_->Push(enc_inputs);  // push any remainder
 }
 
-std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsigned int core_id, unsigned num_to_recv) {
+std::vector<uint64_t> Driver::RecvFromFunnel(unsigned int core_id, bdpars::FunnelLeafId leaf_id, unsigned num_to_recv) {
   // This is a call of convenience. Often, we're interested not just in a particular
   // leaf's traffic, but also just the traffic from a particular core.
   //
@@ -602,7 +715,7 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
   // Decoder doesn't know about enums, cast leaf_id as uint
   // this is the index of the dec_bufs_out[] we want to pull from
   unsigned int leaf_id_as_uint     = static_cast<unsigned int>(leaf_id);
-  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[leaf_id_as_uint];
+  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(leaf_id_as_uint);
 
   // look up serialization, we really need num_to_recv * serialiazation
   unsigned int deserialization = bd_pars_->Serialization(leaf_id);
@@ -615,12 +728,13 @@ std::vector<uint64_t> Driver::RecvFromFunnel(bdpars::FunnelLeafId leaf_id, unsig
 
     while (outputs.size() < DecOutput_needed) {
       unsigned int num_to_pop = DecOutput_needed - outputs.size();
-      this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+      std::vector<DecOutput> new_outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
+      outputs.insert(outputs.end(), new_outputs.begin(), new_outputs.end());
     }
   } else {
     // if num_to_recv=0, just take whatever's in the queue
     unsigned int num_to_pop = driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY);
-    this_buf->Pop(&outputs, num_to_pop, 0, deserialization);
+    outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
   }
 
   // deserialize (pull out payloads first)

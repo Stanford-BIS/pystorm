@@ -178,17 +178,17 @@ unsigned int MutexBuffer<T>::Pop(T* copy_to, unsigned int max_to_pop, unsigned i
   return num_to_pop;
 }
 
-template <class T>
-unsigned int MutexBuffer<T>::Pop(std::vector<T>* push_to, unsigned int max_to_pop, unsigned int try_for_us,
-                                 unsigned int multiple) {
-  unsigned int orig_size = push_to->size();
-  push_to->resize(orig_size + max_to_pop);  // have to make it big enough to fit the max, we'll size down later
-
-  unsigned int num_popped = Pop(&push_to[orig_size], max_to_pop, try_for_us, multiple);
-  push_to->resize(orig_size + num_popped);
-
-  return num_popped;
-}
+//template <class T>
+//unsigned int MutexBuffer<T>::Pop(std::vector<T>* push_to, unsigned int max_to_pop, unsigned int try_for_us,
+//                                 unsigned int multiple) {
+//  unsigned int orig_size = push_to->size();
+//  push_to->resize(orig_size + max_to_pop);  // have to make it big enough to fit the max, we'll size down later
+//
+//  unsigned int num_popped = Pop(&push_to[orig_size], max_to_pop, try_for_us, multiple);
+//  push_to->resize(orig_size + num_popped);
+//
+//  return num_popped;
+//}
 
 template <class T>
 std::vector<T> MutexBuffer<T>::PopVect(unsigned int max_to_pop, unsigned int try_for_us, unsigned int multiple) {
