@@ -34,31 +34,53 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Program functionality
+// NetworkCreation Control functionality
 //
-// The following functions allow pystorm users to program Braindrop
+// The following functions allow pystorm users to create networks that can
+// be mapped and loaded onto Braindrop
 //
 //////////////////////////////////////////////////////////////////////////////
 
 ///
-/// Create an instance of Network
+/// Create an instance of a Network
 ///
 /// \param name Name assigned to network
 ///
 /// \return A pointer to an instance of Network
 /// 
-/// NOTE: pystorm does not hold a reference to this instance until it 
-/// is passed to pystorm via the load method. The load method actually
-/// passed an instance of MappedNetwork which holds a reference to 
-/// a Network object.
+/// NOTE: A Pystorm module user can create many instances of a Network,
+/// however, only one Network instance can be loaded onto Braindrop.
+/// This allows a user to create and map several Networks and switch
+/// between mapped networks by simply loading them.
 /// 
     static pystorm::bdhal::Network* CreateNetwork(std::string name);
+
+//////////////////////////////////////////////////////////////////////////////
+//
+//  NetworkMapping Control functionality
+//
+// The following functions allow pystorm users to map Networks to hardware.
+// A MappedNetwork can be loaded onto hardware using the Load method.
+//
+//////////////////////////////////////////////////////////////////////////////
 
 ///
 /// Create an instance of MappedNetwork
 ///
     static pystorm::bdhal::MappedNetwork* CreateMappedNetwork(
         pystorm::bdhal::Network* newNetwork);
+
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Platform Control functionality
+//
+// The following functions allow pystorm users to control Braindrops
+// behavior. For example, the user can reset Braindrop as well as 
+// indicate to Braindrop to start producing spikes and decoded values
+// on specific cores or all cores.
+//
+//////////////////////////////////////////////////////////////////////////////
 
 ///
 /// Load a MappedNetwork
@@ -77,17 +99,6 @@ public:
 ///
     static void Load(pystorm::bdhal::MappedNetwork* mappedNet, 
         pystorm::bdhal::LoadBehavior loadBehavior);
-
-//////////////////////////////////////////////////////////////////////////////
-//
-// Control functionality
-//
-// The following functions allow pystorm users to control Braindrops
-// behavior. For example, the user can reset Braindrop as well as 
-// indicate to Braindrop to start producing spikes and decoded values
-// on specific cores or all cores.
-//
-//////////////////////////////////////////////////////////////////////////////
 
 ///
 /// Reset Braindrop
@@ -140,7 +151,13 @@ public:
 
 //////////////////////////////////////////////////////////////////////////////
 //
-// Data Flow functionality
+// Experiment Control functionality
+//
+//////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////
+//
+// Data Flow Control functionality
 //
 //////////////////////////////////////////////////////////////////////////////
 

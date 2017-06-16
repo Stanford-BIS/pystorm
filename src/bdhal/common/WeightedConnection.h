@@ -54,18 +54,6 @@ public:
     /// other code are using the transform memory memory owned by this 
     /// class after deleting this (I will add smart pointers soon).
     ~WeightedConnection() {
-        if (nullptr != m_src)
-        {
-            delete m_src;
-            m_src = 0;
-        }
-
-        if (nullptr != m_dest)
-        {
-            delete m_dest;
-            m_dest = 0;
-        }
-
         if (nullptr != m_transform)
         {
             delete m_transform;

@@ -1,3 +1,5 @@
+#include <cstdlib>
+
 #include <common/Network.h>
 
 namespace pystorm {
@@ -8,32 +10,44 @@ Network::Network(std::string name) : m_name(name) {
 Network::~Network() {
 }
 
-std::string Network::getName() {
+std::string Network::GetName() {
     return m_name;
 }
 
-Pool* Network::createPool(std::string name, uint32_t n_neurons) {
-    Pool* newPool = new Pool(name, n_neurons);
+Pool* Network::CreatePool(std::string label, 
+        uint32_t n_neurons, 
+        uint32_t n_dims,
+        uint32_t width,
+        uint32_t height) {
+    Pool* newPool = new Pool(label, n_neurons, n_dims, width, height);
     m_pools.push_back(newPool);
     return newPool;
 }
 
-StateSpace* Network::createStateSpace(std::string name, uint32_t n_dims) {
+StateSpace* Network::CreateStateSpace(std::string name, uint32_t n_dims) {
     StateSpace* newStatespace = new StateSpace(name,n_dims);
     m_statespaces.push_back(newStatespace);
     return newStatespace;
 }
 
-WeightedConnection* Network::createWeightedConnection( std::string name, 
+WeightedConnection* Network::CreateWeightedConnection( std::string name, 
     ConnectableObject* src, ConnectableObject* dest) {
+
+    uint32_t* m = (uint32_t*) 
+        std::calloc((src->GetNumDimensions()*dest->GetNumDimensions()), 
+        sizeof(uint32_t));
+
+    Transform<uint32_t>* transformMatrix = 
+        new pystorm::bdhal::Transform<uint32_t>(m, src->GetNumDimensions(), 
+            dest->GetNumDimensions());
     
     WeightedConnection* newConnection = new WeightedConnection(name, src, 
-        dest, nullptr);
+        dest, transformMatrix);
     m_weightedConnections.push_back(newConnection);
     return newConnection;
 }
 
-WeightedConnection* Network::createWeightedConnection(std::string name, 
+WeightedConnection* Network::CreateWeightedConnection(std::string name, 
     ConnectableObject* src, ConnectableObject* dest, 
     Transform<uint32_t>* transformMatrix) {
     WeightedConnection* newConnection = new WeightedConnection(name, 

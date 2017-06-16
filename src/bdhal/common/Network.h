@@ -2,17 +2,24 @@
 #define NETWORK_H
 
 #include <iostream>
+#include <map>
+#include <memory>
+#include <stdint.h>
+#include <vector>
+
 #include <common/ConnectableObject.h>
 #include <common/Pool.h>
 #include <common/StateSpace.h>
 #include <common/WeightedConnection.h>
-
-#include <stdint.h>
-#include <vector>
-#include <map>
+#include <common/Transform.h>
 
 namespace pystorm {
 namespace bdhal {
+
+typedef std::vector<Pool*> VecOfPools;
+typedef std::vector<StateSpace*> VecOfStateSpaces;
+typedef std::vector<WeightedConnection*> VecOfWeightedConnections;
+
 ///
 /// A Network composed of WeightedConnections and ConnectableObjects
 ///
@@ -45,17 +52,24 @@ public:
     ///
     /// Name assigned to Network
     ///
-    std::string getName();
+    std::string GetName();
 
     ///
     /// Create a Pool object for this network
     ///
-    /// \param name Name assigned to the Pool
+    /// \param label Label assigned to the Pool
     /// \param n_neurons Number of neurons assigned to the Pool
+    /// \param n_dims Number of dimensions assigned to the Pool
+    /// \param width Width of Pool
+    /// \param height Height of Pool
     ///
     /// \return a new Pool object
     ///
-    Pool* createPool(std::string name, uint32_t n_neurons);
+    Pool* CreatePool(std::string label, 
+        uint32_t n_neurons,
+        uint32_t n_dims,
+        uint32_t width,
+        uint32_t height);
 
     ///
     /// Create a Statespace object for this network
@@ -65,7 +79,7 @@ public:
     ///
     /// \return a new Statespace object
     ///
-    StateSpace* createStateSpace(std::string name, uint32_t n_dims);
+    StateSpace* CreateStateSpace(std::string name, uint32_t n_dims);
 
     ///
     /// Create a WeightedConnection object for this network
@@ -76,7 +90,7 @@ public:
     ///
     /// \return a new WeightedConnection object
     ///
-    WeightedConnection* createWeightedConnection( std::string name, 
+    WeightedConnection* CreateWeightedConnection( std::string name, 
         ConnectableObject* src, ConnectableObject* dest);
 
     ///
@@ -89,16 +103,28 @@ public:
     ///
     /// \return a new WeightedConnection object
     ///
-    WeightedConnection* createWeightedConnection(std::string name, 
+    WeightedConnection* CreateWeightedConnection(std::string name, 
         ConnectableObject* src, ConnectableObject* dest, 
         Transform<uint32_t>* transformMatrix);
+
+    VecOfPools& GetPools() {
+        return m_pools;
+    }
+
+    VecOfStateSpaces& GetStateSpaces() {
+        return m_statespaces;
+    }
+
+    VecOfWeightedConnections& GetWeightedConnections() {
+        return m_weightedConnections;
+    }
 
 private:
     /// Name assigned to Network
     std::string m_name;
 
     /// Pools created for Network
-    std::vector<Pool*> m_pools;
+    VecOfPools m_pools;
 
     /// Statespaces created for Network
     std::vector<StateSpace*> m_statespaces;

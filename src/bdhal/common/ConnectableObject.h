@@ -13,15 +13,15 @@ namespace bdhal {
 ///
 class ConnectableObject {
 public:
-    ConnectableObject() {
-    }
-    ~ConnectableObject() {
-    }
+    ConnectableObject();
+    ~ConnectableObject();
 
     ConnectableObject(const ConnectableObject&) = delete;
     ConnectableObject(ConnectableObject&&) = delete;
     ConnectableObject& operator=(const ConnectableObject&) = delete;
     ConnectableObject& operator=(ConnectableObject&&) = delete;
+
+    virtual uint32_t GetNumDimensions();
 
 protected:
 };
