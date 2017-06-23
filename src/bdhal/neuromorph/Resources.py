@@ -2,10 +2,82 @@ import numpy as np
 from bitutils import *
 from Core import *
 
+# make sure that a slice connection between object doesn't break any rules.
+# objects must define DI() and DO()
+def TestDimsCorrect(src_DO, tgt_DI, src_range, tgt_range):
+    # range lengths must match
+    assert(len(src_range) == len(self.tgt_range))
+
+    # indices must be valid dimensions
+    for i in src_range:
+        assert(i < src_DO)
+    for i in tgt_range:
+        assert(i < tgt_DI)
+
+    # no multiple connection
+    assert(len(src_range) < tgt_DI)
+    assert(len(tgt_range) < src_DO)
+
+# ResourceConnection connects two resources, allows slicing
+class ResourceConnection(object):
+    def __init__(self, src, tgt, src_range=None, tgt_range=None):
+        self.src = src
+        self.tgt = tgt
+        self.matrix = matrix
+
+        # type check
+        assert(type(tgt) in src.connectable_types_out)
+        assert(type(src) in tgt.connectable_types_in)
+
+        # sliceability check
+        if src_range != None:
+            assert(src.slicable_out)
+        if tgt_range != None:
+            assert(tgt.slicable_in)
+
+        # range == None is full range of src/tgt objects outputs/inputs
+        self.src_range = src_range
+        self.tgt_range = tgt_range
+        if src_range == None:
+            self.src_range = range(src.DO()) # XXX possibly wasteful--can change to xrange?
+        if tgt_range == None:
+            self.tgt_range = range(tgt.DI())
+
+        # check dimensional correctness, left and right side of matrix
+        TestDimsCorrect(src.DO(), tgt.DI(), self.src_range, self.tgt_range)
+
+
+# Resources represent chunks of un-allocated braindrop hardware
+# "a graph of hardware resources needed to implement the network"
+# most of the functionality of the objects is in the allocation process
+# basically, Resource objects know how to map themselves to a Core object
 class Resource(object):
 
-    # Resources represent chunks of un-allocated braindrop hardware
-    # "a graph of hardware resources needed to implement the network"
+    def __init__(self, connectable_types_in, connectable_types_out, slicable_in=True, slicable_out=True):
+        self.connectable_types_in = connectable_types_in
+        self.connectable_types_out = connectable_types_out
+        self.slicable_in = slicable_in
+        self.slicable_out = slicable_out
+
+        self.conns_in = []
+        self.conns_out = []
+
+    # some common methods that work similarly for all Resources
+
+    # get input dimensionality
+    def DI(self):
+        assert(False and "not implemented!")
+
+    # get output dimensionality
+    def DO(self):
+        assert(False and "not implemented!")
+
+    # connect this Resource to another one, possibly using a slice of this object's 
+    # DO() range or a slice of the tgt's DI() range
+    def Connect(self, tgt, src_range, tgt_range):
+        new_conn = ResourceConnection(self, tgt, src_range, tgt_range)
+        self.conns_out.append(new_conn)
+        tgt.conns_in.append(new_conn)
 
     # The mapping process is divided into phases
 
@@ -31,31 +103,62 @@ class Resource(object):
     def Assign(self, core):
         pass
 
+# a chunk of the neuron array needed to implement a logical pool of neurons
 class Neurons(Resource):
     def __init__(self, N):
+        # XXX syntax probably wrong
+        super(Resource).__init__(self, [TATTapPoint], [MMWeights, Sink], False, False);
         self.N = N
-        self.tgts = None # unused
 
         # PreTranslate
         self.n_unit_pools = None
 
         # Allocate
-        self.start = None
-        self.start_nrn = None
+        self.start_pool_idx = None
+        self.start_nrn_idx_idx = None
+
+    def DI(self):
+        return self.N
+
+    def DO(self):
+        return self.N
 
     def PreTranslate(self, core):
         self.n_unit_pools = int(np.ceil(self.N / core.NPOOL))
 
     def Allocate(self, core):
-        self.start = core.NeuronArray.Allocate(self.n_unit_pools)
-        self.start_nrn = self.start * core.NPOOL
+        self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
+        self.start_nrn_idx_idx = self.start * core.NPOOL
 
 # entries in weight (main) memory
+# this is a *little* special because of weight matrix sharing
+# keeps a static class member dictionary to keep track of which MMWeights
+# used the same memory entries
+# XXX later can code this up to automate matrix caching
 class MMWeights(Resource):
-    def __init__(self, W):
+
+    # XXX this is probably the wrong syntax
+    # keep track of MMWeights -> unique hash id for combined matrices
+    MMWeights.forward_cache = {}
+    # keep track of unique hash ids for combined matrices -> MMWeights
+    MMWeights.reverse_cache = {}
+
+    def __init__(self, W, is_dec, hash_id=None):
+        # XXX syntax probably wrong
+        super(Resource).__init__([Neurons, TATAcc], [AMBuckets], slicable_in=True, slicable_out=False)
+
         self.user_W = W
+        self.is_dec = is_dec
         self.DI = user_W.shape[0]
         self.DO = user_W.shape[1]
+
+        if hash_id == None: # user says this isn't shared
+            # no hash specified, just use your own object id
+            MMWeights.forward_cache[self] = self 
+            MMWeights.reverse_cache[self].append(self)
+        else: # this uses a shared weight matrix
+            MMWeights.forward_cache[self] = hash_id
+            MMWeights.reverse_cache[hash_id] = self
 
         # filled in PreTranslate
         self.W_programmed = None
@@ -65,10 +168,12 @@ class MMWeights(Resource):
 
 # entries in accumulator memory
 # an array of buckets, defined by their threshold values and next address targets
+# in the hardware, the last bucket has the stop bit
 class AMBuckets(Resource):
-    def __init__(self, dims):
-        self.dims = dims
-        self.tgts = [None for i in xrange(self.dims)]
+    def __init__(self, D):
+        # XXX syntax probably wrong
+        super(Resource).__init__([Neurons, TATAcc], [TATAcc, TATFanout, TATTapPoint, Sink], slicable_in=False, slicable_out=True)
+        self.dims = D
 
         # filled in PreTranslate
         self.thr = None
@@ -80,13 +185,7 @@ class AMBuckets(Resource):
         self.AM_entries = None
 
     # AMBucket can connect to TAT* or Sink
-    # if start_idx == None, then connect all buckets by
-    def Connect(self, tgt, start_idx=None):
-
-
-
-    def AttachMMWeights(MM_weight):
-
+    # if start_idx == None, then connect all buckets to target indices (checks dimensions)
 
     def WeightToMem(self, W, core):
         # first, determine bucket thresholds
@@ -186,6 +285,9 @@ class AMBuckets(Resource):
 
 class TATAccumulator(Resource):
     def __init__(self, tgts):
+        # XXX syntax probably wrong
+        super(Resource).__init__([AMBuckets, Source, TATFanout], [MMWeights], slicable_in=True, slicable_out=True)
+
         self.tgts = tgts
         self.D = tgts[0].DI
         assert sum([t.DI == self.D for t in tgts]) == len(tgts)
@@ -236,6 +338,9 @@ class TATAccumulator(Resource):
 
 class TATTapPoint(Resource):
     def __init__(self, taps, signs, pool):
+        # XXX syntax probably wrong
+        super(Resource).__init__([AMBuckets, Source, TATFanout], [Neurons], slicable_in=True, slicable_out=False)
+
         self.start = None
         self.D = taps.shape[1]
         self.K = taps.shape[0]
@@ -245,6 +350,10 @@ class TATTapPoint(Resource):
         self.signs = signs
         self.res_type = 1
         self.tgts = [pool]
+
+        def DO(self):
+            # XXX it's complicated
+            # N-ish
 
         # PreTranslate
         self.size = None
@@ -272,11 +381,11 @@ class TATTapPoint(Resource):
 
     def PostTranslate(self, core):
         contents = []
-        self.mapped_taps = self.TapMapFn(self.tgts[0].start_nrn + self.taps)
+        self.mapped_taps = self.TapMapFn(self.tgts[0].start_nrn_idx + self.taps)
         #print self.tgts[0].N
         #print self.nrn_per_syn
         #print self.mapped_taps
-        #print self.tgts[0].start_nrn
+        #print self.tgts[0].start_nrn_idx
         for d in xrange(self.D):
             for k in xrange(0, self.K, 2):
                 stop = 1*(k == self.K - 2)
@@ -297,6 +406,9 @@ class TATTapPoint(Resource):
 
 class TATFanout(Resource):
     def __init__(self, tgts):
+        # XXX syntax probably wrong
+        super(Resource).__init__([AMBuckets, Source, TATFanout], [TATAccumulator, TATTapPoint, TATFanout, Sink], slicable_in=True, slicable_out=False)
+
         self.start = None
         self.tgts = tgts
         self.D = tgts[0].D
@@ -362,12 +474,15 @@ class PAT(Resource):
         assert len(self.contents) == self.nrn_arr.n_unit_pools
 
     def Assign(self, core):
-        pool_slice = slice(self.nrn_arr.start, self.nrn_arr.start + self.nrn_arr.n_unit_pools)
+        pool_slice = slice(self.nrn_arr.start_pool_idx, self.nrn_arr.start_pool_idx + self.nrn_arr.n_unit_pools)
         core.PAT.Assign(self.contents, pool_slice)
 
 
 class Sink(Resource):
     def __init__(self, D):
+        # XXX syntax probably wrong
+        super(Resource).__init__([Neurons, TATFanout, AMBuckets], [], slicable_in=True, slicable_out=False)
+
         self.num = None
         self.D = D
         self.tgts = None # unused
@@ -382,6 +497,8 @@ class Sink(Resource):
 
 class Source(Resource):
     def __init__(self, D, tgts):
+        # XXX syntax probably wrong
+        super(Resource).__init__([], [TATTapPoint, TATAccumulator, TATFanout], slicable_in=False, slicable_out=True)
         self.D = D
         self.tgts = tgts
 
