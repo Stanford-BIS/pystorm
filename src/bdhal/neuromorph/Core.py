@@ -1,6 +1,5 @@
 from bitutils import *
 import numpy as np
-from FunnelHorn import *
 
 class Core(object):
     def __init__(self, pars):
@@ -74,67 +73,6 @@ class Core(object):
         self.PAT = PAT(PAT_shape, self.MPATW)
         self.NeuronArray = NeuronArray(self.NNRN, self.NPOOL)
 
-        # funnel and horn leaf widths
-        # subtrees
-        self.FH_leaf_widths = {}
-
-        self.FH_leaf_widths["DH"] = [
-            self.MDELAY,
-            self.MPROG_TAT,
-            self.MINIT_FIFO_HT,
-            self.MTOGGLE_PRE_FIFO,
-            self.MTOGGLE_POST_FIFO,
-            self.MINIT_FIFO_DCT,
-            self.MPROG_PAT,
-            self.MPROG_AMMM+2]
-
-        self.FH_leaf_widths["NH"] = [
-            self.MTOGGLE_NRN_DUMP,
-            self.MNRN_INJECT,
-            self.MPROG_AER]
-
-        self.FH_leaf_widths["BH"] = [
-            self.MDAC,
-            self.MADC]
-
-        self.FH_leaf_widths["DF"] = [
-            self.MDUMP_TAT,
-            self.MDUMP_AM,
-            self.MDUMP_MM,
-            self.MDUMP_PAT,
-            self.MOVFLW,
-            self.MDUMP_PRE_FIFO,
-            self.MDUMP_POST_FIFO]
-
-        subtree_names = ["DF", "DH", "NH", "BH"]
-        subtree_root_bitwidths = GetRootBitwidthsForTrees(self.FH_leaf_widths, subtree_names)
-
-        self.MDF = subtree_root_bitwidths["DF"]
-        self.MDH = subtree_root_bitwidths["DH"]
-        self.MNH = subtree_root_bitwidths["NH"]
-        self.MBH = subtree_root_bitwidths["BH"]
-
-        # top-level trees
-
-        self.FH_leaf_widths["TH"] = [
-            self.MCT + self.MTAG,
-            self.MDH,
-            self.MBH,
-            self.MNH]
-        
-        self.FH_leaf_widths["TF"] = [
-            self.MCT + self.MTAG + self.MGRT,
-            self.MCT + self.MAMW,
-            self.MDF,
-            self.MNRN]
-
-        tree_names = ["TF", "TH"]
-        tree_root_bitwidths = GetRootBitwidthsForTrees(self.FH_leaf_widths, tree_names)
-        self.MTF = tree_root_bitwidths["TF"]
-        self.MTH = tree_root_bitwidths["TH"]
-
-        # compute funnel and horn routes
-        self.TF, self.TH = CreateTFAndTH(self.FH_leaf_widths)
 
         # FIXME this doesn't belong in the core
         self.ExternalSinks = ExternalSinks()
@@ -145,24 +83,24 @@ class Core(object):
         # map resources to this core
         for k,v in R.iteritems():
             v.PreTranslate(self)
-        if verbose: print "finished PreTranslate"
+        if verbose: print("finished PreTranslate")
 
         for k,v in R.iteritems():
             v.AllocateEarly(self)
-        if verbose: print "finished AllocateEarly"
+        if verbose: print("finished AllocateEarly")
         
         self.MM.alloc.SwitchToTrans() # switch allocation mode of MM
         for k,v in R.iteritems():
             v.Allocate(self)
-        if verbose: print "finished Allocate"
+        if verbose: print("finished Allocate")
 
         for k,v in R.iteritems():
             v.PostTranslate(self)
-        if verbose: print "finished PostTranslate"
+        if verbose: print("finished PostTranslate")
 
         for k,v in R.iteritems():
             v.Assign(self)
-        if verbose: print "finished Assign"
+        if verbose: print("finished Assign")
 
     def WriteProgStreams(self):
         PAT = self.PAT.mem.WriteProgStream()
@@ -179,12 +117,12 @@ class Core(object):
         MM_stop = np.zeros_like(MM).astype(int)
         MM_stop[-1] = 1
         MM = Pack([MM_type, MM, MM_stop], [1, self.MPROG_AMMM, 1])
-        #print "MM"
-        #print "####################################"
-        #print MM
-        #print "AM"
-        #print "####################################"
-        #print AM
+        #print("MM")
+        #print("####################################")
+        #print(MM)
+        #print("AM")
+        #print("####################################")
+        #print(AM)
 
         AMMM = np.hstack((AM, MM))
 
@@ -193,38 +131,19 @@ class Core(object):
                 'TAT0': TAT0,
                 'TAT1': TAT1}
 
-    def WriteHornProgStreams(self):
-        # the full chip has funnels and horns, need to pack the route bits
-
-        raw_prog = self.WriteProgStreams()
-
-        # funnel route bits are packed in MSBs
-        # horn route bits are packed in LSBs
-        # (programming streams go into the horn)
-
-        leaf_names =  ["PROG_PAT", "PROG_AMMM", "PROG_TAT[0]", "PROG_TAT[1]"]
-        short_names = ["PAT",      "AMMM",      "TAT0",        "TAT1"]
-
-        # break raw_prog into chunks as necessary, prepend routes
-        prog = {} 
-        for leaf_name, short_name in zip(leaf_names, short_names):
-            prog[short_name] = self.TH.EncodeStream([leaf_name], [raw_prog[short_name]])
-
-        return prog
-
 
     def Print(self):
-        print "NeuronArray"
+        print("NeuronArray")
         self.NeuronArray.alloc.Print()
-        print "PAT"
+        print("PAT")
         self.PAT.alloc.Print()
-        print "AM"
+        print("AM")
         self.AM.alloc.Print()
-        print "MM"
+        print("MM")
         self.MM.alloc.Print()
-        print "TAT0"
+        print("TAT0")
         self.TAT0.alloc.Print()
-        print "TAT1"
+        print("TAT1")
         self.TAT1.alloc.Print()
 
     def WriteMemsToFile(self, fname_pre):
@@ -262,7 +181,7 @@ class MemAllocator(object):
                 return False
 
     def Print(self):
-        print 1*self.L
+        print(1*self.L)
 
 class StepMemAllocator(MemAllocator):
     # the TAT is simple to allocate, there are no constraints on positioning,
@@ -313,10 +232,12 @@ class MMAllocator(MemAllocator):
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
+        print(try_slice)
+        self.Print()
         assert self.AllocateBlock(try_slice)
-        self.ypos = (flat_pos + D) / self.shape[1]
+        self.ypos = (flat_pos + D) // self.shape[1]
         self.xpos = (flat_pos + D) % self.shape[1]
-        start_y = try_slice.start / self.shape[1]
+        start_y = try_slice.start // self.shape[1]
         start_x = try_slice.start % self.shape[1]
         return (start_y, start_x)
 
@@ -525,7 +446,7 @@ class PAT(object):
 class NeuronArray(object):
     def __init__(self, N, NPOOL):
         self.NPOOL = NPOOL
-        self.n_pools = N / NPOOL
+        self.n_pools = N // NPOOL
         shape = (self.n_pools,)
         self.alloc = StepMemAllocator(shape) # FIXME need smarter allocator to make square-ish shapes eventually
 
