@@ -25,4 +25,7 @@ for idx, n in enumerate([N1, N2, N3, N4]):
     for r in n:
         r.Allocate(core)
 
+    for r in n:
+        r.PostTranslate(core)
+
     core.Print()

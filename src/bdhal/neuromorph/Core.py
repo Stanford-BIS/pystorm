@@ -232,8 +232,6 @@ class MMAllocator(MemAllocator):
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
-        print(try_slice)
-        self.Print()
         assert self.AllocateBlock(try_slice)
         self.ypos = (flat_pos + D) // self.shape[1]
         self.xpos = (flat_pos + D) % self.shape[1]

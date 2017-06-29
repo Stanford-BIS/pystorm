@@ -1,6 +1,7 @@
 import numpy as np
-from bitutils import *
 from Core import *
+from MemWordEnums import *
+from MemWordPlaceholders import *
 
 # make sure that a slice connection between object doesn't break any rules.
 # objects must define DI() and DO()
@@ -161,22 +162,19 @@ class Neurons(Resource):
 
     # PAT assignment setup
     def PostTranslate(self, core):
-        if len(conns_out) == 1:
-            weights = conns_out[0]
-            buckets = conns_out[0].conns_out[0]
+        if len(self.conns_out) == 1:
+            weights = self.conns_out[0].tgt
+            buckets = self.conns_out[0].tgt.conns_out[0].tgt
             PAT_contents = []
-            for p in xrange(self.n_unit_pools):
+            for p in range(self.n_unit_pools):
                 in_idx = p * core.NPOOL
                 MMAY, MMAX = weights.InDimToMMA(in_idx)
                 AMA = buckets.start_addr
 
-                # FIXME
-                MMAY_lo, MMAY_hi = Unpack(MMAY, [core.MPOOL])
-                data = [AMA, MMAX, MMAY_hi]
-                widths = [core.MAMA, core.MMMAX, core.MMMAY - core.MPOOL]
-                PAT_contents += [Pack(data, widths)]
-            self.PAT_contents = np.array(PAT_contents)
-            assert len(self.PAT_contents) == self.n_unit_pools
+                PAT_contents += [PATWord({
+                        PATField.AM_ADDRESS: AMA,
+                        PATField.MM_ADDRESS_LO: MMAX,
+                        PATField.MM_ADDRESS_HI: MMAY})]
 
     # PAT assignment
     def Assign(self, core):
@@ -264,6 +262,16 @@ class AMBuckets(Resource):
     # determine the best implementable weights and threshold values
     # is a namespace fn, not a member fn
     def WeightToMem(W, core):
+
+        def dec2onesc(x, M):
+            assert np.sum(x >= 2**(M-1)) == 0
+            assert np.sum(x <= -2**(M-1)) == 0
+            x = np.array(x)
+            xonesc = x.copy().astype(int)
+            neg = x < 0
+            xonesc[neg] = invert_bits(-xonesc[neg], M)
+            return xonesc
+
         # first, determine bucket thresholds
         max_row_W = np.max(np.abs(W), axis=1) # biggest weight in each row (feeding each bucket)
         assert np.max(max_row_W) <= 127/64. # weights are basically in (-2, 2) (open set)
@@ -360,11 +368,18 @@ class AMBuckets(Resource):
         val = np.zeros((self.DO(),)).astype(int)
         thr = self.thr
 
-        # XXX FIXME this looks like a hack
-        assert len(self.conns) == 1
-        NAs = self.conns[0].in_tags # XXX this
+        if len(self.conns_out) > 0:
+            NAs = self.conns_out[0].tgt.in_tags
+        else:
+            NAs = np.zeros_like(thr)
 
-        self.AM_entries = Pack([val, thr, stop, NAs], [core.MVAL, core.MTHR, 1, core.MAMW])
+        self.AM_entries = []
+        for s, v, t, n in zip(stop, val, thr, NAs):
+            self.AM_entries += [AMWord({
+                AMField.ACCUMULATOR_VALUE: v,
+                AMField.THRESHOLD: t,
+                AMField.STOP: s,
+                AMField.NEXT_ADDRESS: n})]
 
     def Assign(self, core):
         core.AM.Assign(self.AM_entries, self.start_addr)
@@ -405,29 +420,21 @@ class TATAccumulator(Resource):
         self.in_tags = self.start_addr + self.start_offsets
 
     def PostTranslate(self, core):
-        MMAs = []
-        AMAs = []
-        stops = []
-        for d in xrange(self.D):
-            for t in xrange(len(self.conns_out)):
-                weights = conns_out[t]
-                buckets = conns_out[t].conns_out[0]
+        self.contents = []
+        for d in range(self.D):
+            for t in range(len(self.conns_out)):
+                weights = self.conns_out[t].tgt
+                buckets = self.conns_out[t].tgt.conns_out[0].tgt
 
                 AMA = buckets.start_addr
                 MMAY, MMAX = weights.InDimToMMA(d)
                 stop = 1 * (t == len(self.conns_out) - 1)
 
-                # FIXME
-                MMAY, MMAX = self.conns_out[t].InDimToMMA(d)
-                MMAs += [Pack([MMAX, MMAY], [core.MMMAX, core.MMMAY])]
-                AMAs += [AMA]
-                stops += [stop]
-
-        MMAs = np.array(MMAs)
-        AMAs = np.array(AMAs)
-        stops = np.array(stops)
-        self.contents =  Pack([stops, self.res_type, AMAs, MMAs], [1, 2, core.MAMA, core.MMMA])
-        assert self.contents.shape[0] == self.size
+                self.contents += [TATAccWord({
+                    TATAccField.STOP: stop,
+                    TATAccField.AM_ADDRESS: AMA,
+                    TATAccField.MM_ADDRESS_LO: MMAX,
+                    TATAccField.MM_ADDRESS_HI: MMAY})]
 
     def Assign(self, core):
         core.TAT0.Assign(self.contents, self.start_addr)
@@ -481,27 +488,23 @@ class TATTapPoint(Resource):
         self.in_tags = self.start_addr + self.start_offsets + 2**core.MTAG // 2 # in TAT1
 
     def PostTranslate(self, core):
-        contents = []
-        self.mapped_taps = self.TapMapFn(self.conns_out[0].start_nrn_idx + self.taps)
+        self.mapped_taps = self.TapMapFn(self.conns_out[0].tgt.start_nrn_idx + self.taps)
 
-        # FIXME
-        #print self.conns_out[0].N
-        #print self.nrn_per_syn
-        #print self.mapped_taps
-        #print self.conns_out[0].start_nrn_idx
-        for d in xrange(self.D):
-            for k in xrange(0, self.K, 2):
+        self.contents = []
+        for d in range(self.D):
+            for k in range(0, self.K, 2):
                 stop = 1*(k == self.K - 2)
                 tap0 = self.mapped_taps[k, d]
                 s0 = self.signs[k, d]
                 tap1 = self.mapped_taps[k+1, d]
                 s1 = self.signs[k+1, d]
-                #print tap0, tap1
-                data = [stop, self.res_type, tap0, s0, tap1, s1]
-                widths = [1, 2, core.MTAP, 1, core.MTAP, 1]
-                contents += [Pack(data, widths)]
-        self.contents = np.array(contents)
-        assert self.contents.shape[0] == self.size
+
+                self.contents += [TATSpikeWord({
+                    TATSpikeField.STOP: stop,
+                    TATSpikeField.SYNAPSE_ADDRESS_0: tap0,
+                    TATSpikeField.SYNAPSE_SIGN_0: s0,
+                    TATSpikeField.SYNAPSE_ADDRESS_1: tap1,
+                    TATSpikeField.SYNAPSE_SIGN_1: s1})]
 
     def Assign(self, core):
         core.TAT1.Assign(self.contents, self.start_addr)
@@ -540,18 +543,18 @@ class TATFanout(Resource):
         self.in_tags = self.start_addr + self.start_offsets + 2**core.MTAG // 2 # in TAT1
 
     def PostTranslate(self, core):
-        contents = []
-        for d in xrange(self.D):
-            for t in xrange(len(self.conns_out)):
+        self.contents = []
+        for d in range(self.D):
+            for t in range(len(self.conns_out)):
                 stop = 1 * (t == len(self.conns_out) - 1)
-                tgt = self.conns_out[t]
+                tgt = self.conns_out[t].tgt
                 tag = tgt.in_tags[d]
+                global_route = 0
 
-                #FIXME
-                data = [stop, self.res_type, tag]
-                widths = [1, 2, core.MTAG + core.MGRT]
-                contents += [Pack(data, widths)]
-        self.contents = np.array(contents)
+                self.contents += [TATTagWord({
+                    TATTagField.STOP: stop,
+                    TATTagField.TAG: tag,
+                    TATTagField.GLOBAL_ROUTE: global_route})]
 
     def Assign(self, core):
         core.TAT1.Assign(self.contents, self.start_addr)
@@ -566,15 +569,13 @@ class Sink(Resource):
         self.D = D
 
         # Allocate
-        self.local_tags = None
-        #self.in_tags = None
+        self.in_tags = None
 
     def DI(self):
         return self.D
 
     def Allocate(self, core):
-        self.local_tags = core.ExternalSinks.Allocate(self.D)
-        #self.in_tags = Pack([self.local_tags, core.COMP_ROUTE], [core.MTAG, core.MGRT])
+        self.in_tags = core.ExternalSinks.Allocate(self.D)
 
 
 class Source(Resource):
@@ -590,5 +591,5 @@ class Source(Resource):
         return self.D
 
     def PostTranslate(self, core):
-        self.out_tags = [t.in_tags for t in self.tgts]
+        self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
 
