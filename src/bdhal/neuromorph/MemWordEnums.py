@@ -1,5 +1,8 @@
 from enum import Enum
 
+# XXX this isn't permanent implementation
+# the boost objects for the C++ BDPars.h enums should use the same syntax as this
+
 class AMField(Enum):
     ACCUMULATOR_VALUE = 0
     THRESHOLD = 1

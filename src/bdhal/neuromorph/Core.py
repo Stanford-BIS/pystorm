@@ -1,5 +1,7 @@
 from bitutils import *
 import numpy as np
+from MemWordEnums import *
+from MemWordPlaceholders import *
 
 class Core(object):
     def __init__(self, pars):
@@ -66,11 +68,11 @@ class Core(object):
         TAT1_shape = (2**(self.MTAG-1),)
         PAT_shape = (2**(self.MNRNY + self.MNRNX - self.MPOOL),)
 
-        self.MM = MM(MM_shape, self.MW, self.NPOOL)
-        self.AM = AM(AM_shape, 2*self.MAMW)
-        self.TAT0 = TAT(TAT0_shape, self.MTATW)
-        self.TAT1 = TAT(TAT1_shape, self.MTATW)
-        self.PAT = PAT(PAT_shape, self.MPATW)
+        self.MM = MM(MM_shape, self.NPOOL)
+        self.AM = AM(AM_shape)
+        self.TAT0 = TAT(TAT0_shape)
+        self.TAT1 = TAT(TAT1_shape)
+        self.PAT = PAT(PAT_shape)
         self.NeuronArray = NeuronArray(self.NNRN, self.NPOOL)
 
 
@@ -81,25 +83,25 @@ class Core(object):
 
     def Map(self, R, verbose=False):
         # map resources to this core
-        for k,v in R.iteritems():
-            v.PreTranslate(self)
+        for node in R:
+            node.PreTranslate(self)
         if verbose: print("finished PreTranslate")
 
-        for k,v in R.iteritems():
-            v.AllocateEarly(self)
+        for node in R:
+            node.AllocateEarly(self)
         if verbose: print("finished AllocateEarly")
         
         self.MM.alloc.SwitchToTrans() # switch allocation mode of MM
-        for k,v in R.iteritems():
-            v.Allocate(self)
+        for node in R:
+            node.Allocate(self)
         if verbose: print("finished Allocate")
 
-        for k,v in R.iteritems():
-            v.PostTranslate(self)
+        for node in R:
+            node.PostTranslate(self)
         if verbose: print("finished PostTranslate")
 
-        for k,v in R.iteritems():
-            v.Assign(self)
+        for node in R:
+            node.Assign(self)
         if verbose: print("finished Assign")
 
     def WriteProgStreams(self):
@@ -133,6 +135,9 @@ class Core(object):
 
 
     def Print(self):
+        print("Printing Allocation maps")
+        print("  note: these are scaled, each printed entry can represent several actual entries,")
+        print("        '1' : fully-allocated, 'X' : partially-allocated, '0' : unallocated")
         print("NeuronArray")
         self.NeuronArray.alloc.Print()
         print("PAT")
@@ -240,15 +245,17 @@ class MMAllocator(MemAllocator):
         return (start_y, start_x)
 
 class Memory(object):
-    def __init__(self, shape, MW):
+    def __init__(self, shape, ):
         self.shape = shape
-        self.MW = MW
-        self.M = np.zeros(shape).astype(int)
+        if len(self.shape) == 1:
+            self.M = [BDWord({}) for i in range(self.shape[0])]
+        else:
+            self.M = [[BDWord({}) for i in range(self.shape[0])] for j in range(self.shape[1])]
+        self.M = np.array(self.M, dtype=object)
 
     def Assign1DBlock(self, mem, start):
         if len(self.shape) == 2 and isinstance(start, tuple):
             start = start[0] * self.shape[1] + start[1]
-        assert np.sum(mem >= 2**self.MW) == 0
         idx_slice = slice(start, start + mem.shape[0])
         self.M.flat[idx_slice] = mem
 
@@ -256,91 +263,22 @@ class Memory(object):
         assert len(self.shape) == 2
         assert len(mem.shape) == 2
         assert len(start) == 2
-        assert np.sum(mem >= 2**self.MW) == 0
         idx_slice = (slice(start[0], start[0] + mem.shape[0]), slice(start[1], start[1] + mem.shape[1]))
         self.M[idx_slice] = mem
 
 
 class StepMem(Memory):
     # r_w_memory
-    # has 2-bit type (00 "0" -> addr, 01 "1" -> write, 10 "2" -> read)
-    def __init__(self, shape, MW):
-        super(StepMem, self).__init__(shape, MW)
-
-    def WriteProgStream(self, addr_slice=None):
-        if addr_slice is None:
-            mem = self.M.flatten()
-            start_addr = 0
-        else:
-            mem = self.M.flatten()[addr_slice] # has to be a flat slice
-            start_addr = addr_slice.start # should be fine with 2D, but be careful
-
-        prog = np.zeros((mem.shape[0]+1,)).astype(int)
-        prog[0] = 4*start_addr # XXX I didn't use pack because I didn't want to compute addr bits
-        prog[1:] = Pack([1, mem], [2, self.MW]) # type = 1 means write
-
-        return prog
-
-    def WriteDumpStream(self, addr_slice=None):
-        if addr_slice is None:
-            start_addr = 0
-        else:
-            start_addr = addr_slice.start # should be fine with 2D, but be careful
-
-        prog = np.zeros((mem.shape[0]+1,))
-        prog[0] = 4*start_addr # XXX I didn't use pack because I didn't want to compute addr bits
-        prog[1:] = 2 # type = 2 means read
-
-        return prog
-
-class RMWStepMem(Memory):
-    # r_rmw_memory (accumulator)
-    # have to do our own increments!
-    # has 2-bit type (00 "0" -> addr, 01 "1" -> write, 10 "2" -> inc(!!!))
-    def __init__(self, shape, MW):
-        super(RMWStepMem, self).__init__(shape, MW)
-
-    def WriteProgStream(self, addr_slice=None):
-        if addr_slice is None:
-            mem = self.M.flatten()
-            start_addr = 0
-        else:
-            mem = self.M.flatten()[addr_slice] # has to be a flat slice
-            start_addr = addr_slice.start # should be fine with 2D, but be careful
-
-        prog = np.zeros((2*mem.shape[0]+1,)).astype(int)
-        prog[0] = 4*start_addr # XXX I didn't use pack because I didn't want to compute addr bits
-        prog[1::2] = Pack([1, mem], [2, self.MW]) # type = 1 means write
-        prog[2::2] = 2
-
-        return prog
-
-    def WriteDumpStream(self, addr_slice=None):
-      return WriteProgStream(self, addr_slice) # for RMW, read current/program is a combined operation
+    def __init__(self, shape):
+        super(StepMem, self).__init__(shape)
 
 class PATMem(Memory):
-    def __init__(self, shape, MW):
-        super(PATMem, self).__init__(shape, MW)
-
-    def WriteProgStream(self, addr_slice=None):
-        assert addr_slice == None
-        assert np.sum(self.M >= 2**self.MW) == 0 # MW = MPATW
-        addr_bits = int(sum(np.ceil(np.log2(self.shape))))
-        addr = np.arange(self.M.size)
-        wr = np.ones_like(addr).astype(int)
-        return Pack([addr, wr, self.M], [addr_bits, 1, self.MW])
-
-    def WriteDumpStream(self, addr_slice=None):
-        assert addr_slice == None
-        assert np.sum(self.M >= 2**self.MW) == 0 # MW = MPATW
-        addr_bits = int(sum(np.ceil(np.log2(self.shape))))
-        addr = np.arange(self.M.size)
-        rd = np.zeros_like(addr).astype(int)
-        return Pack([addr, rd, self.M], [addr_bits, 1, self.MW]) # only difference is r/w bit
+    def __init__(self, shape):
+        super(PATMem, self).__init__(shape)
 
 class MM(object):
-    def __init__(self, shape, MW, NPOOL):
-        self.mem = StepMem(shape, MW)
+    def __init__(self, shape, NPOOL):
+        self.mem = StepMem(shape)
         self.alloc = MMAllocator(shape, NPOOL) 
 
     def AllocateDec(self, D):
@@ -356,10 +294,10 @@ class MM(object):
         self.mem.Assign1DBlock(data, start)
 
     def WriteToFile(self, fname_pre, core):
-        f = open(fname_pre + "MM.txt", 'wb')
-        for y in xrange(self.mem.shape[0]):
-            for x in xrange(self.mem.shape[1]):
-                numstr = str(self.mem.M[y,x])
+        f = open(fname_pre + "MM.txt", 'w')
+        for y in range(self.mem.shape[0]):
+            for x in range(self.mem.shape[1]):
+                numstr = str(self.mem.M[y,x].At(MMField.WEIGHT))
                 spaces = ' ' * max(1, 4 - len(numstr))
                 if x == 0:
                     f.write('[' + spaces)
@@ -373,8 +311,8 @@ class MM(object):
         f.close()
 
 class AM(object):
-    def __init__(self, shape, MAMW):
-        self.mem = RMWStepMem(shape, MAMW)
+    def __init__(self, shape):
+        self.mem = StepMem(shape)
         self.alloc = StepMemAllocator(shape)
 
     def Allocate(self, size):
@@ -384,17 +322,20 @@ class AM(object):
         self.mem.Assign1DBlock(data, start)
 
     def WriteToFile(self, fname_pre, core):
-        f = open(fname_pre + "AM.txt", 'wb')
+        f = open(fname_pre + "AM.txt", 'w')
         f.write("AM: [ val | thr | stop | na ]\n")
-        for idx in xrange(self.mem.shape[0]):
+        for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
-            val, thr, stop, na = Unpack(m, [core.MVAL, core.MTHR, 1])
+            val = m.At(AMField.ACCUMULATOR_VALUE)
+            thr = m.At(AMField.THRESHOLD)
+            stop = m.At(AMField.STOP)
+            na = m.At(AMField.NEXT_ADDRESS)
             f.write("[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n")
         f.close()
 
 class TAT(object):
-    def __init__(self, shape, MTATW):
-        self.mem = StepMem(shape, MTATW)
+    def __init__(self, shape):
+        self.mem = StepMem(shape)
         self.alloc = StepMemAllocator(shape)
 
     def Allocate(self, size):
@@ -404,27 +345,44 @@ class TAT(object):
         self.mem.Assign1DBlock(data, start)
 
     def WriteToFile(self, fname_pre, core, tat_idx):
-        f = open(fname_pre + "TAT" + str(tat_idx) + ".txt", 'wb')
-        f.write("TAT" + str(tat_idx) + ": acc : [ stop | type | ama | mmax | mmay | X ]\n")
+        f = open(fname_pre + "TAT" + str(tat_idx) + ".txt", 'w')
+        f.write("TAT" + str(tat_idx) + ": acc : [ stop | type | ama | mmax | mmay ]\n")
         f.write("      nrn : [ stop | type | tap | sign | tap | sign | X ]\n")
         f.write("      fo  : [ stop | type | tag | gtag | X ]\n")
-        for idx in xrange(self.mem.shape[0]):
+        for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
-            s, ty, pay = Unpack(m, [1, 2])
-            if ty == 0:
-                ama, mmax, mmay, X = Unpack(pay, [core.MAMA, core.MMMAX, core.MMMAY])
-                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " | " + str(X) + " ]\n")
-            elif ty == 1:
-                tap0, s0, tap1, s1, X = Unpack(pay, [core.MTAP, 1, core.MTAP, 1])
-                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
-            elif ty == 2:
-                tag, grt, X = Unpack(pay, [core.MTAG, core.MGRT])
+
+            if m.At(TATTagField.FIXED_2) != 0:
+                ty = 2
+                s = m.At(TATTagField.STOP)
+                tag = m.At(TATTagField.TAG)
+                grt = m.At(TATTagField.GLOBAL_ROUTE)
+                X = m.At(TATTagField.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n")
+
+            elif m.At(TATSpikeField.FIXED_1) != 0:
+                ty = 1
+                s = m.At(TATSpikeField.STOP)
+                tap0 = m.At(TATSpikeField.SYNAPSE_ADDRESS_0)
+                s0 = m.At(TATSpikeField.SYNAPSE_SIGN_0)
+                tap1 = m.At(TATSpikeField.SYNAPSE_ADDRESS_1)
+                s1 = m.At(TATSpikeField.SYNAPSE_SIGN_1)
+                X = m.At(TATSpikeField.UNUSED)
+                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
+
+            else:
+                ty = 0
+                s = m.At(TATAccField.STOP)
+                ama = m.At(TATAccField.AM_ADDRESS)
+                mmax = m.At(TATAccField.MM_ADDRESS_LO)
+                mmay = m.At(TATAccField.MM_ADDRESS_HI)
+                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
+
         f.close()
 
 class PAT(object):
-    def __init__(self, shape, MPATW):
-        self.mem = PATMem(shape, MPATW)
+    def __init__(self, shape):
+        self.mem = PATMem(shape)
         self.alloc = MemAllocator(shape) # kind of unecessary, but a nice assert
 
     def Assign(self, data, pool_slice):
@@ -432,11 +390,13 @@ class PAT(object):
         self.mem.Assign1DBlock(data, pool_slice.start)
 
     def WriteToFile(self, fname_pre, core):
-        f = open(fname_pre + "PAT.txt", 'wb')
+        f = open(fname_pre + "PAT.txt", 'w')
         f.write("PAT : [ ama | mmax | mmay_base ]\n")
-        for idx in xrange(self.mem.shape[0]):
+        for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
-            ama, mmax, mmay_base = Unpack(m, [core.MAMA, core.MMMAX])
+            ama = m.At(PATField.AM_ADDRESS)
+            mmax = m.At(PATField.MM_ADDRESS_LO)
+            mmay_base = m.At(PATField.MM_ADDRESS_HI)
             f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 

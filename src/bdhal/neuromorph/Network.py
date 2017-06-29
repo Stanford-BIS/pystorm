@@ -3,6 +3,15 @@ from copy import copy
 from bitutils import *
 from Resources import *
 
+#######################################################
+# XXX
+# THIS IS ONLY FOR REFERENCE!
+# this file is unaltered from the original prototype
+# has only some relation the the current Resource objects
+# has value as a reference, however
+# XXX
+#######################################################
+
 class NetObj(object):
 
     def __repr__(self):

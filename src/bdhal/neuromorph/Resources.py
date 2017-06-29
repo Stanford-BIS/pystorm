@@ -165,22 +165,23 @@ class Neurons(Resource):
         if len(self.conns_out) == 1:
             weights = self.conns_out[0].tgt
             buckets = self.conns_out[0].tgt.conns_out[0].tgt
-            PAT_contents = []
+            self.PAT_contents = []
             for p in range(self.n_unit_pools):
                 in_idx = p * core.NPOOL
                 MMAY, MMAX = weights.InDimToMMA(in_idx)
                 AMA = buckets.start_addr
 
-                PAT_contents += [PATWord({
+                self.PAT_contents += [BDWord({
                         PATField.AM_ADDRESS: AMA,
                         PATField.MM_ADDRESS_LO: MMAX,
                         PATField.MM_ADDRESS_HI: MMAY})]
+            self.PAT_contents = np.array(self.PAT_contents, dtype=object)
 
     # PAT assignment
     def Assign(self, core):
         if self.PAT_contents is not None:
             pool_slice = slice(self.start_pool_idx, self.start_pool_idx + self.n_unit_pools)
-            core.PAT.Assign(self.contents, pool_slice)
+            core.PAT.Assign(self.PAT_contents, pool_slice)
 
 # entries in weight (main) memory
 # this is a *little* special because of weight matrix sharing
@@ -208,13 +209,16 @@ class MMWeights(Resource):
         else:
             MMWeights.reverse_cache[id(W)] = [id(self)]
 
-        # filled in PreTranslate (XXX by AMBuckets's PreTranslate!)
+        # PreTranslate (XXX by AMBuckets's PreTranslate!)
         self.is_dec = None
         self.programmed_W = None
         self.W_slices = []
 
-        # filled in Allocate (by AMBuckets)
+        # Allocate (by AMBuckets)
         self.slice_start_addrs = []
+
+        # PostTranslate
+        self.W_slices_contents = []
 
     def InDimToMMA(self, dim):
         slice_width = self.W_slices[0].shape[1]
@@ -245,8 +249,16 @@ class MMWeights(Resource):
                 start_addr = core.MM.AllocateTrans(self.DO())
                 self.slice_start_addrs += [start_addr]
 
+    # convert to BDWord, even though it's just a single int
+    def PostTranslate(self, core):
+        for W_slice in self.W_slices:
+            contents = [[BDWord({MMField.WEIGHT: W_slice[i,j]}) for j in range(W_slice.shape[1])] for i in range(W_slice.shape[0])]
+
+            self.W_slices_contents += [np.array(contents, dtype=object)]
+
+
     def Assign(self, core):
-        for W_slice, start_addr in zip(self.W_slices, self.slice_start_addrs):
+        for W_slice, start_addr in zip(self.W_slices_contents, self.slice_start_addrs):
             if self.is_dec:
                 core.MM.AssignDec(W_slice.T, start_addr) # transpose, the memory is flipped from linalg orientation
             else:
@@ -295,9 +307,13 @@ class AMBuckets(Resource):
 
         programmed_W, thr = AMBuckets.WeightToMem(W, core)
 
-        input_dims = [w.shape[0] for w in W_list]
+        input_dims = [w.shape[1] for w in W_list]
         split_indices = np.cumsum(input_dims)
-        programmed_W_list = np.split(programmed_W, split_indices)
+
+        if len(split_indices > 1):
+            programmed_W_list = np.split(programmed_W, split_indices[:-1], axis=1)
+        else:
+            programmed_W_list = [programmed_W]
 
         return programmed_W_list, thr
 
@@ -375,11 +391,12 @@ class AMBuckets(Resource):
 
         self.AM_entries = []
         for s, v, t, n in zip(stop, val, thr, NAs):
-            self.AM_entries += [AMWord({
+            self.AM_entries += [BDWord({
                 AMField.ACCUMULATOR_VALUE: v,
                 AMField.THRESHOLD: t,
                 AMField.STOP: s,
                 AMField.NEXT_ADDRESS: n})]
+        self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def Assign(self, core):
         core.AM.Assign(self.AM_entries, self.start_addr)
@@ -430,11 +447,12 @@ class TATAccumulator(Resource):
                 MMAY, MMAX = weights.InDimToMMA(d)
                 stop = 1 * (t == len(self.conns_out) - 1)
 
-                self.contents += [TATAccWord({
+                self.contents += [BDWord({
                     TATAccField.STOP: stop,
                     TATAccField.AM_ADDRESS: AMA,
                     TATAccField.MM_ADDRESS_LO: MMAX,
                     TATAccField.MM_ADDRESS_HI: MMAY})]
+        self.contents = np.array(self.contents, dtype=object)
 
     def Assign(self, core):
         core.TAT0.Assign(self.contents, self.start_addr)
@@ -499,12 +517,13 @@ class TATTapPoint(Resource):
                 tap1 = self.mapped_taps[k+1, d]
                 s1 = self.signs[k+1, d]
 
-                self.contents += [TATSpikeWord({
+                self.contents += [BDWord({
                     TATSpikeField.STOP: stop,
                     TATSpikeField.SYNAPSE_ADDRESS_0: tap0,
                     TATSpikeField.SYNAPSE_SIGN_0: s0,
                     TATSpikeField.SYNAPSE_ADDRESS_1: tap1,
                     TATSpikeField.SYNAPSE_SIGN_1: s1})]
+        self.contents = np.array(self.contents, dtype=object)
 
     def Assign(self, core):
         core.TAT1.Assign(self.contents, self.start_addr)
@@ -551,10 +570,11 @@ class TATFanout(Resource):
                 tag = tgt.in_tags[d]
                 global_route = 0
 
-                self.contents += [TATTagWord({
+                self.contents += [BDWord({
                     TATTagField.STOP: stop,
                     TATTagField.TAG: tag,
                     TATTagField.GLOBAL_ROUTE: global_route})]
+        self.contents = np.array(self.contents, dtype=object)
 
     def Assign(self, core):
         core.TAT1.Assign(self.contents, self.start_addr)
