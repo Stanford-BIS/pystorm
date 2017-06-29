@@ -150,7 +150,7 @@ class Neurons(Resource):
 
     # neuron array allocation prep
     def PreTranslate(self, core):
-        self.n_unit_pools = int(np.ceil(self.N // core.NPOOL))
+        self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
         # assert no more than one connection (only one decoder allowed)
         assert(len(self.conns_out) == 1)
@@ -158,7 +158,7 @@ class Neurons(Resource):
     # neuron array allocation
     def Allocate(self, core):
         self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
-        self.start_nrn_idx = self.start_pool_idx * core.NPOOL
+        self.start_nrn_idx = self.start_pool_idx * core.NeuronArray_pool_size
 
     # PAT assignment setup
     def PostTranslate(self, core):
@@ -167,7 +167,7 @@ class Neurons(Resource):
             buckets = self.conns_out[0].tgt.conns_out[0].tgt
             self.PAT_contents = []
             for p in range(self.n_unit_pools):
-                in_idx = p * core.NPOOL
+                in_idx = p * core.NeuronArray_pool_size
                 MMAY, MMAX = weights.InDimToMMA(in_idx)
                 AMA = buckets.start_addr
 
@@ -273,31 +273,60 @@ class AMBuckets(Resource):
     # Given the user's desired weight matrix and the core parameters,
     # determine the best implementable weights and threshold values
     # is a namespace fn, not a member fn
-    def WeightToMem(W, core):
+    def WeightToMem(user_W, core):
 
-        def dec2onesc(x, M):
-            assert np.sum(x >= 2**(M-1)) == 0
-            assert np.sum(x <= -2**(M-1)) == 0
+        # convert decimal number to one's complement representation used in the hardware
+        # XXX should be in driver?
+        def dec2onesc(x, max_weight):
+
+            def invert_bits(x, all_ones):
+                ones = np.ones_like(x).astype(int) * all_ones
+                return np.bitwise_xor(ones, x)
+
+            assert np.sum(x > max_weight) == 0
+            assert np.sum(x < -max_weight) == 0
             x = np.array(x)
             xonesc = x.copy().astype(int)
             neg = x < 0
-            xonesc[neg] = invert_bits(-xonesc[neg], M)
+
+            # invert bits
+            xonesc[neg] = invert_bits(-xonesc[neg], max_weight) # max_weight is all ones
+
             return xonesc
 
         # first, determine bucket thresholds
-        max_row_W = np.max(np.abs(W), axis=1) # biggest weight in each row (feeding each bucket)
-        assert np.max(max_row_W) <= 127/64. # weights are basically in (-2, 2) (open set)
+        user_max_abs_W_rows = np.max(np.abs(user_W), axis=1) # biggest weight in each row (feeding each bucket)
 
-        thr_multiples = np.array([2**(t-1) for t in range(2**core.MTHR)]) # 1/(possible threshold values)
-        thr = np.searchsorted(thr_multiples, 1./max_row_W) - 1 # programmed thr memory entries
-        thr_vals = thr_multiples[thr]
-        programmed_W = (W.T * thr_vals).T # we get to make the weights effectively larger, preserving dynamic range when they are very small
-        programmed_W *= 2**(core.MW-1)
-        programmed_W = np.round(programmed_W) # better ways to do this
-        programmed_W[programmed_W == 2**(core.MW-1)] = 2**(core.MW-1)-1 # XXX FIXME probably not the right thing to do math-wise, but close
-        programmed_W = dec2onesc(programmed_W, core.MW)
+        # XXX With the threshold at the minimum value (64),
+        # it's technically possible to have weights that behave sort of like they're > 1 or < -1.
+        # To have well-defined behavior, with threshold = 64, the weights must be in [-64, 64]
+        # this is equivalent to restricting the user weights to be in [-1, 1]
+        assert np.max(user_max_abs_W_rows) <= 1
 
-        return programmed_W, thr
+        # compute hardware threshold vals (64, 128, 256, ...)
+        thr_vals = np.array(
+                [core.min_threshold_value * 2**t for t in range(core.num_threshold_levels)]) 
+
+        # compute max possible weight, in user-space, for each threshold value
+        # the first value (for threshold = 64) is special, as noted above
+        user_max_weights_for_thr_vals = np.array(
+                [1.] + [core.max_weight_value / thr_val for thr_val in thr_vals[1:]])
+
+        # find max_row_Ws in the user_max_weights we just computed
+        # user_max_weights is descending, so we provide the sorter argument
+        #sorter_idxs = np.array(range(len(thr_vals))[::-1])
+        #thr_idxs = np.searchsorted(user_max_weights_for_thr_vals, user_max_abs_W_rows, sorter=sorter_idxs) - 1 
+        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -user_max_abs_W_rows) - 1 
+
+        # this is the threshold value we should use (and scale the user weights by)
+        row_thr_vals = thr_vals[thr_idxs]
+
+        W = (user_W.T * row_thr_vals).T
+        W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
+
+        W = dec2onesc(W, core.max_weight_value)
+
+        return W, thr_idxs
     
     # extends WeightToMem to work for multiple matrices sharing the same bucket
     # works by stacking the matrices, calling the original function, then unstacking
@@ -361,8 +390,8 @@ class AMBuckets(Resource):
             else:
                 MM_weight.is_dec = False
 
-            if MM_weight.is_dec: # can chop up decoders into NPOOL-column chunks
-                slice_width = core.NPOOL
+            if MM_weight.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
+                slice_width = core.NeuronArray_pool_size
             else: # can chop up transforms by single columns
                 slice_width = 1
 
@@ -497,13 +526,13 @@ class TATTapPoint(Resource):
         return tap // self.nrn_per_syn
 
     def PreTranslate(self, core):
-        self.nrn_per_syn = 2**(core.MNRN - core.MTAP)
+        self.nrn_per_syn = core.NeuronArray_neurons_per_tap
         self.size = self.D * self.K // 2
         self.start_offsets = np.array(range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
 
     def Allocate(self, core):
         self.start_addr = core.TAT1.Allocate(self.size)
-        self.in_tags = self.start_addr + self.start_offsets + 2**core.MTAG // 2 # in TAT1
+        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def PostTranslate(self, core):
         self.mapped_taps = self.TapMapFn(self.conns_out[0].tgt.start_nrn_idx + self.taps)
@@ -559,7 +588,7 @@ class TATFanout(Resource):
 
     def Allocate(self, core):
         self.start_addr = core.TAT1.Allocate(self.size)
-        self.in_tags = self.start_addr + self.start_offsets + 2**core.MTAG // 2 # in TAT1
+        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def PostTranslate(self, core):
         self.contents = []

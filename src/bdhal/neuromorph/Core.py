@@ -6,79 +6,43 @@ from MemWordPlaceholders import *
 class Core(object):
     def __init__(self, pars):
         # base parameters
-        self.SELF_ROUTE = pars['SELF_ROUTE']
-        self.MTAG = pars['MTAG']
-        self.MGRT = pars['MGRT']
-        self.MCT = pars['MCT']
-        self.MTAP = pars['MTAP']
-        self.MNRNY = pars['MNRNY']
-        self.MNRNX = pars['MNRNX']
-        self.MPOOL = pars['MPOOL']
-        self.MAMA = pars['MAMA']
-        self.MMMAY = pars['MMMAY']
-        self.MMMAX = pars['MMMAX']
-        self.MW = pars['MW']
-        self.MVAL = pars['MVAL']
-        self.MTHR = pars['MTHR']
 
-        # constants
-        self.MDELAY = 6
-        self.MTOGGLE_PRE_FIFO = 2
-        self.MTOGGLE_POST_FIFO = 2
-        self.MTOGGLE_NRN_DUMP = 2
-        self.MINIT_FIFO_HT = 1
-        self.MDAC = 11
-        self.MADC = 3
-        self.MOVFLW = 1;
+        self.MM_height = pars['MM_height']
+        self.MM_width = pars['MM_width']
 
-        # derived parameters
-        self.MNRN = self.MNRNX + self.MNRNY
-        self.NNRN = 2**self.MNRN
-        self.NPOOL = 2**self.MPOOL
-        self.MAMW = 1 + self.MVAL + self.MTHR
-        self.MMMA = self.MMMAX + self.MMMAY
-        self.MACC = self.MMMA + self.MAMA
-        self.MFO = self.MTAG + self.MGRT
-        self.MSSI = 2 + 2*self.MTAP
-        self.MTATW = 3 + max(self.MACC, max(self.MFO, self.MSSI))
-        self.MPATW = self.MAMA + self.MMMA - self.MPOOL
-        self.MPATMA = self.MNRNY + self.MNRNX - self.MPOOL;
-        self.MNRN_INJECT = self.MTAP + 1
-        self.MINIT_FIFO_DCT = self.MTAG
+        self.AM_size = pars['AM_size']
 
-        self.MPROG_PAT = self.MPATW + 1 + self.MPATMA
-        self.MPROG_TAT = self.MTATW + 2
-        self.MPROG_AM = max(2*self.MAMW, self.MAMA) + 2 
-        self.MPROG_MM = max(self.MW, self.MMMA) + 2
-        self.MPROG_AMMM = max(self.MPROG_AM, self.MPROG_MM)
+        self.TAT_size = pars['TAT_size']
 
-        self.MDUMP_TAT       = self.MTATW;
-        self.MDUMP_PAT       = self.MPATW;
-        self.MDUMP_AM        = 2*self.MAMW;
-        self.MDUMP_MM        = self.MW;
-        self.MDUMP_PRE_FIFO  = self.MTAG+self.MCT;
-        self.MDUMP_POST_FIFO = self.MTAG-1+self.MCT;
+        self.NeuronArray_height = pars['NeuronArray_height']
+        self.NeuronArray_width  = pars['NeuronArray_width']
+        self.NeuronArray_pool_size = pars['NeuronArray_pool_size'] # number of neurons that share each PAT entry
+        self.NeuronArray_neurons_per_tap = pars['NeuronArray_neurons_per_tap']
+        self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
-        self.MPROG_AER = self.MNRN + 6
+        self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
 
-        # resource containers
-        MM_shape = (2**(self.MMMAY), 2**(self.MMMAX))
-        AM_shape = (2**(self.MAMA),)
-        TAT0_shape = (2**(self.MTAG-1),)
-        TAT1_shape = (2**(self.MTAG-1),)
-        PAT_shape = (2**(self.MNRNY + self.MNRNX - self.MPOOL),)
+        self.num_threshold_levels = pars['num_threshold_levels']
+        self.min_threshold_value = pars['min_threshold_value']
+        self.max_weight_value = pars['max_weight_value']
 
-        self.MM = MM(MM_shape, self.NPOOL)
+        # set up allocable objects (Resource containers)
+
+        MM_shape = (self.MM_width, self.MM_height)
+        AM_shape = (self.AM_size,)
+        TAT0_shape = (self.TAT_size,)
+        TAT1_shape = (self.TAT_size,)
+        PAT_shape = (self.PAT_size,)
+
+        self.MM = MM(MM_shape, self.NeuronArray_pool_size)
         self.AM = AM(AM_shape)
         self.TAT0 = TAT(TAT0_shape)
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
-        self.NeuronArray = NeuronArray(self.NNRN, self.NPOOL)
+        self.NeuronArray = NeuronArray(self.NeuronArray_size, self.NeuronArray_pool_size)
 
-
-        # FIXME this doesn't belong in the core
+        # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
-        self.COMP_ROUTE = 1
 
 
     def Map(self, R, verbose=False):
@@ -104,40 +68,9 @@ class Core(object):
             node.Assign(self)
         if verbose: print("finished Assign")
 
-    def WriteProgStreams(self):
-        PAT = self.PAT.mem.WriteProgStream()
-        AM = self.AM.mem.WriteProgStream()
-        MM = self.MM.mem.WriteProgStream()
-        TAT0 = self.TAT0.mem.WriteProgStream()
-        TAT1 = self.TAT1.mem.WriteProgStream()
-
-        AM_type = np.zeros_like(AM).astype(int)
-        AM_stop = np.zeros_like(AM).astype(int)
-        AM = Pack([AM_type, AM, AM_stop], [1, self.MPROG_AMMM, 1])
-
-        MM_type = np.ones_like(MM).astype(int)
-        MM_stop = np.zeros_like(MM).astype(int)
-        MM_stop[-1] = 1
-        MM = Pack([MM_type, MM, MM_stop], [1, self.MPROG_AMMM, 1])
-        #print("MM")
-        #print("####################################")
-        #print(MM)
-        #print("AM")
-        #print("####################################")
-        #print(AM)
-
-        AMMM = np.hstack((AM, MM))
-
-        return {'PAT': PAT,
-                'AMMM': AMMM,
-                'TAT0': TAT0,
-                'TAT1': TAT1}
-
 
     def Print(self):
         print("Printing Allocation maps")
-        print("  note: these are scaled, each printed entry can represent several actual entries,")
-        print("        '1' : fully-allocated, 'X' : partially-allocated, '0' : unallocated")
         print("NeuronArray")
         self.NeuronArray.alloc.Print()
         print("PAT")
@@ -162,16 +95,39 @@ class Core(object):
 class MemAllocator(object):
     def __init__(self, shape):
         self.shape = shape
-        self.L = np.zeros(shape).astype(bool)
+        self.L = np.zeros(shape).astype(bool) # binary map of allocation
 
-    def AllocateBlock(self, idx_slice):
+    def CheckBlockUnallocated(self, idx_slice):
         if isinstance(idx_slice, tuple):
             assert len(idx_slice) == 2
             assert isinstance(idx_slice[0], slice)
             assert isinstance(idx_slice[1], slice)
         else:
             assert isinstance(idx_slice, slice)
+
+        # if the slice is out of range, fail now
+        if isinstance(idx_slice, tuple):
+            # 2D indexing on 2D array
+            for i in range(2):
+                if idx_slice[i].start >= self.shape[i]:
+                    return False
+                if idx_slice[i].stop > self.shape[i]:
+                    return False
+        else:
+            # flat indexing on flat array
+            if len(self.shape) == 1:
+                if idx_slice.start >= self.shape[0]:
+                    return False
+                if idx_slice.stop > self.shape[0]:
+                    return False
+            # flat indexing on 2D array
+            else:
+                if idx_slice.start >= self.L.size:
+                    return False
+                if idx_slice.stop > self.L.size:
+                    return False
         
+        # otherwise, the slice is compeletely in-bounds, check all entries
         if len(self.shape) == 2 and isinstance(idx_slice, slice): # using flat indexing on 2D
             if np.sum(1*self.L.flat[idx_slice]) == 0:
                 self.L.flat[idx_slice] = True
@@ -197,7 +153,9 @@ class StepMemAllocator(MemAllocator):
 
     def Allocate(self, alloc_size):
         try_slice = slice(self.pos, self.pos + alloc_size)
-        assert self.AllocateBlock(try_slice) # allocate
+
+        assert self.CheckBlockUnallocated(try_slice) # allocate
+
         self.pos += alloc_size
         return try_slice.start
 
@@ -210,18 +168,28 @@ class MMAllocator(MemAllocator):
         self.NPOOL = NPOOL
 
     def AllocatePoolDec(self, D):
-        if self.xpos + D < self.shape[1]:
+
+        if D > self.shape[1]:
+            print("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
+            assert False
+
+        # can fit in the current mem row, just increment xpos when done
+        elif self.xpos + D < self.shape[1]:
             try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
-            assert self.AllocateBlock(try_slice) # allocate
+            assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos += D
+
+        # can *barely* fit in the current mem row, move to the next pool row when done
         elif self.xpos + D == self.shape[1]:
             try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
-            assert self.AllocateBlock(try_slice) # allocate
+            assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos = 0
             self.ypos += self.NPOOL
+
+        # can't fit in the current row, skip to the next one
         else:
             try_slice = (slice(self.ypos + self.NPOOL, self.ypos + 2*self.NPOOL), slice(0, D))
-            assert self.AllocateBlock(try_slice) # allocate
+            assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos = D
             self.ypos += self.NPOOL
         return (try_slice[0].start, try_slice[1].start)
@@ -237,7 +205,7 @@ class MMAllocator(MemAllocator):
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
-        assert self.AllocateBlock(try_slice)
+        assert self.CheckBlockUnallocated(try_slice)
         self.ypos = (flat_pos + D) // self.shape[1]
         self.xpos = (flat_pos + D) % self.shape[1]
         start_y = try_slice.start // self.shape[1]
@@ -386,7 +354,7 @@ class PAT(object):
         self.alloc = MemAllocator(shape) # kind of unecessary, but a nice assert
 
     def Assign(self, data, pool_slice):
-        assert self.alloc.AllocateBlock(pool_slice)
+        assert self.alloc.CheckBlockUnallocated(pool_slice)
         self.mem.Assign1DBlock(data, pool_slice.start)
 
     def WriteToFile(self, fname_pre, core):
