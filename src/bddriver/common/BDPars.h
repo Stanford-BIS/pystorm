@@ -5,19 +5,347 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <typeinfo>
+#include <typeindex>
+
+#include "binary_util.h"
 
 using std::cout;
 using std::endl;
 
+// Syntactic sugar for defining word structures.
+// Don't be confused that these are structs: they're 
+// never instantiated--just passed as template parameters.
+// Think of these are more like namespaces (which can't be passed to templates)
+//
+// XXX interface is pretty well-separated from implemention:
+// this is all behind-the-scenes, it could be possible to come up with
+// an implementation that doesn't involve macros
+
+// the only difference between DEFWORDN and DEFVALWORDN is that with VAL words,
+// you are allowed to specify hardcoded field values (for FIXED_M fields).
+
+#define DEFVALWORD1(NAME, F0, W0, V0) \
+struct NAME { \
+  static constexpr unsigned int len = 1; \
+  static constexpr unsigned int field_widths[1] = {W0}; \
+  static constexpr uint64_t field_hard_values[1] = {V0}; \
+  enum Field {F0}; \
+};
+
+#define DEFWORD1(NAME, F0, W0) \
+struct NAME { \
+  static constexpr unsigned int len = 1; \
+  static constexpr unsigned int field_widths[1] = {W0}; \
+  static constexpr uint64_t field_hard_values[1] = {0}; \
+  enum Field {F0}; \
+};
+
+#define DEFVALWORD2(NAME, F0, W0, V0, F1, W1, V1) \
+struct NAME { \
+  static constexpr unsigned int len = 2; \
+  static constexpr unsigned int field_widths[2] = {W0, W1}; \
+  static constexpr uint64_t field_hard_values[2] = {V0, V1}; \
+  enum Field {F0, F1}; \
+};
+
+#define DEFWORD2(NAME, F0, W0, F1, W1) \
+struct NAME { \
+  static constexpr unsigned int len {2}; \
+  static constexpr unsigned int field_widths[2] = {W0, W1}; \
+  static constexpr uint64_t field_hard_values[2] = {0, 0}; \
+  enum Field {F0, F1}; \
+};
+
+#define DEFVALWORD3(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2) \
+struct NAME { \
+  static constexpr unsigned int len = 3; \
+  static constexpr unsigned int field_widths[3] = {W0, W1, W2}; \
+  static constexpr uint64_t field_hard_values[3] = {V0, V1, V2}; \
+  enum Field {F0, F1, F2}; \
+};
+
+#define DEFWORD3(NAME, F0, W0, F1, W1, F2, W2) \
+struct NAME { \
+  static constexpr unsigned int len = 3; \
+  static constexpr unsigned int field_widths[3] = {W0, W1, W2}; \
+  static constexpr uint64_t field_hard_values[3] = {0, 0, 0}; \
+  enum Field {F0, F1, F2}; \
+};
+
+#define DEFVALWORD4(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3) \
+struct NAME { \
+  static constexpr unsigned int len = 4; \
+  static constexpr unsigned int field_widths[4] = {W0, W1, W2, W3}; \
+  static constexpr uint64_t field_hard_values[4] = {V0, V1, V2, V3}; \
+  enum Field {F0, F1, F2, F3}; \
+};
+
+#define DEFWORD4(NAME, F0, W0, F1, W1, F2, W2, F3, W3) \
+struct NAME { \
+  static constexpr unsigned int len = 4; \
+  static constexpr unsigned int field_widths[4] = {W0, W1, W2, W3}; \
+  static constexpr uint64_t field_hard_values[4] = {0, 0, 0, 0}; \
+  enum Field {F0, F1, F2, F3}; \
+};
+
+#define DEFVALWORD5(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4) \
+struct NAME { \
+  static constexpr unsigned int len = 5; \
+  static constexpr unsigned int field_widths[5] = {W0, W1, W2, W3, W4}; \
+  static constexpr uint64_t field_hard_values[5] = {V0, V1, V2, V3, V4}; \
+  enum Field {F0, F1, F2, F3, F4}; \
+};
+
+#define DEFVALWORD7(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4, F5, W5, V5, F6, W6, V6) \
+struct NAME { \
+  static constexpr unsigned int len = 7; \
+  static constexpr unsigned int field_widths[7] = {W0, W1, W2, W3, W4, W5, W6}; \
+  static constexpr uint64_t field_hard_values[7] = {V0, V1, V2, V3, V4, V5, V6}; \
+  enum Field {F0, F1, F2, F3, F4, F5, F6}; \
+};
+
+
+// XXX Something else you could try: cramming all the values into the enums
+// all we really need is the width and the shift for each field, and the hardcoded
+// value across all fields, If you have that, you can do the necessary operations 
+// (including computing the mask) without referring to the width of other fields. 
+// e.g. 
+
+/*
+// lsb -> msb
+//    32   |  32
+// [ width | shift ]
+#define DEFWORD2(NAME, F0, W0, F1, W1) \
+enum class NAME { \
+  F0 =  CAST32(W0), \
+  F1 = (CAST32(W0) << SS) | CAST32(W1), \
+  HARD_VALUE = 0};
+*/
+
 namespace pystorm {
 namespace bddriver {
 
-// XXX DO NOT ATTEMPT TO ASSIGN ENUM VALUES XXX
-// it will mess a lot of stuff up!
-// the enum values are used to index these vectors
-// be careful that you don't break the Last*Id assignments
+// define all the word formats using the above macros
+
+// register words
+DEFWORD2(ToggleWord, 
+    TRAFFIC_ENABLE, 1, DUMP_ENABLE, 1)
+
+DEFWORD2(DACWord,    
+    DAC_TO_ADC_CONN, 1, DAC_VALUE, 10)
+
+DEFWORD3(ADCWord,    
+    ADC_SMALL_LARGE_CURRENT_0, 1, ADC_SMALL_LARGE_CURRENT_1, 1, ADC_OUTPUT_ENABLE, 1)
+
+DEFWORD2(DelayWord,  
+    READ_DELAY, 4, WRITE_DELAY, 4)
+
+// memory words
+DEFWORD4(AMWord, 
+    ACCUMULATOR_VALUE, 15, THRESHOLD, 3, STOP, 1, NEXT_ADDRESS, 19)
+
+DEFWORD1(MMWord, 
+    WEIGHT, 8)
+
+DEFWORD3(PATWord, 
+    AM_ADDRESS, 10, MM_ADDRESS_LO, 8, MM_ADDRESS_HI, 2)
+
+DEFVALWORD4(TATAccWord, 
+    STOP,        1, 0, 
+    FIXED_0,     2, 0,
+    AM_ADDRESS, 10, 0,
+    MM_ADDRESS, 16, 0)
+
+DEFVALWORD7(TATSpikeWord, 
+    STOP,               1, 0, 
+    FIXED_1,            2, 1,
+    SYNAPSE_ADDRESS_0, 11, 0,
+    SYNAPSE_SIGN_0,     1, 0,
+    SYNAPSE_ADDRESS_1, 11, 0,
+    SYNAPSE_SIGN_1,     1, 0,
+    UNUSED,             2, 0)
+
+DEFVALWORD5(TATTagWord, 
+    STOP,          1, 0,
+    FIXED_2,       2, 2, 
+    TAG,          11, 0,
+    GLOBAL_ROUTE, 12, 0,
+    UNUSED,        3, 0)
+
+// memory programming words
+DEFVALWORD3(PATWrite,
+    ADDRESS, 6, 0,
+    FIXED_0, 1, 0,
+    DATA,   20, 0)
+
+DEFVALWORD3(PATRead,
+    ADDRESS, 6, 0,
+    FIXED_1, 1, 1,
+    UNUSED, 20, 0)
+
+DEFVALWORD3(TATSetAddress,
+    FIXED_0, 2, 0,
+    ADDRESS, 10, 0,
+    UNUSED,  19, 0)
+
+DEFVALWORD2(TATWriteIncrement,   
+    FIXED_1, 2, 1,
+    DATA,   29, 0)
+
+DEFVALWORD2(TATReadIncrement,    
+    FIXED_2, 2, 2,
+    UNUSED, 29, 0)
+
+DEFVALWORD3(MMSetAddress,        
+    FIXED_0,  2, 0,
+    ADDRESS, 16, 0,
+    UNUSED,  22, 0)
+
+DEFVALWORD3(MMWriteIncrement,    
+    FIXED_1, 2, 1,
+    DATA,    8, 0,
+    UNUSED, 30, 0)
+
+DEFVALWORD2(MMReadIncrement,     
+    FIXED_2, 2, 2,
+    UNUSED, 38, 0)
+
+DEFVALWORD3(AMSetAddress,        
+    FIXED_0,  2, 0,
+    ADDRESS, 10, 0,
+    UNUSED,  28, 0)
+
+DEFVALWORD2(AMReadWrite,         
+    FIXED_1, 2, 1,
+    DATA,   38, 0)
+
+DEFVALWORD2(AMIncrement,          
+    FIXED_2, 2, 2,
+    UNUSED, 38, 0)
+
+DEFVALWORD3(AMEncapsulation,      
+    FIXED_0,   1, 0,
+    PAYLOAD,  40, 0,
+    AMMM_STOP, 1, 0)
+
+DEFVALWORD3(MMEncapsulation,      
+    FIXED_1,   1, 1,
+    PAYLOAD,  40, 0,
+    AMMM_STOP, 1, 0)
+
+// input words
+DEFWORD2(InputTag,
+    COUNT, 9, TAG, 11)
+
+DEFWORD1(FIFOInputTag,
+    TAG, 11)
+
+DEFWORD2(Inputspikes,
+    SYNAPSE_SIGN, 1, SYNAPSE_ADDRESS, 10)
+
+// output words
+DEFWORD2(PreFIFOTag,
+    COUNT, 9, TAG, 11)
+
+DEFWORD2(PostFIFOTag,
+    COUNT, 9, TAG, 10)
+
+DEFWORD1(OutputSpike,
+    NEURON_ADDRESS, 12)
+
+DEFVALWORD1(OverflowTag,
+    FIXED_1, 1, 1)
+
+DEFWORD3(AccOutputTag,
+    COUNT, 9, TAG, 11, GLOBAL_ROUTE, 8)
+
+DEFWORD3(TATOutputTag,
+    COUNT, 9, TAG, 11, GLOBAL_ROUTE, 12)
+
+/// Basically just a uint64_t with some packing and unpacking methods.
+/// Being a class doesn't add a lot to this: the member functions could
+/// just as well act on plain uint64_ts. 
+class BDWord {
+
+ private:
+  uint64_t val_;
+
+ public:
+
+  /// Initialize from uint64_t 
+  BDWord(uint64_t val) {
+    val_ = static_cast<uint64_t>(val);
+  };
+
+  /// static member function to create a new BDWord from field values, 
+  /// Initialize BDWord val_ with a list of Field enum-value pairs.
+  /// Typically used when forming words to send downstream.
+  /// It's hard to write the equivalent ctor because templated ctors can only
+  /// work through template deduction (which doesn't seem to work here)
+  template <class T>
+  static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) { 
+    BDWord new_word(0);
+    for (auto& field_and_val : fields) {
+
+      typename T::Field field_id = field_and_val.first;
+      uint64_t field_val = static_cast<uint64_t>(field_and_val.second);
+      
+      // compute shift (should be evalualable at compile-time!)
+      unsigned int shift = 0;
+      unsigned int field_idx = static_cast<unsigned int>(field_id);
+      for (unsigned int i = 0; i < field_idx; i++) {
+        shift += T::field_widths[i];
+      }
+
+      new_word.val_ |= field_val << shift;
+    }
+    for (unsigned int i = 0; i < T::len; i++) {
+      if (T::field_hard_values[i] != 0) {
+        new_word.val_ |= T::field_hard_values[i];
+      }
+    }
+    return new_word;
+  }
+
+  /// Get a sub-field of BDWord val_ at a given Field.
+  /// Typically used when unpacking words as they're sent upstream.
+  template <class T, class UINT>
+  UINT At(typename T::Field field_id) { 
+
+    unsigned int field_idx = static_cast<unsigned int>(field_id);
+
+    // compute mask (should be evalualable at compile-time!)
+    unsigned int shift = 0;
+    for (unsigned int i = 0; i < field_idx; i++) {
+      shift += T::field_widths[i];
+    }
+
+    uint64_t max_field_val = (static_cast<uint64_t>(1) << T::field_widths[field_idx]) - 1;
+
+    uint64_t mask = max_field_val << shift;
+
+    return (val_ & mask) >> shift;
+  }
+
+  /// Syntactic sugar for At(), UINT defaults to uint64_t
+  template <class T>
+  uint64_t At(typename T::Field field_id) { return At<T, uint64_t>(field_id); }
+
+  /// Get the underlying value. 
+  /// Useful when packing this word into another BDWord.
+  template <class UINT>
+  UINT Packed() { return static_cast<UINT>(val_); }
+
+  /// Syntactic sugar for Packed(), UINT defaults to uint64_t
+  uint64_t Packed() { return static_cast<uint64_t>(val_); }
+
+};
 
 namespace bdpars {
+
+///////////////////////////////////////////////////////////
+// non word-related stuff
 
 /// Identifier for a broad class of BD components
 enum ComponentTypeId {
