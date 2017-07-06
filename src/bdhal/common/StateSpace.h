@@ -11,7 +11,7 @@ namespace bdhal {
 ///
 /// A set of numerical values (dimensions) which are weighted projections from 
 /// another Pool or StateSpace. A StateSpace can be connected to another
-/// Pool or StateSpace by using the WeightedConnection class.
+/// Pool or StateSpace by using the Connection class.
 ///
 class StateSpace : public ConnectableObject {
 public:

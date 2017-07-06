@@ -14,7 +14,7 @@ namespace bdhal {
 /// prior to becoming inputs to the second object. This linear combination
 /// is acheived through the use of a Transform object.
 ///
-class WeightedConnection {
+class Connection {
 public:
     ///
     /// Default constructor
@@ -28,7 +28,7 @@ public:
     /// \param dest The destination of the connection where data flows into.
     /// \param transform_matrix The transformation matrix. 
     ///
-    WeightedConnection(std::string name, ConnectableObject* src, 
+    Connection(std::string name, ConnectableObject* src, 
         ConnectableObject* dest, Transform<uint32_t>* transform_matrix) :
         m_name(name),
         m_src(src),
@@ -53,7 +53,7 @@ public:
     /// delete memeory allocated for the transform matrix. Ensure that no
     /// other code are using the transform memory memory owned by this 
     /// class after deleting this (I will add smart pointers soon).
-    ~WeightedConnection() {
+    ~Connection() {
         if (nullptr != m_transform)
         {
             delete m_transform;
@@ -61,10 +61,10 @@ public:
         }
     }
 
-    WeightedConnection(const WeightedConnection &) = delete;
-    WeightedConnection(WeightedConnection&&) = delete;
-    WeightedConnection& operator=(const WeightedConnection &) = delete;
-    WeightedConnection& operator=(WeightedConnection&&) = delete;
+    Connection(const Connection &) = delete;
+    Connection(Connection&&) = delete;
+    Connection& operator=(const Connection &) = delete;
+    Connection& operator=(Connection&&) = delete;
 
     /// \brief Return the name assigned to this connection
     ///

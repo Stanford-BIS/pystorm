@@ -44,7 +44,8 @@ BOOST_PYTHON_MODULE(PyStorm)
     ;
 
     PYTHON::class_<HAL::VecOfWeightedConnections>("VecOfWeightedConnections")
-        .def(PYTHON::vector_indexing_suite<HAL::VecOfWeightedConnections,true>() )
+        .def(PYTHON::vector_indexing_suite<HAL::VecOfWeightedConnections,true>()
+         )
     ;
 
     PYTHON::class_<HAL::ConnectableObject, 

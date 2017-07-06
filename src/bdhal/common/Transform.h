@@ -7,7 +7,7 @@
 namespace pystorm {
 namespace bdhal {
 ///
-/// A matrix representing the transform used in a WeightedConnection.
+/// A matrix representing the transform used in a Connection.
 ///
 template<typename T>
 class Transform {

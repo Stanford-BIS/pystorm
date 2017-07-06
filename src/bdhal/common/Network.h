@@ -10,7 +10,7 @@
 #include <common/ConnectableObject.h>
 #include <common/Pool.h>
 #include <common/StateSpace.h>
-#include <common/WeightedConnection.h>
+#include <common/Connection.h>
 #include <common/Transform.h>
 
 namespace pystorm {
@@ -18,10 +18,10 @@ namespace bdhal {
 
 typedef std::vector<Pool*> VecOfPools;
 typedef std::vector<StateSpace*> VecOfStateSpaces;
-typedef std::vector<WeightedConnection*> VecOfWeightedConnections;
+typedef std::vector<Connection*> VecOfConnection;
 
 ///
-/// A Network composed of WeightedConnections and ConnectableObjects
+/// A Network composed of Connection and ConnectableObjects
 ///
 /// A network that represents a Nengo network. The network will be passed
 /// to Neuromorph to be placed and routed and will be passed to a MappedNetwork
@@ -30,8 +30,8 @@ typedef std::vector<WeightedConnection*> VecOfWeightedConnections;
 /// 
 /// NOTE: As much as possible we want objects to be immutable. Create an 
 /// object and don't change it. One exception will be the transform matrix
-/// associated with WeightedConnections. We don't want to create a new
-/// Network if a WeightedConnections transform matrix changes so we make an
+/// associated with Connection. We don't want to create a new
+/// Network if a Connection transform matrix changes so we make an
 /// exception there.
 ///
 class Network {
@@ -82,28 +82,28 @@ public:
     StateSpace* CreateStateSpace(std::string name, uint32_t n_dims);
 
     ///
-    /// Create a WeightedConnection object for this network
+    /// Create a Connection object for this network
     ///
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
     ///
-    /// \return a new WeightedConnection object
+    /// \return a new Connection object
     ///
-    WeightedConnection* CreateWeightedConnection( std::string name, 
+    Connection* CreateConnection( std::string name, 
         ConnectableObject* src, ConnectableObject* dest);
 
     ///
-    /// Create a WeightedConnection object for this network
+    /// Create a Connection object for this network
     ///
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
     /// \param transformMatrix Transform matrix assigned to the connection
     ///
-    /// \return a new WeightedConnection object
+    /// \return a new Connection object
     ///
-    WeightedConnection* CreateWeightedConnection(std::string name, 
+    Connection* CreateConnection(std::string name, 
         ConnectableObject* src, ConnectableObject* dest, 
         Transform<uint32_t>* transformMatrix);
 
@@ -115,7 +115,7 @@ public:
         return m_statespaces;
     }
 
-    VecOfWeightedConnections& GetWeightedConnections() {
+    VecOfConnection& GetConnection() {
         return m_weightedConnections;
     }
 
@@ -129,24 +129,24 @@ private:
     /// Statespaces created for Network
     std::vector<StateSpace*> m_statespaces;
 
-    /// WeightedConnections created for Network
-    std::vector<WeightedConnection*> m_weightedConnections;
+    /// Connection created for Network
+    std::vector<Connection*> m_weightedConnections;
 
     //Chances are the Network will need more structures for bookkeeping
-    // including a map from WeightedConnection to a tuple (pair) consisting
+    // including a map from Connection to a tuple (pair) consisting
     // of src and dest objects (both ConnectableObject instances)
     // Let's consider how this is useful with some use cases
-    std::map<WeightedConnection*, 
+    std::map<Connection*, 
         std::pair<ConnectableObject*, ConnectableObject*> > m_connectionMap;
 
     /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its input
     /// connections.
-    std::map<ConnectableObject*, std::vector<WeightedConnection*> > 
+    std::map<ConnectableObject*, std::vector<Connection*> > 
         m_inConnections;
 
     /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its output
     /// connections.
-    std::map<ConnectableObject*, std::vector<WeightedConnection*> > 
+    std::map<ConnectableObject*, std::vector<Connection*> > 
         m_outConnections;
 };
 

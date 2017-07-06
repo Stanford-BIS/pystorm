@@ -30,7 +30,7 @@ StateSpace* Network::CreateStateSpace(std::string name, uint32_t n_dims) {
     return newStatespace;
 }
 
-WeightedConnection* Network::CreateWeightedConnection( std::string name, 
+Connection* Network::CreateConnection( std::string name, 
     ConnectableObject* src, ConnectableObject* dest) {
 
     uint32_t* m = (uint32_t*) 
@@ -41,16 +41,16 @@ WeightedConnection* Network::CreateWeightedConnection( std::string name,
         new pystorm::bdhal::Transform<uint32_t>(m, src->GetNumDimensions(), 
             dest->GetNumDimensions());
     
-    WeightedConnection* newConnection = new WeightedConnection(name, src, 
+    Connection* newConnection = new Connection(name, src, 
         dest, transformMatrix);
     m_weightedConnections.push_back(newConnection);
     return newConnection;
 }
 
-WeightedConnection* Network::CreateWeightedConnection(std::string name, 
+Connection* Network::CreateConnection(std::string name, 
     ConnectableObject* src, ConnectableObject* dest, 
     Transform<uint32_t>* transformMatrix) {
-    WeightedConnection* newConnection = new WeightedConnection(name, 
+    Connection* newConnection = new Connection(name, 
         src, dest, transformMatrix);
     m_weightedConnections.push_back(newConnection);
     return newConnection;
