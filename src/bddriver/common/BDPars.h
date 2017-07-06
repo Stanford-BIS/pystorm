@@ -27,80 +27,90 @@ using std::endl;
 
 #define DEFVALWORD1(NAME, F0, W0, V0) \
 struct NAME { \
-  static constexpr unsigned int len {1}; \
+  static constexpr unsigned int n_fields {1}; \
   static constexpr unsigned int field_widths[1] {W0}; \
+  static constexpr unsigned int width {W0}; \
   static constexpr uint64_t field_hard_values[1] {V0}; \
   enum Field {F0}; \
 }; 
 
 #define DEFWORD1(NAME, F0, W0) \
 struct NAME { \
-  static constexpr unsigned int len {1}; \
+  static constexpr unsigned int n_fields {1}; \
   static constexpr unsigned int field_widths[1] {W0}; \
+  static constexpr unsigned int width {W0}; \
   static constexpr uint64_t field_hard_values[1] {0}; \
   enum Field {F0}; \
 };
 
 #define DEFVALWORD2(NAME, F0, W0, V0, F1, W1, V1) \
 struct NAME { \
-  static constexpr unsigned int len {2}; \
+  static constexpr unsigned int n_fields {2}; \
   static constexpr unsigned int field_widths[2] {W0, W1}; \
+  static constexpr unsigned int width {W0 + W1}; \
   static constexpr uint64_t field_hard_values[2] {V0, V1}; \
   enum Field {F0, F1}; \
 };
 
 #define DEFWORD2(NAME, F0, W0, F1, W1) \
 struct NAME { \
-  static constexpr unsigned int len {2}; \
+  static constexpr unsigned int n_fields {2}; \
   static constexpr unsigned int field_widths[2] {W0, W1}; \
+  static constexpr unsigned int width {W0 + W1}; \
   static constexpr uint64_t field_hard_values[2] {0, 0}; \
   enum Field {F0, F1}; \
 };
 
 #define DEFVALWORD3(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2) \
 struct NAME { \
-  static constexpr unsigned int len {3}; \
+  static constexpr unsigned int n_fields {3}; \
   static constexpr unsigned int field_widths[3] {W0, W1, W2}; \
+  static constexpr unsigned int width {W0 + W1 + W2}; \
   static constexpr uint64_t field_hard_values[3] {V0, V1, V2}; \
   enum Field {F0, F1, F2}; \
 };
 
 #define DEFWORD3(NAME, F0, W0, F1, W1, F2, W2) \
 struct NAME { \
-  static constexpr unsigned int len {3}; \
+  static constexpr unsigned int n_fields {3}; \
   static constexpr unsigned int field_widths[3] {W0, W1, W2}; \
+  static constexpr unsigned int width {W0 + W1 + W2}; \
   static constexpr uint64_t field_hard_values[3] {0, 0, 0}; \
   enum Field {F0, F1, F2}; \
 };
 
 #define DEFVALWORD4(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3) \
 struct NAME { \
-  static constexpr unsigned int len {4}; \
+  static constexpr unsigned int n_fields {4}; \
   static constexpr unsigned int field_widths[4] {W0, W1, W2, W3}; \
+  static constexpr unsigned int width {W0 + W1 + W2 + W3}; \
   static constexpr uint64_t field_hard_values[4] {V0, V1, V2, V3}; \
   enum Field {F0, F1, F2, F3}; \
 };
 
 #define DEFWORD4(NAME, F0, W0, F1, W1, F2, W2, F3, W3) \
 struct NAME { \
-  static constexpr unsigned int len = {4}; \
+  static constexpr unsigned int n_fields = {4}; \
   static constexpr unsigned int field_widths[4] {W0, W1, W2, W3}; \
+  static constexpr unsigned int width {W0 + W1 + W2 + W3}; \
   static constexpr uint64_t field_hard_values[4] {0, 0, 0, 0}; \
   enum Field {F0, F1, F2, F3}; \
 };
 
 #define DEFVALWORD5(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4) \
 struct NAME { \
-  static constexpr unsigned int len {5}; \
+  static constexpr unsigned int n_fields {5}; \
   static constexpr unsigned int field_widths[5] {W0, W1, W2, W3, W4}; \
+  static constexpr unsigned int width {W0 + W1 + W2 + W3 + W4}; \
   static constexpr uint64_t field_hard_values[5] {V0, V1, V2, V3, V4}; \
   enum Field {F0, F1, F2, F3, F4}; \
 };
 
 #define DEFVALWORD7(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4, F5, W5, V5, F6, W6, V6) \
 struct NAME { \
-  static constexpr unsigned int len {7}; \
+  static constexpr unsigned int n_fields {7}; \
   static constexpr unsigned int field_widths[7] {W0, W1, W2, W3, W4, W5, W6}; \
+  static constexpr unsigned int width {W0 + W1 + W2 + W3 + W4 + W5 + W6}; \
   static constexpr uint64_t field_hard_values[7] {V0, V1, V2, V3, V4, V5, V6}; \
   enum Field {F0, F1, F2, F3, F4, F5, F6}; \
 }; \
@@ -414,9 +424,9 @@ class BDWord {
     BDWord new_word(0);
 
     // compute shifts (should be evalualable at compile-time!)
-    unsigned int shifts[T::len];
+    unsigned int shifts[T::n_fields];
     unsigned int curr_shift = 0;
-    for (unsigned int i = 0; i < T::len; i++) {
+    for (unsigned int i = 0; i < T::n_fields; i++) {
       shifts[i] = curr_shift;
       curr_shift += T::field_widths[i];
     }
@@ -431,7 +441,7 @@ class BDWord {
       new_word.val_ |= field_val << shifts[field_idx];
     }
 
-    for (unsigned int i = 0; i < T::len; i++) {
+    for (unsigned int i = 0; i < T::n_fields; i++) {
 
       if (T::field_hard_values[i] != 0) {
         new_word.val_ |= T::field_hard_values[i] << shifts[i];

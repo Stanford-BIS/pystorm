@@ -206,7 +206,7 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
       data = state_->GetMem(bdpars::TAT0)->at(TAT_address_[0]);
       PushMem(bdpars::TAT0, {data});
     } else {
-      data = state_->GetMem(bdpars::TAT0)->at(TAT_address_[1]);
+      data = state_->GetMem(bdpars::TAT1)->at(TAT_address_[1]);
       PushMem(bdpars::TAT1, {data});
     }
     TAT_address_[TAT_idx]++;

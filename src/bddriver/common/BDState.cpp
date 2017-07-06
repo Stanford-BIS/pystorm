@@ -43,7 +43,7 @@ BDState::~BDState() {}
 void BDState::SetMem(bdpars::MemId mem_id, unsigned int start_addr, const std::vector<BDWord> &data) {
   for (unsigned int i = 0; i < data.size(); i++) {
     mems_.at(mem_id).at(start_addr + i) = data[i];
-    mems_.at(mem_id).at(start_addr + i) = true;
+    mems_valid_.at(mem_id).at(start_addr + i) = true;
   }
 }
 
