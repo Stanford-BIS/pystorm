@@ -4,6 +4,7 @@
 #include <chrono>
 #include <string>
 #include <vector>
+#include <array>
 
 #include "BDPars.h"
 #include "DriverPars.h"
@@ -24,20 +25,11 @@ class BDState {
   BDState(const bdpars::BDPars *bd_pars, const driverpars::DriverPars *driver_pars);
   ~BDState();
 
-  void SetPAT(unsigned int start_addr, const std::vector<PATData> &data);
-  void SetTAT0(unsigned int start_addr, const std::vector<TATData> &data);
-  void SetTAT1(unsigned int start_addr, const std::vector<TATData> &data);
-  void SetAM(unsigned int start_addr, const std::vector<AMData> &data);
-  void SetMM(unsigned int start_addr, const std::vector<MMData> &data);
+  void SetMem(bdpars::MemId mem_id, unsigned int start_addr, const std::vector<BDWord> &data);
+  inline const std::vector<BDWord> *GetMem(bdpars::MemId mem_id) const { return &mems_.at(mem_id); }
 
-  inline const std::vector<PATData> *GetPAT() const { return &PAT_; }
-  inline const std::vector<TATData> *GetTAT0() const { return &TAT0_; }
-  inline const std::vector<TATData> *GetTAT1() const { return &TAT1_; }
-  inline const std::vector<AMData> *GetAM() const { return &AM_; }
-  inline const std::vector<MMData> *GetMM() const { return &MM_; }
-
-  void SetReg(bdpars::RegId reg_id, const std::vector<unsigned int> &data);
-  const std::pair<const std::vector<unsigned int> *, bool> GetReg(bdpars::RegId reg_id) const;
+  void SetReg(bdpars::RegId reg_id, BDWord data);
+  const std::pair<const BDWord *, bool> GetReg(bdpars::RegId reg_id) const;
 
   // A toggle is a special case of register
   void SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en);
@@ -53,22 +45,14 @@ class BDState {
   const driverpars::DriverPars *driver_pars_;
 
   // register contents
-  std::vector<std::vector<unsigned int> > reg_;
-  std::vector<bool> reg_valid_;
+  std::array<BDWord, bdpars::RegIdCount> reg_;
+  std::array<bool, bdpars::RegIdCount> reg_valid_;
 
   // memory contents
-  std::vector<PATData> PAT_;
-  std::vector<TATData> TAT0_;
-  std::vector<TATData> TAT1_;
-  std::vector<AMData> AM_;
-  std::vector<MMData> MM_;
+  std::array<std::vector<BDWord>, bdpars::MemIdCount> mems_; // conceptually, should be array of arrays, but can't to do that
 
   // binary vectors denote whether memory entries have been programmed
-  std::vector<bool> PAT_valid_;
-  std::vector<bool> TAT0_valid_;
-  std::vector<bool> TAT1_valid_;
-  std::vector<bool> AM_valid_;
-  std::vector<bool> MM_valid_;
+  std::array<std::vector<bool>, bdpars::MemIdCount> mems_valid_;
 
   // I iterate through these a lot, this is for convenience
   const std::vector<bdpars::RegId> kTrafficRegs = {

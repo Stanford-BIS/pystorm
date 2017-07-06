@@ -4,7 +4,7 @@
 #include <iostream>
 #include <map>
 #include <string>
-#include <vector>
+#include <array>
 #include <typeinfo>
 #include <typeindex>
 
@@ -27,84 +27,83 @@ using std::endl;
 
 #define DEFVALWORD1(NAME, F0, W0, V0) \
 struct NAME { \
-  static constexpr unsigned int len = 1; \
-  static constexpr unsigned int field_widths[1] = {W0}; \
-  static constexpr uint64_t field_hard_values[1] = {V0}; \
+  static constexpr unsigned int len {1}; \
+  static constexpr unsigned int field_widths[1] {W0}; \
+  static constexpr uint64_t field_hard_values[1] {V0}; \
   enum Field {F0}; \
-};
+}; 
 
 #define DEFWORD1(NAME, F0, W0) \
 struct NAME { \
-  static constexpr unsigned int len = 1; \
-  static constexpr unsigned int field_widths[1] = {W0}; \
-  static constexpr uint64_t field_hard_values[1] = {0}; \
+  static constexpr unsigned int len {1}; \
+  static constexpr unsigned int field_widths[1] {W0}; \
+  static constexpr uint64_t field_hard_values[1] {0}; \
   enum Field {F0}; \
 };
 
 #define DEFVALWORD2(NAME, F0, W0, V0, F1, W1, V1) \
 struct NAME { \
-  static constexpr unsigned int len = 2; \
-  static constexpr unsigned int field_widths[2] = {W0, W1}; \
-  static constexpr uint64_t field_hard_values[2] = {V0, V1}; \
+  static constexpr unsigned int len {2}; \
+  static constexpr unsigned int field_widths[2] {W0, W1}; \
+  static constexpr uint64_t field_hard_values[2] {V0, V1}; \
   enum Field {F0, F1}; \
 };
 
 #define DEFWORD2(NAME, F0, W0, F1, W1) \
 struct NAME { \
   static constexpr unsigned int len {2}; \
-  static constexpr unsigned int field_widths[2] = {W0, W1}; \
-  static constexpr uint64_t field_hard_values[2] = {0, 0}; \
+  static constexpr unsigned int field_widths[2] {W0, W1}; \
+  static constexpr uint64_t field_hard_values[2] {0, 0}; \
   enum Field {F0, F1}; \
 };
 
 #define DEFVALWORD3(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2) \
 struct NAME { \
-  static constexpr unsigned int len = 3; \
-  static constexpr unsigned int field_widths[3] = {W0, W1, W2}; \
-  static constexpr uint64_t field_hard_values[3] = {V0, V1, V2}; \
+  static constexpr unsigned int len {3}; \
+  static constexpr unsigned int field_widths[3] {W0, W1, W2}; \
+  static constexpr uint64_t field_hard_values[3] {V0, V1, V2}; \
   enum Field {F0, F1, F2}; \
 };
 
 #define DEFWORD3(NAME, F0, W0, F1, W1, F2, W2) \
 struct NAME { \
-  static constexpr unsigned int len = 3; \
-  static constexpr unsigned int field_widths[3] = {W0, W1, W2}; \
-  static constexpr uint64_t field_hard_values[3] = {0, 0, 0}; \
+  static constexpr unsigned int len {3}; \
+  static constexpr unsigned int field_widths[3] {W0, W1, W2}; \
+  static constexpr uint64_t field_hard_values[3] {0, 0, 0}; \
   enum Field {F0, F1, F2}; \
 };
 
 #define DEFVALWORD4(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3) \
 struct NAME { \
-  static constexpr unsigned int len = 4; \
-  static constexpr unsigned int field_widths[4] = {W0, W1, W2, W3}; \
-  static constexpr uint64_t field_hard_values[4] = {V0, V1, V2, V3}; \
+  static constexpr unsigned int len {4}; \
+  static constexpr unsigned int field_widths[4] {W0, W1, W2, W3}; \
+  static constexpr uint64_t field_hard_values[4] {V0, V1, V2, V3}; \
   enum Field {F0, F1, F2, F3}; \
 };
 
 #define DEFWORD4(NAME, F0, W0, F1, W1, F2, W2, F3, W3) \
 struct NAME { \
-  static constexpr unsigned int len = 4; \
-  static constexpr unsigned int field_widths[4] = {W0, W1, W2, W3}; \
-  static constexpr uint64_t field_hard_values[4] = {0, 0, 0, 0}; \
+  static constexpr unsigned int len = {4}; \
+  static constexpr unsigned int field_widths[4] {W0, W1, W2, W3}; \
+  static constexpr uint64_t field_hard_values[4] {0, 0, 0, 0}; \
   enum Field {F0, F1, F2, F3}; \
 };
 
 #define DEFVALWORD5(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4) \
 struct NAME { \
-  static constexpr unsigned int len = 5; \
-  static constexpr unsigned int field_widths[5] = {W0, W1, W2, W3, W4}; \
-  static constexpr uint64_t field_hard_values[5] = {V0, V1, V2, V3, V4}; \
+  static constexpr unsigned int len {5}; \
+  static constexpr unsigned int field_widths[5] {W0, W1, W2, W3, W4}; \
+  static constexpr uint64_t field_hard_values[5] {V0, V1, V2, V3, V4}; \
   enum Field {F0, F1, F2, F3, F4}; \
 };
 
 #define DEFVALWORD7(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4, F5, W5, V5, F6, W6, V6) \
 struct NAME { \
-  static constexpr unsigned int len = 7; \
-  static constexpr unsigned int field_widths[7] = {W0, W1, W2, W3, W4, W5, W6}; \
-  static constexpr uint64_t field_hard_values[7] = {V0, V1, V2, V3, V4, V5, V6}; \
+  static constexpr unsigned int len {7}; \
+  static constexpr unsigned int field_widths[7] {W0, W1, W2, W3, W4, W5, W6}; \
+  static constexpr uint64_t field_hard_values[7] {V0, V1, V2, V3, V4, V5, V6}; \
   enum Field {F0, F1, F2, F3, F4, F5, F6}; \
-};
-
+}; \
 
 // XXX Something else you could try: cramming all the values into the enums
 // all we really need is the width and the shift for each field, and the hardcoded
@@ -123,12 +122,138 @@ enum class NAME { \
   HARD_VALUE = 0};
 */
 
+/*
+#define DEFVALWORD1(NAME, F0, W0, V0) \
+enum class NAME { \
+  width0 = W0, \
+  shift0 = 0, \
+  val0 = V0, \
+  F0 = (width0 << 32) | shift0, \
+  HARD_VALUE = val0};
+
+#define DEFVALWORD2(NAME, F0, W0, V0, F1, W1, V1) \
+enum class NAME { \
+  width0 = W0, \
+  width1 = W1, \
+  shift0 = 0, \
+  shift1 = shift0 + width0, \
+  val0 = V0, \
+  val1 = V1 << shift1, \
+  F0 = (width0 << WSHIFT) | shift0, \
+  F1 = (width1 << WSHIFT) | shift1, \
+  HARD_VALUE = val0 | val1};
+
+#define DEFVALWORD3(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2) \
+enum class NAME { \
+  width0 = W0, \
+  width1 = W1, \
+  width2 = W2, \
+  shift0 = 0, \
+  shift1 = shift0 + width0, \
+  shift2 = shift1 + width1, \
+  val0 = V0, \
+  val1 = V1 << shift1, \
+  val2 = V2 << shift2, \
+  F0 = (width0 << WSHIFT) | shift0, \
+  F1 = (width1 << WSHIFT) | shift1, \
+  F2 = (width2 << WSHIFT) | shift2, \
+  HARD_VALUE = val0 | val1 | val2};
+
+#define DEFVALWORD4(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3) \
+enum class NAME { \
+  width0 = W0, \
+  width1 = W1, \
+  width2 = W2, \
+  width3 = W3, \
+  shift0 = 0, \
+  shift1 = shift0 + width0, \
+  shift2 = shift1 + width1, \
+  shift3 = shift2 + width2, \
+  val0 = V0, \
+  val1 = V1 << shift1, \
+  val2 = V2 << shift2, \
+  val3 = V3 << shift3, \
+  F0 = (width0 << WSHIFT) | shift0, \
+  F1 = (width1 << WSHIFT) | shift1, \
+  F2 = (width2 << WSHIFT) | shift2, \
+  F3 = (width3 << WSHIFT) | shift3, \
+  HARD_VALUE = val0 | val1 | val2 | val3};
+
+#define DEFVALWORD5(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4) \
+enum class NAME { \
+  width0 = W0, \
+  width1 = W1, \
+  width2 = W2, \
+  width3 = W3, \
+  width4 = W4, \
+  shift0 = 0, \
+  shift1 = shift0 + width0, \
+  shift2 = shift1 + width1, \
+  shift3 = shift2 + width2, \
+  shift4 = shift3 + width3, \
+  val0 = V0, \
+  val1 = V1 << shift1, \
+  val2 = V2 << shift2, \
+  val3 = V3 << shift3, \
+  val4 = V4 << shift4, \
+  F0 = (width0 << WSHIFT) | shift0, \
+  F1 = (width1 << WSHIFT) | shift1, \
+  F2 = (width2 << WSHIFT) | shift2, \
+  F3 = (width3 << WSHIFT) | shift3, \
+  F4 = (width4 << WSHIFT) | shift4, \
+  HARD_VALUE = val0 | val1 | val2 | val3 | val4};
+
+#define DEFVALWORD7(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4, F5, W5, V5, F6, W6, V6) \
+enum class NAME { \
+  width0 = W0, \
+  width1 = W1, \
+  width2 = W2, \
+  width3 = W3, \
+  width4 = W4, \
+  width5 = W5, \
+  width6 = W6, \
+  shift0 = 0, \
+  shift1 = shift0 + width0, \
+  shift2 = shift1 + width1, \
+  shift3 = shift2 + width2, \
+  shift4 = shift3 + width3, \
+  shift5 = shift4 + width4, \
+  shift6 = shift5 + width5, \
+  val0 = V0, \
+  val1 = V1 << shift1, \
+  val2 = V2 << shift2, \
+  val3 = V3 << shift3, \
+  val4 = V4 << shift4, \
+  val5 = V5 << shift5, \
+  val6 = V6 << shift6, \
+  F0 = (width0 << WSHIFT) | shift0, \
+  F1 = (width1 << WSHIFT) | shift1, \
+  F2 = (width2 << WSHIFT) | shift2, \
+  F3 = (width3 << WSHIFT) | shift3, \
+  F4 = (width4 << WSHIFT) | shift4, \
+  F5 = (width5 << WSHIFT) | shift5, \
+  F6 = (width6 << WSHIFT) | shift6, \
+  HARD_VALUE = val0 | val1 | val2 | val3 | val4 | val5 | val6};
+
+#define DEFWORD1(NAME, F0, W0, V0) DEVALWORD1(F0, W0, 0)
+
+#define DEFWORD2(NAME, F0, W0, V0, F1, W1, V1) DEFVALWORD2(NAME, F0, W0, 0, F1, W1, 0)
+
+#define DEFWORD3(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2) DEFVALWORD3(NAME, F0, W0, 0, F1, W1, 0, F2, W2, 0)
+
+#define DEFWORD4(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3) DEFVALWORD4(NAME, F0, W0, 0, F1, W1, 0, F2, W2, 0, F3, W3, 0)
+*/
+
 namespace pystorm {
 namespace bddriver {
 
 // define all the word formats using the above macros
 
+//DEFVALWORD1(foo, foo, 1)
+//DEFVALWORD2(foobar, foo, 1, bar, 2)
+
 // register words
+
 DEFWORD2(ToggleWord, 
     TRAFFIC_ENABLE, 1, DUMP_ENABLE, 1)
 
@@ -241,7 +366,7 @@ DEFWORD2(InputTag,
 DEFWORD1(FIFOInputTag,
     TAG, 11)
 
-DEFWORD2(Inputspikes,
+DEFWORD2(InputSpike,
     SYNAPSE_SIGN, 1, SYNAPSE_ADDRESS, 10)
 
 // output words
@@ -273,6 +398,7 @@ class BDWord {
 
  public:
 
+  BDWord() { val_ = 0; }
   /// Initialize from uint64_t 
   BDWord(uint64_t val) {
     val_ = static_cast<uint64_t>(val);
@@ -284,7 +410,7 @@ class BDWord {
   /// It's hard to write the equivalent ctor because templated ctors can only
   /// work through template deduction (which doesn't seem to work here)
   template <class T>
-  static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) { 
+  inline static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) { 
     BDWord new_word(0);
     for (auto& field_and_val : fields) {
 
@@ -311,7 +437,7 @@ class BDWord {
   /// Get a sub-field of BDWord val_ at a given Field.
   /// Typically used when unpacking words as they're sent upstream.
   template <class T, class UINT>
-  UINT At(typename T::Field field_id) { 
+  inline UINT At(typename T::Field field_id) const { 
 
     unsigned int field_idx = static_cast<unsigned int>(field_id);
 
@@ -330,17 +456,26 @@ class BDWord {
 
   /// Syntactic sugar for At(), UINT defaults to uint64_t
   template <class T>
-  uint64_t At(typename T::Field field_id) { return At<T, uint64_t>(field_id); }
+  inline uint64_t At(typename T::Field field_id) const { return At<T, uint64_t>(field_id); }
 
   /// Get the underlying value. 
   /// Useful when packing this word into another BDWord.
   template <class UINT>
-  UINT Packed() { return static_cast<UINT>(val_); }
+  inline UINT Packed() const { return static_cast<UINT>(val_); }
 
   /// Syntactic sugar for Packed(), UINT defaults to uint64_t
-  uint64_t Packed() { return static_cast<uint64_t>(val_); }
+  inline uint64_t Packed() const { return Packed<uint64_t>(); }
+
+  /// (in)equality checks
+  friend bool operator==(const BDWord& lhs, const BDWord& rhs) {
+    return lhs.val_ == rhs.val_;
+  }
+  friend bool operator!=(const BDWord& lhs, const BDWord& rhs) {
+    return !(lhs == rhs);
+  }
 
 };
+
 
 namespace bdpars {
 
@@ -354,7 +489,7 @@ enum ComponentTypeId {
   INPUT,
   OUTPUT,
 
-  LastComponentTypeId = OUTPUT
+  ComponentTypeIdCount
 };
 
 /// Identifier for particular BD register
@@ -385,7 +520,7 @@ enum RegId {
   DELAY5,
   DELAY6,
 
-  LastRegId = DELAY6
+  RegIdCount
 };
 
 /// Identifier for particular BD memory
@@ -398,7 +533,7 @@ enum MemId {
   FIFO_DCT,
   FIFO_PG,
 
-  LastMemId = FIFO_PG
+  MemIdCount
 };
 
 /// Identifier for particular BD input stream
@@ -409,7 +544,7 @@ enum InputId {
   TILE_SRAM_INPUTS,
   INPUT_SPIKES,
 
-  LastInputId = INPUT_SPIKES
+  InputIdCount
 };
 
 /// Identifier for particular BD output stream
@@ -423,7 +558,7 @@ enum OutputId {
   ACC_OUTPUT_TAGS,
   TAT_OUTPUT_TAGS,
 
-  LastOutputId = TAT_OUTPUT_TAGS
+  OutputIdCount
 };
 
 /// Identifier for particular DAC signal name
@@ -431,7 +566,7 @@ enum OutputId {
 enum DACSignalId {
   PLACEHOLDER_SIGNAL_NAME,
 
-  LastDACSignalId = PLACEHOLDER_SIGNAL_NAME
+  DACSignalIdCount
 };
 
 /// Identifier for particular BD horn leaf
@@ -471,7 +606,7 @@ enum HornLeafId {
   DELAY5_LEAF,
   DELAY6_LEAF,
 
-  LastHornLeafId = DELAY6_LEAF
+  HornLeafIdCount
 };
 
 /// Identifier for particular BD funnel leaf
@@ -490,84 +625,7 @@ enum FunnelLeafId {
   OVFLW0,
   OVFLW1,
 
-  LastFunnelLeafId = OVFLW1
-};
-
-/// Identifier for particular BD memory programming/diagnostic word
-enum MemWordId {
-  // PAT words
-  PAT_WRITE,
-  PAT_READ,
-  // TAT WORDS
-  TAT_SET_ADDRESS,
-  TAT_WRITE_INCREMENT,
-  TAT_READ_INCREMENT,
-  // MM WORDS
-  MM_SET_ADDRESS,
-  MM_WRITE_INCREMENT,
-  MM_READ_INCREMENT,
-  // AM WORDS
-  AM_SET_ADDRESS,
-  AM_READ_WRITE,
-  AM_INCREMENT,
-  // AM/MM ENCAPSULATION
-  AM_ENCAPSULATION,
-  MM_ENCAPSULATION,
-
-  LastMemWordId = MM_ENCAPSULATION
-};
-
-/// Identifier for particular BD word field
-enum WordFieldId {
-  // fields with special meaning
-  INVALID_FIELD,  // only used when you want an enum to not match anything
-  FIXED_0,
-  FIXED_1,
-  FIXED_2,
-  FIXED_3,  // if you need a higher FIXED value, need to add it here and encode meaning (or use multiple fields)
-  UNUSED,
-  // common fields
-  TAG,
-  GLOBAL_ROUTE,
-  COUNT,
-  ADDRESS,
-  DATA,
-  PAYLOAD,
-  STOP,
-  // registers
-  TRAFFIC_ENABLE,
-  DUMP_ENABLE,
-  DAC_TO_ADC_CONN,
-  DAC_VALUE,
-  READ_DELAY,
-  WRITE_DELAY,
-  ADC_SMALL_LARGE_CURRENT_0,
-  ADC_SMALL_LARGE_CURRENT_1,
-  ADC_OUTPUT_ENABLE,
-  // AM data
-  ACCUMULATOR_VALUE,
-  THRESHOLD,
-  NEXT_ADDRESS,
-  // MM data
-  WEIGHT,
-  // AMMM encapsulation
-  AMMM_STOP,
-  // PAT data
-  AM_ADDRESS,
-  MM_ADDRESS_LO,
-  MM_ADDRESS_HI,
-  // TAT data
-  MM_ADDRESS,
-  SYNAPSE_ADDRESS_0,
-  SYNAPSE_SIGN_0,
-  SYNAPSE_ADDRESS_1,
-  SYNAPSE_SIGN_1,
-  // inputs and outputs
-  SYNAPSE_ADDRESS,
-  SYNAPSE_SIGN,
-  NEURON_ADDRESS,
-
-  LastWordFieldId = NEURON_ADDRESS
+  FunnelLeafIdCount
 };
 
 /// Identifier for miscellaneous BD hardware width parameters
@@ -575,13 +633,8 @@ enum MiscWidthId {
   BD_INPUT,
   BD_OUTPUT,
 
-  LastMiscWidthId = BD_OUTPUT
+  MiscWidthIdCount
 };
-
-/// Describes the structure of a word in the BD hardware.
-/// stores the word's sub-fields as (field_ids, field_lengths), in LSB to MSB order
-typedef std::vector<std::pair<bdpars::WordFieldId, unsigned int> >
-    WordStructure;  // field name, field width, in order lsb -> msb
 
 /// route val, route len
 typedef std::pair<uint32_t, unsigned int> FHRoute;
@@ -600,30 +653,26 @@ struct LeafInfo {
 
 struct MemInfo {
   unsigned int size;
-  std::vector<WordStructure> word_structures;
   HornLeafId prog_leaf;
   FunnelLeafId dump_leaf;
   RegId delay_reg;
 };
 
 struct RegInfo {
-  WordStructure word_structure;
   HornLeafId leaf;
 };
 
 struct InputInfo {
-  WordStructure word_structure;
   HornLeafId leaf;
 };
 
 struct OutputInfo {
-  WordStructure word_structure;
   FunnelLeafId leaf;
 };
 
 /// BDPars holds all the nitty-gritty information about the BD hardware's parameters.
 ///
-/// BDPars contains several vector data members containing structs, keyed by enums.
+/// BDPars contains several array data members containing structs, keyed by enums.
 /// The enums refer to particular hardware elements or concepts, such as the name of a memory,
 /// register, or a particular type of programming word.
 /// The structs contain relevant information about this hardware element or concept,
@@ -651,9 +700,9 @@ class BDPars {
 
   // useful if you need to iterate through routing table, returns const ptr
   /// return reference to Horn routing table
-  inline const std::vector<FHRoute>* HornRoutes() const { return &horn_routes_; }
+  inline const std::array<FHRoute, HornLeafIdCount>* HornRoutes() const { return &horn_routes_; }
   /// return reference to Funnel routing table
-  inline const std::vector<FHRoute>* FunnelRoutes() const { return &funnel_routes_; }
+  inline const std::array<FHRoute, FunnelLeafIdCount>* FunnelRoutes() const { return &funnel_routes_; }
 
   // look up serialization
   /// Get serialization for a given horn leaf.
@@ -701,28 +750,11 @@ class BDPars {
   /////////////////////////////////////
   // Word structure queries. These all look up word structures associated with the supplied object
 
-  /// Get word structure for a memory data word (e.g. the packing of the AM's data word)
-  /// The TAT has three sub-words, which can be accessed by supplying subtype_idx
-  inline const WordStructure* Word(MemId object, unsigned int subtype_idx = 0) const {
-    return &(mem_.at(object).word_structures.at(subtype_idx));
-  }
-  /// Get word structure for a memory programming word (e.g. RW write, RMW increment)
-  inline const WordStructure* Word(MemWordId object) const { return &(mem_prog_words_.at(object)); }
-  /// Get word structure for a register data word
-  inline const WordStructure* Word(RegId object) const { return &(reg_.at(object).word_structure); }
-  /// Get word structure for an input word
-  inline const WordStructure* Word(InputId object) const { return &(input_.at(object).word_structure); }
-  /// Get word structure for an output word
-  inline const WordStructure* Word(OutputId object) const { return &(output_.at(object).word_structure); }
-
-  // XXX should be template? just used for testing for now anyway
+  // Just used for testing for now:
   // (to ensure that the random test inputs aren't too big for their field)
-  unsigned int WordFieldWidth(const WordStructure& word, WordFieldId field_id_to_match) const;
-  unsigned int WordFieldWidth(MemId object, WordFieldId field_id, unsigned int subtype_idx = 0) const;
-  unsigned int WordFieldWidth(MemWordId object, WordFieldId field_id) const;
-  unsigned int WordFieldWidth(RegId object, WordFieldId field_id) const;
-  unsigned int WordFieldWidth(InputId object, WordFieldId field_id) const;
-  unsigned int WordFieldWidth(OutputId object, WordFieldId field_id) const;
+  template <class Word>
+  unsigned int WordFieldWidth(typename Word::Field field_id) const 
+    { return Word::field_widths[static_cast<unsigned int>(field_id)]; }
 
   /////////////////////////////////////
   // misc
@@ -742,50 +774,41 @@ class BDPars {
   // Value Mapping/Checking for special field ids
   // note: static functions
 
-  /// Some field ids are have fixed values. This function maps from field_ids to the those values
-  static uint64_t ValueForSpecialFieldId(bdpars::WordFieldId field_id);
-  /// returns true if value is consistent with the provided field id
-  static bool SpecialFieldValueMatches(bdpars::WordFieldId field_id, uint64_t val);
-
  private:
   unsigned int num_cores_;
 
   /// inputs to BD that aren't a register or memory programming word
   /// keyed by HornLeafId
-  std::vector<InputInfo> input_;
+  std::array<InputInfo, InputIdCount> input_;
   /// outputs from BD that aren't a memory dump word
   /// keyed by FunnelLeafId
-  std::vector<OutputInfo> output_;
+  std::array<OutputInfo, OutputIdCount> output_;
 
   /// horn description
   /// keyed by HornLeafId
-  std::vector<LeafInfo> horn_;
+  std::array<LeafInfo, HornLeafIdCount> horn_;
   /// funnel description
   /// keyed by FunnelLeafId
-  std::vector<LeafInfo> funnel_;
+  std::array<LeafInfo, FunnelLeafIdCount> funnel_;
 
   /// memory descriptions (data field packing + misc info)
   /// keyed by MemId
-  std::vector<MemInfo> mem_;
-
-  /// memory programming words
-  /// keyed by MemId
-  std::vector<WordStructure> mem_prog_words_;
+  std::array<MemInfo, MemIdCount> mem_;
 
   /// register descriptions (data field packing + misc info)
   /// keyed by RegId
-  std::vector<RegInfo> reg_;
+  std::array<RegInfo, RegIdCount> reg_;
 
   /// horn route tables
   /// keyed by HornLeafId
-  std::vector<FHRoute> horn_routes_;
+  std::array<FHRoute, HornLeafIdCount> horn_routes_;
   /// funnel route tables
   /// keyed by FunnelLeafId
-  std::vector<FHRoute> funnel_routes_;
+  std::array<FHRoute, FunnelLeafIdCount> funnel_routes_;
 
   /// miscellaneous hardware widths
   /// keyed by MiscFieldId
-  std::vector<unsigned int> misc_widths_;
+  std::array<unsigned int, MiscWidthIdCount> misc_widths_;
 };
 
 }  // bdpars
