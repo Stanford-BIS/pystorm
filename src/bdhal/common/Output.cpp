@@ -1,11 +1,11 @@
 #include <stdexcept>
 
-#include <common/Input.h>
+#include <common/Output.h>
 
 namespace pystorm {
 namespace bdhal {
 
-Input::Input(std::string label, uint32_t n_dims) : 
+Output::Output(std::string label, uint32_t n_dims) : 
         m_label(label),
         m_dims(n_dims) {
     if (m_label.size() == 0) {
@@ -17,7 +17,7 @@ Input::Input(std::string label, uint32_t n_dims) :
     }
 }
 
-Input::~Input() {
+Output::~Output() {
 }
 
 }

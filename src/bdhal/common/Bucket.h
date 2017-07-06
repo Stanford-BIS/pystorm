@@ -4,11 +4,11 @@
 #include <iostream>
 #include <stdint.h>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
 
 namespace pystorm {
 namespace bdhal {
-class Bucket : public ConnectableObjectInput, ConnectableObjectOutput {
+class Bucket : public ConnectableInput, ConnectableOutput {
 public:
     ///
     /// Default constructor

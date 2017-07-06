@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
 #include <common/HelperFuncs.h>
 
 namespace pystorm {
@@ -14,7 +14,7 @@ namespace bdhal {
 ///
 /// A Pool of neurons
 ///
-class Pool : public ConnectableObjectInput, ConnectableObjectOutput {
+class Pool : public ConnectableInput, ConnectableOutput {
 public:
     ///
     /// Default constructor 

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
 
 namespace pystorm {
 namespace bdhal {
@@ -13,43 +13,43 @@ namespace bdhal {
 /// a Pool or Bucket. An Output can be connected to a Pool using the
 /// Connection class.
 ///
-class Output : public ConnectableObject {
+class Output : public ConnectableOutput {
 public:
     ///
     /// Default constructor
     /// 
-    /// \param name Name assigned to the Input
-    /// \param n_dims Number of dimensions the Input represents
+    /// \param name Name assigned to the Output
+    /// \param n_dims Number of dimensions the Output represents
     ///
-    Input(std::string name, uint32_t n_dims);
+    Output(std::string name, uint32_t n_dims);
 
-    ~Input();
+    ~Output();
 
-    Input(const Input&) = delete;
-    Input(Input&&) = delete;
-    Input& operator=(const Input&) = delete;
-    Input& operator=(Input&&) = delete;
+    Output(const Output&) = delete;
+    Output(Output&&) = delete;
+    Output& operator=(const Output&) = delete;
+    Output& operator=(Output&&) = delete;
 
     ///
-    /// Returns name assigned to Input
+    /// Returns name assigned to Output
     ///
     std::string GetLabel() {
         return m_label;
     }
 
     ///
-    /// Returns name assigned to Input
+    /// Returns name assigned to Output
     ///
-    /// \return Number of dimensions assigned to Input
+    /// \return Number of dimensions assigned to Output
     ///
     uint32_t GetNumDimensions() {
         return m_dims;
     }
 private:
-    /// Input name
+    /// Output name
     std::string m_label;
 
-    /// Number of dimensions assigned to Input
+    /// Number of dimensions assigned to Output
     uint32_t    m_dims;
 };
 

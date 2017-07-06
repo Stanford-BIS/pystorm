@@ -1,18 +1,18 @@
-#ifndef WEIGHTEDCONNECTION_H
-#define WEIGHTEDCONNECTION_H
+#ifndef CONNECTION_H
+#define CONNECTION_H
 
 #include <iostream>
 #include <stdint.h>
-#include <common/ConnectableObject.h>
-#include <common/Transform.h>
+#include <common/Connectable.h>
+#include <common/Weights.h>
 
 namespace pystorm {
 namespace bdhal {
 ///
-/// A projection from one ConnectableObject (i.e. Pool or StateSpace) to
-/// another where the outputs of the first object can be linearly combined
+/// A projection from one ConnectableInput object to a ConnectableOutput
+/// object where the outputs of the first object can be linearly combined
 /// prior to becoming inputs to the second object. This linear combination
-/// is acheived through the use of a Transform object.
+/// is acheived through the use of a Weights object.
 ///
 class Connection {
 public:
@@ -28,8 +28,8 @@ public:
     /// \param dest The destination of the connection where data flows into.
     /// \param transform_matrix The transformation matrix. 
     ///
-    Connection(std::string name, ConnectableObject* src, 
-        ConnectableObject* dest, Transform<uint32_t>* transform_matrix) :
+    Connection(std::string name, ConnectableInput* src, 
+        ConnectableOutput* dest, Weights<uint32_t>* transform_matrix) :
         m_name(name),
         m_src(src),
         m_dest(dest),
@@ -37,6 +37,36 @@ public:
         assert(nullptr != m_src);
         assert(nullptr != m_dest);
         assert(nullptr != m_transform);
+
+        // maybe we should construct a name
+        if (m_name.empty()) {
+            m_name = "";
+        }
+
+        // check that the dimensions of the transform matrix match the dimensions
+        // of the src and destination
+    }
+
+    ///
+    /// Default constructor
+    ///
+    /// This class assumes ownership of all pointers (should use 
+    /// smart pointer objects then? yes; need to see how this plays
+    /// with boost python)
+    ///
+    /// \param name Label given to the connection object
+    /// \param src The source of the connection where data flow out of.
+    /// \param dest The destination of the connection where data flows into.
+    /// \param transform_matrix The transformation matrix. 
+    ///
+    Connection(std::string name, ConnectableInput* src, 
+        ConnectableOutput* dest) :
+        m_name(name),
+        m_src(src),
+        m_dest(dest),
+        m_transform(nullptr) {
+        assert(nullptr != m_src);
+        assert(nullptr != m_dest);
 
         // maybe we should construct a name
         if (m_name.empty()) {
@@ -78,7 +108,7 @@ public:
     ///
     /// The source object to this connection.
     ///
-    ConnectableObject* getSrc() {
+    ConnectableInput* getSrc() {
         return m_src;
     }
 
@@ -86,7 +116,7 @@ public:
     ///
     /// The destination object from this connection.
     ///
-    ConnectableObject* getDest() {
+    ConnectableOutput* getDest() {
         return m_dest;
     }
 
@@ -94,7 +124,7 @@ public:
     ///
     /// The transform matrix.
     ///
-    Transform<uint32_t>* getTransformMatrix() {
+    Weights<uint32_t>* getWeights() {
         return m_transform;
     }
 
@@ -103,16 +133,16 @@ private:
     std::string m_name;
 
     /// Source of the connection
-    ConnectableObject* m_src;
+    ConnectableInput* m_src;
 
     /// Destination of the connection
-    ConnectableObject* m_dest;
+    ConnectableOutput* m_dest;
 
-    /// Transform matrix
-    Transform<uint32_t>* m_transform;
+    /// Weights matrix
+    Weights<uint32_t>* m_transform;
 };
 
 } // namespace bdhal
 } // namespace pystorm
 
-#endif // ifndef WEIGHTEDCONNECTION_H
+#endif // ifndef CONNECTION_H

@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
 
 namespace pystorm {
 namespace bdhal {
@@ -13,7 +13,7 @@ namespace bdhal {
 /// another Pool or Input. A Input can be connected to a Pool using the
 /// Connection class.
 ///
-class Input : public ConnectableObject {
+class Input : public ConnectableInput {
 public:
     ///
     /// Default constructor

@@ -24,35 +24,35 @@ Pool* Network::CreatePool(std::string label,
     return newPool;
 }
 
-StateSpace* Network::CreateStateSpace(std::string name, uint32_t n_dims) {
-    StateSpace* newStatespace = new StateSpace(name,n_dims);
-    m_statespaces.push_back(newStatespace);
-    return newStatespace;
+Bucket* Network::CreateBucket(std::string name, uint32_t n_dims) {
+    Bucket* newBucket = new Bucket(name,n_dims);
+    m_buckets.push_back(newBucket);
+    return newBucket;
 }
 
 Connection* Network::CreateConnection( std::string name, 
-    ConnectableObject* src, ConnectableObject* dest) {
+    ConnectableInput* src, ConnectableOutput* dest) {
 
     uint32_t* m = (uint32_t*) 
         std::calloc((src->GetNumDimensions()*dest->GetNumDimensions()), 
         sizeof(uint32_t));
 
-    Transform<uint32_t>* transformMatrix = 
-        new pystorm::bdhal::Transform<uint32_t>(m, src->GetNumDimensions(), 
+    Weights<uint32_t>* transformMatrix = 
+        new pystorm::bdhal::Weights<uint32_t>(m, src->GetNumDimensions(), 
             dest->GetNumDimensions());
     
     Connection* newConnection = new Connection(name, src, 
         dest, transformMatrix);
-    m_weightedConnections.push_back(newConnection);
+    m_connections.push_back(newConnection);
     return newConnection;
 }
 
 Connection* Network::CreateConnection(std::string name, 
-    ConnectableObject* src, ConnectableObject* dest, 
-    Transform<uint32_t>* transformMatrix) {
+    ConnectableInput* src, ConnectableOutput* dest, 
+    Weights<uint32_t>* transformMatrix) {
     Connection* newConnection = new Connection(name, 
         src, dest, transformMatrix);
-    m_weightedConnections.push_back(newConnection);
+    m_connections.push_back(newConnection);
     return newConnection;
 }
 

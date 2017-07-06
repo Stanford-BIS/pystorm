@@ -1,5 +1,5 @@
-#ifndef TRANSFORM_H
-#define TRANSFORM_H
+#ifndef WEIGHTS_H
+#define WEIGHTS_H
 
 #include <iostream>
 #include <stdint.h>
@@ -10,7 +10,7 @@ namespace bdhal {
 /// A matrix representing the transform used in a Connection.
 ///
 template<typename T>
-class Transform {
+class Weights {
 public:
     ///
     /// Default constructor
@@ -19,7 +19,7 @@ public:
     /// \param num_rows The number of rows in the transform matrix.
     /// \param num_columns The number of columns in the transform matrix.
     ///
-    Transform(T* matrix, uint32_t num_rows, uint32_t num_columns) :
+    Weights(T* matrix, uint32_t num_rows, uint32_t num_columns) :
         m_matrix(matrix),
         m_num_rows(num_rows),
         m_num_columns(num_columns) {
@@ -29,13 +29,13 @@ public:
         assert(m_num_columns > 0);
     }
 
-    ~Transform() {
+    ~Weights() {
     }
 
-    Transform(const Transform&) = delete;
-    Transform(Transform&&) = delete;
-    Transform& operator=(const Transform&) = delete;
-    Transform& operator=(Transform&&) = delete;
+    Weights(const Weights&) = delete;
+    Weights(Weights&&) = delete;
+    Weights& operator=(const Weights&) = delete;
+    Weights& operator=(Weights&&) = delete;
 
     /// \brief Returns the represented matrix
     ///

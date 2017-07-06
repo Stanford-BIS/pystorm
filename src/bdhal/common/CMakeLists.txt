@@ -1,10 +1,10 @@
 set(HEADER_FILES
     ${HEADER_FILES} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/ConnectableObject.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Connectable.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Pool.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StateSpace.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/Transform.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Weights.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Connection.h
     ${CMAKE_CURRENT_SOURCE_DIR}/HelperFuncs.h
     PARENT_SCOPE
@@ -15,6 +15,6 @@ set(SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/StateSpace.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ConnectableObject.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Connectable.cpp
     PARENT_SCOPE
 )

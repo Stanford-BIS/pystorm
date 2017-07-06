@@ -4,7 +4,7 @@
 #include <iostream>
 #include <stdint.h>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
 
 namespace pystorm {
 namespace bdhal {
@@ -13,7 +13,7 @@ namespace bdhal {
 /// another Pool or StateSpace. A StateSpace can be connected to another
 /// Pool or StateSpace by using the Connection class.
 ///
-class StateSpace : public ConnectableObject {
+class StateSpace : public ConnectableInput, ConnectableOutput {
 public:
     ///
     /// Default constructor

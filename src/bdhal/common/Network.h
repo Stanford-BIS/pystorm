@@ -7,21 +7,25 @@
 #include <stdint.h>
 #include <vector>
 
-#include <common/ConnectableObject.h>
+#include <common/Connectable.h>
+#include <common/Input.h>
+#include <common/Output.h>
 #include <common/Pool.h>
-#include <common/StateSpace.h>
+#include <common/Bucket.h>
 #include <common/Connection.h>
-#include <common/Transform.h>
+#include <common/Weights.h>
 
 namespace pystorm {
 namespace bdhal {
 
 typedef std::vector<Pool*> VecOfPools;
-typedef std::vector<StateSpace*> VecOfStateSpaces;
+typedef std::vector<Bucket*> VecOfBuckets;
+typedef std::vector<Input*> VecOfInputs;
+typedef std::vector<Output*> VecOfOutputs;
 typedef std::vector<Connection*> VecOfConnection;
 
 ///
-/// A Network composed of Connection and ConnectableObjects
+/// A Network composed of Connection and Connectable objects
 ///
 /// A network that represents a Nengo network. The network will be passed
 /// to Neuromorph to be placed and routed and will be passed to a MappedNetwork
@@ -79,7 +83,7 @@ public:
     ///
     /// \return a new Statespace object
     ///
-    StateSpace* CreateStateSpace(std::string name, uint32_t n_dims);
+    Bucket* CreateBucket(std::string name, uint32_t n_dims);
 
     ///
     /// Create a Connection object for this network
@@ -91,7 +95,7 @@ public:
     /// \return a new Connection object
     ///
     Connection* CreateConnection( std::string name, 
-        ConnectableObject* src, ConnectableObject* dest);
+        ConnectableInput* src, ConnectableOutput* dest);
 
     ///
     /// Create a Connection object for this network
@@ -99,24 +103,24 @@ public:
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
-    /// \param transformMatrix Transform matrix assigned to the connection
+    /// \param transformMatrix Weights matrix assigned to the connection
     ///
     /// \return a new Connection object
     ///
     Connection* CreateConnection(std::string name, 
-        ConnectableObject* src, ConnectableObject* dest, 
-        Transform<uint32_t>* transformMatrix);
+        ConnectableInput* src, ConnectableOutput* dest, 
+        Weights<uint32_t>* transformMatrix);
 
     VecOfPools& GetPools() {
         return m_pools;
     }
 
-    VecOfStateSpaces& GetStateSpaces() {
-        return m_statespaces;
+    VecOfBuckets& GetBuckets() {
+        return m_buckets;
     }
 
     VecOfConnection& GetConnection() {
-        return m_weightedConnections;
+        return m_connections;
     }
 
 private:
@@ -127,26 +131,24 @@ private:
     VecOfPools m_pools;
 
     /// Statespaces created for Network
-    std::vector<StateSpace*> m_statespaces;
+    std::vector<Bucket*> m_buckets;
 
     /// Connection created for Network
-    std::vector<Connection*> m_weightedConnections;
+    std::vector<Connection*> m_connections;
 
     //Chances are the Network will need more structures for bookkeeping
     // including a map from Connection to a tuple (pair) consisting
-    // of src and dest objects (both ConnectableObject instances)
+    // of src and dest objects (both Connectable instances)
     // Let's consider how this is useful with some use cases
     std::map<Connection*, 
-        std::pair<ConnectableObject*, ConnectableObject*> > m_connectionMap;
+        std::pair<ConnectableInput*, ConnectableOutput*> > m_connectionMap;
 
-    /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its input
-    /// connections.
-    std::map<ConnectableObject*, std::vector<Connection*> > 
+    /// A map from a Connectable object to its input connections.
+    std::map<ConnectableInput*, std::vector<Connection*> > 
         m_inConnections;
 
-    /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its output
-    /// connections.
-    std::map<ConnectableObject*, std::vector<Connection*> > 
+    /// A map from a Connectable object to its output connections.
+    std::map<ConnectableOutput*, std::vector<Connection*> > 
         m_outConnections;
 };
 
