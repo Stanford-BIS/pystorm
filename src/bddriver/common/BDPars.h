@@ -412,23 +412,29 @@ class BDWord {
   template <class T>
   inline static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) { 
     BDWord new_word(0);
+
+    // compute shifts (should be evalualable at compile-time!)
+    unsigned int shifts[T::len];
+    unsigned int curr_shift = 0;
+    for (unsigned int i = 0; i < T::len; i++) {
+      shifts[i] = curr_shift;
+      curr_shift += T::field_widths[i];
+    }
+
     for (auto& field_and_val : fields) {
 
       typename T::Field field_id = field_and_val.first;
       uint64_t field_val = static_cast<uint64_t>(field_and_val.second);
-      
-      // compute shift (should be evalualable at compile-time!)
-      unsigned int shift = 0;
-      unsigned int field_idx = static_cast<unsigned int>(field_id);
-      for (unsigned int i = 0; i < field_idx; i++) {
-        shift += T::field_widths[i];
-      }
 
-      new_word.val_ |= field_val << shift;
+      unsigned int field_idx = static_cast<unsigned int>(field_id);
+
+      new_word.val_ |= field_val << shifts[field_idx];
     }
+
     for (unsigned int i = 0; i < T::len; i++) {
+
       if (T::field_hard_values[i] != 0) {
-        new_word.val_ |= T::field_hard_values[i];
+        new_word.val_ |= T::field_hard_values[i] << shifts[i];
       }
     }
     return new_word;

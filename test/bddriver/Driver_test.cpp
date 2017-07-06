@@ -39,7 +39,7 @@ class DriverFixture : public testing::Test {
     void TearDown() {
       // have to wait for everything to resolve!
       std::this_thread::sleep_for(std::chrono::seconds(kSleepS));
-      
+
       // compare states for every test!
       driver->Stop();
 
@@ -235,8 +235,8 @@ TEST_F(DriverFixture, TestGetPostFIFOTags) {
 
 TEST_F(DriverFixture, TestFIFOOverflow) {
   const std::pair<unsigned int, unsigned int> to_push = {10, 20};
-  model->PushOutput(bdpars::OVERFLOW_TAGS0, std::vector<BDWord>(1, to_push.first));
-  model->PushOutput(bdpars::OVERFLOW_TAGS1, std::vector<BDWord>(1, to_push.second));
+  model->PushOutput(bdpars::OVERFLOW_TAGS0, std::vector<BDWord>(to_push.first, BDWord(1)));
+  model->PushOutput(bdpars::OVERFLOW_TAGS1, std::vector<BDWord>(to_push.second, BDWord(1)));
 
   std::this_thread::sleep_for(std::chrono::seconds(1));
 

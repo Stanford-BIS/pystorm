@@ -74,6 +74,7 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
     for (auto& it : to_send_.at(i)) {
       packed_words.at(i).push_back(it.Packed());
     }
+    to_send_.at(i).clear();
   }
 
   // serialize if necessary (AM word only?)
@@ -138,21 +139,13 @@ void BDModel::ProcessMM(uint64_t input) {
   } else if (word.At<MMWriteIncrement>(MMWriteIncrement::FIXED_1) == 1) {
     uint64_t data = word.At<MMWriteIncrement>(MMWriteIncrement::DATA);
     state_->SetMem(bdpars::MM, MM_address_, {BDWord(data)});
-    //cout << "WRITE INC " << MM_address_ << " : ";
-    //for (auto& it : data_fields) {
-    //  cout << "(" << it.first << ":" << it.second << "), ";
-    //}
-    //cout << endl;
+    //cout << "WRITE INC " << MM_address_ << " : " << data << endl;;
     MM_address_++;
 
   } else if (word.At<MMReadIncrement>(MMReadIncrement::FIXED_2) == 2) {
     BDWord data = state_->GetMem(bdpars::MM)->at(MM_address_);
     PushMem(bdpars::MM, {data});
-    //cout << "READ INC " << MM_address_ << " : ";
-    //for (auto& it : DataToFieldValues(data)) {
-    //  cout << "(" << it.first << ":" << it.second << "), ";
-    //}
-    //cout << endl;
+    //cout << "READ INC " << MM_address_ << " : " << data.Packed() << endl;;
     MM_address_++;
 
   } else { 
@@ -237,6 +230,7 @@ void BDModel::ProcessPAT(const uint64_t input) {
       unsigned int addr = word.At<PATRead>(PATRead::ADDRESS);
       BDWord data = state_->GetMem(bdpars::PAT)->at(addr);
       PushMem(bdpars::PAT, {data});
+      //cout << "PAT READ : " << addr << endl;
 
   } else {
     assert(false);

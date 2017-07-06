@@ -22,6 +22,37 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
+constexpr uint64_t     MMSetAddress::field_hard_values[];
+constexpr unsigned int MMSetAddress::field_widths[];
+constexpr uint64_t     MMReadIncrement::field_hard_values[];
+constexpr unsigned int MMReadIncrement::field_widths[];
+constexpr uint64_t     MMWriteIncrement::field_hard_values[];
+constexpr unsigned int MMWriteIncrement::field_widths[];
+constexpr uint64_t     AMSetAddress::field_hard_values[];
+constexpr unsigned int AMSetAddress::field_widths[];
+constexpr uint64_t     AMReadWrite::field_hard_values[];
+constexpr unsigned int AMReadWrite::field_widths[];
+constexpr uint64_t     AMIncrement::field_hard_values[];
+constexpr unsigned int AMIncrement::field_widths[];
+constexpr uint64_t     TATSetAddress::field_hard_values[];
+constexpr unsigned int TATSetAddress::field_widths[];
+constexpr uint64_t     TATReadIncrement::field_hard_values[];
+constexpr unsigned int TATReadIncrement::field_widths[];
+constexpr uint64_t     TATWriteIncrement::field_hard_values[];
+constexpr unsigned int TATWriteIncrement::field_widths[];
+constexpr uint64_t     PATRead::field_hard_values[];
+constexpr unsigned int PATRead::field_widths[];
+constexpr uint64_t     PATWrite::field_hard_values[];
+constexpr unsigned int PATWrite::field_widths[];
+constexpr uint64_t     AMEncapsulation::field_hard_values[];
+constexpr unsigned int AMEncapsulation::field_widths[];
+constexpr uint64_t     MMEncapsulation::field_hard_values[];
+constexpr unsigned int MMEncapsulation::field_widths[];
+constexpr uint64_t     DelayWord::field_hard_values[];
+constexpr unsigned int DelayWord::field_widths[];
+constexpr uint64_t     ToggleWord::field_hard_values[];
+constexpr unsigned int ToggleWord::field_widths[];
+
 // Driver * Driver::GetInstance()
 //{
 //    // In C++11, if control from two threads occurs concurrently, execution
