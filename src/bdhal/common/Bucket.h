@@ -8,7 +8,7 @@
 
 namespace pystorm {
 namespace bdhal {
-class Bucket : public ConnectableInput, ConnectableOutput {
+class Bucket : public ConnectableInput, public ConnectableOutput {
 public:
     ///
     /// Default constructor

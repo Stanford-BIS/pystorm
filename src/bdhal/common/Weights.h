@@ -7,7 +7,7 @@
 namespace pystorm {
 namespace bdhal {
 ///
-/// A matrix representing the transform used in a Connection.
+/// A matrix representing the weights between two connected objects.
 ///
 template<typename T>
 class Weights {
@@ -15,9 +15,9 @@ public:
     ///
     /// Default constructor
     /// 
-    /// \param matrix The transform matrix.
-    /// \param num_rows The number of rows in the transform matrix.
-    /// \param num_columns The number of columns in the transform matrix.
+    /// \param matrix A matrix representing the connection weights.
+    /// \param num_rows The number of rows in the weight matrix.
+    /// \param num_columns The number of columns in the weight matrix.
     ///
     Weights(T* matrix, uint32_t num_rows, uint32_t num_columns) :
         m_matrix(matrix),
@@ -39,7 +39,7 @@ public:
 
     /// \brief Returns the represented matrix
     ///
-    /// \return Const pointer to transform matrix
+    /// \return Const pointer to matrix
     ///
     const T* getMatrix() {
         return m_matrix;

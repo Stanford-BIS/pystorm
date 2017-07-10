@@ -12,18 +12,18 @@ namespace pystorm
 namespace HAL = pystorm::bdhal;
 namespace PYTHON = boost::python;
 
-HAL::WeightedConnection* 
-    (HAL::Network::*CreateWeightedConnection_1) (
-    std::string name, HAL::ConnectableObject* in_object, 
-    HAL::ConnectableObject* out_object) = 
-        &HAL::Network::CreateWeightedConnection;
+HAL::Connection* 
+    (HAL::Network::*CreateConnection_1) (
+    std::string name, HAL::ConnectableInput* in_object, 
+    HAL::ConnectableOutput* out_object) = 
+        &HAL::Network::CreateConnection;
 
-HAL::WeightedConnection* 
-    (HAL::Network::*CreateWeightedConnection_2) (
-    std::string name, HAL::ConnectableObject* in_object, 
-    HAL::ConnectableObject* out_object, 
-    HAL::Transform<uint32_t>* transformMatrix) = 
-        &HAL::Network::CreateWeightedConnection;
+HAL::Connection* 
+    (HAL::Network::*CreateConnection_2) (
+    std::string name, HAL::ConnectableInput* in_object, 
+    HAL::ConnectableOutput* out_object, 
+    HAL::Weights<uint32_t>* weightMatrix) = 
+        &HAL::Network::CreateConnection;
 
 BOOST_PYTHON_MODULE(PyStorm)
 {
@@ -39,22 +39,27 @@ BOOST_PYTHON_MODULE(PyStorm)
         .def(PYTHON::vector_indexing_suite<HAL::VecOfPools,true>() )
     ;
 
-    PYTHON::class_<HAL::VecOfStateSpaces>("VecOfStateSpaces")
-        .def(PYTHON::vector_indexing_suite<HAL::VecOfStateSpaces,true>() )
+    PYTHON::class_<HAL::VecOfBuckets>("VecOf Buckets")
+        .def(PYTHON::vector_indexing_suite<HAL::VecOfBuckets,true>() )
     ;
 
-    PYTHON::class_<HAL::VecOfWeightedConnections>("VecOfWeightedConnections")
-        .def(PYTHON::vector_indexing_suite<HAL::VecOfWeightedConnections,true>()
+    PYTHON::class_<HAL::VecOfConnections>("VecOfConnections")
+        .def(PYTHON::vector_indexing_suite<HAL::VecOfConnections,true>()
          )
     ;
 
-    PYTHON::class_<HAL::ConnectableObject, 
-        boost::noncopyable>("ConnectableObject",
+    PYTHON::class_<HAL::ConnectableOutput, 
+        boost::noncopyable>("ConnectableOutput",
+        PYTHON::no_init)
+    ;
+
+    PYTHON::class_<HAL::ConnectableInput, 
+        boost::noncopyable>("ConnectableInput",
         PYTHON::no_init)
     ;
 
     PYTHON::class_<HAL::Pool, HAL::Pool*, boost::noncopyable, 
-        PYTHON::bases<HAL::ConnectableObject> >("Pool",
+        PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Pool",
         PYTHON::init<std::string, uint32_t, uint32_t, uint32_t, uint32_t>())
         .def("GetLabel",&HAL::Pool::GetLabel)
         .def("GetNumNeurons",&HAL::Pool::GetNumNeurons)
@@ -63,19 +68,19 @@ BOOST_PYTHON_MODULE(PyStorm)
         .def("GetHeight",&HAL::Pool::GetHeight)
     ;
 
-    PYTHON::class_<HAL::StateSpace, HAL::StateSpace*, boost::noncopyable,
-        PYTHON::bases<HAL::ConnectableObject> >("StateSpace",
+    PYTHON::class_<HAL::Bucket, HAL::Bucket*, boost::noncopyable,
+        PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Bucket",
         PYTHON::init<std::string, uint32_t>())
         .def("GetLabel",&HAL::StateSpace::GetLabel)
         .def("GetNumDimensions",&HAL::StateSpace::GetNumDimensions)
     ;
 
-    PYTHON::class_<HAL::WeightedConnection, HAL::WeightedConnection*,
+    PYTHON::class_<HAL::Connection, HAL::Connection*,
         boost::noncopyable>
-        ("WeightedConnection",PYTHON::init<std::string, 
-        HAL::ConnectableObject*, 
-        HAL::ConnectableObject*,
-        HAL::Transform<uint32_t>* >())
+        ("Connection",PYTHON::init<std::string, 
+        HAL::ConnectableInput*, 
+        HAL::ConnectableOutput*,
+        HAL::Weights<uint32_t>* >())
         .def("GetLabel",&HAL::StateSpace::GetLabel)
     ;
 
@@ -84,20 +89,20 @@ BOOST_PYTHON_MODULE(PyStorm)
         .def("GetName",&HAL::Network::GetName)
         .def("GetPools",&HAL::Network::GetPools,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetStateSpaces",&HAL::Network::GetStateSpaces,
+        .def("GetBuckets",&HAL::Network::GetBuckets,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetWeightedConnections",&HAL::Network::GetWeightedConnections,
+        .def("GetConnections",&HAL::Network::GetConnections,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
         .def("CreatePool",&HAL::Network::CreatePool, 
             PYTHON::return_internal_reference<>())
-        .def("CreateStateSpace",&HAL::Network::CreateStateSpace, 
+        .def("CreateBucket",&HAL::Network::CreateBucket, 
             PYTHON::return_internal_reference<>())
-        .def("CreateWeightedConnection", CreateWeightedConnection_1,
+        .def("CreateConnection", CreateConnection_1,
             PYTHON::return_internal_reference<>(),
             PYTHON::args("self","in_obj","out_obj"))
-        .def("CreateWeightedConnection", CreateWeightedConnection_2,
+        .def("CreateConnection", CreateConnection_2,
             PYTHON::return_internal_reference<>(),
-            PYTHON::args("self","in_obj","out_obj","trans_matrix"))
+            PYTHON::args("self","in_obj","out_obj","weight_matrix"))
     ;
 
     PYTHON::register_ptr_to_python< boost::shared_ptr<HAL::Pool> >();

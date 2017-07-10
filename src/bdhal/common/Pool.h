@@ -14,7 +14,7 @@ namespace bdhal {
 ///
 /// A Pool of neurons
 ///
-class Pool : public ConnectableInput, ConnectableOutput {
+class Pool : public ConnectableInput, public ConnectableOutput {
 public:
     ///
     /// Default constructor 

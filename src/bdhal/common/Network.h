@@ -22,7 +22,7 @@ typedef std::vector<Pool*> VecOfPools;
 typedef std::vector<Bucket*> VecOfBuckets;
 typedef std::vector<Input*> VecOfInputs;
 typedef std::vector<Output*> VecOfOutputs;
-typedef std::vector<Connection*> VecOfConnection;
+typedef std::vector<Connection*> VecOfConnections;
 
 ///
 /// A Network composed of Connection and Connectable objects
@@ -32,11 +32,7 @@ typedef std::vector<Connection*> VecOfConnection;
 /// object which will track this object as well as other objects that
 /// allow pystorm to program Brainstorm.
 /// 
-/// NOTE: As much as possible we want objects to be immutable. Create an 
-/// object and don't change it. One exception will be the transform matrix
-/// associated with Connection. We don't want to create a new
-/// Network if a Connection transform matrix changes so we make an
-/// exception there.
+/// NOTE: Connectable objects (Buckets and Pools) are immutable but Weights are not.
 ///
 class Network {
 public:
@@ -119,7 +115,7 @@ public:
         return m_buckets;
     }
 
-    VecOfConnection& GetConnection() {
+    VecOfConnections& GetConnections() {
         return m_connections;
     }
 

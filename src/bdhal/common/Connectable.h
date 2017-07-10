@@ -15,7 +15,7 @@ class Connectable {
 public:
     Connectable();
     ~Connectable();
-Connectable(const Connectable&) = delete;
+    Connectable(const Connectable&) = delete;
     Connectable(Connectable&&) = delete;
     Connectable& operator=(const Connectable&) = delete;
     Connectable& operator=(Connectable&&) = delete;
@@ -44,7 +44,7 @@ protected:
 };
 
 ///
-/// Base class for objects that can be outputs of a connection.
+/// Base class for objects that can be outputs from a connection.
 ///
 class ConnectableOutput {
 public:

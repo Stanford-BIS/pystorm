@@ -10,8 +10,7 @@ namespace pystorm {
 namespace bdhal {
 ///
 /// A set of numerical values (dimensions) which are projections from 
-/// a Pool or Bucket. An Output can be connected to a Pool using the
-/// Connection class.
+/// a Pool or Bucket. 
 ///
 class Output : public ConnectableOutput {
 public:
