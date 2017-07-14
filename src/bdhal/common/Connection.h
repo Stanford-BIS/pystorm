@@ -9,85 +9,75 @@
 namespace pystorm {
 namespace bdhal {
 ///
-/// A projection from one ConnectableInput object to a ConnectableOutput
-/// object where the outputs of the first object can be linearly combined
-/// prior to becoming inputs to the second object. This linear combination
-/// is acheived through the use of a Weights object.
+/// A projection from a ConnectableInput object to a ConnectableOutput
+/// object where the values of first object can be weighted, using
+/// a Weight object, prior to being received by the second object.
 ///
 class Connection {
 public:
     ///
     /// Default constructor
     ///
-    /// This class assumes ownership of all pointers (should use 
-    /// smart pointer objects then? yes; need to see how this plays
-    /// with boost python)
-    ///
-    /// \param name Label given to the connection object
+    /// \param label Label given to the connection object
     /// \param src The source of the connection where data flow out of.
     /// \param dest The destination of the connection where data flows into.
-    /// \param transform_matrix The transformation matrix. 
+    /// \param weight_matrix The weight matrix. 
     ///
-    Connection(std::string name, ConnectableInput* src, 
-        ConnectableOutput* dest, Weights<uint32_t>* transform_matrix) :
-        m_name(name),
+    Connection(std::string label, ConnectableInput* src, 
+        ConnectableOutput* dest, Weights<uint32_t>* weight_matrix) :
+        m_label(label),
         m_src(src),
         m_dest(dest),
-        m_transform(transform_matrix) {
+        m_weights(weight_matrix) {
         assert(nullptr != m_src);
         assert(nullptr != m_dest);
-        assert(nullptr != m_transform);
+        assert(nullptr != m_weights);
 
-        // maybe we should construct a name
-        if (m_name.empty()) {
-            m_name = "";
+        if (m_label.empty()) {
+            m_label = "";
         }
 
-        // check that the dimensions of the transform matrix match the dimensions
-        // of the src and destination
+        assert(m_src->GetNumDimensions() == m_weights->GetNumColumns());
+        assert(m_dest->GetNumDimensions() == m_weights->GetNumRows());
     }
 
     ///
     /// Default constructor
     ///
-    /// This class assumes ownership of all pointers (should use 
-    /// smart pointer objects then? yes; need to see how this plays
-    /// with boost python)
-    ///
-    /// \param name Label given to the connection object
+    /// \param label Label given to the connection object
     /// \param src The source of the connection where data flow out of.
     /// \param dest The destination of the connection where data flows into.
-    /// \param transform_matrix The transformation matrix. 
+    /// \param weight_matrix The weight matrix. 
     ///
-    Connection(std::string name, ConnectableInput* src, 
+    Connection(std::string label, ConnectableInput* src, 
         ConnectableOutput* dest) :
-        m_name(name),
+        m_label(label),
         m_src(src),
         m_dest(dest),
-        m_transform(nullptr) {
+        m_weights(nullptr) {
         assert(nullptr != m_src);
         assert(nullptr != m_dest);
 
-        // maybe we should construct a name
-        if (m_name.empty()) {
-            m_name = "";
+        if (m_label.empty()) {
+            m_label = "";
         }
 
-        // check that the dimensions of the transform matrix match the dimensions
-        // of the src and destination
+        assert(m_src->GetNumDimensions() == m_dest->GetNumDimensions());
     }
 
-    /// \brief Destructor
     ///
-    /// NOTE: Since this class takes ownership of the transform, it will 
-    /// delete memeory allocated for the transform matrix. Ensure that no
-    /// other code are using the transform memory memory owned by this 
-    /// class after deleting this (I will add smart pointers soon).
+    /// Destructor
+    ///
+    /// NOTE: Since this class takes ownership of the weights, it will 
+    /// delete memory allocated for the weight matrix. Ensure that no
+    /// other code are using the weight memory owned by this 
+    /// class after deleting this (consider smart pointers).
+    ///
     ~Connection() {
-        if (nullptr != m_transform)
+        if (nullptr != m_weights)
         {
-            delete m_transform;
-            m_transform = 0;
+            delete m_weights;
+            m_weights = nullptr;
         }
     }
 
@@ -96,41 +86,46 @@ public:
     Connection& operator=(const Connection &) = delete;
     Connection& operator=(Connection&&) = delete;
 
-    /// \brief Return the name assigned to this connection
     ///
-    /// \return The name assigned to this connection. If no name is assigned,
+    /// Return the label assigned to this connection
+    ///
+    /// \return The label assigned to this connection. If no label is assigned,
     /// an empty string will be returned.
-    std::string getName() {
-        return m_name;
+    ///
+    std::string GetName() {
+        return m_label;
     }
 
-    /// \brief Return the source object to this connection
+    ///
+    /// Return the source object to this connection
     ///
     /// The source object to this connection.
     ///
-    ConnectableInput* getSrc() {
+    ConnectableInput* GetSrc() {
         return m_src;
     }
 
-    /// \brief Return the destination object from this connection
+    ///
+    /// Return the destination object from this connection
     ///
     /// The destination object from this connection.
     ///
-    ConnectableOutput* getDest() {
+    ConnectableOutput* GetDest() {
         return m_dest;
     }
 
-    /// \brief Return the transform matrix associated with this connection.
     ///
-    /// The transform matrix.
+    /// Return the weight matrix associated with this connection.
     ///
-    Weights<uint32_t>* getWeights() {
-        return m_transform;
+    /// The weight matrix.
+    ///
+    Weights<uint32_t>* GetWeights() {
+        return m_weights;
     }
 
 private:
     /// Name assigned to the object
-    std::string m_name;
+    std::string m_label;
 
     /// Source of the connection
     ConnectableInput* m_src;
@@ -139,7 +134,7 @@ private:
     ConnectableOutput* m_dest;
 
     /// Weights matrix
-    Weights<uint32_t>* m_transform;
+    Weights<uint32_t>* m_weights;
 };
 
 } // namespace bdhal

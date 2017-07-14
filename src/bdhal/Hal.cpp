@@ -2,6 +2,12 @@
 
 namespace pystorm {
 namespace bdhal {
+
+Hal::Hal() {
+}
+
+Hal::~Hal() {
+}
 //////////////////////////////////////////////////////////////////////////////
 //
 // NetworkCreation Control functionality
@@ -19,21 +25,11 @@ pystorm::bdhal::Network* Hal::CreateNetwork(std::string name) {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-pystorm::bdhal::MappedNetwork* Hal::CreateMappedNetwork(
-    pystorm::bdhal::Network* newNetwork) {
-    return new pystorm::bdhal::MappedNetwork(newNetwork);
-}
-
 //////////////////////////////////////////////////////////////////////////////
 //
 // Platform Control functionality
 //
 //////////////////////////////////////////////////////////////////////////////
-
-void Hal::Load(pystorm::bdhal::MappedNetwork* mappedNet, 
-    pystorm::bdhal::LoadBehavior loadBehavior) {
-
-}
 
 void Hal::ResetBraindrop() {
 }

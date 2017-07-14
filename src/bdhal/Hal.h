@@ -1,26 +1,18 @@
-#ifndef PYSTORM_H
-#define PYSTORM_H
+#ifndef HAL_H
+#define HAL_H
 
 #include <iostream>
 #include <vector>
 
 #include <stdint.h>
 
-#include <common/Pool.h>
-#include <common/StateSpace.h>
-#include <common/MappedNetwork.h>
 #include <common/Network.h>
-
-/// \file pystorm.h
 
 namespace pystorm {
 namespace bdhal {
 // Enum types
-enum class LoadBehavior { POOLS_ONLY, ALL_OBJECTS };
 enum class StreamingStatus {STREAMING, NOT_STREAMING};
 enum class ProgramStatus {PROGRAMMED, NOT_PROGRAMMED};
-
-// Global variables
 
 class Hal {
 public:
@@ -60,15 +52,8 @@ public:
 //  NetworkMapping Control functionality
 //
 // The following functions allow pystorm users to map Networks to hardware.
-// A MappedNetwork can be loaded onto hardware using the Load method.
 //
 //////////////////////////////////////////////////////////////////////////////
-
-///
-/// Create an instance of MappedNetwork
-///
-    static pystorm::bdhal::MappedNetwork* CreateMappedNetwork(
-        pystorm::bdhal::Network* newNetwork);
 
 
 //////////////////////////////////////////////////////////////////////////////
@@ -82,23 +67,6 @@ public:
 //
 //////////////////////////////////////////////////////////////////////////////
 
-///
-/// Load a MappedNetwork
-///
-/// \param mappedNet A network that has been synthesized, placed and routed
-/// \param loadBehavior Indicator of whether all objects or only Pools should
-///                     be loaded onto Braindrop
-///
-/// Loading will first reset pystorm and Braindrop (i.e. call 
-/// resetBrainstomr), set the proper data structures in pystorm and 
-/// program Braindrop. After programming Braindrop, the chip will not
-/// produce spikes or decoded values until the startBraindrop method is
-/// called. This allows the user to setup streams and start pystorms
-/// streaming functionality before allowing Braindrop to produce upstream
-/// data.
-///
-    static void Load(pystorm::bdhal::MappedNetwork* mappedNet, 
-        pystorm::bdhal::LoadBehavior loadBehavior);
 
 ///
 /// Reset Braindrop

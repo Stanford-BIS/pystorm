@@ -120,15 +120,6 @@ BOOST_PYTHON_MODULE(PyStorm)
         HAL::Hal::CreateNetwork,
         PYTHON::return_value_policy<PYTHON::reference_existing_object>());
 
-//////////////////////////////////////////////////////////////////////////////  
-//                                                                              
-//  NetworkMapping Control functionality                                        
-//                                                                              
-// The following functions allow pystorm users to map Networks to hardware.        
-// A MappedNetwork can be loaded onto hardware using the Load method.           
-//                                                                              
-//////////////////////////////////////////////////////////////////////////////  
-
 
 //////////////////////////////////////////////////////////////////////////////  
 //                                                                              

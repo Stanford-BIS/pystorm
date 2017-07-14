@@ -14,7 +14,7 @@ namespace bdhal {
 class Connectable {
 public:
     Connectable();
-    ~Connectable();
+    virtual ~Connectable();
     Connectable(const Connectable&) = delete;
     Connectable(Connectable&&) = delete;
     Connectable& operator=(const Connectable&) = delete;
@@ -31,7 +31,7 @@ protected:
 class ConnectableInput {
 public:
     ConnectableInput();
-    ~ConnectableInput();
+    virtual ~ConnectableInput();
 
     ConnectableInput(const ConnectableInput&) = delete;
     ConnectableInput(ConnectableInput&&) = delete;
@@ -49,7 +49,7 @@ protected:
 class ConnectableOutput {
 public:
     ConnectableOutput();
-    ~ConnectableOutput();
+    virtual ~ConnectableOutput();
 
     ConnectableOutput(const ConnectableOutput&) = delete;
     ConnectableOutput(ConnectableOutput&&) = delete;

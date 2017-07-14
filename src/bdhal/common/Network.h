@@ -28,9 +28,7 @@ typedef std::vector<Connection*> VecOfConnections;
 /// A Network composed of Connection and Connectable objects
 ///
 /// A network that represents a Nengo network. The network will be passed
-/// to Neuromorph to be placed and routed and will be passed to a MappedNetwork
-/// object which will track this object as well as other objects that
-/// allow pystorm to program Brainstorm.
+/// to Neuromorph to be placed and routed.
 /// 
 /// NOTE: Connectable objects (Buckets and Pools) are immutable but Weights are not.
 ///

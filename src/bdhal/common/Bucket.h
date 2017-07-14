@@ -8,6 +8,7 @@
 
 namespace pystorm {
 namespace bdhal {
+
 class Bucket : public ConnectableInput, public ConnectableOutput {
 public:
     ///
@@ -16,9 +17,9 @@ public:
     /// \param name Name assigned to the Bucket
     /// \param n_dims Number of dimensions the Bucket represents
     ///
-    Bucket(std::string name, uint32_t n_dims);
+    Bucket(std::string label, uint32_t n_dims);
 
-    ~Bucket();
+    virtual ~Bucket();
 
     Bucket(const Bucket&) = delete;
     Bucket(Bucket&&) = delete;

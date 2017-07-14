@@ -31,6 +31,22 @@ public:
         uint32_t width,
         uint32_t height);
 
+    ///
+    /// Default constructor 
+    ///
+    /// This constructor sets the width and height to invalid values. If the 
+    /// user tries to retrieve the width or height before setting them 
+    /// (e.g. by calling the GetWidth or GetHeight methods), an exception
+    /// will be thrown.
+    ///
+    /// \param label Label assigned to Pool
+    /// \param num_neurons Number of neurons assigned to Pool
+    /// \param num_dims Number of dimensions assigned to Pool
+    ///
+    Pool(std::string label, 
+        uint32_t num_neurons,
+        uint32_t num_dims);
+
     ~Pool(); 
 
     Pool(const Pool&) = delete;
@@ -62,21 +78,31 @@ public:
     ///
     /// Returns the Pool width
     ///
-    uint32_t GetWidth() {
-        return m_width;
-    }
+    /// Returns std::logic_error if width is not (e.g. by calling SetSize or
+    /// by calling the correct constructor).
+    ///
+    uint32_t GetWidth();
 
     ///
     /// Returns the Pool height
     ///
-    uint32_t GetHeight() {
-        return m_height;
-    }
+    /// Returns std::logic_error if height is not (e.g. by calling SetSize or
+    /// by calling the correct constructor).
+    ///
+    uint32_t GetHeight();
+
+    ///
+    /// Sets the Pool size
+    ///
+    /// Returns std::logic_error if the width times the height is not equal to
+    /// the number of neurons in the Pool.
+    ///
+    void SetSize(uint32_t width, uint32_t height);
 
     /// Min/Max values
     static const uint32_t MIN_NEURONS = 4;
     static const uint32_t MAX_NEURONS = 4096;
-    static const uint32_t MIN_NEURON_WIDTH_HEIGHT = 4;
+    static const uint32_t MIN_NEURON_WIDTH_HEIGHT = 2;
     static const uint32_t MAX_NEURON_WIDTH_HEIGHT = 64;
     static const uint32_t MIN_DIMS    = 1;
     static const uint32_t MAX_DIMS    = 1024;
@@ -92,12 +118,10 @@ private:
     /// Number of dimensions 
     uint32_t m_num_dims;
 
-    /// Pool width
-    uint32_t m_width;
-
-    /// Pool height
-    uint32_t m_height;
-
+    /// Size of Pool
+    /// First value of tuple is width
+    /// Second value of tuple is height
+    std::pair<uint32_t, uint32_t> m_poolSize;
 };
 
 } // namespace bdhal
