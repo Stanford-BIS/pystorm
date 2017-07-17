@@ -25,6 +25,17 @@ HAL::Connection*
     HAL::Weights<uint32_t>* weightMatrix) = 
         &HAL::Network::CreateConnection;
 
+HAL::Pool* 
+    (HAL::Network::*CreatePool_1) (
+    std::string label, uint32_t n_neurons, uint32_t n_dims, uint32_t width,
+    uint32_t height) =
+        &HAL::Network::CreatePool;
+
+HAL::Pool* 
+    (HAL::Network::*CreatePool_2) (
+    std::string label, uint32_t n_neurons, uint32_t n_dims) = 
+        &HAL::Network::CreatePool;
+
 BOOST_PYTHON_MODULE(PyStorm)
 {
     //////////////////////////////////////////////////////////////////////
@@ -93,7 +104,9 @@ BOOST_PYTHON_MODULE(PyStorm)
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
         .def("GetConnections",&HAL::Network::GetConnections,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("CreatePool",&HAL::Network::CreatePool, 
+        .def("CreatePool", CreatePool_1, 
+            PYTHON::return_internal_reference<>())
+        .def("CreatePool", CreatePool_2, 
             PYTHON::return_internal_reference<>())
         .def("CreateBucket",&HAL::Network::CreateBucket, 
             PYTHON::return_internal_reference<>())

@@ -16,6 +16,9 @@ TEST(TESTPool, testConstructionValidParams) {
     Pool* _pool = nullptr;
 
     EXPECT_NO_THROW(_pool = new Pool(label, numNeurons, dims, width, height));
+    delete _pool;
+
+    EXPECT_NO_THROW(_pool = new Pool(label, numNeurons, dims));
     
     delete _pool;
 }
@@ -49,7 +52,30 @@ TEST(TESTPool, testConstructionInvalidParams) {
     delete _pool;
 }
 
-TEST(TESTPool, testGetSetSize) {
+TEST(TESTPool, testGetSetSizeValid) {
+    std::string label = "PoolN";
+    uint32_t    numNeurons = 100;
+    uint32_t    width      = 10;
+    uint32_t    height     = 10;
+    uint32_t    dims       = 1;
+    Pool* _pool = new Pool(label,numNeurons,dims);
+
+    EXPECT_NO_THROW(_pool->SetSize(width,height));
+
+    delete _pool;
+}
+
+TEST(TESTPool, testGetSetSizeInValidParams) {
+    std::string label = "PoolN";
+    uint32_t    numNeurons = 100;
+    uint32_t    width      = 10;
+    uint32_t    height     = 11;
+    uint32_t    dims       = 1;
+    Pool* _pool = new Pool(label,numNeurons,dims);
+
+    EXPECT_THROW(_pool->SetSize(width,height),std::logic_error);
+
+    delete _pool;
 }
 
 TEST(TESTPool, testGetLabelsNeuronsDims) {

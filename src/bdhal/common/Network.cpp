@@ -5,6 +5,9 @@
 namespace pystorm {
 namespace bdhal {
 Network::Network(std::string name) : m_name(name) {
+    if (name.size() == 0) {
+        throw std::logic_error("Network name cannot be empty string");
+    }
 }
 
 Network::~Network() {
@@ -20,6 +23,14 @@ Pool* Network::CreatePool(std::string label,
         uint32_t width,
         uint32_t height) {
     Pool* newPool = new Pool(label, n_neurons, n_dims, width, height);
+    m_pools.push_back(newPool);
+    return newPool;
+}
+
+Pool* Network::CreatePool(std::string label, 
+        uint32_t n_neurons, 
+        uint32_t n_dims) {
+    Pool* newPool = new Pool(label, n_neurons, n_dims);
     m_pools.push_back(newPool);
     return newPool;
 }

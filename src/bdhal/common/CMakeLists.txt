@@ -13,10 +13,12 @@ set(HEADER_FILES
 
 set(SRC_FILES
     ${SRC_FILES} 
+    ${CMAKE_CURRENT_SOURCE_DIR}/Bucket.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Connectable.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Input.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Output.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Pool.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/StateSpace.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Bucket.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/Connectable.cpp
     PARENT_SCOPE
 )

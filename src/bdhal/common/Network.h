@@ -70,6 +70,19 @@ public:
         uint32_t height);
 
     ///
+    /// Create a Pool object for this network
+    ///
+    /// \param label Label assigned to the Pool
+    /// \param n_neurons Number of neurons assigned to the Pool
+    /// \param n_dims Number of dimensions assigned to the Pool
+    ///
+    /// \return a new Pool object
+    ///
+    Pool* CreatePool(std::string label, 
+        uint32_t n_neurons,
+        uint32_t n_dims);
+
+    ///
     /// Create a Statespace object for this network
     ///
     /// \param name Names assigned to the Statespace
