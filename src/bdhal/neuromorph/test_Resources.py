@@ -85,6 +85,8 @@ def GetN4():
 
     return [I1, I2, TP, TA, TF, N, W1, W2, B, O1, O2]
 
+print("creating Resource graphs")
+print("all this is testing is that no assertions are thrown, expect no further output")
 
 N1 = GetN1()
 N2 = GetN2()

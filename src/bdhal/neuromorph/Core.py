@@ -1,4 +1,3 @@
-from bitutils import *
 import numpy as np
 from MemWordEnums import *
 from MemWordPlaceholders import *
