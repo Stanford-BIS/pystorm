@@ -72,11 +72,13 @@ BOOST_PYTHON_MODULE(PyStorm)
     PYTHON::class_<HAL::Pool, HAL::Pool*, boost::noncopyable, 
         PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Pool",
         PYTHON::init<std::string, uint32_t, uint32_t, uint32_t, uint32_t>())
-        .def("GetLabel",&HAL::Pool::GetLabel)
-        .def("GetNumNeurons",&HAL::Pool::GetNumNeurons)
-        .def("GetNumDimensions",&HAL::Pool::GetNumDimensions)
-        .def("GetWidth",&HAL::Pool::GetWidth)
-        .def("GetHeight",&HAL::Pool::GetHeight)
+        .def(PYTHON::init<std::string,uint32_t,uint32_t>())
+        .def("GetLabel", &HAL::Pool::GetLabel)
+        .def("GetNumNeurons", &HAL::Pool::GetNumNeurons)
+        .def("GetNumDimensions", &HAL::Pool::GetNumDimensions)
+        .def("GetWidth", &HAL::Pool::GetWidth)
+        .def("GetHeight", &HAL::Pool::GetHeight)
+        .def("SetSize", &HAL::Pool::SetSize)
     ;
 
     PYTHON::class_<HAL::Bucket, HAL::Bucket*, boost::noncopyable,
