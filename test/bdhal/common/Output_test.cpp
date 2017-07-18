@@ -30,7 +30,7 @@ TEST(TESTOutput, testConstructionInvalidParams) {
     delete _out;
 }
 
-TEST(TESTOutput, testCallGetLabel) {
+TEST(TESTOutput, testGetLabel) {
     std::string label = "OutputN";
     uint32_t dims = 3;
     Output * _out = new Output(label, dims);
@@ -41,7 +41,7 @@ TEST(TESTOutput, testCallGetLabel) {
     delete _out;
 }
 
-TEST(TESTOutput, testCallGetNumDims) {
+TEST(TESTOutput, testGetNumDims) {
     std::string label = "OutputN";
     uint32_t dims = 3;
     Output * _out = new Output(label, dims);

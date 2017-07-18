@@ -14,7 +14,7 @@ TEST(TESTConnectable, testConstructionValidParams) {
     delete conn;
 }
 
-TEST(TESTConnectable, testCallGetNumDimensions) {
+TEST(TESTConnectable, testGetNumDimensions) {
     Connectable * conn = new Connectable();
 
     EXPECT_THROW(conn->GetNumDimensions(),std::logic_error);
@@ -28,7 +28,7 @@ TEST(TESTConnectableInput, testConstructionValidParams) {
     delete conn;
 }
 
-TEST(TESTConnectableInput, testCallGetNumDimensions) {
+TEST(TESTConnectableInput, testGetNumDimensions) {
     ConnectableInput * conn = new ConnectableInput();
 
     EXPECT_THROW(conn->GetNumDimensions(),std::logic_error);
@@ -42,7 +42,7 @@ TEST(TESTConnectableOutput, testConstructionValidParams) {
     delete conn;
 }
 
-TEST(TESTConnectableOutput, testCallGetNumDimensions) {
+TEST(TESTConnectableOutput, testGetNumDimensions) {
     ConnectableOutput * conn = new ConnectableOutput();
 
     EXPECT_THROW(conn->GetNumDimensions(),std::logic_error);

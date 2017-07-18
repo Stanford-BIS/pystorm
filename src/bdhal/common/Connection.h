@@ -29,16 +29,30 @@ public:
         m_src(src),
         m_dest(dest),
         m_weights(weight_matrix) {
-        assert(nullptr != m_src);
-        assert(nullptr != m_dest);
-        assert(nullptr != m_weights);
-
-        if (m_label.empty()) {
-            m_label = "";
+        if (nullptr == m_src) {
+            throw std::logic_error("Connection input cannot be null pointer");
         }
 
-        assert(m_src->GetNumDimensions() == m_weights->GetNumColumns());
-        assert(m_dest->GetNumDimensions() == m_weights->GetNumRows());
+        if (nullptr == m_dest) {
+            throw std::logic_error("Connection output cannot be null pointer");
+        }
+
+        if (nullptr == m_weights) {
+            throw std::logic_error("Connection weights point to null pointer");
+        }
+
+
+        if (nullptr == m_weights) {
+            throw std::logic_error("Connection weights point to null pointer");
+        }
+
+        if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
+            throw std::logic_error("Connection input dimensions != Weight columns");
+        }
+
+        if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
+            throw std::logic_error("Connection output dimensions != Weight rows");
+        }
     }
 
     ///
@@ -55,14 +69,17 @@ public:
         m_src(src),
         m_dest(dest),
         m_weights(nullptr) {
-        assert(nullptr != m_src);
-        assert(nullptr != m_dest);
-
-        if (m_label.empty()) {
-            m_label = "";
+        if (nullptr == m_src) {
+            throw std::logic_error("Connection input cannot be null pointer");
         }
 
-        assert(m_src->GetNumDimensions() == m_dest->GetNumDimensions());
+        if (nullptr == m_dest) {
+            throw std::logic_error("Connection output cannot be null pointer");
+        }
+
+        if(m_src->GetNumDimensions() != m_dest->GetNumDimensions()) {
+            throw std::logic_error("Connection input dimensions != Connection output dimensions");
+        }
     }
 
     ///

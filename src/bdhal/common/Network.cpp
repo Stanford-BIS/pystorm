@@ -48,21 +48,21 @@ Connection* Network::CreateConnection( std::string name,
         std::calloc((src->GetNumDimensions()*dest->GetNumDimensions()), 
         sizeof(uint32_t));
 
-    Weights<uint32_t>* transformMatrix = 
-        new pystorm::bdhal::Weights<uint32_t>(m, src->GetNumDimensions(), 
-            dest->GetNumDimensions());
+    Weights<uint32_t>* weightMatrix = 
+        new pystorm::bdhal::Weights<uint32_t>(m, dest->GetNumDimensions(), 
+            src->GetNumDimensions());
     
     Connection* newConnection = new Connection(name, src, 
-        dest, transformMatrix);
+        dest, weightMatrix);
     m_connections.push_back(newConnection);
     return newConnection;
 }
 
 Connection* Network::CreateConnection(std::string name, 
     ConnectableInput* src, ConnectableOutput* dest, 
-    Weights<uint32_t>* transformMatrix) {
+    Weights<uint32_t>* weightMatrix) {
     Connection* newConnection = new Connection(name, 
-        src, dest, transformMatrix);
+        src, dest, weightMatrix);
     m_connections.push_back(newConnection);
     return newConnection;
 }

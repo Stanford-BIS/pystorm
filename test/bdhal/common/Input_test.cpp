@@ -30,7 +30,7 @@ TEST(TESTInput, testConstructionInvalidParams) {
     delete _in;
 }
 
-TEST(TESTInput, testCallGetLabel) {
+TEST(TESTInput, testGetLabel) {
     std::string label = "InputN";
     uint32_t dims = 3;
     Input * _in = new Input(label, dims);
@@ -41,7 +41,7 @@ TEST(TESTInput, testCallGetLabel) {
     delete _in;
 }
 
-TEST(TESTInput, testCallGetNumDims) {
+TEST(TESTInput, testGetNumDims) {
     std::string label = "InputN";
     uint32_t dims = 3;
     Input * _in = new Input(label, dims);

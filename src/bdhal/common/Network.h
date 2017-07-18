@@ -110,13 +110,13 @@ public:
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
-    /// \param transformMatrix Weights matrix assigned to the connection
+    /// \param weightMatrix Weights matrix assigned to the connection
     ///
     /// \return a new Connection object
     ///
     Connection* CreateConnection(std::string name, 
         ConnectableInput* src, ConnectableOutput* dest, 
-        Weights<uint32_t>* transformMatrix);
+        Weights<uint32_t>* weightMatrix);
 
     VecOfPools& GetPools() {
         return m_pools;
