@@ -83,8 +83,10 @@ function(build_on_linux)
     find_package(PythonLibs 3.5)
     find_package(PythonInterp 3.5)
 
-    find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-    find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+    set(HAL_LIBRARY Hal )
+    set(DRIVER_LIBRARY Driver)
+
+    link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
     add_library(${TARGET_NAME} SHARED 
         ${HEADER_FILES}
