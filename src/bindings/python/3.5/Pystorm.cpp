@@ -4,7 +4,7 @@
 #include <boost/python/register_ptr_to_python.hpp>
 #include <boost/shared_ptr.hpp>
 
-#include <PyStorm.h>
+#include <Pystorm.h>
 
 namespace pystorm
 {
@@ -36,7 +36,7 @@ HAL::Pool*
     std::string label, uint32_t n_neurons, uint32_t n_dims) = 
         &HAL::Network::CreatePool;
 
-BOOST_PYTHON_MODULE(PyStorm)
+BOOST_PYTHON_MODULE(Pystorm)
 {
     //////////////////////////////////////////////////////////////////////
     //
@@ -84,8 +84,8 @@ BOOST_PYTHON_MODULE(PyStorm)
     PYTHON::class_<HAL::Bucket, HAL::Bucket*, boost::noncopyable,
         PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Bucket",
         PYTHON::init<std::string, uint32_t>())
-        .def("GetLabel",&HAL::StateSpace::GetLabel)
-        .def("GetNumDimensions",&HAL::StateSpace::GetNumDimensions)
+        .def("GetLabel",&HAL::Bucket::GetLabel)
+        .def("GetNumDimensions",&HAL::Bucket::GetNumDimensions)
     ;
 
     PYTHON::class_<HAL::Connection, HAL::Connection*,

@@ -1,5 +1,5 @@
 import unittest
-import PyStorm as ps
+import Pystorm as ps
 
 class TestPool(unittest.TestCase):
     label = "Pool1"
@@ -57,3 +57,20 @@ class TestPool(unittest.TestCase):
             self.width, self.height)
 
         self.assertEqual(_pool2.GetHeight(), self.height)
+
+class TestBucket(unittest.TestCase):
+    label = "Bucket1"
+    num_dims = 3
+
+    def test_constructor(self):
+        self.assertRaises(Exception, ps.Bucket)
+        self.assertRaises(Exception, ps.Bucket,("",self.num_dims))
+        self.assertRaises(Exception, ps.Bucket,(self.label,0))
+
+    def test_GetLabel(self):
+        _bucket = ps.Bucket(self.label, self.num_dims)
+        self.assertEqual(self.label, _bucket.GetLabel())
+
+    def test_GetNumDimensions(self):
+        _bucket = ps.Bucket(self.label, self.num_dims)
+        self.assertEqual(self.num_dims, _bucket.GetNumDimensions())
