@@ -113,7 +113,7 @@ TEST(TESTConnection, testConstructionInvalidParams) {
     delete _conn1;
 }
 
-TEST(TESTConnection, testGetName) {
+TEST(TESTConnection, testGetLabel) {
     std::string conn_label = "Connection1";
     std::string pool_label = "Pool";
     std::string bucket_label = "Bucket";
@@ -136,7 +136,7 @@ TEST(TESTConnection, testGetName) {
     Connection* _conn1 = new Connection(conn_label, _pool, _bucket, 
         wMatrix);
 
-    EXPECT_EQ(_conn1->GetName(), conn_label);
+    EXPECT_EQ(_conn1->GetLabel(), conn_label);
 
     delete _conn1;
 }

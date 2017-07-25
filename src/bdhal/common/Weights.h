@@ -76,7 +76,33 @@ public:
     ///
     /// \return The element at (row,column).
     T GetElement(uint32_t row, uint32_t column) {
+        if ((row < 0) || (row >= m_num_rows)) {
+            throw std::out_of_range("row parameter out of bounds");
+        }
+
+        if ((column < 0) || (column >= m_num_columns)) {
+            throw std::out_of_range("row parameter out of bounds");
+        }
+    
         return m_matrix[(row*m_num_columns) + column];
+    }
+
+    ///
+    /// Returns the element at (row,column) of the matrix
+    ///        The matrix is zero-based to the last element is at
+    ///        position (num_rows-1, num_cols - 1)
+    ///
+    /// \return The element at (row,column).
+    void SetElement(uint32_t row, uint32_t column, uint32_t new_value) {
+        if ((row < 0) || (row >= m_num_rows)) {
+            throw std::out_of_range("row parameter out of bounds");
+        }
+
+        if ((column < 0) || (column >= m_num_columns)) {
+            throw std::out_of_range("row parameter out of bounds");
+        }
+
+        m_matrix[(row*m_num_columns) + column] = new_value;
     }
 
 private:

@@ -100,7 +100,7 @@ TEST(TESTNetwork, testCreateConnection) {
     wMatrix = _net->GetConnections().at(0)->GetWeights();
 
     EXPECT_EQ(_net->GetConnections().at(0), _conn);
-    EXPECT_EQ(_net->GetConnections().at(0)->GetName(), conn_label);
+    EXPECT_EQ(_net->GetConnections().at(0)->GetLabel(), conn_label);
     EXPECT_EQ(_net->GetConnections().at(0)->GetSrc(), _pool);
     EXPECT_EQ(_net->GetConnections().at(0)->GetDest(), _bucket);
 
@@ -121,7 +121,7 @@ TEST(TESTNetwork, testCreateConnection) {
     wMatrix = _net->GetConnections().at(1)->GetWeights();
 
     EXPECT_EQ(_net->GetConnections().at(1), _conn2);
-    EXPECT_EQ(_net->GetConnections().at(1)->GetName(), conn2_label);
+    EXPECT_EQ(_net->GetConnections().at(1)->GetLabel(), conn2_label);
     EXPECT_EQ(_net->GetConnections().at(1)->GetSrc(), _pool);
     EXPECT_EQ(_net->GetConnections().at(1)->GetDest(), _bucket);
 

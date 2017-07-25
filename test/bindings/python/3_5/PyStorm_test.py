@@ -74,3 +74,37 @@ class TestBucket(unittest.TestCase):
     def test_GetNumDimensions(self):
         _bucket = ps.Bucket(self.label, self.num_dims)
         self.assertEqual(self.num_dims, _bucket.GetNumDimensions())
+
+class TestInput(unittest.TestCase):
+    label = "Input1"
+    num_dims = 3
+
+    def test_constructor(self):
+        self.assertRaises(Exception, ps.Input)
+        self.assertRaises(Exception, ps.Input,("",self.num_dims))
+        self.assertRaises(Exception, ps.Input,(self.label,0))
+    
+    def test_GetLabel(self):
+        _input = ps.Input(self.label, self.num_dims)
+        self.assertEqual(self.label, _input.GetLabel())
+
+    def test_GetNumDimensions(self):
+        _input = ps.Input(self.label, self.num_dims)
+        self.assertEqual(self.num_dims, _input.GetNumDimensions())
+
+class TestOutput(unittest.TestCase):
+    label = "Output1"
+    num_dims = 3
+
+    def test_constructor(self):
+        self.assertRaises(Exception, ps.Output)
+        self.assertRaises(Exception, ps.Output,("",self.num_dims))
+        self.assertRaises(Exception, ps.Output,(self.label,0))
+    
+    def test_GetLabel(self):
+        _output = ps.Input(self.label, self.num_dims)
+        self.assertEqual(self.label, _output.GetLabel())
+
+    def test_GetNumDimensions(self):
+        _output = ps.Output(self.label, self.num_dims)
+        self.assertEqual(self.num_dims, _output.GetNumDimensions())

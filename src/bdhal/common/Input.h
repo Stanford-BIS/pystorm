@@ -18,10 +18,10 @@ public:
     ///
     /// Default constructor
     /// 
-    /// \param name Name assigned to the Input
+    /// \param label Name assigned to the Input
     /// \param n_dims Number of dimensions the Input represents
     ///
-    Input(std::string name, uint32_t n_dims);
+    Input(std::string label, uint32_t n_dims);
 
     ~Input();
 
@@ -31,14 +31,14 @@ public:
     Input& operator=(Input&&) = delete;
 
     ///
-    /// Returns name assigned to Input
+    /// Returns label assigned to Input
     ///
     std::string GetLabel() {
         return m_label;
     }
 
     ///
-    /// Returns name assigned to Input
+    /// Returns label assigned to Input
     ///
     /// \return Number of dimensions assigned to Input
     ///
@@ -46,7 +46,7 @@ public:
         return m_dims;
     }
 private:
-    /// Input name
+    /// Input label
     std::string m_label;
 
     /// Number of dimensions assigned to Input

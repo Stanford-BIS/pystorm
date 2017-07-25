@@ -109,7 +109,7 @@ public:
     /// \return The label assigned to this connection. If no label is assigned,
     /// an empty string will be returned.
     ///
-    std::string GetName() {
+    std::string GetLabel() {
         return m_label;
     }
 
