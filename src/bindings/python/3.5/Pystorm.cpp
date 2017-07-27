@@ -83,41 +83,7 @@ HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
 
 
     HAL::Weights<T>* weightMatrix = makeWeights<T>(weights);
-/*
-    int num_dims_allowed = 2;
 
-    if (false == PyArray_CheckExact(weights.ptr())) {
-        std::logic_error("Weights must be a numpy array");
-    }
-
-    PyArrayObject *arrayobj_ptr = (PyArrayObject*) PyArray_FROM_O(weights.ptr());
-
-    if (num_dims_allowed != PyArray_NDIM(arrayobj_ptr)){
-        throw std::logic_error("Matrix must have 2 dimensions");
-    }
-
-    npy_intp* dims = PyArray_DIMS(arrayobj_ptr);
-
-    npy_intp num_rows = dims[0];
-    npy_intp num_columns = dims[1];
-
-    // copy the weight matrix
-    T* weights_ptr = (T*) std::calloc((num_rows*num_columns),sizeof(T));
-
-    HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(weights_ptr, num_rows,
-        num_columns);
-
-    for (unsigned int row = 0; row < weightMatrix->GetNumRows(); row++)
-    {
-        for (unsigned int col = 0; col < weightMatrix->GetNumColumns(); col++)
-        {
-            npy_intp npy_row = static_cast<npy_intp>(row);
-            npy_intp npy_col = static_cast<npy_intp>(col);
-            T new_value = *((T*) PyArray_GETPTR2(arrayobj_ptr, npy_row, npy_col));
-            weightMatrix->SetElement(row, col, new_value);
-        }
-    }
-*/
     HAL::Connection* newConnection = net.CreateConnection(name, in_object, 
         out_object, weightMatrix);
 
@@ -167,6 +133,16 @@ BOOST_PYTHON_MODULE(Pystorm)
 
     PYTHON::class_<HAL::VecOfConnections>("VecOfConnections")
         .def(PYTHON::vector_indexing_suite<HAL::VecOfConnections,true>()
+         )
+    ;
+
+    PYTHON::class_<HAL::VecOfInputs>("VecOfInputs")
+        .def(PYTHON::vector_indexing_suite<HAL::VecOfInputs,true>()
+         )
+    ;
+
+    PYTHON::class_<HAL::VecOfOutputs>("VecOfOutputs")
+        .def(PYTHON::vector_indexing_suite<HAL::VecOfOutputs,true>()
          )
     ;
 
@@ -261,6 +237,10 @@ BOOST_PYTHON_MODULE(Pystorm)
         .def("GetBuckets",&HAL::Network::GetBuckets,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
         .def("GetConnections",&HAL::Network::GetConnections,
+            PYTHON::return_value_policy<PYTHON::reference_existing_object>())
+        .def("GetInputs",&HAL::Network::GetInputs,
+            PYTHON::return_value_policy<PYTHON::reference_existing_object>())
+        .def("GetOutputs",&HAL::Network::GetOutputs,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
         .def("CreatePool", CreatePool_1, 
             PYTHON::return_internal_reference<>())

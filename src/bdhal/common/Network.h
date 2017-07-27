@@ -146,6 +146,14 @@ public:
         return m_buckets;
     }
 
+    VecOfInputs& GetInputs() {
+        return m_inputs;
+    }
+
+    VecOfOutputs& GetOutputs() {
+        return m_outputs;
+    }
+
     VecOfConnections& GetConnections() {
         return m_connections;
     }

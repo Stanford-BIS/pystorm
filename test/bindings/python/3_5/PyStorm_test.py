@@ -412,7 +412,7 @@ class TestNetwork(unittest.TestCase):
             raised = True
             self.assertFalse(raised, "Exception raised creating output")
 
-    def test_CreateConnection(self):
+    def test_CreateConnection_GetConnection(self):
         dims = [3,2]
         conn_obj_labels = ["bucket_in","bucket_out"]
         conn_labels = ["conn_1","conn_2"]
@@ -451,3 +451,39 @@ class TestNetwork(unittest.TestCase):
         except:
             raised = True
             self.assertFalse(raised, "Exception raised getting connections")
+
+    def test_GetInputs(self):
+        num_inputs = 4
+        net = ps.Network("net")
+        for i in range(num_inputs):
+            net.CreateInput("in",3)
+
+        inputs = net.GetInputs()
+        self.assertEqual(num_inputs,len(inputs))
+
+    def test_GetOutputs(self):
+        num_outputs = 4
+        net = ps.Network("net")
+        for i in range(num_outputs):
+            net.CreateOutput("out",3)
+
+        outputs = net.GetOutputs()
+        self.assertEqual(num_outputs,len(outputs))
+
+    def test_GetBuckets(self):
+        num_buckets = 4
+        net = ps.Network("net")
+        for i in range(num_buckets):
+            net.CreateBucket("bucket",3)
+
+        buckets = net.GetBuckets()
+        self.assertEqual(num_buckets,len(buckets))
+
+    def test_GetPools(self):
+        num_pools = 4
+        net = ps.Network("net")
+        for i in range(num_pools):
+            net.CreatePool("pool", self.num_neurons, self.dims)
+
+        pools = net.GetPools()
+        self.assertEqual(num_pools,len(pools))
