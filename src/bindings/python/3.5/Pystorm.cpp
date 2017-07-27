@@ -17,18 +17,6 @@ namespace pystorm
 namespace HAL = pystorm::bdhal;
 namespace PYTHON = boost::python;
 
-HAL::Connection* 
-    (HAL::Network::*CreateConnection_1) (
-    std::string name, HAL::ConnectableInput* in_object, 
-    HAL::ConnectableOutput* out_object) = 
-        &HAL::Network::CreateConnection;
-
-HAL::Connection* 
-    (HAL::Network::*CreateConnection_2) (
-    std::string name, HAL::ConnectableInput* in_object, 
-    HAL::ConnectableOutput* out_object, 
-    HAL::Weights<uint32_t>* weightMatrix) = 
-        &HAL::Network::CreateConnection;
 
 HAL::Pool* 
     (HAL::Network::*CreatePool_1) (
@@ -45,7 +33,7 @@ HAL::Pool*
 template<typename T>
 HAL::Weights<T>* makeWeights(PYTHON::object& weights) {
 
-    static int num_dims_allowed = 2;
+    int num_dims_allowed = 2;
 
     if (false == PyArray_CheckExact(weights.ptr())) {
         std::logic_error("Weights must be a numpy array");
@@ -82,6 +70,60 @@ HAL::Weights<T>* makeWeights(PYTHON::object& weights) {
     return weightMatrix;
 }
 
+HAL::Connection* 
+    (HAL::Network::*CreateConnection_1) (
+    std::string name, HAL::ConnectableInput* in_object, 
+    HAL::ConnectableOutput* out_object) = 
+        &HAL::Network::CreateConnection;
+
+template<typename T>
+HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
+    HAL::ConnectableInput* in_object, HAL::ConnectableOutput* out_object,
+    PYTHON::object& weights) {
+
+
+    HAL::Weights<T>* weightMatrix = makeWeights<T>(weights);
+/*
+    int num_dims_allowed = 2;
+
+    if (false == PyArray_CheckExact(weights.ptr())) {
+        std::logic_error("Weights must be a numpy array");
+    }
+
+    PyArrayObject *arrayobj_ptr = (PyArrayObject*) PyArray_FROM_O(weights.ptr());
+
+    if (num_dims_allowed != PyArray_NDIM(arrayobj_ptr)){
+        throw std::logic_error("Matrix must have 2 dimensions");
+    }
+
+    npy_intp* dims = PyArray_DIMS(arrayobj_ptr);
+
+    npy_intp num_rows = dims[0];
+    npy_intp num_columns = dims[1];
+
+    // copy the weight matrix
+    T* weights_ptr = (T*) std::calloc((num_rows*num_columns),sizeof(T));
+
+    HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(weights_ptr, num_rows,
+        num_columns);
+
+    for (unsigned int row = 0; row < weightMatrix->GetNumRows(); row++)
+    {
+        for (unsigned int col = 0; col < weightMatrix->GetNumColumns(); col++)
+        {
+            npy_intp npy_row = static_cast<npy_intp>(row);
+            npy_intp npy_col = static_cast<npy_intp>(col);
+            T new_value = *((T*) PyArray_GETPTR2(arrayobj_ptr, npy_row, npy_col));
+            weightMatrix->SetElement(row, col, new_value);
+        }
+    }
+*/
+    HAL::Connection* newConnection = net.CreateConnection(name, in_object, 
+        out_object, weightMatrix);
+
+    return newConnection;
+} 
+
 #if PY_MAJOR_VERSION >= 3
     int
 #else
@@ -97,6 +139,14 @@ BOOST_PYTHON_MODULE(Pystorm)
     init_numpy();
 
     PYTHON::numeric::array::set_module_and_type("ndtype","ndarray");
+
+    PYTHON::implicitly_convertible<HAL::Input*, HAL::ConnectableInput*>();
+    PYTHON::implicitly_convertible<HAL::Output*, HAL::ConnectableOutput*>();
+    PYTHON::implicitly_convertible<HAL::Pool*, HAL::ConnectableInput*>();
+    PYTHON::implicitly_convertible<HAL::Pool*, HAL::ConnectableOutput*>();
+    PYTHON::implicitly_convertible<HAL::Bucket*, HAL::ConnectableInput*>();
+    PYTHON::implicitly_convertible<HAL::Bucket*, HAL::ConnectableOutput*>();
+
     //////////////////////////////////////////////////////////////////////
     //
     // Common network objects
@@ -111,7 +161,7 @@ BOOST_PYTHON_MODULE(Pystorm)
         .def(PYTHON::vector_indexing_suite<HAL::VecOfPools,true>() )
     ;
 
-    PYTHON::class_<HAL::VecOfBuckets>("VecOf Buckets")
+    PYTHON::class_<HAL::VecOfBuckets>("VecOfBuckets")
         .def(PYTHON::vector_indexing_suite<HAL::VecOfBuckets,true>() )
     ;
 
@@ -197,6 +247,10 @@ BOOST_PYTHON_MODULE(Pystorm)
         .def(PYTHON::init<std::string, HAL::ConnectableInput*, 
             HAL::ConnectableOutput*>())
         .def("GetLabel",&HAL::Connection::GetLabel)
+        .def("GetSource",&HAL::Connection::GetSrc,PYTHON::return_internal_reference<>())
+        .def("GetDest",&HAL::Connection::GetDest,PYTHON::return_internal_reference<>())
+        .def("GetWeights",&HAL::Connection::GetWeights,PYTHON::return_internal_reference<>())
+        .def("SetWeights",&HAL::Connection::SetWeights,PYTHON::return_internal_reference<>())
     ;
 
     PYTHON::class_<HAL::Network, boost::noncopyable>("Network",
@@ -214,12 +268,15 @@ BOOST_PYTHON_MODULE(Pystorm)
             PYTHON::return_internal_reference<>())
         .def("CreateBucket",&HAL::Network::CreateBucket, 
             PYTHON::return_internal_reference<>())
+        .def("CreateInput",&HAL::Network::CreateInput, 
+            PYTHON::return_internal_reference<>())
+        .def("CreateOutput",&HAL::Network::CreateOutput, 
+            PYTHON::return_internal_reference<>())
         .def("CreateConnection", CreateConnection_1,
             PYTHON::return_internal_reference<>(),
             PYTHON::args("self","in_obj","out_obj"))
-        .def("CreateConnection", CreateConnection_2,
-            PYTHON::return_internal_reference<>(),
-            PYTHON::args("self","in_obj","out_obj","weight_matrix"))
+        .def("CreateConnection", pystorm::makeConnectionWithWeights<uint32_t>,
+            PYTHON::return_internal_reference<>())
     ;
 
     PYTHON::register_ptr_to_python< boost::shared_ptr<HAL::Pool> >();

@@ -106,11 +106,6 @@ TEST(TESTConnection, testConstructionInvalidParams) {
         std::logic_error);
 
     delete _conn1;
-
-    EXPECT_THROW(_conn1 = new Connection(conn_label, _pool, _bucket),
-        std::logic_error);
-
-    delete _conn1;
 }
 
 TEST(TESTConnection, testGetLabel) {

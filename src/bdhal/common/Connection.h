@@ -3,8 +3,13 @@
 
 #include <iostream>
 #include <stdint.h>
+#include <typeinfo>
+
 #include <common/Connectable.h>
 #include <common/Weights.h>
+#include <common/Pool.h>
+#include <common/Input.h>
+#include <common/Output.h>
 
 namespace pystorm {
 namespace bdhal {
@@ -41,7 +46,6 @@ public:
             throw std::logic_error("Connection weights point to null pointer");
         }
 
-
         if (nullptr == m_weights) {
             throw std::logic_error("Connection weights point to null pointer");
         }
@@ -52,6 +56,15 @@ public:
 
         if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
             throw std::logic_error("Connection output dimensions != Weight rows");
+        }
+
+        if ((typeid(*src) == typeid(Pool)) && (typeid(*dest) == typeid(Pool))) {
+            std::logic_error("Pools cannot be connected directly to Pools");
+        }
+
+        if ((typeid(*src) == typeid(Input)) 
+            && (typeid(*dest) == typeid(Output))) {
+            std::logic_error("Inputs cannot be connected directly to Outputs");
         }
     }
 
@@ -77,8 +90,13 @@ public:
             throw std::logic_error("Connection output cannot be null pointer");
         }
 
-        if(m_src->GetNumDimensions() != m_dest->GetNumDimensions()) {
-            throw std::logic_error("Connection input dimensions != Connection output dimensions");
+        if ((typeid(*src) == typeid(Pool)) && (typeid(*dest) == typeid(Pool))) {
+            std::logic_error("Pools cannot be connected directly to Pools");
+        }
+
+        if ((typeid(*src) == typeid(Input)) 
+            && (typeid(*dest) == typeid(Output))) {
+            std::logic_error("Inputs cannot be connected directly to Outputs");
         }
     }
 
@@ -138,6 +156,13 @@ public:
     ///
     Weights<uint32_t>* GetWeights() {
         return m_weights;
+    }
+
+    ///
+    /// Set the weight matrix associated with this connection.
+    ///
+    void SetWeights(Weights<uint32_t>* newWeights) {
+        m_weights = newWeights;
     }
 
 private:

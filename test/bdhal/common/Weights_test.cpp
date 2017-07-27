@@ -76,7 +76,7 @@ TEST(TESTWeights, testConstructionGetElements) {
     uint32_t* newMatrix = buildMatrix<uint32_t>(numRows,numColumns);
 
     for (uint32_t i = 0; i < numRows; i++) {
-        for (uint32_t j = 0; j < numRows; j++) {
+        for (uint32_t j = 0; j < numColumns; j++) {
             newMatrix[i*numColumns + j] = i+j;
         }
     }
@@ -85,7 +85,7 @@ TEST(TESTWeights, testConstructionGetElements) {
         numRows, numColumns);
 
     for (uint32_t i = 0; i < numRows; i++) {
-        for (uint32_t j = 0; j < numRows; j++) {
+        for (uint32_t j = 0; j < numColumns; j++) {
             EXPECT_EQ(newWMatrix->GetElement(i,j), newMatrix[i*numColumns + j]);
         }
     }

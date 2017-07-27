@@ -83,14 +83,34 @@ public:
         uint32_t n_dims);
 
     ///
-    /// Create a Statespace object for this network
+    /// Create a Bucket object for this network
     ///
-    /// \param name Names assigned to the Statespace
-    /// \param n_dims Number of dimensions the Statespace represents
+    /// \param name Names assigned to the Bucket
+    /// \param n_dims Number of dimensions the Bucket represents
     ///
-    /// \return a new Statespace object
+    /// \return a new Bucket object
     ///
     Bucket* CreateBucket(std::string name, uint32_t n_dims);
+
+    ///
+    /// Create an Input object for this network
+    ///
+    /// \param name Names assigned to the Input
+    /// \param n_dims Number of dimensions the Input represents
+    ///
+    /// \return a new Input object
+    ///
+    Input* CreateInput(std::string name, uint32_t n_dims);
+
+    ///
+    /// Create an Output object for this network
+    ///
+    /// \param name Names assigned to the Output
+    /// \param n_dims Number of dimensions the Output represents
+    ///
+    /// \return a new Output object
+    ///
+    Output* CreateOutput(std::string name, uint32_t n_dims);
 
     ///
     /// Create a Connection object for this network
@@ -137,8 +157,14 @@ private:
     /// Pools created for Network
     VecOfPools m_pools;
 
-    /// Statespaces created for Network
+    /// Buckets created for Network
     std::vector<Bucket*> m_buckets;
+
+    /// Inputs created for Network
+    std::vector<Input*> m_inputs;
+
+    /// Outputs created for Network
+    std::vector<Output*> m_outputs;
 
     /// Connection created for Network
     std::vector<Connection*> m_connections;

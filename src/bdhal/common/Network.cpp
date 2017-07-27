@@ -41,6 +41,18 @@ Bucket* Network::CreateBucket(std::string name, uint32_t n_dims) {
     return newBucket;
 }
 
+Input* Network::CreateInput(std::string name, uint32_t n_dims) {
+    Input* newInput = new Input(name,n_dims);
+    m_inputs.push_back(newInput);
+    return newInput;
+}
+
+Output* Network::CreateOutput(std::string name, uint32_t n_dims) {
+    Output* newOutput = new Output(name,n_dims);
+    m_outputs.push_back(newOutput);
+    return newOutput;
+}
+
 Connection* Network::CreateConnection( std::string name, 
     ConnectableInput* src, ConnectableOutput* dest) {
 

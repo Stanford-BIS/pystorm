@@ -93,7 +93,7 @@ public:
     ///        position (num_rows-1, num_cols - 1)
     ///
     /// \return The element at (row,column).
-    void SetElement(uint32_t row, uint32_t column, uint32_t new_value) {
+    void SetElement(uint32_t row, uint32_t column, T new_value) {
         if ((row < 0) || (row >= m_num_rows)) {
             throw std::out_of_range("row parameter out of bounds");
         }
