@@ -1,6 +1,7 @@
 set(HEADER_FILES
     ${HEADER_FILES} 
     ${CMAKE_CURRENT_SOURCE_DIR}/Connectable.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/CorePars.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Network.h
     ${CMAKE_CURRENT_SOURCE_DIR}/Pool.h
     ${CMAKE_CURRENT_SOURCE_DIR}/StateSpace.h

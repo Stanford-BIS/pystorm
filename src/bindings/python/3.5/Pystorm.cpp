@@ -1,7 +1,9 @@
 #include <boost/python.hpp>
 #include <boost/python/return_internal_reference.hpp>
 #include <boost/python/suite/indexing/vector_indexing_suite.hpp>
+#include <boost/python/suite/indexing/map_indexing_suite.hpp>
 #include <boost/python/register_ptr_to_python.hpp>
+#include <boost/python/enum.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/python/numeric.hpp>
 #include <boost/python/tuple.hpp>
@@ -47,10 +49,7 @@ HAL::Weights<T>* makeWeights(PYTHON::object& weights) {
 
     npy_intp* dims = PyArray_DIMS(arrayobj_ptr);
 
-    npy_intp num_rows = dims[0];
-    npy_intp num_columns = dims[1];
-
-    // copy the weight matrix
+    npy_intp num_rows = dims[0]; npy_intp num_columns = dims[1]; // copy the weight matrix
     T* weights_ptr = (T*) std::calloc((num_rows*num_columns),sizeof(T));
 
     HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(weights_ptr, num_rows,
@@ -133,6 +132,27 @@ BOOST_PYTHON_MODULE(Pystorm)
 
     PYTHON::class_<HAL::VecOfConnections>("VecOfConnections")
         .def(PYTHON::vector_indexing_suite<HAL::VecOfConnections,true>()
+         )
+    ;
+
+    PYTHON::enum_<HAL::CoreParsIndex>("CoreParsIndex")
+        .value("MM_height", HAL::CoreParsIndex::MM_height)
+        .value("MM_width", HAL::CoreParsIndex::MM_width)
+        .value("AM_size", HAL::CoreParsIndex::AM_size)
+        .value("TAT_size", HAL::CoreParsIndex::TAT_size)
+        .value("NeuronArray_height", HAL::CoreParsIndex::NeuronArray_height)
+        .value("NeuronArray_width", HAL::CoreParsIndex::NeuronArray_width)
+        .value("NeuronArray_pool_size", 
+            HAL::CoreParsIndex::NeuronArray_pool_size)
+        .value("num_threshold_levels", HAL::CoreParsIndex::num_threshold_levels)
+        .value("min_threshold_value", HAL::CoreParsIndex::min_threshold_value)
+        .value("max_weight_value", HAL::CoreParsIndex::max_weight_value)
+        .value("NeuronArray_neurons_per_tap", 
+            HAL::CoreParsIndex::NeuronArray_neurons_per_tap)
+    ;
+
+    PYTHON::class_<HAL::CorePars>("CorePars")
+        .def(PYTHON::map_indexing_suite<HAL::CorePars,true>()
          )
     ;
 
@@ -274,6 +294,15 @@ BOOST_PYTHON_MODULE(Pystorm)
         HAL::Hal::CreateNetwork,
         PYTHON::return_value_policy<PYTHON::reference_existing_object>());
 
+//////////////////////////////////////////////////////////////////////////////
+//
+// NetworkMapping Control functionality
+//
+//////////////////////////////////////////////////////////////////////////////
+
+    def("GetCorePars",
+        HAL::Hal::GetCorePars,
+        PYTHON::return_value_policy<PYTHON::reference_existing_object>());
 
 //////////////////////////////////////////////////////////////////////////////  
 //                                                                              

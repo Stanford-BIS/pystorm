@@ -1,29 +1,32 @@
 import numpy as np
 from MemWordEnums import *
 from MemWordPlaceholders import *
+import Pystorm as ps
 
 class Core(object):
     def __init__(self, pars):
         # base parameters
 
-        self.MM_height = pars['MM_height']
-        self.MM_width = pars['MM_width']
+        pars_idx = ps.CoreParsIndex
 
-        self.AM_size = pars['AM_size']
+        self.MM_height = pars[pars_idx.MM_height]
+        self.MM_width = pars[pars_idx.MM_width]
 
-        self.TAT_size = pars['TAT_size']
+        self.AM_size = pars[pars_idx.AM_size]
 
-        self.NeuronArray_height = pars['NeuronArray_height']
-        self.NeuronArray_width  = pars['NeuronArray_width']
-        self.NeuronArray_pool_size = pars['NeuronArray_pool_size'] # number of neurons that share each PAT entry
-        self.NeuronArray_neurons_per_tap = pars['NeuronArray_neurons_per_tap']
+        self.TAT_size = pars[pars_idx.TAT_size]
+
+        self.NeuronArray_height = pars[pars_idx.NeuronArray_height]
+        self.NeuronArray_width  = pars[pars_idx.NeuronArray_width]
+        self.NeuronArray_pool_size = pars[pars_idx.NeuronArray_pool_size] # number of neurons that share each PAT entry
+        self.NeuronArray_neurons_per_tap = pars[pars_idx.NeuronArray_neurons_per_tap]
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
         self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
 
-        self.num_threshold_levels = pars['num_threshold_levels']
-        self.min_threshold_value = pars['min_threshold_value']
-        self.max_weight_value = pars['max_weight_value']
+        self.num_threshold_levels = pars[pars_idx.num_threshold_levels]
+        self.min_threshold_value = pars[pars_idx.min_threshold_value]
+        self.max_weight_value = pars[pars_idx.max_weight_value]
 
         # set up allocable objects (Resource containers)
 
@@ -42,31 +45,6 @@ class Core(object):
 
         # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
-
-
-    def Map(self, R, verbose=False):
-        # map resources to this core
-        for node in R:
-            node.PreTranslate(self)
-        if verbose: print("finished PreTranslate")
-
-        for node in R:
-            node.AllocateEarly(self)
-        if verbose: print("finished AllocateEarly")
-        
-        self.MM.alloc.SwitchToTrans() # switch allocation mode of MM
-        for node in R:
-            node.Allocate(self)
-        if verbose: print("finished Allocate")
-
-        for node in R:
-            node.PostTranslate(self)
-        if verbose: print("finished PostTranslate")
-
-        for node in R:
-            node.Assign(self)
-        if verbose: print("finished Assign")
-
 
     def Print(self):
         print("Printing Allocation maps")
@@ -89,7 +67,6 @@ class Core(object):
         self.TAT1.WriteToFile(fname_pre, self, 1)
         self.MM.WriteToFile(fname_pre, self)
         self.AM.WriteToFile(fname_pre, self)
-
 
 class MemAllocator(object):
     def __init__(self, shape):
