@@ -4,14 +4,16 @@
 #include <iostream>
 #include <stdint.h>
 
+#include <common/Connectable.h>
+
 namespace pystorm {
 namespace bdhal {
 ///
 /// A set of numerical values (dimensions) which are weighted projections from 
 /// another Pool or StateSpace. A StateSpace can be connected to another
-/// Pool or StateSpace by using the WeightedConnection class.
+/// Pool or StateSpace by using the Connection class.
 ///
-class StateSpace : ConnectableObject {
+class StateSpace : public ConnectableInput, ConnectableOutput {
 public:
     ///
     /// Default constructor
@@ -19,15 +21,9 @@ public:
     /// \param name Name assigned to the StateSpace
     /// \param n_dims Number of dimensions the StateSpace represents
     ///
-    StateSpace(std::string name, uint32_t n_dims) : 
-        m_name(name),
-        m_dims(n_dims) {
-        assert(m_dims > 0);
-        assert(!m_name.empty());
-    }
+    StateSpace(std::string name, uint32_t n_dims);
 
-    ~StateSpace() {
-    }
+    ~StateSpace();
 
     StateSpace(const StateSpace&) = delete;
     StateSpace(StateSpace&&) = delete;
@@ -37,10 +33,8 @@ public:
     ///
     /// Returns name assigned to StateSpace
     ///
-    /// \return Name assigned to StateSpace
-    ///
-    std::string getName() {
-        return m_name;
+    std::string GetLabel() {
+        return m_label;
     }
 
     ///
@@ -48,12 +42,12 @@ public:
     ///
     /// \return Number of dimensions assigned to StateSpace
     ///
-    uint32_t getNumDims() {
+    uint32_t GetNumDimensions() {
         return m_dims;
     }
 private:
     /// StateSpace name
-    std::string m_name;
+    std::string m_label;
 
     /// Number of dimensions assigned to StateSpace
     uint32_t    m_dims;

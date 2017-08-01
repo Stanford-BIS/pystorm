@@ -2,30 +2,35 @@
 #define NETWORK_H
 
 #include <iostream>
-#include <common/ConnectableObject.h>
-#include <common/Pool.h>
-#include <common/StateSpace.h>
-#include <common/WeightedConnection.h>
-
+#include <map>
+#include <memory>
 #include <stdint.h>
 #include <vector>
-#include <map>
+
+#include <common/Connectable.h>
+#include <common/Input.h>
+#include <common/Output.h>
+#include <common/Pool.h>
+#include <common/Bucket.h>
+#include <common/Connection.h>
+#include <common/Weights.h>
 
 namespace pystorm {
 namespace bdhal {
+
+typedef std::vector<Pool*> VecOfPools;
+typedef std::vector<Bucket*> VecOfBuckets;
+typedef std::vector<Input*> VecOfInputs;
+typedef std::vector<Output*> VecOfOutputs;
+typedef std::vector<Connection*> VecOfConnections;
+
 ///
-/// A Network composed of WeightedConnections and ConnectableObjects
+/// A Network composed of Connection and Connectable objects
 ///
 /// A network that represents a Nengo network. The network will be passed
-/// to Neuromorph to be placed and routed and will be passed to a MappedNetwork
-/// object which will track this object as well as other objects that
-/// allow pystorm to program Brainstorm.
+/// to Neuromorph to be placed and routed.
 /// 
-/// NOTE: As much as possible we want objects to be immutable. Create an 
-/// object and don't change it. One exception will be the transform matrix
-/// associated with WeightedConnections. We don't want to create a new
-/// Network if a WeightedConnections transform matrix changes so we make an
-/// exception there.
+/// NOTE: Connectable objects (Buckets and Pools) are immutable but Weights are not.
 ///
 class Network {
 public:
@@ -45,82 +50,146 @@ public:
     ///
     /// Name assigned to Network
     ///
-    std::string getName();
+    std::string GetName();
 
     ///
     /// Create a Pool object for this network
     ///
-    /// \param name Name assigned to the Pool
+    /// \param label Label assigned to the Pool
     /// \param n_neurons Number of neurons assigned to the Pool
+    /// \param n_dims Number of dimensions assigned to the Pool
+    /// \param width Width of Pool
+    /// \param height Height of Pool
     ///
     /// \return a new Pool object
     ///
-    Pool* createPool(std::string name, uint32_t n_neurons);
+    Pool* CreatePool(std::string label, 
+        uint32_t n_neurons,
+        uint32_t n_dims,
+        uint32_t width,
+        uint32_t height);
 
     ///
-    /// Create a Statespace object for this network
+    /// Create a Pool object for this network
     ///
-    /// \param name Names assigned to the Statespace
-    /// \param n_dims Number of dimensions the Statespace represents
+    /// \param label Label assigned to the Pool
+    /// \param n_neurons Number of neurons assigned to the Pool
+    /// \param n_dims Number of dimensions assigned to the Pool
     ///
-    /// \return a new Statespace object
+    /// \return a new Pool object
     ///
-    StateSpace* createStateSpace(std::string name, uint32_t n_dims);
+    Pool* CreatePool(std::string label, 
+        uint32_t n_neurons,
+        uint32_t n_dims);
 
     ///
-    /// Create a WeightedConnection object for this network
+    /// Create a Bucket object for this network
+    ///
+    /// \param name Names assigned to the Bucket
+    /// \param n_dims Number of dimensions the Bucket represents
+    ///
+    /// \return a new Bucket object
+    ///
+    Bucket* CreateBucket(std::string name, uint32_t n_dims);
+
+    ///
+    /// Create an Input object for this network
+    ///
+    /// \param name Names assigned to the Input
+    /// \param n_dims Number of dimensions the Input represents
+    ///
+    /// \return a new Input object
+    ///
+    Input* CreateInput(std::string name, uint32_t n_dims);
+
+    ///
+    /// Create an Output object for this network
+    ///
+    /// \param name Names assigned to the Output
+    /// \param n_dims Number of dimensions the Output represents
+    ///
+    /// \return a new Output object
+    ///
+    Output* CreateOutput(std::string name, uint32_t n_dims);
+
+    ///
+    /// Create a Connection object for this network
     ///
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
     ///
-    /// \return a new WeightedConnection object
+    /// \return a new Connection object
     ///
-    WeightedConnection* createWeightedConnection( std::string name, 
-        ConnectableObject* src, ConnectableObject* dest);
+    Connection* CreateConnection( std::string name, 
+        ConnectableInput* src, ConnectableOutput* dest);
 
     ///
-    /// Create a WeightedConnection object for this network
+    /// Create a Connection object for this network
     ///
     /// \param name Name assigned to the connection
     /// \param src Connections source object
     /// \param dest Connections destination object
-    /// \param transformMatrix Transform matrix assigned to the connection
+    /// \param weightMatrix Weights matrix assigned to the connection
     ///
-    /// \return a new WeightedConnection object
+    /// \return a new Connection object
     ///
-    WeightedConnection* createWeightedConnection(std::string name, 
-        ConnectableObject* src, ConnectableObject* dest, 
-        Transform<uint32_t>* transformMatrix);
+    Connection* CreateConnection(std::string name, 
+        ConnectableInput* src, ConnectableOutput* dest, 
+        Weights<uint32_t>* weightMatrix);
+
+    VecOfPools& GetPools() {
+        return m_pools;
+    }
+
+    VecOfBuckets& GetBuckets() {
+        return m_buckets;
+    }
+
+    VecOfInputs& GetInputs() {
+        return m_inputs;
+    }
+
+    VecOfOutputs& GetOutputs() {
+        return m_outputs;
+    }
+
+    VecOfConnections& GetConnections() {
+        return m_connections;
+    }
 
 private:
     /// Name assigned to Network
     std::string m_name;
 
     /// Pools created for Network
-    std::vector<Pool*> m_pools;
+    VecOfPools m_pools;
 
-    /// Statespaces created for Network
-    std::vector<StateSpace*> m_statespaces;
+    /// Buckets created for Network
+    std::vector<Bucket*> m_buckets;
 
-    /// WeightedConnections created for Network
-    std::vector<WeightedConnection*> m_weightedConnections;
+    /// Inputs created for Network
+    std::vector<Input*> m_inputs;
+
+    /// Outputs created for Network
+    std::vector<Output*> m_outputs;
+
+    /// Connection created for Network
+    std::vector<Connection*> m_connections;
 
     //Chances are the Network will need more structures for bookkeeping
-    // including a map from WeightedConnection to a tuple (pair) consisting
-    // of src and dest objects (both ConnectableObject instances)
+    // including a map from Connection to a tuple (pair) consisting
+    // of src and dest objects (both Connectable instances)
     // Let's consider how this is useful with some use cases
-    std::map<WeightedConnection*, 
-        std::pair<ConnectableObject*, ConnectableObject*> > m_connectionMap;
+    std::map<Connection*, 
+        std::pair<ConnectableInput*, ConnectableOutput*> > m_connectionMap;
 
-    /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its input
-    /// connections.
-    std::map<ConnectableObject*, std::vector<WeightedConnection*> > 
+    /// A map from a Connectable object to its input connections.
+    std::map<ConnectableInput*, std::vector<Connection*> > 
         m_inConnections;
 
-    /// A map from a ConnectableObject (i.e. Pool or StateSpace) to its output
-    /// connections.
-    std::map<ConnectableObject*, std::vector<WeightedConnection*> > 
+    /// A map from a Connectable object to its output connections.
+    std::map<ConnectableOutput*, std::vector<Connection*> > 
         m_outConnections;
 };
 

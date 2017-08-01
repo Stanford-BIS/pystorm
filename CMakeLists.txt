@@ -1,24 +1,13 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(pystorm CXX)
+project(PyStorm CXX)
+
+enable_testing()
 
 ############################################################################ #
 # Global variables 
 #
 ############################################################################
-
-enable_testing()
-
-############################################################################
-#
-# Check minimum python version (python 3) is installed
-#
-############################################################################
-function(check_minimum_python_version python_version)
-    if(NOT (${python_version} MATCHES "^3.*$"))
-        message(FATAL_ERROR "Python 3 not found")
-    endif()
-endfunction()
 
 ############################################################################
 #
@@ -27,10 +16,9 @@ endfunction()
 ############################################################################
 
 function(check_multiplatform_system_dependencies)
+    find_package(PythonLibs 3.5 REQUIRED)
+    find_package(PythonInterp 3.5)
     find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs REQUIRED)
-    check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
-    find_package(Threads REQUIRED)                                                  
 
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
@@ -50,8 +38,6 @@ function(build_on_linux)
     if (NOT CMAKE_COMPILER_IS_GNUCXX)
         message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
     endif()
-
-    link_directories(${PROJECT_SOURCE_DIR}/lib)
 
     # build and install external dependencies into lib/ directory
     add_subdirectory(${PROJECT_SOURCE_DIR}/ext)     
