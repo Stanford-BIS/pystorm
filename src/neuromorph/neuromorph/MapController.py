@@ -89,7 +89,7 @@ class MapController(object):
                     if bucket_fanout[source] is None:
                         fanout = TATFanout(source.GetNumDimensions())
                         bucket_fanout[source] = fanout
-                    else
+                    else:
                         fanout = bucket_fanout[source]
                     source_resource.connect(fanout)
                     source_resource = fanout
@@ -138,7 +138,7 @@ class MapController(object):
             node.Assign(core)
         if verbose: print("finished Assign")
 
-    return core
+        return core
 
     def Map(self, pystorm_network, verbose=False):
         pars = ps.GetCorePars();

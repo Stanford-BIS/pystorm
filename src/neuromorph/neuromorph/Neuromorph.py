@@ -1,4 +1,4 @@
-from MapController import *
+from .MapController import MapController
 
 class Neuromorph:
     ''' 
