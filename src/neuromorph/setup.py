@@ -1,6 +1,7 @@
-import os
-from setuptools import setup
+from setuptools import setup,find_packages
 
 setup(
-    packages=['neuromorph']
+    name="neuromorph",
+    packages=find_packages(),
+    version=0.1
 )

@@ -1,7 +1,8 @@
 import numpy as np
-from MemWordEnums import *
-from MemWordPlaceholders import *
+from . MemWordEnums import *
+from . MemWordPlaceholders import *
 import Pystorm as ps
+
 
 class Core(object):
     def __init__(self, pars):
