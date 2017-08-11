@@ -30,87 +30,183 @@ def _(bucket):
     return AMBuckets(bucket.GetNumDimensions())
 
 
+class NetObjNode(object):
+    def __init__(self, net_obj, resource_map):
+        """Construct the object updating the resource_map if necessary
+
+        :param net_obj:
+        :param resource_map:
+        """
+        self.net_obj = net_obj
+        self.resource = create_resources_for_(net_obj)
+        self.adjacent_net_obj = []
+
+        resource_map[type(self.resource)].append(self.resource)
+
+    def add_adjacent_node(self, node, weight=None):
+        self.adjacent_net_obj.append((weight, node))
+
+    def connect(self, resource_map):
+        """Connect the NetObjNode to it's adjacent nodes
+
+            Update the resource map parameter, if necessary.
+
+        :param resource_map: A map of Resource types to Resource instances
+        :return:
+        """
+        number_of_adj_nodes = len(self.adjacent_net_obj)
+
+        if number_of_adj_nodes == 0:
+            return
+
+        for adj_node in self.adjacent_net_obj:
+            adj_node_net_obj = adj_node.second
+            adj_node_weight = adj_node.first
+
+            # What type of Pystorm.Network object connections can we expect and
+            # what Resource objects (and connections) must we create given the
+            # Pystorm.Network objects?
+            #
+            # The following information describes the Pystorm.Network objects
+            # followed by their associated Resources objects.
+            #
+            #   Conn 1: Input -> Pool
+            #
+            #               Source -> TATTapPoint -> Neurons
+            #
+            #   Conn 2: Input -> Bucket
+            #
+            #       Source -> TATAcuumulator -> MMWeights -> AMBuckets
+            #
+            #   Conn 3: Pool -> Bucket
+            #
+            #      Neurons -> MMWeights -> AMBuckets
+            #
+            #   Conn 4: Bucket -> Bucket
+            #
+            #       AMBuckets -> MMWeights -> AMBuckets
+            #
+            #   Conn 5: Bucket -> Bucket
+            #                  -> Bucket
+            #
+            #       AMBuckets -> TATFanout -> MMWeights -> AMBuckets
+            #                              -> MMWeights -> AMBuckets
+            #
+            #   Conn 6: Bucket -> Output
+            #
+            #       AMBuckets -> Sink
+            #
+            #   Conn 7: Bucket -> Output
+            #                  -> Output
+            #
+            #       AMBuckets -> TATFanout -> Sink
+            #                              -> Sink
+
+            # Conn 1: Input -> Pool
+            if type(self.net_obj) == Input and type(adj_node_net_obj) == Pool:
+                num_neurons = self.net_obj.GetNumNeurons()
+                matrix_dims = 2
+                adj_node_dims = adj_node_net_obj.GetNumDimensions()
+
+                tap = TATTapPoint(np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                                  np.random.randint(1, size=(matrix_dims, adj_node_dims)) * 2 - 1,
+                                  num_neurons)
+
+                self.resource.Connect(tap)
+                tap.Connect(adj_node_net_obj.resource)
+
+                resource_map[TATTapPoint].append(tap)
+
+            #   Conn 2: Input -> Bucket
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                pass
+
+            #   Conn 3: Pool -> Bucket
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                weight_resource = MMWeights(np.zeros(self.net_obj.GetNumNeurons(),
+                                            adj_node_net_obj.GetNumDimensions()))
+
+                self.resource.Connect(weight_resource)
+                weight_resource.Connect(adj_node_net_obj.resource)
+
+                resource_map[MMWeights].append(weight_resource)
+
+            #   Conn 4: Bucket -> Bucket
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                pass
+
+            #   Conn 5: Bucket -> Bucket
+            #                  -> Bucket
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                pass
+
+            #   Conn 6: Bucket -> Output
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                pass
+
+            #   Conn 7: Bucket -> Output
+            #                  -> Output
+            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+                pass
+
+
 class MapController(object):
     def __init__(self):
         pass
 
     def create_resources(self, pystorm_network):
+        """Given a Pystorm network, return a list of required Resource objects.
+
+        :param pystorm_network: A Pystorm.Network object
+
+        :return resources: A list of Resource objects
+
+        .. note::
+            The objects in the Pystorm network may not form a graph
+
+            If a Pystorm network object is connected to another Pystorm
+            network object, the corresponding Resource objects should
+            be connected as well.
+
+        """
+
+        resource_map = dict()
         resources = []
+        # Key: Pystorm.Network object, Value: NetObj
+        network_obj_map = dict()
+
+        # Populate the nodes in the network graph taking only
+        # the Inputs, Outputs, Pools and Buckets
+        for inp in pystorm_network.GetInputs():
+            network_obj_map[inp] = NetObjNode(inp, resource_map)
+
+        for out in pystorm_network.GetOutputs():
+            network_obj_map[out] = NetObjNode(out, resource_map)
+
+        for pool in pystorm_network.GetPools():
+            network_obj_map[pool] = NetObjNode(pool, resource_map)
+
+        for bucket in pystorm_network.GetBuckets():
+            network_obj_map[bucket] = NetObjNode(bucket, resource_map)
+
         connections = pystorm_network.GetConnections()
 
-        netobj_resource_dict = dict()
-        netobj_conn_out_count = dict()
-        bucket_fanouts = dict()
-
-        # create the resources for the network objects
+        # Populate the adjacent nodes in the graph
         for conn in connections:
             source = conn.GetSource()
             dest = conn.GetDest()
-            if source not in netobj_resource_dict:
-                resource = create_resources_for_(source)
-                netobj_resource_dict[source] = resource
+            weights = conn.GetWeights()  # weights is either of type Weights or None
 
-            if source not in netobj_conn_out_count[source]:
-                netobj_conn_out_count[source] = 0
+            network_obj_map[source].add_adjacent_node(network_obj_map[dest], weights)
 
-            netobj_conn_out_count[source] = netobj_conn_out_count[source] + 1
+        # Connect the nodes creating the resources relevant to the connections in the graph
+        for node in network_obj_map:
+            node.connect(resource_map)
 
-            if dest not in netobj_resource_dict:
-                resource = create_resources_for_(dest)
-                netobj_resource_dict[dest] = resource
-            
-        # Create the resources for the connections and connect
-        for conn in connections:
-            source = conn.GetSource()
-            dest = conn.GetDest()
+        for resource in resource_map:
+            resources.append(resource)
 
-            source_resource = netobj_resource_dict[source]
-            dest_resource = netobj_resource_dict[dest] 
-
-            # if the source is an Input, the dest will be a Pool or a Bucket
-            # if a Pool, Create a tap point and move the source resource
-            # if a Bucket, Create a tat accumulator and move the source resource
-            if type(source_resource) == Source:
-                if type(dest_resource) == Neurons:
-                    M = dest.GetNumNeurons()
-                    K = 2
-                    D = source.GetNumDimensions()
-
-                    tap = TATTapPoint(
-                        np.random.randint(M, size=(K, D)), 
-                        np.random.randint(1, size=(K, D))*2 - 1, M)
-
-                    source_resource.connect(tap)
-                    source_resource = tap
-
-            # if the source is a Bucket, this connection may be part of a fanout
-            if type(source_resource) == AMBuckets:
-                if netobj_conn_out_count[source] > 1:
-                    if bucket_fanouts[source] is None:
-                        fanout = TATFanout(source.GetNumDimensions())
-                        bucket_fanouts[source] = fanout
-                    else:
-                        fanout = bucket_fanouts[source]
-                    source_resource.connect(fanout)
-                    source_resource = fanout
-
-            # this connection may have weights
-            if conn.GetWeights() is not None:
-                weights = conn.GetWeights()
-                # create the weight matrix correctly
-                if type(source) == Pool:
-                    weight_resource = MMWeights(
-                        np.zeros(dest.GetNumDimensions, source.GetNumNeurons()))
-                else:
-                    weight_resource = MMWeights(
-                        np.zeros(dest.GetNumDimensions,
-                            source.GetNumDimensions()))
-                source_resource.connect(weight_resource)
-                source_resource = weight_resource
-                
-            source_resource.connect(dest_resource)
-
-            return resources
+        return resources
 
     def create_pystorm_mem_objects(self, core):
         pass
@@ -121,35 +217,40 @@ class MapController(object):
     def map_resource_objects_to_core(self, core, resources, verbose=False):
         for node in resources:
             node.PreTranslate(core)
-        if verbose: print("finished PreTranslate")
+        if verbose:
+            print("finished PreTranslate")
 
         for node in resources:
             node.AllocateEarly(core)
-        if verbose: print("finished AllocateEarly")
+        if verbose:
+            print("finished AllocateEarly")
         
-        core.MM.alloc.SwitchToTrans() # switch allocation mode of MM
+        core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
         for node in resources:
             node.Allocate(core)
-        if verbose: print("finished Allocate")
+        if verbose:
+            print("finished Allocate")
 
         for node in resources:
             node.PostTranslate(core)
-        if verbose: print("finished PostTranslate")
+        if verbose:
+            print("finished PostTranslate")
 
         for node in resources:
             node.Assign(core)
-        if verbose: print("finished Assign")
+        if verbose:
+            print("finished Assign")
 
         return core
 
-    def Map(self, pystorm_network, verbose=False):
+    def map(self, pystorm_network, verbose=False):
         pars = ps.GetCorePars()
 
         core = Core(pars)
 
         resources = self.create_resources(pystorm_network)
 
-        core = self.map_resource_objects_to_core(core, resources)
+        core = self.map_resource_objects_to_core(core, resources, verbose)
 
         pystorm_mem = self.create_pystorm_mem_objects(core)
 
