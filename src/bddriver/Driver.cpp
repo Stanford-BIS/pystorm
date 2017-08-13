@@ -322,6 +322,59 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
   assert(false && "not implemented"); 
 }
 
+////////////////////////////////////////////////////////////////////////////////
+// Neuron controls
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Soma controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetSomaEnableStatus(unsigned int soma_id,
+    bdpars::SomaStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaGain(unsigned int soma_id, bdpars::SomaGainId soma_gain) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaOffsetSign(unsigned int soma_id,
+    bdpars::SomaOffsetSignId soma_offset_sign) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaOffsetMultiplier(unsigned int soma_id,
+    bdpars::SomaOffsetMultiplierId soma_offset_multiplier) {
+    assert(false && "not implemented");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Synapse controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetSynapseEnableStatus(unsigned int soma_id,
+    bdpars::SynapseStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSynapseADCStatus(unsigned int soma_id,
+    bdpars::SynapseStatusId status) {
+    assert(false && "not implemented");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Diffusor controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetDiffusorCutStatus(unsigned int tile_id,
+    bdpars::DiffusorCutLocationId cut_id,
+    bdpars::DiffusorCutStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetDiffusorAllCutStatus(unsigned int tile_id,
+    bdpars::DiffusorCutStatusId status) {
+    assert(false && "not implemented");
+}
+
 void Driver::SetMem(
     unsigned int core_id,
     bdpars::MemId mem_id,

@@ -146,9 +146,142 @@ class Driver {
   /// Turn ADC output on
   void SetADCTrafficState(unsigned int core_id, bool en);  // XXX not implemented
 
-  ////////////////////////////////
-  // Neuron Config
-  // XXX Ben? Gains/Bias, etc
+                                                           ////////////////////////////////////////////////////////////////////////////
+                                                           // Neuron controls
+                                                           ////////////////////////////////////////////////////////////////////////////
+
+                                                           ////////////////////////////////////////////////////////////////////////////
+                                                           // Soma controls
+                                                           ////////////////////////////////////////////////////////////////////////////
+
+                                                           /// Enable/Disable Soma
+                                                           /// Map between memory and status
+                                                           ///     _KILL       Status
+                                                           ///       0         DISABLED
+                                                           ///       1         ENABLED
+  void SetSomaEnableStatus(unsigned int soma_id,
+      bdpars::SomaStatusId soma_status);
+
+  /// Enable Soma
+  std::function<void(unsigned int)> EnableSoma =
+      std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1,
+          bdpars::SomaStatusId::ENABLED);
+
+  /// Disable Soma
+  std::function<void(unsigned int)> DisableSoma =
+      std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1,
+          bdpars::SomaStatusId::DISABLED);
+
+  /// Set Soma gain (post rectifier)
+  /// Map between memory and gain values:
+  ///     G<1>        G<0>        Gain
+  ///      0           0          ONE_FOURTH (1/4)
+  ///      0           1          ONE_THIRD (1/3)
+  ///      1           0          ONE_HALF (1/2)
+  ///      1           1          ONE (1)
+  void SetSomaGain(unsigned int soma_id, bdpars::SomaGainId soma_gain);
+
+  /// Set offset sign (pre rectifier)
+  /// Map between memory and sign
+  ///     _ENPOSBIAS  Sign
+  ///       0         POSITIVE
+  ///       1         NEGATIVE
+  void SetSomaOffsetSign(unsigned int soma_id,
+      bdpars::SomaOffsetSignId soma_offset_sign);
+
+  /// Set Soma offset gain (pre rectifier)
+  /// Map between memory and gain values:
+  ///     B<1>        B<0>        Gain
+  ///      0           0          ZERO (0)
+  ///      0           1          ONE (1)
+  ///      1           0          TWO (2)
+  ///      1           1          THREE (3)
+  void SetSomaOffsetMultiplier(unsigned int soma_id,
+      bdpars::SomaOffsetMultiplierId soma_offset_multiplier);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Synapse controls
+  ////////////////////////////////////////////////////////////////////////////
+
+  /// Enable/Disable Synapse
+  /// Map between memory and status
+  ///     KILL        Status
+  ///       0         ENABLED
+  ///       1         DISABLED
+  void SetSynapseEnableStatus(unsigned int synapse_id,
+      bdpars::SynapseStatusId synapse_status);
+
+  /// Enable Synapse
+  std::function<void(unsigned int)> EnableSynapse =
+      std::bind(&Driver::SetSynapseEnableStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::ENABLED);
+
+  /// Disable Synapse
+  std::function<void(unsigned int)> DisableSynapse =
+      std::bind(&Driver::SetSynapseEnableStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::DISABLED);
+
+  /// Enable/Disable Synapse ADC
+  /// Map between memory and status
+  ///     _ADC        Status
+  ///       0         ENABLED
+  ///       1         DISABLED
+  void SetSynapseADCStatus(unsigned int synapse_id,
+      bdpars::SynapseStatusId synapse_status);
+
+  /// Enable Synapse ADC
+  std::function<void(unsigned int)> EnableSynapseADC =
+      std::bind(&Driver::SetSynapseADCStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::ENABLED);
+
+  /// Disable Synapse ADC
+  std::function<void(unsigned int)> DisableSynapseADC =
+      std::bind(&Driver::SetSynapseADCStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::DISABLED);
+
+  //////////////////////////////////////////////////////////////////////////
+  // Diffusor controls
+  //////////////////////////////////////////////////////////////////////////
+  ///
+  /// Set diffusor cuts' status.
+  /// There are four possible cuts per tile:
+  ///     * NORTH_LEFT
+  ///     * NORTH_RIGHT
+  ///     * WEST_TOP
+  ///     * WEST_BOTTOM
+  ///
+  /// Map between memory and status
+  ///     DIFF_CUT   Status
+  ///       0         CLOSE
+  ///       1         OPEN
+  void SetDiffusorCutStatus(unsigned int tile_id,
+      bdpars::DiffusorCutLocationId cut_id,
+      bdpars::DiffusorCutStatusId status);
+
+  /// Open Diffusor cut
+  std::function<void(unsigned int, bdpars::DiffusorCutLocationId)> OpenDiffusorCut =
+      std::bind(&Driver::SetDiffusorCutStatus, this, std::placeholders::_1,
+          std::placeholders::_2, bdpars::DiffusorCutStatusId::OPEN);
+
+  /// Close Diffusor cut
+  std::function<void(unsigned int, bdpars::DiffusorCutLocationId)> CloseDiffusorCut =
+      std::bind(&Driver::SetDiffusorCutStatus, this, std::placeholders::_1,
+          std::placeholders::_2, bdpars::DiffusorCutStatusId::CLOSE);
+
+  /// Set all the diffusor cuts' status for a tile
+  void SetDiffusorAllCutStatus(unsigned int tile_id,
+      bdpars::DiffusorCutStatusId status);
+
+  /// Open Tile Diffusor cut
+  std::function<void(unsigned int)> OpenTileDiffusorCut =
+      std::bind(&Driver::SetDiffusorAllCutStatus, this,
+          std::placeholders::_1, bdpars::DiffusorCutStatusId::OPEN);
+
+  /// Close Tile Diffusor cut
+  std::function<void(unsigned int)> CloseTileDiffusorCut =
+      std::bind(&Driver::SetDiffusorAllCutStatus, this,
+          std::placeholders::_1, bdpars::DiffusorCutStatusId::CLOSE);
+
 
   ////////////////////////////////
   // memory programming
