@@ -43,7 +43,7 @@ std::vector<DecInput> FPGAOutput(std::vector<uint64_t> inputs, const bdpars::BDP
   return retval;
 }
 
-std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, const bdpars::BDPars* pars) {
+std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> Horn(const std::vector<uint32_t>& inputs, const bdpars::BDPars* pars) {
   // this code is based on the Decoder's, but the fields are arranged differently
 
   // encoder word
@@ -78,10 +78,7 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, co
   }
 
   // one output vector per leaf
-  std::vector<std::vector<uint32_t> > outputs;
-  for (unsigned int i = 0; i < leaf_routes.size(); i++) {
-    outputs.push_back({});
-  }
+  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> outputs;
 
   // use the routing info to decode
   for (auto& input : inputs) {
@@ -98,12 +95,10 @@ std::vector<std::vector<uint32_t> > Horn(const std::vector<uint32_t>& inputs, co
   return outputs;
 }
 
-std::vector<uint64_t> Funnel(const std::vector<std::pair<std::vector<uint64_t>, unsigned int> >& inputs, const bdpars::BDPars* pars) {
+std::vector<uint64_t> Funnel(const std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount>& inputs, const bdpars::BDPars* pars) {
   // msb <- lsb
   // [ route | X | payload ]
   
-  assert(inputs.size() == bdpars::LastFunnelLeafId+1);
-
   std::vector<uint64_t> outputs;
   
   for (unsigned int i = 0; i < inputs.size(); i++) {
@@ -133,11 +128,13 @@ std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(
   return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
 }
 
-std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > DeserializeAllHornLeaves(
-    const std::vector<std::vector<uint32_t> >& inputs, const bdpars::BDPars* bd_pars) {
-  assert(inputs.size() == static_cast<unsigned int>(bdpars::LastHornLeafId) + 1);
+std::pair<std::array<std::vector<uint64_t>, bdpars::HornLeafIdCount>, 
+          std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount > > 
+    DeserializeAllHornLeaves(const std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount>& inputs, const bdpars::BDPars* bd_pars) {
 
-  std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t> > > outputs;
+  std::pair<std::array<std::vector<uint64_t>, bdpars::HornLeafIdCount>, 
+            std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount > > outputs;
+
   for (unsigned int i = 0; i < inputs.size(); i++) {
     bdpars::HornLeafId leaf_id = static_cast<bdpars::HornLeafId>(i);
 
@@ -145,8 +142,8 @@ std::pair<std::vector<std::vector<uint64_t> >, std::vector<std::vector<uint32_t>
     std::vector<uint32_t> remainder;
     std::tie(deserialized, remainder) = DeserializeHorn(inputs[i], leaf_id, bd_pars);
 
-    outputs.first.push_back(deserialized);
-    outputs.second.push_back(remainder);
+    outputs.first.at(i) = deserialized;
+    outputs.second.at(i) = remainder;
   }
 
   return outputs;
@@ -161,16 +158,14 @@ std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
 }
 
 /// pairs are (serialized words, chunk widths)
-std::vector<std::pair<std::vector<uint64_t>, unsigned int> > SerializeAllFunnelLeaves(
-    const std::vector<std::vector<uint64_t> >& inputs, const bdpars::BDPars* bd_pars) {
+std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount> 
+    SerializeAllFunnelLeaves(const std::array<std::vector<uint64_t>, bdpars::FunnelLeafIdCount>& inputs, const bdpars::BDPars* bd_pars) {
 
-  assert(inputs.size() == static_cast<unsigned int>(bdpars::LastFunnelLeafId) + 1);
-
-  std::vector<std::pair<std::vector<uint64_t>, unsigned int> > outputs;
+  std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount> outputs;
 
   for (unsigned int i = 0; i < inputs.size(); i++) {
     bdpars::FunnelLeafId leaf_id = static_cast<bdpars::FunnelLeafId>(i);
-    outputs.push_back(SerializeFunnel(inputs[i], leaf_id, bd_pars));
+    outputs.at(i) = SerializeFunnel(inputs[i], leaf_id, bd_pars);
   }
 
   return outputs;

@@ -25,7 +25,7 @@ std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(
   std::vector<EncOutput> enc_outputs;
 
   // rng
-  assert(max_leaf_idx_to_use <= LastHornLeafId);
+  assert(max_leaf_idx_to_use < HornLeafIdCount);
   std::default_random_engine generator(0);
   std::uniform_int_distribution<unsigned int> leaf_idx_distribution(0, max_leaf_idx_to_use);
   std::uniform_int_distribution<uint32_t> payload_distribution(0, UINT32_MAX);
@@ -83,7 +83,7 @@ class EncoderFixture : public testing::Test {
 
       pars = new BDPars(); // filename unused for now
 
-      std::tie(enc_inputs, enc_outputs) = MakeEncInputAndOutput(pars, N, LastHornLeafId);
+      std::tie(enc_inputs, enc_outputs) = MakeEncInputAndOutput(pars, N, HornLeafIdCount-1);
     }
 
     void TearDown() {

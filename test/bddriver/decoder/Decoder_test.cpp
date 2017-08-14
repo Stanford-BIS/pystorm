@@ -26,12 +26,12 @@ std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecI
   // return values
   std::vector<DecInput> dec_inputs;
   std::vector<std::vector<DecOutput> > dec_outputs;
-  for (unsigned int i = 0; i < static_cast<unsigned int>(LastFunnelLeafId+1); i++) {
+  for (unsigned int i = 0; i < static_cast<unsigned int>(FunnelLeafIdCount); i++) {
     dec_outputs.push_back({});
   }
 
   // rng
-  assert(max_leaf_idx_to_use <= LastFunnelLeafId);
+  assert(max_leaf_idx_to_use < FunnelLeafIdCount);
   std::default_random_engine generator(0);
   std::uniform_int_distribution<unsigned int> leaf_idx_distribution(0, max_leaf_idx_to_use);
   std::uniform_int_distribution<uint32_t> payload_distribution(0, UINT32_MAX);
@@ -200,7 +200,7 @@ TEST_P(DecoderFixture, Test1xDecoder) {
 INSTANTIATE_TEST_CASE_P(
     TestDecoderDifferentNumLeaves,
     DecoderFixture,
-    ::testing::Values(LastFunnelLeafId, 1, 0));
+    ::testing::Values(FunnelLeafIdCount-1, 1, 0));
 
 //TEST_F(DecoderFixture, Test2xDecoder)
 //{
