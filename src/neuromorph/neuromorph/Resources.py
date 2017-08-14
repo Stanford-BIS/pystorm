@@ -1,7 +1,7 @@
 import numpy as np
-from Core import *
-from MemWordEnums import *
-from MemWordPlaceholders import *
+from . Core import *
+from . MemWordEnums import *
+from . MemWordPlaceholders import *
 
 # make sure that a slice connection between object doesn't break any rules.
 # objects must define DI() and DO()

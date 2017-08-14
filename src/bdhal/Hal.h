@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #include <common/Network.h>
+#include <common/CorePars.h>
 
 namespace pystorm {
 namespace bdhal {
@@ -55,6 +56,7 @@ public:
 //
 //////////////////////////////////////////////////////////////////////////////
 
+    static pystorm::bdhal::CorePars* GetCorePars();
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -132,6 +134,7 @@ public:
 protected:
     StreamingStatus*  g_streamingStatus;
     ProgramStatus*    g_programStatus;
+    static CorePars*  g_corePars;
 };
 
 } // namespace bdhal

@@ -12,16 +12,12 @@ the software stack known as PyStorm.
 
 The following diagram illustrates the structure
 
-	├── pystorm
+	└── pystorm
         │                                                                           
 	    ├── CMakeLists.txt                                                          
         │                                                                           
 	    ├── Jenkinsfile
         │                                                                           
-        ├── bindings                                                                   
-        │   └── python 
-        │       └── 3.5
-        │           └── src
         ├── docker                                                              
         │   └── Dockerfile_JENKINS_CI 
         │                                                                           
@@ -36,13 +32,21 @@ The following diagram illustrates the structure
         ├── src                                                                
         │   ├── bddriver                                                      
         │   ├── bdhal                                                      
-        │   └── neuromorph 
+        │   │   └── neuromorph 
+        │   │  
+        │   └── bindings                                                                   
+        │       └── python 
+        │           └── 3.5
         │                                                                           
-        ├── test                                                                
-        │   ├── bddriver
-        │   ├── bdhal
-        │   └── neuromorph 
-
+        └── test                                                                
+            ├── bddriver
+            ├── bdhal
+            │   └── neuromorph 
+            │  
+            └── bindings                                                                   
+                └── python 
+                    └── 3.5
+ 
 
 
 # Build
