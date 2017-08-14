@@ -38,29 +38,35 @@ namespace bddriver {
 ///
 /// Driver looks like this:
 ///
-///                                    (user)
+///                              (user/HAL)
 ///
-///  ---[fns]--[fns]--[fns]------------[fns]-----------------------[fns]----  API
-///       |      |      |                A                           A
-///       V      V      V                |                           |
-///  [private fns, e.g. PackWords]  [XXXX private fns, e.g. UnpackWords XXXX]
-///          |        |                  A                           A
-///          V        V                  |                           |
-///   [MutexBuffer:enc_buf_in_]   [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
-///              |                             A                   A
-///              V                             |                   |
-///      [Encoder:encoder_]          [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
-///              |                                   A
-///              V                                   |
-///   [MutexBuffer:enc_buf_out_]          [MutexBuffer:dec_buf_in_]
-///              |                                   A                       [BDPars]
-///              V                                   |                       [BDState]
-///         [XXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXX]
-///                             |      A
-///                             V      |
-///  ----------------------------------------------------------------------- USB
+///  ---[fns]--[fns]--[fns]----------------------[fns]-----------------------[fns]----  API
+///       |      |      |            |             A                           A
+///       V      V      V            |             |                           |
+///  [private fns, e.g. PackWords]   |        [XXXX private fns, e.g. UnpackWords XXXX]
+///          |        |              |             A                           A
+///          V        V           [BDState]        |                           |
+///   [MutexBuffer:enc_buf_in_]      |      [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
+///              |                   |                   A                   A
+///              |                   |                   |                   |
+///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads, 
+///              |                   |                   |                   |           organized by leaf
+///              V                   |                   |                   |
+///      [Encoder:encoder_]          |        [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
+///              |                   |                        A
+///              V                   |                        |
+///   [MutexBuffer:enc_buf_out_]     |           [MutexBuffer:dec_buf_in_]
+///              |                   |                      A                       
+///              |                   |                      |                       
+///  --------------------------------------------------------------------------------- raw data
+///              |                                          |                       
+///              V                                          |                       
+///         [XXXXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXXXXX]
+///                               |      A
+///                               V      |
+///  --------------------------------------------------------------------------------- USB
 ///
-///                            (Braindrop)
+///                              (Braindrop)
 ///
 /// At the heart of driver are a few primary components:
 ///
@@ -147,65 +153,17 @@ class Driver {
   ////////////////////////////////
   // memory programming
 
-  /// Program Pool Action Table
-  inline void SetPAT(
+  /// Program a memory.
+  /// BDWords must be constructed as the correct word type for the mem_id
+  void SetMem(
       unsigned int core_id,
-      const std::vector<PATData> &data,  ///< data to program
-      unsigned int start_addr) {         ///< memory address to start programming from, default 0
-    bd_state_[core_id].SetPAT(start_addr, data);
-    SetMem(core_id, bdpars::PAT, DataToVFieldValues(data), start_addr);
-  }
+      bdpars::MemId mem_id,
+      const std::vector<BDWord> &data,
+      unsigned int start_addr);
 
-  /// Program Tag Action Table
-  inline void SetTAT(
-      unsigned int core_id,
-      bool TAT_idx,                      ///< which TAT to program, 0 or 1
-      const std::vector<TATData> &data,  ///< data to program
-      unsigned int start_addr) {         ///< memory address to start programming from, default 0
-    if (TAT_idx == 0) {
-      bd_state_[core_id].SetTAT0(start_addr, data);
-      SetMem(core_id, bdpars::TAT0, DataToVFieldValues(data), start_addr);
-    } else if (TAT_idx == 1) {
-      bd_state_[core_id].SetTAT1(start_addr, data);
-      SetMem(core_id, bdpars::TAT1, DataToVFieldValues(data), start_addr);
-    }
-  }
-
-  /// Program Accumulator Memory
-  inline void SetAM(
-      unsigned int core_id,
-      const std::vector<AMData> &data,  ///< data to program
-      unsigned int start_addr) {        ///< memory address to start programming from, default 0
-    bd_state_[core_id].SetAM(start_addr, data);
-    SetMem(core_id, bdpars::AM, DataToVFieldValues(data), start_addr);
-  }
-
-  /// Program Main Memory (a.k.a. Weight Memory)
-  inline void SetMM(
-      unsigned int core_id,
-      const std::vector<MMData> &data,  ///< data to program
-      unsigned int start_addr) {        ///< memory address to start programming from, default 0
-    bd_state_[core_id].SetMM(start_addr, data);
-    SetMem(core_id, bdpars::MM, DataToVFieldValues(data), start_addr);
-  }
-
-  /// Dump PAT contents
-  inline std::vector<PATData> DumpPAT(unsigned int core_id) 
-    { return VFieldValuesToPATData(DumpMem(core_id, bdpars::PAT)); }
-  /// Dump TAT contents
-  inline std::vector<TATData> DumpTAT(unsigned int core_id, unsigned int tat_idx) { 
-      bdpars::MemId mem_id; 
-      if (tat_idx == 0) mem_id = bdpars::TAT0;
-      else if (tat_idx == 1) mem_id = bdpars::TAT1;
-      else assert(false);
-      return VFieldValuesToTATData(DumpMem(core_id, mem_id));
-  }
-  /// Dump AM contents
-  inline std::vector<AMData> DumpAM(unsigned int core_id) 
-    { return VFieldValuesToAMData(DumpMem(core_id, bdpars::AM)); }
-  /// Dump MM contents
-  inline std::vector<MMData> DumpMM(unsigned int core_id) 
-    { return VFieldValuesToMMData(DumpMem(core_id, bdpars::MM)); }
+  /// Dump the contents of one of the memories.
+  /// BDWords must subsequently be unpacked as the correct word type for the mem_id
+  std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::MemId mem_id);
 
   /// Dump copy of traffic pre-FIFO
   void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
@@ -213,9 +171,9 @@ class Driver {
   void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
 
   /// Get pre-FIFO tags recorded during dump
-  std::vector<Tag> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+  std::vector<BDWord> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
   /// Get post-FIFO tags recorded during dump
-  std::vector<Tag> GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1);
+  std::pair<std::vector<BDWord>, std::vector<BDWord> > GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1);
 
   /// Get warning count
   std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(unsigned int core_id);
@@ -224,16 +182,28 @@ class Driver {
   // Spike/Tag Streams
 
   /// Send a stream of spikes to neurons
-  void SendSpikes(const std::vector<SynSpike> &spikes);
+  void SendSpikes(
+      const std::vector<unsigned int>& core_ids, 
+      const std::vector<BDWord>& spikes, 
+      const std::vector<BDTime> times);
 
   /// Receive a stream of spikes
-  std::vector<NrnSpike> RecvSpikes(unsigned int max_to_recv);
+  std::tuple<std::vector<unsigned int>, 
+          std::vector<BDWord>, 
+          std::vector<BDTime> > RecvSpikes(unsigned int max_to_recv);
 
   /// Send a stream of tags
-  void SendTags(const std::vector<Tag> &tags);
+  void SendTags(
+      const std::vector<unsigned int>& core_ids, 
+      const std::vector<BDWord>& tags, 
+      const std::vector<BDTime> times);
 
   /// Receive a stream of tags
-  std::vector<Tag> RecvTags(unsigned int max_to_recv);
+  /// receive from both tag output leaves, the Acc and TAT
+  /// Use TATOutputTags to unpack
+  std::tuple<std::vector<unsigned int>, 
+          std::vector<BDWord>, 
+          std::vector<BDTime> > RecvTags(unsigned int max_to_recv);
 
   ////////////////////////////////
   // BDState queries
@@ -244,23 +214,13 @@ class Driver {
   // there is a separate call, e.g. for traffic registers
 
   /// Get register contents by name.
-  /// XXX this is more low-level than most calls (no other public call requires RegId).
-  /// Could break into multiple calls
-  inline const std::pair<const std::vector<unsigned int> *, bool> GetRegState(
+  inline const std::pair<const BDWord *, bool> GetRegState(
       unsigned int core_id, bdpars::RegId reg_id) const {
     return bd_state_[core_id].GetReg(reg_id);
   }
 
-  /// Get software state of PAT memory contents: this DOES NOT dump the memory.
-  inline const std::vector<PATData> *GetPATState(unsigned int core_id) const { return bd_state_[core_id].GetPAT(); }
-  /// Get software state of TAT0 memory contents: this DOES NOT dump the memory.
-  inline const std::vector<TATData> *GetTAT0State(unsigned int core_id) const { return bd_state_[core_id].GetTAT0(); }
-  /// Get software state of TAT1 memory contents: this DOES NOT dump the memory.
-  inline const std::vector<TATData> *GetTAT1State(unsigned int core_id) const { return bd_state_[core_id].GetTAT1(); }
-  /// Get software state of AM memory contents: this DOES NOT dump the memory.
-  inline const std::vector<AMData> *GetAMState(unsigned int core_id) const { return bd_state_[core_id].GetAM(); }
-  /// Get software state of MM memory contents: this DOES NOT dump the memory.
-  inline const std::vector<MMData> *GetMMState(unsigned int core_id) const { return bd_state_[core_id].GetMM(); }
+  /// Get software state of memory contents: this DOES NOT dump the memory.
+  inline const std::vector<BDWord> *GetMemState(bdpars::MemId mem_id, unsigned int core_id) const { return bd_state_[core_id].GetMem(mem_id); }
 
  protected:
   ////////////////////////////////
@@ -321,7 +281,7 @@ class Driver {
   /// For payloads that don't need to be serialized, or that might need to
   /// go to multiple cores, this isn't the most effective call.
   /// SendSpikes(), for example, pushes directly to the encoder's input buffer.
-  void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<uint64_t> &payload);
+  void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<BDWord> &payload);
 
   /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
   /// associated with a supplied <core_id>.
@@ -330,7 +290,7 @@ class Driver {
   /// Returns vector of deserialized payloads. For payloads that don't need to be deserialized,
   /// that might come from multiple cores, or that need time_epoch information,
   /// This isn't the most effective call.
-  std::vector<uint64_t> RecvFromFunnel(
+  std::vector<BDWord> RecvFromFunnel(
       unsigned int core_id, 
       bdpars::FunnelLeafId leaf_id, 
       unsigned int num_to_recv = 0);
@@ -338,45 +298,29 @@ class Driver {
   ////////////////////////////////
   // memory programming helpers
 
-  std::vector<uint64_t> PackRWProgWords(
-      const bdpars::WordStructure &word_struct, const std::vector<uint64_t> &payload, unsigned int start_addr) const;
-  std::vector<uint64_t> PackRWDumpWords(
-      const bdpars::WordStructure &word_struct, unsigned int start_addr, unsigned int end_addr) const;
+  template <class TWrite>
+  std::vector<BDWord> PackRWProgWords(const std::vector<BDWord>& payload, unsigned int start_addr) const;
+  template <class TRead>
+  std::vector<BDWord> PackRWDumpWords(unsigned int start_addr, unsigned int end_addr) const;
 
-  std::vector<uint64_t> PackRIWIProgWords(
-      const bdpars::WordStructure &addr_word_struct,
-      const bdpars::WordStructure &write_word_struct,
-      const std::vector<uint64_t> &payload,
-      unsigned int start_addr) const;
-  std::vector<uint64_t> PackRIWIDumpWords(
-      const bdpars::WordStructure &addr_word_struct,
-      const bdpars::WordStructure &read_word_struct,
-      unsigned int start_addr,
-      unsigned int end_addr) const;
+  template <class TSet, class TWrite>
+  std::vector<BDWord> PackRIWIProgWords( const std::vector<BDWord> &payload, unsigned int start_addr) const;
 
-  std::vector<uint64_t> PackRMWProgWords(
-      const bdpars::WordStructure &addr_word_struct,
-      const bdpars::WordStructure &write_word_struct,
-      const bdpars::WordStructure &incr_word_struct,
-      const std::vector<uint64_t> &payload,
-      unsigned int start_addr) const;
+  template <class TSet, class TRead>
+  std::vector<BDWord> PackRIWIDumpWords(unsigned int start_addr, unsigned int end_addr) const;
+
+  template <class TSet, class TReadWrite, class TInc>
+  std::vector<BDWord> PackRMWProgWords(const std::vector<BDWord> &payload, unsigned int start_addr) const;
   // note: RMWProgWord can function as RMWDumpWord
 
-  std::vector<uint64_t> PackAMMMWord(bdpars::MemId AM_or_MM, const std::vector<uint64_t> &payload) const;
+  template <class AMorMMEncapsulation>
+  std::vector<BDWord> PackAMMMWord(const std::vector<BDWord> &payload) const;
 
-  /// Core logic for all Dump calls
-  VFieldValues DumpMem(unsigned int core_id, bdpars::MemId mem_id);
-  /// Core logic for all Set calls
-  void SetMem(
-      unsigned int core_id,
-      bdpars::MemId mem_id,
-      const VFieldValues &data,
-      unsigned int start_addr);
 
   ////////////////////////////////
   // register programming helpers
 
-  void SetRegister(unsigned int core_id, bdpars::RegId reg_id, const FieldValues &field_vals);
+  void SetRegister(unsigned int core_id, bdpars::RegId reg_id, BDWord word);
   void SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_enable, bool dump_enable);
   bool SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en);
   bool SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en);
@@ -384,7 +328,7 @@ class Driver {
   /// Set memory delay line value
   void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int read_value, unsigned int write_value);
 
-  std::vector<Tag> GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags);
+  std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags);
 
 };
 

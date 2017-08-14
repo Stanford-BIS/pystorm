@@ -2,6 +2,7 @@
 #define BDMODEL_H
 
 #include <cstdint>
+#include <array>
 #include <vector>
 #include <mutex>
 
@@ -29,30 +30,11 @@ class BDModel {
   std::vector<uint8_t> GenerateOutputs();
 
   // calls that will cause the model to emit some traffic, exercising upstream driver calls
-
-  inline void PushUpstreamSpikes(const std::vector<NrnSpike> & spikes) 
-    { std::unique_lock<std::mutex>(mutex_);
-      spikes_to_send_.insert(spikes_to_send_.end(), spikes.begin(), spikes.end()); }
-
-  inline void PushUpstreamTATTags(const std::vector<Tag> & tags) 
-    { std::unique_lock<std::mutex>(mutex_);
-      TAT_tags_to_send_.insert(TAT_tags_to_send_.end(), tags.begin(), tags.end()); }
-
-  inline void PushUpstreamAccTags(const std::vector<Tag> & tags) 
-    { std::unique_lock<std::mutex>(mutex_);
-      acc_tags_to_send_.insert(acc_tags_to_send_.end(), tags.begin(), tags.end()); }
-
-  inline void PushPreFIFOTags(const std::vector<Tag> & tags)
-    { std::unique_lock<std::mutex>(mutex_);
-      pre_fifo_tags_to_send_.insert(pre_fifo_tags_to_send_.end(), tags.begin(), tags.end()); }
-
-  inline void PushPostFIFOTags(const std::vector<Tag> & tags, unsigned int idx)
-    { std::unique_lock<std::mutex>(mutex_);
-      post_fifo_tags_to_send_[idx].insert(post_fifo_tags_to_send_[idx].end(), tags.begin(), tags.end()); }
-
-  inline void PushFIFOOverflow(unsigned int num_to_add, unsigned int idx)
-    { std::unique_lock<std::mutex>(mutex_);
-      n_ovflw_to_send_[idx] += num_to_add; }
+  inline void PushOutput(bdpars::OutputId output_id, const std::vector<BDWord> & to_append) {
+      std::unique_lock<std::mutex>(mutex_);
+      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(output_id);
+      to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
+  }
 
   // calls to retrieve the results of downstream driver calls
 
@@ -66,15 +48,15 @@ class BDModel {
   
   // XXX alternative to these two calls would be GetState which would create a copy of the state, return that
 
-  inline std::vector<SynSpike> PopSpikes() 
+  inline std::vector<BDWord> PopSpikes() 
     { std::unique_lock<std::mutex>(mutex_); 
-      std::vector<SynSpike> recvd = std::move(received_spikes_);
+      std::vector<BDWord> recvd = std::move(received_spikes_);
       received_spikes_.clear();
       return recvd; }
 
-  inline std::vector<Tag> PopTags() 
+  inline std::vector<BDWord> PopTags() 
     { std::unique_lock<std::mutex>(mutex_); 
-      std::vector<Tag> recvd = std::move(received_tags_);
+      std::vector<BDWord> recvd = std::move(received_tags_);
       received_tags_.clear();
       return recvd; }
 
@@ -93,27 +75,17 @@ class BDModel {
   
   // final results of downstream calls, must be dequeued by user
 
-  std::vector<SynSpike> received_spikes_; /// received downstream spikes
-  std::vector<Tag> received_tags_; /// received downstream tags
+  std::vector<BDWord> received_spikes_; /// received downstream spikes
+  std::vector<BDWord> received_tags_; /// received downstream tags
 
   // intermediate results of downstream/upstream calls, will be sent by a future GenerateOutputs()
 
-  std::vector<MMData> MM_dump_; /// memory dump requested by user's dump call 
-  std::vector<AMData> AM_dump_; /// memory dump requested by user's dump call 
-  std::vector<PATData> PAT_dump_; /// memory dump requested by user's dump call 
-  std::vector<TATData> TAT_dump_[2]; /// memory dump requested by user's dump call 
+  std::array<std::vector<BDWord>, bdpars::FunnelLeafIdCount> to_send_;
 
   // upstream traffic enqueued by the user, will be sent by a future GenerateOutputs()
 
-  std::vector<Tag> TAT_tags_to_send_; /// upstream TAT tags to send, enqueued by user
-  std::vector<Tag> acc_tags_to_send_; /// upstream acc tags to send, enqueued by user
-  std::vector<Tag> pre_fifo_tags_to_send_; /// upstream pre fifo tags to send, enqueued by user
-  std::vector<Tag> post_fifo_tags_to_send_[2]; /// upstream post fifo tags to send, enqueued by user
-  std::vector<NrnSpike> spikes_to_send_; /// upstream spikes to send, enqueued by user
-  unsigned int n_ovflw_to_send_[2]; /// upstream overflow warnings to send, enqueued by user
-
   // word remainders that couldn't be completely deserialized
-  std::vector<std::vector<uint32_t> > remainders_;
+  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> remainders_;
 
   // memory address register states
 
@@ -143,6 +115,13 @@ class BDModel {
 
   // more complicated than the other cases
   std::vector<uint64_t> GenerateTAT(unsigned int tat_idx);
+
+  /// helper for Process calls (just to look up funnel id)
+  inline void PushMem(bdpars::MemId mem_id, const std::vector<BDWord> & to_append) {
+      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(mem_id);
+      to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
+  }
+
 };
 
 }  // bdmodel
