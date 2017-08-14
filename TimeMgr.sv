@@ -1,4 +1,4 @@
-`include "channel.sv"
+`include "Channel.sv"
 // time_mgr is the FPGA's wall clock. On the downstream side, it responds to
 // three different packet types:
 //
