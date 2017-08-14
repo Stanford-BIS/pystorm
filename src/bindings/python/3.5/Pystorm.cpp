@@ -183,21 +183,21 @@ BOOST_PYTHON_MODULE(Pystorm)
         PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Pool",
         PYTHON::init<std::string, uint32_t, uint32_t, uint32_t, uint32_t>())
         .def(PYTHON::init<std::string,uint32_t,uint32_t>())
-        .def("GetLabel", &HAL::Pool::GetLabel)
-        .def("GetNumNeurons", &HAL::Pool::GetNumNeurons)
-        .def("GetNumDimensions", &HAL::Pool::GetNumDimensions)
-        .def("GetWidth", &HAL::Pool::GetWidth)
-        .def("GetHeight", &HAL::Pool::GetHeight)
-        .def("SetSize", &HAL::Pool::SetSize)
+        .def("get_label", &HAL::Pool::GetLabel)
+        .def("get_num_neurons", &HAL::Pool::GetNumNeurons)
+        .def("get_num_dimensions", &HAL::Pool::GetNumDimensions)
+        .def("get_width", &HAL::Pool::GetWidth)
+        .def("get_height", &HAL::Pool::GetHeight)
+        .def("set_size", &HAL::Pool::SetSize)
     ;
 
     PYTHON::class_<HAL::Bucket, HAL::Bucket*, boost::noncopyable,
         PYTHON::bases<HAL::ConnectableInput, HAL::ConnectableOutput> >("Bucket",
         PYTHON::init<std::string, uint32_t>())
-        .def("GetLabel",&HAL::Bucket::GetLabel
+        .def("get_label",&HAL::Bucket::GetLabel
             , "Returns the Bucket label"
             , PYTHON::args("self"))
-        .def("GetNumDimensions",&HAL::Bucket::GetNumDimensions
+        .def("get_num_dimensions",&HAL::Bucket::GetNumDimensions
             , "Returns the number of dimensions"
             , PYTHON::args("self"))
     ;
@@ -205,10 +205,10 @@ BOOST_PYTHON_MODULE(Pystorm)
     PYTHON::class_<HAL::Input, HAL::Input*, boost::noncopyable,
         PYTHON::bases<HAL::ConnectableInput> >("Input",
         PYTHON::init<std::string, uint32_t>())
-        .def("GetLabel",&HAL::Input::GetLabel
+        .def("get_label",&HAL::Input::GetLabel
             , "Returns the Input label"
             , PYTHON::args("self"))
-        .def("GetNumDimensions",&HAL::Input::GetNumDimensions
+        .def("get_num_dimensions",&HAL::Input::GetNumDimensions
             , "Returns the number of dimensions"
             , PYTHON::args("self"))
     ;
@@ -216,10 +216,10 @@ BOOST_PYTHON_MODULE(Pystorm)
     PYTHON::class_<HAL::Output, HAL::Output*, boost::noncopyable,
         PYTHON::bases<HAL::ConnectableOutput> >("Output",
         PYTHON::init<std::string, uint32_t>())
-        .def("GetLabel",&HAL::Output::GetLabel
+        .def("get_label",&HAL::Output::GetLabel
             , "Returns the Output label"
             , PYTHON::args("self"))
-        .def("GetNumDimensions",&HAL::Output::GetNumDimensions
+        .def("get_num_dimensions",&HAL::Output::GetNumDimensions
             , "Returns the number of dimensions"
             , PYTHON::args("self"))
     ;
@@ -228,10 +228,10 @@ BOOST_PYTHON_MODULE(Pystorm)
         ("Weights", PYTHON::no_init)
         .def("__init__",
             PYTHON::make_constructor(pystorm::makeWeights<uint32_t>))
-        .def("GetNumRows",&Weights_32::GetNumRows)
-        .def("GetNumColumns",&Weights_32::GetNumColumns)
-        .def("GetElement",&Weights_32::GetElement)
-        .def("SetElement",&Weights_32::SetElement)
+        .def("get_num_rows",&Weights_32::GetNumRows)
+        .def("get_num_columns",&Weights_32::GetNumColumns)
+        .def("get_element",&Weights_32::GetElement)
+        .def("set_element",&Weights_32::SetElement)
     ;
 
     PYTHON::class_<HAL::Connection, HAL::Connection*,
@@ -242,40 +242,40 @@ BOOST_PYTHON_MODULE(Pystorm)
         HAL::Weights<uint32_t>* >())
         .def(PYTHON::init<std::string, HAL::ConnectableInput*, 
             HAL::ConnectableOutput*>())
-        .def("GetLabel",&HAL::Connection::GetLabel)
-        .def("GetSource",&HAL::Connection::GetSrc,PYTHON::return_internal_reference<>())
-        .def("GetDest",&HAL::Connection::GetDest,PYTHON::return_internal_reference<>())
-        .def("GetWeights",&HAL::Connection::GetWeights,PYTHON::return_internal_reference<>())
-        .def("SetWeights",&HAL::Connection::SetWeights,PYTHON::return_internal_reference<>())
+        .def("get_label",&HAL::Connection::GetLabel)
+        .def("get_source",&HAL::Connection::GetSrc,PYTHON::return_internal_reference<>())
+        .def("get_dest",&HAL::Connection::GetDest,PYTHON::return_internal_reference<>())
+        .def("get_weights",&HAL::Connection::GetWeights,PYTHON::return_internal_reference<>())
+        .def("set_weights",&HAL::Connection::SetWeights,PYTHON::return_internal_reference<>())
     ;
 
     PYTHON::class_<HAL::Network, boost::noncopyable>("Network",
         PYTHON::init<std::string>())
-        .def("GetName",&HAL::Network::GetName)
-        .def("GetPools",&HAL::Network::GetPools,
+        .def("get_name",&HAL::Network::GetName)
+        .def("get_pools",&HAL::Network::GetPools,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetBuckets",&HAL::Network::GetBuckets,
+        .def("get_buckets",&HAL::Network::GetBuckets,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetConnections",&HAL::Network::GetConnections,
+        .def("get_connections",&HAL::Network::GetConnections,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetInputs",&HAL::Network::GetInputs,
+        .def("get_inputs",&HAL::Network::GetInputs,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("GetOutputs",&HAL::Network::GetOutputs,
+        .def("get_outputs",&HAL::Network::GetOutputs,
             PYTHON::return_value_policy<PYTHON::reference_existing_object>())
-        .def("CreatePool", CreatePool_1, 
+        .def("create_pool", CreatePool_1, 
             PYTHON::return_internal_reference<>())
-        .def("CreatePool", CreatePool_2, 
+        .def("create_pool", CreatePool_2, 
             PYTHON::return_internal_reference<>())
-        .def("CreateBucket",&HAL::Network::CreateBucket, 
+        .def("create_bucket",&HAL::Network::CreateBucket, 
             PYTHON::return_internal_reference<>())
-        .def("CreateInput",&HAL::Network::CreateInput, 
+        .def("create_input",&HAL::Network::CreateInput, 
             PYTHON::return_internal_reference<>())
-        .def("CreateOutput",&HAL::Network::CreateOutput, 
+        .def("create_output",&HAL::Network::CreateOutput, 
             PYTHON::return_internal_reference<>())
-        .def("CreateConnection", CreateConnection_1,
+        .def("create_connection", CreateConnection_1,
             PYTHON::return_internal_reference<>(),
             PYTHON::args("self","in_obj","out_obj"))
-        .def("CreateConnection", pystorm::makeConnectionWithWeights<uint32_t>,
+        .def("create_connection", pystorm::makeConnectionWithWeights<uint32_t>,
             PYTHON::return_internal_reference<>())
     ;
 
@@ -290,7 +290,7 @@ BOOST_PYTHON_MODULE(Pystorm)
 //                                                                              
 ////////////////////////////////////////////////////////////////////////////// 
 
-    def("CreateNetwork",
+    def("create_network",
         HAL::Hal::CreateNetwork,
         PYTHON::return_value_policy<PYTHON::reference_existing_object>());
 
@@ -300,7 +300,7 @@ BOOST_PYTHON_MODULE(Pystorm)
 //
 //////////////////////////////////////////////////////////////////////////////
 
-    def("GetCorePars",
+    def("get_core_pars",
         HAL::Hal::GetCorePars,
         PYTHON::return_value_policy<PYTHON::reference_existing_object>());
 

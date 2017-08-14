@@ -1,4 +1,4 @@
-from MemWordEnums import *
+from . MemWordEnums import *
 
 # XXX this isn't permanent implementation
 # just meant to behave like the actual boost object would

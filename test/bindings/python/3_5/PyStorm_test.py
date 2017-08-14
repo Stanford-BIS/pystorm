@@ -17,47 +17,47 @@ class TestPool(unittest.TestCase):
         self.assertRaises(Exception, ps.Pool,(self.label,self.min_neurons-1, self.num_dims))
         self.assertRaises(Exception, ps.Pool,(self.label,self.max_neurons+1, self.num_dims))
 
-    def test_GetLabel(self):
+    def test_get_label(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertEqual(self.label, _pool.GetLabel())
+        self.assertEqual(self.label, _pool.get_label())
 
-    def test_GetNumNeurons(self):
+    def test_get_num_neurons(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertEqual(self.num_neurons, _pool.GetNumNeurons())
+        self.assertEqual(self.num_neurons, _pool.get_num_neurons())
 
-    def test_GetNumDimensions(self):
+    def test_get_num_dimensions(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertEqual(self.num_dims, _pool.GetNumDimensions())
+        self.assertEqual(self.num_dims, _pool.get_num_dimensions())
 
-    def test_GetNumDimensions(self):
+    def test_get_num_dimensions(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertEqual(self.num_dims, _pool.GetNumDimensions())
+        self.assertEqual(self.num_dims, _pool.get_num_dimensions())
 
-    def test_GetWidth(self):
+    def test_get_width(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertRaises(RuntimeError,_pool.GetWidth)
+        self.assertRaises(RuntimeError,_pool.get_width)
 
-        _pool.SetSize(self.width,self.height)
+        _pool.set_size(self.width,self.height)
 
-        self.assertEqual(_pool.GetWidth(), self.width)
+        self.assertEqual(_pool.get_width(), self.width)
 
         _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims, 
             self.width, self.height)
 
-        self.assertEqual(_pool2.GetWidth(), self.width)
+        self.assertEqual(_pool2.get_width(), self.width)
 
-    def test_GetHeight(self):
+    def test_get_height(self):
         _pool = ps.Pool(self.label, self.num_neurons, self.num_dims)
-        self.assertRaises(RuntimeError,_pool.GetHeight)
+        self.assertRaises(RuntimeError,_pool.get_height)
 
-        _pool.SetSize(self.width,self.height)
+        _pool.set_size(self.width,self.height)
 
-        self.assertEqual(_pool.GetHeight(), self.height)
+        self.assertEqual(_pool.get_height(), self.height)
 
         _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims, 
             self.width, self.height)
 
-        self.assertEqual(_pool2.GetHeight(), self.height)
+        self.assertEqual(_pool2.get_height(), self.height)
 
 class TestBucket(unittest.TestCase):
     label = "Bucket1"
@@ -68,13 +68,13 @@ class TestBucket(unittest.TestCase):
         self.assertRaises(Exception, ps.Bucket,("",self.num_dims))
         self.assertRaises(Exception, ps.Bucket,(self.label,0))
 
-    def test_GetLabel(self):
+    def test_get_label(self):
         _bucket = ps.Bucket(self.label, self.num_dims)
-        self.assertEqual(self.label, _bucket.GetLabel())
+        self.assertEqual(self.label, _bucket.get_label())
 
-    def test_GetNumDimensions(self):
+    def test_get_num_dimensions(self):
         _bucket = ps.Bucket(self.label, self.num_dims)
-        self.assertEqual(self.num_dims, _bucket.GetNumDimensions())
+        self.assertEqual(self.num_dims, _bucket.get_num_dimensions())
 
 class TestInput(unittest.TestCase):
     label = "Input1"
@@ -85,13 +85,13 @@ class TestInput(unittest.TestCase):
         self.assertRaises(Exception, ps.Input,("",self.num_dims))
         self.assertRaises(Exception, ps.Input,(self.label,0))
     
-    def test_GetLabel(self):
+    def test_get_label(self):
         _input = ps.Input(self.label, self.num_dims)
-        self.assertEqual(self.label, _input.GetLabel())
+        self.assertEqual(self.label, _input.get_label())
 
-    def test_GetNumDimensions(self):
+    def test_get_num_dimensions(self):
         _input = ps.Input(self.label, self.num_dims)
-        self.assertEqual(self.num_dims, _input.GetNumDimensions())
+        self.assertEqual(self.num_dims, _input.get_num_dimensions())
 
 class TestOutput(unittest.TestCase):
     label = "Output1"
@@ -102,13 +102,13 @@ class TestOutput(unittest.TestCase):
         self.assertRaises(Exception, ps.Output,("",self.num_dims))
         self.assertRaises(Exception, ps.Output,(self.label,0))
     
-    def test_GetLabel(self):
+    def test_get_label(self):
         _output = ps.Input(self.label, self.num_dims)
-        self.assertEqual(self.label, _output.GetLabel())
+        self.assertEqual(self.label, _output.get_label())
 
-    def test_GetNumDimensions(self):
+    def test_get_num_dimensions(self):
         _output = ps.Output(self.label, self.num_dims)
-        self.assertEqual(self.num_dims, _output.GetNumDimensions())
+        self.assertEqual(self.num_dims, _output.get_num_dimensions())
 
 class TestWeights(unittest.TestCase):
     
@@ -121,56 +121,56 @@ class TestWeights(unittest.TestCase):
         self.assertRaises(Exception,ps.Weights,(a,a.shape[0],0))
 
 
-    def test_GetNumRows(self):
+    def test_get_num_rows(self):
         a = np.array([[1,2,3],
                       [4,5,6]])
 
         w = ps.Weights(a)
 
-        self.assertEqual(a.shape[0],w.GetNumRows())
+        self.assertEqual(a.shape[0],w.get_num_rows())
 
-    def test_GetNumColumns(self):
+    def test_get_num_columns(self):
         a = np.array([[1,2,3],
                       [4,5,6]])
 
         w = ps.Weights(a)
 
-        self.assertEqual(a.shape[1],w.GetNumColumns())
+        self.assertEqual(a.shape[1],w.get_num_columns())
 
-    def test_GetElement(self):
+    def test_get_element(self):
         a = np.array([[1,2,3],
                       [4,5,6]])
 
         w = ps.Weights(a)
 
-        self.assertRaises(Exception,w.GetElement,(-1,1))
-        self.assertRaises(Exception,w.GetElement,(1,-1))
-        self.assertRaises(Exception,w.GetElement,(0,a.shape[1]))
-        self.assertRaises(Exception,w.GetElement,(a.shape[0],0))
+        self.assertRaises(Exception,w.get_element,(-1,1))
+        self.assertRaises(Exception,w.get_element,(1,-1))
+        self.assertRaises(Exception,w.get_element,(0,a.shape[1]))
+        self.assertRaises(Exception,w.get_element,(a.shape[0],0))
 
-        for i in range(w.GetNumRows()):                                       
-            for j in range(w.GetNumColumns()):                                
-                self.assertEqual(a[i,j], w.GetElement(i,j))         
+        for i in range(w.get_num_rows()):                                       
+            for j in range(w.get_num_columns()):                                
+                self.assertEqual(a[i,j], w.get_element(i,j))         
 
-    def test_SetElement(self):
+    def test_set_element(self):
         a = np.array([[1,2,3],
                       [4,5,6]])
 
         w = ps.Weights(a)
 
-        self.assertRaises(Exception,w.SetElement,(-1,1),0)
-        self.assertRaises(Exception,w.SetElement,(1,-1),0)
-        self.assertRaises(Exception,w.SetElement,(0,a.shape[1],0))
-        self.assertRaises(Exception,w.SetElement,(a.shape[0],0,0))
+        self.assertRaises(Exception,w.set_element,(-1,1),0)
+        self.assertRaises(Exception,w.set_element,(1,-1),0)
+        self.assertRaises(Exception,w.set_element,(0,a.shape[1],0))
+        self.assertRaises(Exception,w.set_element,(a.shape[0],0,0))
 
-        for i in range(w.GetNumRows()):                                       
-            for j in range(w.GetNumColumns()):                                
+        for i in range(w.get_num_rows()):                                       
+            for j in range(w.get_num_columns()):                                
                 new_value = a.item((i,j))+1
-                w.SetElement(i,j,new_value)
+                w.set_element(i,j,new_value)
 
-        for i in range(w.GetNumRows()):                                       
-            for j in range(w.GetNumColumns()):                                
-                self.assertEqual(a[i,j]+1, w.GetElement(i,j))         
+        for i in range(w.get_num_rows()):                                       
+            for j in range(w.get_num_columns()):                                
+                self.assertEqual(a[i,j]+1, w.get_element(i,j))         
 
 class TestConnection(unittest.TestCase):
     num_neurons = 20
@@ -301,55 +301,55 @@ class TestConnection(unittest.TestCase):
         self.assertRaises(Exception, ps.Connection,
             (self.pool[0], self.pool[0], self.weights_3_3))
         
-    def test_GetLabel(self):
+    def test_get_label(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
             self.weights_3_3)
 
-        self.assertEqual("conn",conn.GetLabel())
+        self.assertEqual("conn",conn.get_label())
 
-    def test_GetSource(self):
+    def test_get_source(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
             self.weights_3_3)
 
-        self.assertEqual(self.conn_in[0].GetLabel(),
-            conn.GetSource().GetLabel())
-        self.assertEqual(self.conn_in[0].GetNumDimensions(),
-            conn.GetSource().GetNumDimensions())
+        self.assertEqual(self.conn_in[0].get_label(),
+            conn.get_source().get_label())
+        self.assertEqual(self.conn_in[0].get_num_dimensions(),
+            conn.get_source().get_num_dimensions())
 
-    def test_GetDest(self):
+    def test_get_dest(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
             self.weights_3_3)
 
-        self.assertEqual(self.pool[0].GetLabel(),
-            conn.GetDest().GetLabel())
-        self.assertEqual(self.pool[0].GetNumDimensions(),
-            conn.GetDest().GetNumDimensions())
-        self.assertEqual(self.pool[0].GetNumNeurons(),
-            conn.GetDest().GetNumNeurons())
+        self.assertEqual(self.pool[0].get_label(),
+            conn.get_dest().get_label())
+        self.assertEqual(self.pool[0].get_num_dimensions(),
+            conn.get_dest().get_num_dimensions())
+        self.assertEqual(self.pool[0].get_num_neurons(),
+            conn.get_dest().get_num_neurons())
 
-    def test_GetWeights(self):
+    def test_get_weights(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
             self.weights_3_3)
 
-        weights = conn.GetWeights()
+        weights = conn.get_weights()
 
-        for i in range(weights.GetNumRows()):
-            for j in range(weights.GetNumColumns()):
-                self.assertEqual(self.weights_3_3.GetElement(i,j),weights.GetElement(i,j))
+        for i in range(weights.get_num_rows()):
+            for j in range(weights.get_num_columns()):
+                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
 
-    def test_SetWeights(self):
+    def test_set_weights(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0])
-        weights = conn.GetWeights()
+        weights = conn.get_weights()
 
         self.assertEqual(weights,None)
 
-        conn.SetWeights(self.weights_3_3)
+        conn.set_weights(self.weights_3_3)
 
-        weights = conn.GetWeights()
+        weights = conn.get_weights()
 
-        for i in range(weights.GetNumRows()):
-            for j in range(weights.GetNumColumns()):
-                self.assertEqual(self.weights_3_3.GetElement(i,j),weights.GetElement(i,j))
+        for i in range(weights.get_num_rows()):
+            for j in range(weights.get_num_columns()):
+                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
 
 class TestNetwork(unittest.TestCase):
     num_neurons = 100
@@ -367,52 +367,52 @@ class TestNetwork(unittest.TestCase):
 
         self.assertRaises(Exception,ps.Network,(""))
 
-    def test_GetName(self):
+    def test_get_name(self):
         net = ps.Network("net")
 
-        self.assertEqual("net",net.GetName())
+        self.assertEqual("net",net.get_name())
         
-    def test_CreatePool(self):
+    def test_create_pool(self):
         net = ps.Network("net")
         try:
             raised = False
-            pool1 = net.CreatePool("pool1", self.num_neurons, self.dims)
-            pool2 = net.CreatePool("pool2", self.num_neurons, self.dims, 
+            pool1 = net.create_pool("pool1", self.num_neurons, self.dims)
+            pool2 = net.create_pool("pool2", self.num_neurons, self.dims, 
                 self.pool_width, self.pool_height)
         except:
             raised = True
             self.assertFalse(raised, "Exception raised creating pool")
 
-    def test_CreateBucket(self):
+    def test_create_bucket(self):
         net = ps.Network("net")
         try:
             raised = False
-            bucket = net.CreateBucket("bucket", self.dims)
+            bucket = net.create_bucket("bucket", self.dims)
         except:
             raised = True
             self.assertFalse(raised, "Exception raised creating bucket")
 
-    def test_CreateInput(self):
+    def test_create_input(self):
         net = ps.Network("net")
 
         try:
             raised = False
-            conn_in = net.CreateInput("conn_in_1",self.dims)
+            conn_in = net.create_input("conn_in_1",self.dims)
         except:
             raised = True
             self.assertFalse(raised, "Exception raised creating input")
 
-    def test_CreateOutput(self):
+    def test_create_output(self):
         net = ps.Network("net")
 
         try:
             raised = False
-            conn_out = net.CreateOutput("conn_out_1",self.dims)
+            conn_out = net.create_output("conn_out_1",self.dims)
         except:
             raised = True
             self.assertFalse(raised, "Exception raised creating output")
 
-    def test_CreateConnection_GetConnection(self):
+    def test_create_connection_get_connection(self):
         dims = [3,2]
         conn_obj_labels = ["bucket_in","bucket_out"]
         conn_labels = ["conn_1","conn_2"]
@@ -425,65 +425,65 @@ class TestNetwork(unittest.TestCase):
 
         try:
             raised = False
-            conn = net.CreateConnection(conn_labels[0],conn_in, conn_out)
-            conn = net.CreateConnection(conn_labels[1], conn_in, conn_out, weights)
+            conn = net.create_connection(conn_labels[0],conn_in, conn_out)
+            conn = net.create_connection(conn_labels[1], conn_in, conn_out, weights)
         except:
             raised = True
             self.assertFalse(raised, "Exception raised creating connections")
 
         try:
             raised = False
-            conns = net.GetConnections()
+            conns = net.get_connections()
             for i,conn in enumerate(conns):
-                self.assertEqual(conn_labels[i],conn.GetLabel())
-                src  = conn.GetSource()
-                dest = conn.GetDest()
-                w    = conn.GetWeights()
+                self.assertEqual(conn_labels[i],conn.get_label())
+                src  = conn.get_source()
+                dest = conn.get_dest()
+                w    = conn.get_weights()
 
-                self.assertEqual(src.GetNumDimensions(),dims[0])
-                self.assertEqual(dest.GetNumDimensions(),dims[1])
-                for j in range(w.GetNumRows()):
-                    for k in range(w.GetNumColumns()):
+                self.assertEqual(src.get_num_dimensions(),dims[0])
+                self.assertEqual(dest.get_num_dimensions(),dims[1])
+                for j in range(w.get_num_rows()):
+                    for k in range(w.get_num_columns()):
                         if (i == 0):
-                            self.assertEqual(w.GetElement(i,j),0)
+                            self.assertEqual(w.get_element(i,j),0)
                         else:
-                            self.assertEqual(w.GetElement(i,j),weights.item(i,j))
+                            self.assertEqual(w.get_element(i,j),weights.item(i,j))
         except:
             raised = True
             self.assertFalse(raised, "Exception raised getting connections")
 
-    def test_GetInputs(self):
+    def test_get_inputs(self):
         num_inputs = 4
         net = ps.Network("net")
         for i in range(num_inputs):
-            net.CreateInput("in",3)
+            net.create_input("in",3)
 
-        inputs = net.GetInputs()
+        inputs = net.get_inputs()
         self.assertEqual(num_inputs,len(inputs))
 
-    def test_GetOutputs(self):
+    def test_get_outputs(self):
         num_outputs = 4
         net = ps.Network("net")
         for i in range(num_outputs):
-            net.CreateOutput("out",3)
+            net.create_output("out",3)
 
-        outputs = net.GetOutputs()
+        outputs = net.get_outputs()
         self.assertEqual(num_outputs,len(outputs))
 
-    def test_GetBuckets(self):
+    def test_get_buckets(self):
         num_buckets = 4
         net = ps.Network("net")
         for i in range(num_buckets):
-            net.CreateBucket("bucket",3)
+            net.create_bucket("bucket",3)
 
-        buckets = net.GetBuckets()
+        buckets = net.get_buckets()
         self.assertEqual(num_buckets,len(buckets))
 
-    def test_GetPools(self):
+    def test_get_pools(self):
         num_pools = 4
         net = ps.Network("net")
         for i in range(num_pools):
-            net.CreatePool("pool", self.num_neurons, self.dims)
+            net.create_pool("pool", self.num_neurons, self.dims)
 
-        pools = net.GetPools()
+        pools = net.get_pools()
         self.assertEqual(num_pools,len(pools))
