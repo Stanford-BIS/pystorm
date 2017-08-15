@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -49,18 +50,18 @@ namespace bddriver {
 ///   [MutexBuffer:enc_buf_in_]      |      [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
 ///              |                   |                   A                   A
 ///              |                   |                   |                   |
-///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads, 
+///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads,
 ///              |                   |                   |                   |           organized by leaf
 ///              V                   |                   |                   |
 ///      [Encoder:encoder_]          |        [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
 ///              |                   |                        A
 ///              V                   |                        |
 ///   [MutexBuffer:enc_buf_out_]     |           [MutexBuffer:dec_buf_in_]
-///              |                   |                      A                       
-///              |                   |                      |                       
+///              |                   |                      A
+///              |                   |                      |
 ///  --------------------------------------------------------------------------------- raw data
-///              |                                          |                       
-///              V                                          |                       
+///              |                                          |
+///              V                                          |
 ///         [XXXXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXXXXX]
 ///                               |      A
 ///                               V      |
@@ -119,7 +120,7 @@ class Driver {
   void Stop();
   /// initializes hardware state
   void InitBD();                        // XXX partially implemented
-  void InitFIFO(unsigned int core_id); 
+  void InitFIFO(unsigned int core_id);
 
   ////////////////////////////////
   // Traffic Control
@@ -146,19 +147,19 @@ class Driver {
   /// Turn ADC output on
   void SetADCTrafficState(unsigned int core_id, bool en);  // XXX not implemented
 
-                                                           ////////////////////////////////////////////////////////////////////////////
-                                                           // Neuron controls
-                                                           ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // Neuron controls
+  ////////////////////////////////////////////////////////////////////////////
 
-                                                           ////////////////////////////////////////////////////////////////////////////
-                                                           // Soma controls
-                                                           ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // Soma controls
+  ////////////////////////////////////////////////////////////////////////////
 
-                                                           /// Enable/Disable Soma
-                                                           /// Map between memory and status
-                                                           ///     _KILL       Status
-                                                           ///       0         DISABLED
-                                                           ///       1         ENABLED
+  /// Enable/Disable Soma
+  /// Map between memory and status
+  ///     _KILL       Status
+  ///       0         DISABLED
+  ///       1         ENABLED
   void SetSomaEnableStatus(unsigned int soma_id,
       bdpars::SomaStatusId soma_status);
 
@@ -316,26 +317,26 @@ class Driver {
 
   /// Send a stream of spikes to neurons
   void SendSpikes(
-      const std::vector<unsigned int>& core_ids, 
-      const std::vector<BDWord>& spikes, 
+      const std::vector<unsigned int>& core_ids,
+      const std::vector<BDWord>& spikes,
       const std::vector<BDTime> times);
 
   /// Receive a stream of spikes
-  std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+  std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > RecvSpikes(unsigned int max_to_recv);
 
   /// Send a stream of tags
   void SendTags(
-      const std::vector<unsigned int>& core_ids, 
-      const std::vector<BDWord>& tags, 
+      const std::vector<unsigned int>& core_ids,
+      const std::vector<BDWord>& tags,
       const std::vector<BDTime> times);
 
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   /// Use TATOutputTags to unpack
-  std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+  std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > RecvTags(unsigned int max_to_recv);
 
   ////////////////////////////////
@@ -424,8 +425,8 @@ class Driver {
   /// that might come from multiple cores, or that need time_epoch information,
   /// This isn't the most effective call.
   std::vector<BDWord> RecvFromFunnel(
-      unsigned int core_id, 
-      bdpars::FunnelLeafId leaf_id, 
+      unsigned int core_id,
+      bdpars::FunnelLeafId leaf_id,
       unsigned int num_to_recv = 0);
 
   ////////////////////////////////
