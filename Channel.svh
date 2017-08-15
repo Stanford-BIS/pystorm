@@ -1,3 +1,5 @@
+`ifndef CHANNEL_SVH
+`define CHANNEL_SVH
 // valid/data-acknowledge channel
 // valid (v) triggers on posedge
 // acknowledge (a) is generated with combinational logic, or negedge
@@ -8,11 +10,54 @@ interface Channel #(parameter N = 1);
   logic a;
 endinterface
 
+// valid/data-acknowledge channel, but no data
+// used for a synchronization handshake
+interface DatalessChannel;
+  logic v;
+  logic a;
+endinterface
+
 // valid/data channel (receiver must guarantee data is used in clk cycle v is high)
 interface HalfChannel #(parameter N = 1);
   logic [N-1:0] d;
   logic v;
 endinterface
+
+// can use for channel with data by making combinational function of valid
+module ChannelSender (output logic valid, input ack, condition, clk, reset);
+
+enum {WAITING, SENDING} state;
+
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    state <= WAITING;
+  else
+    unique case (state)
+    WAITING:
+      if (condition == 1)
+        state <= SENDING;
+      else
+        state <= WAITING;
+    SENDING:
+      if (ack == 1)
+        if (condition == 1)
+          state <= SENDING;
+        else
+          state <= WAITING;
+      else
+        state <= SENDING;
+    endcase
+
+always_comb
+  unique case (state)
+  WAITING:
+    valid = 0;
+  SENDING: 
+    valid = 1;
+  endcase
+
+endmodule
+
 
 // module that drives the .v and .d members of a channel with 
 // random data, using random timings. Can parametrize to 
@@ -110,3 +155,4 @@ ChannelSink #(.N(N)) sink_dut(.in(chan), .*);
 
 endmodule
 
+`endif

@@ -1,86 +1,31 @@
-`include "Channel.sv"
-// time_mgr is the FPGA's wall clock. On the downstream side, it responds to
-// three different packet types:
-//
-// 1. Reset clock: sets the epoch to 0. Typically used at the signals the start of an experiment
-// 2. Set time unit: set the time unit, in clock cycles
-// 3. Set epoch length: set the epoch length, in time units
-// 4. Downstream epoch: signals the end of an epoch's worth of downstream spikes
-// 5. Downstream ISI: signals a precise delay between spikes, in time units
+`include "Interfaces.svh" 
+`include "Channel.svh"
 
-// the unit of time is 1-64K clock cycles, user-configurable
-module TimeUnitPulser #(parameter N = 16) ( // 2^N = time unit max val, in clock cycles
-  output logic unit_pulse, 
-  input [N-1:0] clks_per_unit,
-  input clk, 
-  input reset);
+`include "TimeUnitPulser.sv" // for now, only I include this
 
-logic [N-1:0] count;
-
-always @(posedge clk, posedge reset) begin
-  if (reset == 1) begin
-    count <= 1;
-    unit_pulse <= 0;
-  end
-  else begin
-    if (count >= clks_per_unit) begin
-      unit_pulse <= 1;
-      count <= 1;
-    end
-    else begin
-      unit_pulse <= 0; 
-      count <= count + 1;
-    end
-  end
-end
-
-endmodule
-
-
-module TimeUnitPulser_tb;
-
-parameter N = 16;
-
-logic unit_pulse;
-logic[N-1:0] clks_per_unit = 'D4;
-logic clk;
-logic reset;
-
-parameter Tclk = 10;
-
-always #(Tclk/2) clk = ~clk;
-
-initial begin
-  clk = 0;
-  #(Tclk) reset = 1;
-  #(Tclk) reset = 0;
-end
-
-TimeUnitPulser dut(.*);
-
-endmodule
-
-interface TimeMgrCtrlInputs #(parameter Nunit = 16, parameter Nepoch = 10, parameter Ntime = 32);
-  logic reset_time;
-  logic [Nunit-1:0] unit_len;
-  logic [Nepoch-1:0] epoch_len;
-  logic [Ntime-1:0] PC_epochs_elapsed;
-
-  Channel #(Nepoch) do_wait();
-endinterface
-
-
+// Responsible for keeping the epoch and intra-epoch wall clocks.
+// Also responsible for generating control signals for the downstream traffic
+// can either be stalling traffic during a wait event, or squashing
+// wait events if the PC is running behind.
+// Generates signals for when to send heartbeats in upstream traffic
+// CAVEAT: you are going to lose 1/2 a time_unit per wait event in this
+// implementation, SW should take this into account
 module TimeMgr #(
   parameter Nunit = 16, 
   parameter Nepoch = 10, 
   parameter Ntime  = 32,
   parameter SquashThr = 1) (
 
-  output logic send_heartbeat_up, // should send heartbeat to PC with epoch ct
+  // upstream controls
+  Channel send_heartbeat_up, // should send heartbeat to PC with epoch ct
+
+  // downstream controls
   output logic stall_dn,          // inside delay event or waiting for heartbeat, stall stream to BD
   output logic squash_delay_dn,   // PC running behind more than one epoch, squash delays so it catches up
 
+  // inputs from PCParser
   TimeMgrCtrlInputs ctrl_in,
+
   input clk, 
   input reset);
 
@@ -94,7 +39,7 @@ logic [Nepoch-1:0] wait_countdown; // used to control stall_dn signal
 
 // generate a pulse every time unit
 logic unit_pulse; // pulse for every time unit's passage
-TimeUnitPulser unit_pulser(.clks_per_unit(ctrl_in.unit_len), .*);
+TimeUnitPulser #(Nunit) unit_pulser(.clks_per_unit(ctrl_in.unit_len), .*);
 
 // increment units_elapsed based on unit_pulse
 // increment epochs_elapsed when units_elapsed overflows
@@ -115,6 +60,23 @@ always_ff @(posedge clk, posedge reset)
       end
       else 
         units_elapsed <= units_elapsed + 1;
+
+// generate send_heartbeat_up handshake using basic FSM
+logic send_heartbeat_cond;
+always_comb
+  if ((units_elapsed >= ctrl_in.epoch_len) & (unit_pulse == 1))
+    send_heartbeat_cond = 1;
+  else
+    send_heartbeat_cond = 0;
+
+ChannelSender up_sender_fsm(send_heartbeat_up.v, send_heartbeat_up.a, send_heartbeat_cond, clk, reset);
+
+always_comb
+  if (send_heartbeat_up.v == 1)
+    send_heartbeat_up.d = epochs_elapsed;
+  else
+    send_heartbeat_up.d = 'X;
+
 
 // FSM states for downstream traffic
 enum {RUN, STALL, SQUASH} dn_state;
@@ -137,6 +99,10 @@ always_comb
   endcase
 
 
+// note: need to go back to RUN for a cycle between stalls,
+// the do_wait.a logic currently depends on that
+// means we can't handshake do_wait at max throughput,
+// but waits are so long it doesn't really matter
 always_ff @(posedge clk, posedge reset)
   unique case (dn_state)
     RUN: 
@@ -199,7 +165,7 @@ parameter Nepoch = 10;
 parameter Ntime  = 32;
 parameter SquashThr = 2;
 
-logic send_heartbeat_up;
+Channel #(Nepoch) send_heartbeat_up();
 logic stall_dn;
 logic squash_delay_dn;
 
@@ -214,7 +180,9 @@ always #(Tclk/2) clk = ~clk;
 parameter ClksPerUnit = 4; // 4 clks is one unit
 parameter UnitsPerEpoch = 4; // 16 clks is one epoch
 parameter MaxDelayUnits = 10; // random source for wait events (0-10 time units delay)
-RandomChannelSrc #(.N(Nunit), .Max(4), .Min(4), .ClkDelaysMin(0), .ClkDelaysMax(MaxDelayUnits*4)) wait_src(ctrl_in.do_wait, clk);
+RandomChannelSrc #(.N(Nepoch), .Max(4), .Min(4), .ClkDelaysMin(0), .ClkDelaysMax(MaxDelayUnits*ClksPerUnit)) wait_src(ctrl_in.do_wait, clk);
+
+ChannelSink #(.N(Nepoch), .ClkDelaysMax(ClksPerUnit*UnitsPerEpoch/2)) hb_sink(send_heartbeat_up, clk);
 
 // can simulate falling behind
 logic block_PC_update;
