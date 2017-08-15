@@ -135,6 +135,38 @@ end
 
 endmodule
 
+// module that drives the .a members of a channel.
+// uses random timings
+module DatalessChannelSink #(
+  parameter ClkDelaysMin = 0,
+  parameter ClkDelaysMax = 5) (DatalessChannel in, input clk);
+
+int next_delay;
+
+initial begin
+  in.a <= 0;
+
+  forever begin
+
+    next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
+
+    // a is meant to be assigned combinationally
+    // we emulate this by assigning on the negedge
+    @ (negedge clk);
+    while (in.v == 0 || next_delay > 0) begin
+      in.a <= 0;
+      next_delay <= next_delay - 1;
+      @ (negedge clk);
+    end
+
+    in.a <= 1; 
+    $display("at %g: sunk dataless channel", $time);
+  end
+end
+
+endmodule
+
+
 // hooks a RandomChannelSrc to a ChannelSink
 module RandomChannel_tb;
 
