@@ -67,13 +67,14 @@ module RandomChannelSrc #(
   parameter Max = 2**N-1, 
   parameter Min = 0,
   parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (Channel out, input clk);
+  parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
 int next_delay;
 
 initial begin
   out.v <= 0;
   out.d <= 'X;
+  wait (reset == 0);
 
   next_delay = $urandom_range(ClkDelaysMax, ClkDelaysMin);
   repeat (next_delay)
@@ -108,12 +109,13 @@ endmodule
 module ChannelSink #(
   parameter N = 1, 
   parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (Channel in, input clk);
+  parameter ClkDelaysMax = 5) (Channel in, input clk, reset);
 
 int next_delay;
 
 initial begin
   in.a <= 0;
+  wait (reset == 0);
 
   forever begin
 
@@ -139,12 +141,13 @@ endmodule
 // uses random timings
 module DatalessChannelSink #(
   parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (DatalessChannel in, input clk);
+  parameter ClkDelaysMax = 5) (DatalessChannel in, input clk, reset);
 
 int next_delay;
 
 initial begin
   in.a <= 0;
+  wait (reset == 0);
 
   forever begin
 
@@ -173,6 +176,7 @@ module RandomChannel_tb;
 parameter N = 4;
 Channel #(.N(N)) chan();
 logic clk;
+logic reset = 0;
 
 parameter D = 10;
 

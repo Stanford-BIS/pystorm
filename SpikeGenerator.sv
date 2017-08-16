@@ -74,7 +74,7 @@ end
 
 SpikeGenerator dut(.*);
 
-DatalessChannelSink #(.ClkDelaysMax(2)) spike_sink(spike_out, clk);
+DatalessChannelSink #(.ClkDelaysMax(2)) spike_sink(spike_out, clk, reset);
 
 endmodule
 
