@@ -7,22 +7,16 @@
 
 // PCParser -> TimeMgr
 //
-// reset_time: sets the epoch to 0. Typically used at the signals the start of an experiment
-//   doesn't need to be a DatalessChannel
+// reset_time: sets the time_unit counter to 0. Typically used at the start of an experiment
 // unit_len: set the time unit duration, in clock cycles
-// epoch_len: set the epoch duration, in time units
-// PC_epochs_elapsed: PC's current epoch
 //
-// do_wait: stream of wait events. TimeMgr needs to stall on repeated waits,
-//  so it's a channel
+// PC_time_elapsed: time PC intended to send subsequent stream elements, in time units
 
-interface TimeMgrCtrlInputs #(parameter Nunit = 16, parameter Nepoch = 10, parameter Ntime = 32);
+interface TimeMgrCtrlInputs #(parameter Nunit = 16, parameter Ntime = 40);
   logic reset_time;
   logic [Nunit-1:0] unit_len;
-  logic [Nepoch-1:0] epoch_len;
-  logic [Ntime-1:0] PC_epochs_elapsed;
 
-  Channel #(Nepoch) do_wait();
+  logic [Ntime-1:0] PC_time_elapsed;
 endinterface
 
 `endif
