@@ -182,7 +182,7 @@ parameter UnitsPerEpoch = 4; // 16 clks is one epoch
 parameter MaxDelayUnits = 10; // random source for wait events (0-10 time units delay)
 RandomChannelSrc #(.N(Nepoch), .Max(4), .Min(4), .ClkDelaysMin(0), .ClkDelaysMax(MaxDelayUnits*ClksPerUnit)) wait_src(ctrl_in.do_wait, clk, reset);
 
-ChannelSink #(.N(Nepoch), .ClkDelaysMax(ClksPerUnit*UnitsPerEpoch/2)) hb_sink(send_heartbeat_up, clk, reset);
+ChannelSink #(.ClkDelaysMax(ClksPerUnit*UnitsPerEpoch/2)) hb_sink(send_heartbeat_up, clk, reset);
 
 // can simulate falling behind
 logic block_PC_update;

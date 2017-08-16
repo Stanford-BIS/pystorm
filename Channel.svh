@@ -59,21 +59,17 @@ always_comb
 endmodule
 
 
-// module that drives the .v and .d members of a channel with 
-// random data, using random timings. Can parametrize to 
-// control range of random values and delay times
-module RandomChannelSrc #(
-  parameter N = 1, 
-  parameter Max = 2**N-1, 
-  parameter Min = 0,
+
+// module that drives the and .d member of a DatalessChannel with 
+// random timings. Can parametrize to control range of delay times
+module DatalessChannelSrc #(
   parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
+  parameter ClkDelaysMax = 5) (DatalessChannel out, input clk, reset);
 
 int next_delay;
 
 initial begin
   out.v <= 0;
-  out.d <= 'X;
   wait (reset == 0);
 
   next_delay = $urandom_range(ClkDelaysMax, ClkDelaysMin);
@@ -82,7 +78,6 @@ initial begin
   
   forever begin
     out.v <= 1;
-    out.d <= $urandom_range(Max, Min); 
 
     next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
 
@@ -94,7 +89,6 @@ initial begin
 
     if (next_delay > 0) begin
       out.v <= 0;
-      out.d <= 'X;
       repeat (next_delay - 1)
         @ (posedge clk); 
     end
@@ -103,41 +97,33 @@ end
 
 endmodule
 
-
-// module that drives the .a members of a channel.
-// uses random timings
-module ChannelSink #(
+// module that drives the .v and .d members of a channel with 
+// random data, using random timings. Can parametrize to 
+// control range of random values and delay times.
+// Based on DatalessChannelSrc
+module RandomChannelSrc #(
   parameter N = 1, 
+  parameter Max = 2**N-1, 
+  parameter Min = 0,
   parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (Channel in, input clk, reset);
+  parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
-int next_delay;
+DatalessChannel base();
+assign out.v = base.v;
+assign base.a = out.a;
 
-initial begin
-  in.a <= 0;
-  wait (reset == 0);
+always @(base.v)
+  if (base.v == 1)
+    out.d <= $urandom_range(Max, Min); 
+  else if (base.v == 0)
+    out.d <= 'X;
 
-  forever begin
-
-    next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-
-    // a is meant to be assigned combinationally
-    // we emulate this by assigning on the negedge
-    @ (negedge clk);
-    while (in.v == 0 || next_delay > 0) begin
-      in.a <= 0;
-      next_delay <= next_delay - 1;
-      @ (negedge clk);
-    end
-
-    in.a <= 1; 
-    $display("at %g: sunk %b", $time, in.d);
-  end
-end
+DatalessChannelSrc #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_src(base, clk, reset);
 
 endmodule
 
-// module that drives the .a members of a channel.
+
+// module that drives the .a members of a DatalessChannel
 // uses random timings
 module DatalessChannelSink #(
   parameter ClkDelaysMin = 0,
@@ -169,6 +155,25 @@ end
 
 endmodule
 
+// module that drives the .a members of a channel.
+// uses random timings, reports sunk data
+// Based on DatalessChannelSink
+module ChannelSink #(
+  parameter ClkDelaysMin = 0,
+  parameter ClkDelaysMax = 5) (Channel in, input clk, reset);
+
+DatalessChannel base();
+assign base.v = in.v;
+assign in.a = base.a;
+
+always @(base.a)
+  if (base.a == 1)
+    $display("at %g: sunk %b", $time, in.d);
+
+DatalessChannelSink #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_sink(base, clk, reset);
+
+endmodule
+
 
 // hooks a RandomChannelSrc to a ChannelSink
 module RandomChannel_tb;
@@ -187,7 +192,7 @@ initial begin
 end
 
 RandomChannelSrc #(.N(N)) src_dut(.out(chan), .*);
-ChannelSink #(.N(N)) sink_dut(.in(chan), .*);
+ChannelSink sink_dut(.in(chan), .*);
 
 endmodule
 
