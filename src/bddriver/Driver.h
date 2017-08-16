@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <functional>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -49,18 +50,18 @@ namespace bddriver {
 ///   [MutexBuffer:enc_buf_in_]      |      [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...
 ///              |                   |                   A                   A
 ///              |                   |                   |                   |
-///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads, 
+///   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads,
 ///              |                   |                   |                   |           organized by leaf
 ///              V                   |                   |                   |
 ///      [Encoder:encoder_]          |        [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]
 ///              |                   |                        A
 ///              V                   |                        |
 ///   [MutexBuffer:enc_buf_out_]     |           [MutexBuffer:dec_buf_in_]
-///              |                   |                      A                       
-///              |                   |                      |                       
+///              |                   |                      A
+///              |                   |                      |
 ///  --------------------------------------------------------------------------------- raw data
-///              |                                          |                       
-///              V                                          |                       
+///              |                                          |
+///              V                                          |
 ///         [XXXXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXXXXX]
 ///                               |      A
 ///                               V      |
@@ -119,7 +120,7 @@ class Driver {
   void Stop();
   /// initializes hardware state
   void InitBD();                        // XXX partially implemented
-  void InitFIFO(unsigned int core_id); 
+  void InitFIFO(unsigned int core_id);
 
   ////////////////////////////////
   // Traffic Control
@@ -146,9 +147,142 @@ class Driver {
   /// Turn ADC output on
   void SetADCTrafficState(unsigned int core_id, bool en);  // XXX not implemented
 
-  ////////////////////////////////
-  // Neuron Config
-  // XXX Ben? Gains/Bias, etc
+  ////////////////////////////////////////////////////////////////////////////
+  // Neuron controls
+  ////////////////////////////////////////////////////////////////////////////
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Soma controls
+  ////////////////////////////////////////////////////////////////////////////
+
+  /// Enable/Disable Soma
+  /// Map between memory and status
+  ///     _KILL       Status
+  ///       0         DISABLED
+  ///       1         ENABLED
+  void SetSomaEnableStatus(unsigned int soma_id,
+      bdpars::SomaStatusId soma_status);
+
+  /// Enable Soma
+  std::function<void(unsigned int)> EnableSoma =
+      std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1,
+          bdpars::SomaStatusId::ENABLED);
+
+  /// Disable Soma
+  std::function<void(unsigned int)> DisableSoma =
+      std::bind(&Driver::SetSomaEnableStatus, this, std::placeholders::_1,
+          bdpars::SomaStatusId::DISABLED);
+
+  /// Set Soma gain (post rectifier)
+  /// Map between memory and gain values:
+  ///     G<1>        G<0>        Gain
+  ///      0           0          ONE_FOURTH (1/4)
+  ///      0           1          ONE_THIRD (1/3)
+  ///      1           0          ONE_HALF (1/2)
+  ///      1           1          ONE (1)
+  void SetSomaGain(unsigned int soma_id, bdpars::SomaGainId soma_gain);
+
+  /// Set offset sign (pre rectifier)
+  /// Map between memory and sign
+  ///     _ENPOSBIAS  Sign
+  ///       0         POSITIVE
+  ///       1         NEGATIVE
+  void SetSomaOffsetSign(unsigned int soma_id,
+      bdpars::SomaOffsetSignId soma_offset_sign);
+
+  /// Set Soma offset gain (pre rectifier)
+  /// Map between memory and gain values:
+  ///     B<1>        B<0>        Gain
+  ///      0           0          ZERO (0)
+  ///      0           1          ONE (1)
+  ///      1           0          TWO (2)
+  ///      1           1          THREE (3)
+  void SetSomaOffsetMultiplier(unsigned int soma_id,
+      bdpars::SomaOffsetMultiplierId soma_offset_multiplier);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Synapse controls
+  ////////////////////////////////////////////////////////////////////////////
+
+  /// Enable/Disable Synapse
+  /// Map between memory and status
+  ///     KILL        Status
+  ///       0         ENABLED
+  ///       1         DISABLED
+  void SetSynapseEnableStatus(unsigned int synapse_id,
+      bdpars::SynapseStatusId synapse_status);
+
+  /// Enable Synapse
+  std::function<void(unsigned int)> EnableSynapse =
+      std::bind(&Driver::SetSynapseEnableStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::ENABLED);
+
+  /// Disable Synapse
+  std::function<void(unsigned int)> DisableSynapse =
+      std::bind(&Driver::SetSynapseEnableStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::DISABLED);
+
+  /// Enable/Disable Synapse ADC
+  /// Map between memory and status
+  ///     _ADC        Status
+  ///       0         ENABLED
+  ///       1         DISABLED
+  void SetSynapseADCStatus(unsigned int synapse_id,
+      bdpars::SynapseStatusId synapse_status);
+
+  /// Enable Synapse ADC
+  std::function<void(unsigned int)> EnableSynapseADC =
+      std::bind(&Driver::SetSynapseADCStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::ENABLED);
+
+  /// Disable Synapse ADC
+  std::function<void(unsigned int)> DisableSynapseADC =
+      std::bind(&Driver::SetSynapseADCStatus, this, std::placeholders::_1,
+          bdpars::SynapseStatusId::DISABLED);
+
+  //////////////////////////////////////////////////////////////////////////
+  // Diffusor controls
+  //////////////////////////////////////////////////////////////////////////
+  ///
+  /// Set diffusor cuts' status.
+  /// There are four possible cuts per tile:
+  ///     * NORTH_LEFT
+  ///     * NORTH_RIGHT
+  ///     * WEST_TOP
+  ///     * WEST_BOTTOM
+  ///
+  /// Map between memory and status
+  ///     DIFF_CUT   Status
+  ///       0         CLOSE
+  ///       1         OPEN
+  void SetDiffusorCutStatus(unsigned int tile_id,
+      bdpars::DiffusorCutLocationId cut_id,
+      bdpars::DiffusorCutStatusId status);
+
+  /// Open Diffusor cut
+  std::function<void(unsigned int, bdpars::DiffusorCutLocationId)> OpenDiffusorCut =
+      std::bind(&Driver::SetDiffusorCutStatus, this, std::placeholders::_1,
+          std::placeholders::_2, bdpars::DiffusorCutStatusId::OPEN);
+
+  /// Close Diffusor cut
+  std::function<void(unsigned int, bdpars::DiffusorCutLocationId)> CloseDiffusorCut =
+      std::bind(&Driver::SetDiffusorCutStatus, this, std::placeholders::_1,
+          std::placeholders::_2, bdpars::DiffusorCutStatusId::CLOSE);
+
+  /// Set all the diffusor cuts' status for a tile
+  void SetDiffusorAllCutStatus(unsigned int tile_id,
+      bdpars::DiffusorCutStatusId status);
+
+  /// Open Tile Diffusor cut
+  std::function<void(unsigned int)> OpenTileDiffusorCut =
+      std::bind(&Driver::SetDiffusorAllCutStatus, this,
+          std::placeholders::_1, bdpars::DiffusorCutStatusId::OPEN);
+
+  /// Close Tile Diffusor cut
+  std::function<void(unsigned int)> CloseTileDiffusorCut =
+      std::bind(&Driver::SetDiffusorAllCutStatus, this,
+          std::placeholders::_1, bdpars::DiffusorCutStatusId::CLOSE);
+
 
   ////////////////////////////////
   // memory programming
@@ -183,26 +317,26 @@ class Driver {
 
   /// Send a stream of spikes to neurons
   void SendSpikes(
-      const std::vector<unsigned int>& core_ids, 
-      const std::vector<BDWord>& spikes, 
+      const std::vector<unsigned int>& core_ids,
+      const std::vector<BDWord>& spikes,
       const std::vector<BDTime> times);
 
   /// Receive a stream of spikes
-  std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+  std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > RecvSpikes(unsigned int max_to_recv);
 
   /// Send a stream of tags
   void SendTags(
-      const std::vector<unsigned int>& core_ids, 
-      const std::vector<BDWord>& tags, 
+      const std::vector<unsigned int>& core_ids,
+      const std::vector<BDWord>& tags,
       const std::vector<BDTime> times);
 
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   /// Use TATOutputTags to unpack
-  std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+  std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > RecvTags(unsigned int max_to_recv);
 
   ////////////////////////////////
@@ -291,8 +425,8 @@ class Driver {
   /// that might come from multiple cores, or that need time_epoch information,
   /// This isn't the most effective call.
   std::vector<BDWord> RecvFromFunnel(
-      unsigned int core_id, 
-      bdpars::FunnelLeafId leaf_id, 
+      unsigned int core_id,
+      bdpars::FunnelLeafId leaf_id,
       unsigned int num_to_recv = 0);
 
   ////////////////////////////////

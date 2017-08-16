@@ -1,26 +1,39 @@
 cmake_minimum_required(VERSION 3.0)
+
 set(PROJECT_NAME_STR bddriver_test)
+
 project(${PROJECT_NAME_STR} CXX)
 
 set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 find_package(Threads REQUIRED)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
+# GCC compiler, mostly for linux
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
   #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
+endif()
+
+# Clang, mostly for Mac
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_definitions(-Wall -ansi -Wno-deprecated -O3 -march=native -DLOG_ENABLED)
+endif()
+
+# MSVC, for windows
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_definitions(/Wall /Ox -DLOG_ENABLED)
 endif()
 
 #-------------------
 # Set global variables
 #-------------------
-set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/bddriver) 
-set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include 
+set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/bddriver)
+set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include
                  ${CMAKE_CURRENT_SOURCE_DIR}/../../include/bddriver
-) 
+)
 set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
-set(INCLUDE_DIRS 
+set(INCLUDE_DIRS
     ${PROJECT_SOURCE_DIR}
     ${SRC_BASE_DIR}
     ${SRC_BASE_DIR}/comm
@@ -31,20 +44,20 @@ set(INCLUDE_DIRS
 )
 
 #-------------------
-# Install and build external dependencies 
+# Install and build external dependencies
 #-------------------
 
 #set(EXT_PROJECTS_DIR ${PROJECT_SOURCE_DIR}/ext)
 #add_subdirectory(${EXT_PROJECTS_DIR}/gtest)
 
-include_directories(${INC_BASE_DIRS})                                        
-                                                                            
+include_directories(${INC_BASE_DIRS})
+
 #-------------------
 # Build Test
 #-------------------
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
-set(TEST_SRC_FILES 
+set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/test_util/DriverTypes_util.cpp
     ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
     ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
@@ -68,11 +81,12 @@ link_directories(${PYSTORM_BASE_LIB_DIR})
 target_link_libraries(${PROJECT_NAME_STR}
     gtest
     gtest_main
-    ${CMAKE_THREAD_LIBS_INIT} 
+    ${CMAKE_THREAD_LIBS_INIT}
     Driver
 )
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
+
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 
 enable_testing()

@@ -652,6 +652,22 @@ enum MiscWidthId {
   MiscWidthIdCount
 };
 
+/// Neuron configuration options
+
+enum class SomaStatusId { DISABLED, ENABLED };
+
+enum class SomaGainId { ONE_FOURTH, ONE_THIRD, ONE_HALF, ONE };
+
+enum class SomaOffsetSignId { POSITIVE, NEGATIVE };
+
+enum class SomaOffsetMultiplierId { ZERO, ONE, TWO, THREE };
+
+enum class SynapseStatusId { ENABLED, DISABLED };
+
+enum class DiffusorCutStatusId { CLOSE, OPEN };
+
+enum class DiffusorCutLocationId { NORTH_LEFT, NORTH_RIGHT, WEST_TOP, WEST_BOTTOM };
+
 /// route val, route len
 typedef std::pair<uint32_t, unsigned int> FHRoute;
 

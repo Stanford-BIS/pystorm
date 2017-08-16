@@ -163,7 +163,7 @@ void Driver::InitFIFO(unsigned int core_id) {
   PauseTraffic(core_id);
 
   // make FIFO_HT head = tail (doesn't matter what you send)
-  SendToHorn(core_id, bdpars::INIT_FIFO_HT, {0}); 
+  SendToHorn(core_id, bdpars::INIT_FIFO_HT, {0});
 
   // send all tag values to DCT FIF0 to dirty them so they flush
   std::vector<BDWord> all_tag_vals;
@@ -171,7 +171,7 @@ void Driver::InitFIFO(unsigned int core_id) {
     all_tag_vals.push_back(BDWord::Create<FIFOInputTag>({{FIFOInputTag::TAG, i}}));
   }
   SendToHorn(core_id, bdpars::INIT_FIFO_DCT, all_tag_vals);
-  
+
   // resume traffic will wait for the traffic drain timer before turning traffic regs back on
   ResumeTraffic(core_id);
 }
@@ -251,7 +251,7 @@ void Driver::ResumeTraffic(unsigned int core_id) {
 
 
 void Driver::SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int read_value, unsigned int write_value) {
-  BDWord word = BDWord::Create<DelayWord>({{DelayWord::READ_DELAY, read_value}, 
+  BDWord word = BDWord::Create<DelayWord>({{DelayWord::READ_DELAY, read_value},
                                            {DelayWord::WRITE_DELAY, write_value}});
   SetRegister(core_id, bd_pars_->DelayRegForMem(mem_id), word);
 }
@@ -308,7 +308,7 @@ void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::DACSignalI
   assert(false && "not implemented");
 }
 
-void DisconnectDACsfromADC(unsigned int core_id) { 
+void DisconnectDACsfromADC(unsigned int core_id) {
   assert(false && "not implemented");
 }
 
@@ -318,8 +318,61 @@ void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string& s
 }
 
 /// Turn ADC output on
-void Driver::SetADCTrafficState(unsigned int core_id, bool en) { 
-  assert(false && "not implemented"); 
+void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
+  assert(false && "not implemented");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Neuron controls
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+// Soma controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetSomaEnableStatus(unsigned int soma_id,
+    bdpars::SomaStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaGain(unsigned int soma_id, bdpars::SomaGainId soma_gain) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaOffsetSign(unsigned int soma_id,
+    bdpars::SomaOffsetSignId soma_offset_sign) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSomaOffsetMultiplier(unsigned int soma_id,
+    bdpars::SomaOffsetMultiplierId soma_offset_multiplier) {
+    assert(false && "not implemented");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Synapse controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetSynapseEnableStatus(unsigned int soma_id,
+    bdpars::SynapseStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetSynapseADCStatus(unsigned int soma_id,
+    bdpars::SynapseStatusId status) {
+    assert(false && "not implemented");
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Diffusor controls
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetDiffusorCutStatus(unsigned int tile_id,
+    bdpars::DiffusorCutLocationId cut_id,
+    bdpars::DiffusorCutStatusId status) {
+    assert(false && "not implemented");
+}
+
+void Driver::SetDiffusorAllCutStatus(unsigned int tile_id,
+    bdpars::DiffusorCutStatusId status) {
+    assert(false && "not implemented");
 }
 
 void Driver::SetMem(
@@ -545,12 +598,12 @@ void Driver::SendTags(const std::vector<unsigned int>& core_ids, const std::vect
 }
 
 
-std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > Driver::RecvSpikes(unsigned int max_to_recv) {
 
   // XXX this circumvents RecvFromFunnel, don't want to hit the serialization code
-  
+
   unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OUTPUT_SPIKES));
   unsigned int timeout = driver_pars_->Get(driverpars::RECVSPIKES_TIMEOUT_US);
 
@@ -567,12 +620,12 @@ std::tuple<std::vector<unsigned int>,
     core_ids.push_back(this_spike.core_id);
     times.push_back(0);
   }
-  
+
   return make_tuple(core_ids, spikes, times);
 }
 
-std::tuple<std::vector<unsigned int>, 
-          std::vector<BDWord>, 
+std::tuple<std::vector<unsigned int>,
+          std::vector<BDWord>,
           std::vector<BDTime> > Driver::RecvTags(unsigned int max_to_recv) {
 
   // XXX this circumvents RecvFromFunnel, don't want to hit the serialization code
