@@ -22,6 +22,8 @@ using std::endl;
 using namespace pystorm;
 using namespace bddriver;
 
+constexpr uint64_t     TATAccWord::field_hard_values[];
+constexpr unsigned int TATAccWord::field_widths[];
 
 class DriverFixture : public testing::Test {
   public:

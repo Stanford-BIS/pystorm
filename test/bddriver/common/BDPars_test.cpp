@@ -9,6 +9,9 @@ using std::endl;
 using namespace pystorm;
 using namespace bddriver;
 
+constexpr uint64_t     InputTag::field_hard_values[];
+constexpr unsigned int InputTag::field_widths[];
+
 class BDParsFixture : public testing::Test {
  public:
   void SetUp() { pars = new bdpars::BDPars(); }
