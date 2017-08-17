@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
+
 project(PyStormBindings CXX)
 
 ############################################################################
@@ -25,11 +27,6 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 ############################################################################
 
 function(check_multiplatform_system_dependencies)
-    #find_package(Threads REQUIRED)
-    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs 3.5)
-    find_package(PythonInterp 3.5)
-
     if(NOT CMAKE_HOST_SYSTEM_NAME)
         message(FATAL_ERROR "system name not set")
     endif()
@@ -49,9 +46,11 @@ endfunction()
 ############################################################################
 
 function(set_common_properties target_name)
+    #find_package(Threads REQUIRED)
     find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs 3.5 REQUIRED)
+    find_package(PythonLibs 3.5)
     find_package(PythonInterp 3.5)
+    find_package(Numpy)
 
     find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
     find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
@@ -66,9 +65,11 @@ function(set_common_properties target_name)
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
     include_directories(${Boost_INCLUDE_DIRS})
     include_directories(${PYTHON_INCLUDE_DIRS})
+    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
     set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
     set_property(TARGET ${target_name} PROPERTY PREFIX "")
+
 endfunction()
 
 ############################################################################
@@ -81,10 +82,6 @@ endfunction()
 function(build_common)
 
     # check pre-build requirements
-
-    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(PythonLibs 3.5)
-    find_package(PythonInterp 3.5)
 
     set(HAL_LIBRARY Hal )
     set(DRIVER_LIBRARY Driver)
