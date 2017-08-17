@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.0)
 
-project(bdhal CXX)
-
 ############################################################################
 #
 # Global variables
 #
 ############################################################################
+
+project(bdhal CXX)
 
 set(TARGET_NAME "Hal")
 
@@ -24,37 +24,24 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/common)
 #
 ############################################################################
 
-function(check_multiplatform_system_dependencies)
-    find_package(Threads REQUIRED)
-    #find_package(GTest REQUIRED)
+if(NOT CMAKE_HOST_SYSTEM_NAME)
+    message(FATAL_ERROR "system name not set")
+endif()
 
-    if(NOT CMAKE_HOST_SYSTEM_NAME)
-        message(FATAL_ERROR "system name not set")
-    endif()
-
-    # check pre-build requirements
-    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
-        message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
-    endif()
-endfunction()
+# check pre-build requirements
+if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
+            CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+            CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
+    message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
+endif()
 
 ############################################################################
 #
-# Set properties common to all platforms
+# Set modules required by all platforms
 #
 ############################################################################
 
-function(set_common_properties target_name)
-    target_link_libraries(${target_name}
-        ${CMAKE_THREADS_LIB_INIT})
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-endfunction()
+find_package(Threads REQUIRED)
 
 ############################################################################
 #
@@ -64,8 +51,6 @@ endfunction()
 ############################################################################
 
 function(build_common)
-    # Setup build environment variables
-
     # define the library being built
     add_library(${TARGET_NAME} SHARED
         ${HEADER_FILES}
@@ -74,8 +59,13 @@ function(build_common)
 
     # set the properties related to the target
     # this is a function common to all platforms
+    target_link_libraries(${TARGET_NAME}
+        ${CMAKE_THREADS_LIB_INIT})
 
-    set_common_properties(${TARGET_NAME})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+    include_directories(${INCLUDE_DIRS})
+
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
 
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")

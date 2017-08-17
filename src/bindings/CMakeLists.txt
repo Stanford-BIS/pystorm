@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
-
-project(PyStormBindings CXX)
 
 ############################################################################
 #
@@ -10,68 +7,49 @@ project(PyStormBindings CXX)
 #
 ############################################################################
 
+project(PyStormBindings CXX)
+
 set(TARGET_NAME "Pystorm")
+set(HAL_LIBRARY Hal )
+set(DRIVER_LIBRARY Driver)
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-
 set(HEADER_FILES "")
 set(SRC_FILES "")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
 ############################################################################
 #
-# Check dependencies that must be met for all platforms
+# Check requirements that must be met for all platforms
 #
 ############################################################################
 
-function(check_multiplatform_system_dependencies)
-    if(NOT CMAKE_HOST_SYSTEM_NAME)
-        message(FATAL_ERROR "system name not set")
-    endif()
+if(NOT CMAKE_HOST_SYSTEM_NAME)
+    message(FATAL_ERROR "system name not set")
+endif()
 
-    # check pre-build requirements
-    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
-        message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
-    endif()
-endfunction()
+# check pre-build requirements
+if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
+            CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
+            CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
+    message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
+endif()
 
 ############################################################################
 #
-# Set properties common to all platforms
+# Set modules required by all platforms
 #
 ############################################################################
 
-function(set_common_properties target_name)
-    #find_package(Threads REQUIRED)
-    find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-    find_package(Boost 1.58.0 COMPONENTS numpy REQUIRED)
-    find_package(PythonLibs 3.5)
-    find_package(PythonInterp 3.5)
-    find_package(Numpy)
+#find_package(Threads REQUIRED)
+find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
+find_package(PythonLibs 3.5)
+find_package(PythonInterp 3.5)
+find_package(Numpy)
 
-    find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-    find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-
-    #check_minimum_python_version(${PYTHONLIBS_VERSION_STRING})
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-    include_directories(${Boost_INCLUDE_DIRS})
-    include_directories(${PYTHON_INCLUDE_DIRS})
-    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
-
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${target_name} PROPERTY PREFIX "")
-
-endfunction()
+find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 ############################################################################
 #
@@ -81,12 +59,6 @@ endfunction()
 ############################################################################
 
 function(build_common)
-
-    # check pre-build requirements
-
-    set(HAL_LIBRARY Hal )
-    set(DRIVER_LIBRARY Driver)
-
     link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
     add_library(${TARGET_NAME} SHARED
@@ -101,7 +73,18 @@ function(build_common)
         ${DRIVER_LIBRARY}
     )
 
-    set_common_properties(${TARGET_NAME})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+    include_directories(${INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
+    include_directories(${Boost_INCLUDE_DIRS})
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
+
+    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
+    set_property(TARGET ${target_name} PROPERTY PREFIX "")
 
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
@@ -142,8 +125,6 @@ endfunction()
 # Entry function to build on Linux, Mac OSX and Windows 10
 #
 ############################################################################
-
-check_multiplatform_system_dependencies()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
