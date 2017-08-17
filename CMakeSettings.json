@@ -33,7 +33,7 @@
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "Release",
             "buildRoot": "${env.LOCALAPPDATA}\\CMakeBuild\\${workspaceHash}\\build\\${name}",
-            "cmakeCommandArgs": "-DPYTHON_INCLUDE_DIR=D:\\Apps\\Anaconda3\\include -DPYTHON_LIBRARY=D:\\Apps\\Anaconda3\\libs -DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBoost_COMPILER=\"-vc141\" -DBoost_NO_BOOST_CMAKE=TRUE -DBoost_NO_SYSTEM_PATHS=TRUE -DBOOST_ROOT=F:\\dev\\boost_1_64_0 -DBOOST_LIBRARYDIR=F:\\dev\\boost_1_64_0\\stage\\x64\\lib",
+            "cmakeCommandArgs": "-DPYTHON_INCLUDE_DIR=D:\\Apps\\Anaconda3\\include -DPYTHON_LIBRARY=D:\\Apps\\Anaconda3\\libs\\python36.lib -DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBoost_COMPILER=\"-vc141\" -DBoost_NO_BOOST_CMAKE=TRUE -DBoost_NO_SYSTEM_PATHS=TRUE -DBOOST_ROOT=F:\\dev\\boost_1_64_0 -DBOOST_LIBRARYDIR=F:\\dev\\boost_1_64_0\\stage\\x64\\lib",
             "buildCommandArgs": "-m -v:minimal",
             "ctestCommandArgs": ""
         }

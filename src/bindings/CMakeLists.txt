@@ -59,33 +59,6 @@ find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 ############################################################################
 
 function(build_common)
-    link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-    add_library(${TARGET_NAME} SHARED
-        ${HEADER_FILES}
-        ${SRC_FILES}
-        )
-
-    target_link_libraries(${TARGET_NAME}
-        ${Boost_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        ${HAL_LIBRARY}
-        ${DRIVER_LIBRARY}
-    )
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-    include_directories(${Boost_INCLUDE_DIRS})
-    include_directories(${PYTHON_INCLUDE_DIRS})
-    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
-
-    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
-
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
@@ -102,10 +75,41 @@ function(build_common)
 
     # MSVC, for windows
     if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
         set(CMAKE_CXX_FLAGS "/Wall" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od -DLOG_ENABLED" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG" CACHE STRING "" FORCE)
     endif()
+
+    link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+
+    add_library(${TARGET_NAME} SHARED
+        ${HEADER_FILES}
+        ${SRC_FILES}
+        )
+
+    target_link_libraries(${TARGET_NAME}
+        ${Boost_LIBRARIES}
+        ${PYTHON_LIBRARIES}
+        ${HAL_LIBRARY}
+        ${DRIVER_LIBRARY}
+    )
+
+    #message(STATUS "*Boost " ${Boost_LIBRARIES})
+    #message(STATUS "*PYTHON " ${PYTHON_LIBRARIES})
+
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+    include_directories(${INCLUDE_DIRS})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
+    include_directories(${Boost_INCLUDE_DIRS})
+    include_directories(${PYTHON_INCLUDE_DIRS})
+    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
+
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
+    set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 endfunction()
 
 function(build_on_linux)

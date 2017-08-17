@@ -57,20 +57,7 @@ find_package(Threads REQUIRED)
 
 function(build_common)
     # Setup build environment variables
-    # define the library being built
-    add_library(${TARGET_NAME} SHARED
-        ${HEADER_FILES}
-        ${SRC_FILES}
-        )
-
-    target_link_libraries(${TARGET_NAME}
-        ${CMAKE_THREADS_LIB_INIT})
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-
-    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
-
+    
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
         set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
@@ -87,10 +74,25 @@ function(build_common)
 
     # MSVC, for windows
     if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
         set(CMAKE_CXX_FLAGS "/Wall" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od -DLOG_ENABLED" CACHE STRING "" FORCE)
         set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG" CACHE STRING "" FORCE)
     endif()
+
+    # define the library being built
+    add_library(${TARGET_NAME} SHARED
+        ${HEADER_FILES}
+        ${SRC_FILES}
+        )
+
+    target_link_libraries(${TARGET_NAME}
+        ${CMAKE_THREADS_LIB_INIT})
+
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+    include_directories(${INCLUDE_DIRS})
+
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
 endfunction()
 
 function(build_on_linux)
@@ -110,8 +112,6 @@ endfunction()
 # Entry function to build on Linux, Mac OSX and Windows 10
 #
 ############################################################################
-
-check_multiplatform_system_dependencies()
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
