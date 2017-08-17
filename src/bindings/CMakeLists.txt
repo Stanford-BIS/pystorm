@@ -83,8 +83,8 @@ function(build_common)
     include_directories(${PYTHON_INCLUDE_DIRS})
     include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${target_name} PROPERTY PREFIX "")
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
+    set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
