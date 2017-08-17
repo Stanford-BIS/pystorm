@@ -22,6 +22,8 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
+constexpr uint64_t     FIFOInputTag::field_hard_values[];
+constexpr unsigned int FIFOInputTag::field_widths[];
 constexpr uint64_t     MMSetAddress::field_hard_values[];
 constexpr unsigned int MMSetAddress::field_widths[];
 constexpr uint64_t     MMReadIncrement::field_hard_values[];
