@@ -1,44 +1,32 @@
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
+project(PyStormBindings CXX)
+
+# This has to be done after 'project' is set
+include(CheckRequirements)
+include(Common)
+
 ############################################################################
 #
 # Global variables
 #
 ############################################################################
 
-project(PyStormBindings CXX)
-
 set(TARGET_NAME "Pystorm")
 set(HAL_LIBRARY Hal )
 set(DRIVER_LIBRARY Driver)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 set(HEADER_FILES "")
 set(SRC_FILES "")
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
 ############################################################################
 #
-# Check requirements that must be met for all platforms
-#
-############################################################################
-
-if(NOT CMAKE_HOST_SYSTEM_NAME)
-    message(FATAL_ERROR "system name not set")
-endif()
-
-# check pre-build requirements
-if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-            CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-            CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
-    message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
-endif()
-
-############################################################################
-#
-# Set modules required by all platforms
+# Additional packages
 #
 ############################################################################
 
@@ -59,27 +47,8 @@ find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 ############################################################################
 
 function(build_common)
-    # GCC compiler, mostly for linux
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
-
-    # Clang, mostly for Mac
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
-
-    # MSVC, for windows
-    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-        set(CMAKE_CXX_FLAGS "/Wall" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
+    # This should be before TARGET is set
+    SetupSharedLibrary()
 
     link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
@@ -95,9 +64,6 @@ function(build_common)
         ${DRIVER_LIBRARY}
     )
 
-    #message(STATUS "*Boost " ${Boost_LIBRARIES})
-    #message(STATUS "*PYTHON " ${PYTHON_LIBRARIES})
-
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
     include_directories(${INCLUDE_DIRS})
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
@@ -112,17 +78,6 @@ function(build_common)
     set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 endfunction()
 
-function(build_on_linux)
-    build_common()
-endfunction()
-
-function(build_on_mac)
-    build_common()
-endfunction()
-
-function(build_on_windows)
-    build_common()
-endfunction()
 
 ############################################################################
 #
@@ -136,12 +91,9 @@ if(NOT CMAKE_BUILD_TYPE)
     FORCE)
 endif()
 
-if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-    build_on_linux()
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-    build_on_mac()
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Windows")
-    build_on_windows()
+if(HOST_IS_VALID)
+    build_common()
 else()
-    message(FATAL_ERROR "Build does not support system type")
+    message(FATAL_ERROR "Build does not support host '"
+        ${CMAKE_HOST_SYSTEM_NAME} "'")
 endif()
