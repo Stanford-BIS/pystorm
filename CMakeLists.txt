@@ -8,7 +8,7 @@ include(CheckRequirements)
 include(Common)
 
 # Enable testing
-EnableTesting()
+enable_testing()
 
 # Load packages
 find_package(PythonLibs 3.5 REQUIRED)

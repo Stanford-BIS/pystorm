@@ -1,10 +1,3 @@
-function(EnableTesting)
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-    CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    enable_testing()
-endif()
-endfunction()
-
 function(SetupSharedLibrary)
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
