@@ -14,7 +14,7 @@ pipeline {
             steps {
                 script {
                     def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                    sh "docker run --network=bridge --rm -i ${lowercase_tag} make test ARGS=\"-V\" "
+                    sh "docker/run_docker.sh ${lowercase_tag}"
                 }
             }
         }
