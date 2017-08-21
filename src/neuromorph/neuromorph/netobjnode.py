@@ -59,7 +59,7 @@ class NetObjNode(object):
 
         for i in range(pystorm_weights.get_num_rows()):
             for j in range(pystorm_weights.get_num_columns()):
-cmaincludeincaaaaa                weight_arr[i,j] = pystorm_weights.get_element(i, j)
+                weight_arr[i,j] = pystorm_weights.get_element(i, j)
 
         ret_value = MMWeights(weight_arr)
 
