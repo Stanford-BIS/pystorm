@@ -19,4 +19,19 @@ interface TimeMgrCtrlInputs #(parameter Nunit = 16, parameter Ntime = 40);
   logic [Ntime-1:0] PC_time_elapsed;
 endinterface
 
+interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
+  logic [Ntag-1:0] tag;
+  logic [Nct-1:0] ct;
+  logic v;
+  logic a;
+endinterface
+
+interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, parameter Nct = 10);
+  logic [Nstate-1:0] state;
+  logic [Nfilts-1:0] filt;
+  logic [Nct-1:0] ct;
+  logic r;
+  logic v;
+endinterface
+
 `endif
