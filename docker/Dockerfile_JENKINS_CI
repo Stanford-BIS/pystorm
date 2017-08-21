@@ -16,4 +16,3 @@ RUN apt-get -y install python3.5 python3-numpy \
     && make 
 
 WORKDIR /home/git/pystorm/build/
-ENTRYPOINT ["make"]
