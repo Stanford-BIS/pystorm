@@ -69,11 +69,43 @@ HAL::Weights<T>* makeWeights(PYTHON::object& weights) {
     return weightMatrix;
 }
 
+template<typename T>
+HAL::Weights<T>* makeNullWeights(int in_dims, int out_dims) {
+
+    T* weights_ptr = (T*) std::calloc((in_dims*out_dims),sizeof(T));
+
+    HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(weights_ptr, out_dims,
+        in_dims);
+
+    for (unsigned int row = 0; row < weightMatrix->GetNumRows(); row++)
+    {
+        for (unsigned int col = 0; col < weightMatrix->GetNumColumns(); col++)
+        {
+            weightMatrix->SetElement(row, col, 0);
+        }
+    }
+
+    return weightMatrix;
+}
+
 HAL::Connection* 
     (HAL::Network::*CreateConnection_1) (
     std::string name, HAL::ConnectableInput* in_object, 
     HAL::ConnectableOutput* out_object) = 
         &HAL::Network::CreateConnection;
+
+template<typename T>
+HAL::Connection* makeConnectionWithoutWeights (HAL::Network& net, std::string name,
+    HAL::ConnectableInput* in_object, HAL::ConnectableOutput* out_object) {
+
+    HAL::Weights<T>* weightMatrix = makeNullWeights<T>(in_object->GetNumDimensions(), 
+        out_object->GetNumDimensions());
+
+    HAL::Connection* newConnection = net.CreateConnection(name, in_object, 
+        out_object, weightMatrix);
+
+    return newConnection;
+} 
 
 template<typename T>
 HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
@@ -96,6 +128,9 @@ HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
 #endif
 init_numpy() {
     import_array();
+#if PY_MAJOR_VERSION >= 3
+    return 0;
+#endif
 }
 
 BOOST_PYTHON_MODULE(Pystorm)
@@ -272,7 +307,7 @@ BOOST_PYTHON_MODULE(Pystorm)
             PYTHON::return_internal_reference<>())
         .def("create_output",&HAL::Network::CreateOutput, 
             PYTHON::return_internal_reference<>())
-        .def("create_connection", CreateConnection_1,
+        .def("create_connection", pystorm::makeConnectionWithoutWeights<uint32_t>,
             PYTHON::return_internal_reference<>(),
             PYTHON::args("self","in_obj","out_obj"))
         .def("create_connection", pystorm::makeConnectionWithWeights<uint32_t>,

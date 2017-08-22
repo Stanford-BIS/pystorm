@@ -142,23 +142,22 @@ class NetObjNode(object):
 
         elif number_of_adj_nodes == 1:
 
-            adj_node = self.adjacent_net_obj[0]
-            adj_node_net_obj = adj_node.second
-            adj_node_weights = adj_node.first
-
+            adj_node = self.adjacent_net_obj[0][1]
+            adj_node_weights = self.adjacent_net_obj[0][0]
             # Conn 1: Input -> Pool
-            if type(self.net_obj) == Input and type(adj_node_net_obj) == Pool:
-                num_neurons = self.net_obj.get_num_neurons()
-                matrix_dims = 2
-                adj_node_dims = adj_node_net_obj.get_num_dimensions()
+            if (type(self.get_net_obj()) == Input) and (type(adj_node.get_net_obj()) == Pool):
+                num_neurons = adj_node.get_net_obj().get_num_neurons()
+                # what to do if dims is odd
+                taps_dim_0 = self.get_net_obj().get_num_dimensions()
+                taps_dim_1 = adj_node.get_net_obj().get_num_dimensions()
 
                 source = self.resource
                 tap = TATTapPoint(np.random.randint(num_neurons,
-                                                    size=(matrix_dims, adj_node_dims)),
-                                  np.random.randint(1, size=(matrix_dims,
-                                                             adj_node_dims)) * 2 - 1,
+                                                    size=(taps_dim_0, taps_dim_1)),
+                                  np.random.randint(1, size=(taps_dim_0,
+                                                             taps_dim_1)) * 2 - 1,
                                   num_neurons)
-                neurons = adj_node_net_obj.resource
+                neurons = adj_node.get_resource()
 
                 source.Connect(tap)
                 tap.Connect(neurons)
@@ -166,11 +165,16 @@ class NetObjNode(object):
                 resources.append(tap)
 
             # Conn 2: Input -> Bucket
-            if type(self.net_obj) == Input and type(adj_node_net_obj) == Bucket:
-                source = self.resource
-                tat_acc_resource = TATAccumulator(self.net_obj.get_num_dimensions())
+            if type(self.get_net_obj()) == Input and type(adj_node.get_net_obj()) == Bucket:
+                source = self.get_resource()
+                tat_acc_resource = TATAccumulator(self.get_net_obj().get_num_dimensions())
+                if (adj_node_weights == None):
+                    msg = "Cannot connect Input to Bucket without Weights;\n" \
+                          + "Assign Weights to Pystorm.Connection between Input and Bucket"
+                    raise TypeError(msg)
+
                 weight_resource = self.create_resources_for_(adj_node_weights)
-                am_bucket = adj_node_net_obj.resource
+                am_bucket = adj_node.get_resource()
 
                 source.Connect(tat_acc_resource)
                 tat_acc_resource.Connect(weight_resource)
@@ -180,10 +184,10 @@ class NetObjNode(object):
                 resources.append(weight_resource)
 
             # Conn 3: Pool -> Bucket
-            if type(self.net_obj) == Pool and type(adj_node_net_obj) == Bucket:
+            if type(self.get_net_obj()) == Pool and type(adj_node.get_net_obj()) == Bucket:
                 neurons = self.resource
                 weight_resource = self.create_resources_for_(adj_node_weights)
-                am_bucket = adj_node_net_obj.resource
+                am_bucket = adj_node.get_resource()
 
                 neurons.Connect(weight_resource)
                 weight_resource.Connect(am_bucket)
@@ -191,10 +195,10 @@ class NetObjNode(object):
                 resources.append(weight_resource)
 
             # Conn 4: Bucket -> Bucket
-            if type(self.net_obj) == Bucket and type(adj_node_net_obj) == Bucket:
-                am_bucket_in = self.resource
+            if type(self.get_net_obj()) == Bucket and type(adj_node.get_net_obj()) == Bucket:
+                am_bucket_in = self.get_resource()
                 weight_resource = self.create_resources_for_(adj_node_weights)
-                am_bucket_out = adj_node_net_obj.resource
+                am_bucket_out = adj_node.get_resource()
 
                 am_bucket_in.Connect(weight_resource)
                 weight_resource.Connect(am_bucket_out)
@@ -202,30 +206,30 @@ class NetObjNode(object):
                 resources.append(weight_resource)
 
             # Conn 5: Bucket -> Output
-            if type(self.net_obj) == Bucket and type(adj_node_net_obj) == Output:
+            if type(self.get_net_obj()) == Bucket and type(adj_node.get_net_obj()) == Output:
                 am_bucket = self.resource
-                sink = adj_node_net_obj.resource
+                sink = adj_node.get_resource()
 
                 am_bucket.Connect(sink)
 
         elif number_of_adj_nodes > 1:
 
-            if type(self.net_obj) == Bucket:
-                am_bucket_in = self.resource
-                tat_fanout = TATFanout(self.net_obj.get_num_dimensions())
+            if type(self.get_net_obj()) == Bucket:
+                am_bucket_in = self.get_resource()
+                tat_fanout = TATFanout(self.get_net_obj().get_num_dimensions())
 
                 am_bucket_in.Connect(tat_fanout)
 
                 resources.append(tat_fanout)
 
                 for adj_node in self.adjacent_net_obj:
-                    adj_node_net_obj = adj_node.second
-                    adj_node_weight = adj_node.first
+                    adj_node = adj_node[1]
+                    adj_node_weight = adj_node[0]
                     #   Conn 6: Bucket -> Bucket
                     #                  -> Bucket
-                    if type(adj_node_net_obj) == Bucket:
+                    if type(adj_node.get_net_obj()) == Bucket:
                         weight_resource = self.create_resources_for_(adj_node_weight)
-                        am_bucket_out = adj_node_net_obj
+                        am_bucket_out = adj_node.get_resource()
 
                         resources.append(weight_resource)
 
@@ -234,7 +238,7 @@ class NetObjNode(object):
 
                         #   Conn 7: Bucket -> Output
                         #                  -> Output
-                    if type(adj_node_net_obj) == Output:
-                        sink = adj_node_net_obj.resource
+                    if type(adj_node.get_net_obj()) == Output:
+                        sink = adj_node.get_net_obj().get_resource()
 
                         tat_fanout.Connect(sink)

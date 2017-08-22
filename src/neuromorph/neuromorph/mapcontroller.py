@@ -1,8 +1,6 @@
 from Pystorm import *
-from . Core import *
+from . import Core
 from . Resources import *
-from functools import singledispatch, update_wrapper
-import numpy as np
 from . netobjnode import NetObjNode
 
 
@@ -63,16 +61,10 @@ class MapController(object):
         for net_obj, net_obj_node in network_obj_map.items():
             net_obj_node.connect(resources)
 
-        return resources
-
-    def create_pystorm_mem_objects(self, core):
-        pass
-        # instead of WriteMemsToFile, create a set of structures
-        # supplied by Pystorm that represent what you are mapping
-        # the original network to.
+        return network_obj_map, resources
 
     def map_resources_to_core(self, resources, core, verbose=False):
-        """
+        """Map each Resource to the Core object
 
         :param resources: A list of Resource objects
         :param core: A Core object
@@ -108,16 +100,27 @@ class MapController(object):
         return core
 
     def map(self, pystorm_network, verbose=False):
+        """Create a map between the Pystorm network and a set of Resources.
+
+        :param pystorm_network: A Pystorm.Network object
+        :param verbose: A bool telling MapController to print status during mapping
+
+        :return pystorm_network: The Pystorm.Network object passed in
+        :return pystorm_net_obj_map: A dict from each Pystorm object to a NetObjNode.
+                                     The NetObjNode's form a grap representing the
+                                     PystormNetwork and their associated Resource
+                                     objects.
+        :return resources: A list of Resource objects created for the Pystorm.Network object
+                           passed in.
+        :return core: The Core object Resource instances are mapped to.
+
+        """
         pars = ps.get_core_pars()
 
         core = Core(pars)
 
-        resources = self.create_resources(pystorm_network)
+        (pystorm_net_obj_map, resources) = self.create_resources(pystorm_network)
 
         core = self.map_resources_to_core(resources, core, verbose)
 
-        pystorm_mem = self.create_pystorm_mem_objects(core)
-
-        mapped_network = (pystorm_network, pystorm_mem)
-
-        return mapped_network
+        return pystorm_network, pystorm_net_obj_map, resources, core
