@@ -345,21 +345,27 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 ////////////////////////////////////////////////////////////////////////////////
 // Soma controls
 ////////////////////////////////////////////////////////////////////////////////
-void Driver::SetSomaEnableStatus(unsigned int core_id, unsigned int soma_id,
-                                 bdpars::SomaStatusId status) {
+void Driver::SetSomaConfigMemory(unsigned int core_id, unsigned int soma_id,
+                       bdpars::ConfigSomaID config_type, unsigned int config_value){
     unsigned int tile_id = soma_id / 16;
     unsigned int intra_tile_id = soma_id % 16;
-    unsigned int tile_mem_loc = config_soma_mem_[bdpars::ConfigSomaID::ENABLE][intra_tile_id];
-    unsigned int bit_val = (status == bdpars::SomaStatusId::DISABLED ? 0 : 1);
+    unsigned int tile_mem_loc = config_soma_mem_[config_type][intra_tile_id];
+    //TODO: split tile_mem_loc to bit fields.
     BDWord::Create<NeuronConfig>({
         {NeuronConfig::ROW_HI, tile_mem_loc},
         {NeuronConfig::ROW_LO, tile_mem_loc},
         {NeuronConfig::COL_HI, tile_mem_loc},
         {NeuronConfig::COL_LO, tile_mem_loc},
         {NeuronConfig::BIT_SEL, tile_mem_loc},
-        {NeuronConfig::BIT_VAL, bit_val},
+        {NeuronConfig::BIT_VAL, config_value},
         {NeuronConfig::TILE_ADDR, tile_id}
     });
+}
+    
+void Driver::SetSomaEnableStatus(unsigned int core_id, unsigned int soma_id,
+                                 bdpars::SomaStatusId status) {
+    unsigned int bit_val = (status == bdpars::SomaStatusId::DISABLED ? 0 : 1);
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::ENABLE, bit_val);
     assert(false && "not implemented");
 }
 

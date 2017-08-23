@@ -155,6 +155,10 @@ class Driver {
   // Soma controls
   ////////////////////////////////////////////////////////////////////////////
 
+  void SetSomaConfigMemory(unsigned int core_id, unsigned int soma_id,
+                           bdpars::ConfigSomaID config_type,
+                           unsigned int config_value);
+
   /// Enable/Disable Soma
   /// Map between memory and status
   ///     _KILL       Status
