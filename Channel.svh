@@ -130,24 +130,6 @@ always_ff @(posedge clk, posedge reset)
     end
   end
 
-//initial begin
-//  out.v <= 0;
-//  wait (reset == 0);
-//
-//  forever begin
-//    @ (posedge clk); 
-//
-//    if (out.r == 0) begin
-//      out.v <= 0;
-//    end
-//    else begin
-//      // delay for some number of clocks
-//      end
-//      out.v <= 1;
-//    end
-//  end
-//end
-
 endmodule
 
 // module that drives the .v and .d members of a channel with 
@@ -256,26 +238,6 @@ always_ff @(negedge clk, posedge reset)
       in.r <= 0;
     end
   end
-
-
-//  in.r <= 1;
-//  wait (reset == 0);
-//
-//  forever begin
-//    @ (negedge clk);
-//    if (in.v == 1) begin
-//      assert (in.r == 1);
-//      $display("at %g: sunk dataless channel", $time);
-//
-//      next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-//      repeat (next_delay) begin
-//        @ (negedge clk);
-//        in.r <= 0;
-//      end
-//      in.r <= 1; 
-//    end
-//  end
-//end
 
 endmodule
 
