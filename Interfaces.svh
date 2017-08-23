@@ -22,8 +22,15 @@ endinterface
 interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
   logic [Ntag-1:0] tag;
   logic [Nct-1:0] ct;
+  logic r;
   logic v;
-  logic a;
+endinterface
+
+interface PassiveTagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
+  logic [Ntag-1:0] tag;
+  logic [Nct-1:0] ct;
+  logic r;
+  logic v;
 endinterface
 
 interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, parameter Nct = 10);
@@ -34,4 +41,12 @@ interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, pa
   logic v;
 endinterface
 
+interface ProgramSpikeGeneratorChannel #(parameter Ngens = 8, parameter Nperiod = 16, parameter Ntag = 11);
+  logic [Ngens-1:0] gen_idx;
+  logic [Nperiod-1:0] period;
+  logic [Nperiod-1:0] ticks;
+  logic [Ntag-1:0] tag;
+  logic v;
+  logic a;
+endinterface
 `endif
