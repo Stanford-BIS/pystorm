@@ -115,6 +115,15 @@ struct NAME { \
   enum Field {F0, F1, F2, F3, F4, F5, F6}; \
 }; \
 
+#define DEFVALWORD8(NAME, F0, W0, V0, F1, W1, V1, F2, W2, V2, F3, W3, V3, F4, W4, V4, F5, W5, V5, F6, W6, V6, F7, W7, V7) \
+struct NAME { \
+  static constexpr unsigned int n_fields {8}; \
+  static constexpr unsigned int field_widths[8] {W0, W1, W2, W3, W4, W5, W6, W7}; \
+  static constexpr unsigned int width {W0 + W1 + W2 + W3 + W4 + W5 + W6 + W7}; \
+  static constexpr uint64_t field_hard_values[8] {V0, V1, V2, V3, V4, V5, V6, V7}; \
+  enum Field {F0, F1, F2, F3, F4, F5, F6, F7}; \
+}; \
+
 // XXX Something else you could try: cramming all the values into the enums
 // all we really need is the width and the shift for each field, and the hardcoded
 // value across all fields, If you have that, you can do the necessary operations 
@@ -398,6 +407,17 @@ DEFWORD3(AccOutputTag,
 DEFWORD3(TATOutputTag,
     COUNT, 9, TAG, 11, GLOBAL_ROUTE, 12)
 
+/// Receiver packet structure for neuron config memory
+DEFVALWORD8(NeuronConfig,
+            ROW_HI,     2, 0, // [1:0]   = Row 2:1
+            COL_HI,     1, 0, // [2]     = Col 2
+            ROW_LO,     1, 0, // [3]     = Row 0
+            COL_LO,     2, 0, // [5:4]   = Col 1:0
+            BIT_VAL,    1, 0, // [6]     = Bit value
+            BIT_SEL,    1, 0, // [7]     = Bitcell select
+            FIXED_2,    2, 2, // [9:8]   = {1, 0}
+            TILE_ADDR,  8, 0) // [17:10] = One of 256 tiles
+
 /// Basically just a uint64_t with some packing and unpacking methods.
 /// Being a class doesn't add a lot to this: the member functions could
 /// just as well act on plain uint64_ts. 
@@ -578,9 +598,21 @@ enum OutputId {
 };
 
 /// Identifier for particular DAC signal name
-// XXX TODO fill me in, meant to support DACSignalIdToDACRegisterId
+// Meant to support DACSignalIdToDACRegisterId
 enum DACSignalId {
-  PLACEHOLDER_SIGNAL_NAME,
+  DIFF_G,
+  DIFF_R,
+  SOMA_OFFSET,
+  SYN_LK,
+  SYN_DC,
+  SYN_PD,
+  ADC_BIAS_2,
+  ADC_BIAS_1,
+  SOMA_REF,
+  SOMA_EXC,
+  SOMA_INH,
+  SYN_PU,
+  UNUSED,
 
   DACSignalIdCount
 };
