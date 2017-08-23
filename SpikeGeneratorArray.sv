@@ -15,12 +15,12 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input [Ngens-1:0] gens_used, // total number of generators used
   input [(2**Ngens)-1:0] gens_en, // enable signal for each generator
 
-  ProgramSpikeGeneratorChannel program_mem;
+  ProgramSpikeGeneratorChannel program_mem,
 
   input clk,
   input reset);
 
-parameter Nmem = Nperiod * 2 + Ntag
+parameter Nmem = Nperiod * 2 + Ntag;
 
 // stores one time unit count ("tick") per generator
 
@@ -34,9 +34,8 @@ logic mem_rd_en;
 SpikeGeneratorMem mem(
   .wraddress(mem_wr_addr),
   .data(mem_wr_data),
-  .byteena_a(mem_wr_bytemask),
   .wren(mem_wr_en),
-  .raddress(mem_rd_addr),
+  .rdaddress(mem_rd_addr),
   .q(mem_rd_data),
   .rden(mem_rd_en),
   .clock(clk));
@@ -60,7 +59,7 @@ always_ff @(posedge clk, posedge reset)
 
 // gen_idx_p1 is used in a couple places
 // make sure we only get one adder
-logic [Ngen-1:0] gen_idx_p1;
+logic [Ngens-1:0] gen_idx_p1;
 assign gen_idx_p1 = gen_idx + 1;
 
 // next_state computation
@@ -73,7 +72,7 @@ always_comb
     READY_OR_PROG: begin
       next_gen_idx = 0;
       if (unit_pulse == 1)
-        next_state = UPDATE_READ;
+        next_state = UPDATE_A;
       else
         next_state = READY_OR_PROG;
     end
@@ -154,7 +153,7 @@ always_comb
   end
 
 // pack up writeback
-parameter Nunmasked = NMem - (Nperiod + Ntag);
+parameter Nunmasked = Nmem - (Nperiod + Ntag);
 assign mem_writeback = {wr_tick, period, tag};
 
 //////////////////////////////////////////////////////
@@ -224,7 +223,7 @@ always_comb
 
 always_comb
   if (state == UPDATE_C && emit_output == 1) begin
-    out.v = 0;
+    out.v = 1;
     out.tag = tag;
     out.ct = 1;
   end
@@ -244,19 +243,20 @@ parameter Ngens = 8;
 parameter Nperiod = 16;
 parameter Ntag = 11;
 parameter Nct = 10;
-parameter Nmem = Nperiod * 2 + Ntag
+parameter Nmem = Nperiod * 2 + Ntag;
 
-TagCtChannel #(.*) out; // Ntag + Nct wide
+TagCtChannel out(); // Ntag + Nct wide
 
 logic [Ngens-1:0] gens_used; // total number of generators used
 logic [(2**Ngens)-1:0] gens_en; // enable signal for each generator
 
-ProgramSpikeGeneratorChannel #(.*) program_mem;
+ProgramSpikeGeneratorChannel program_mem();
 
 // clock
 logic clk;
 parameter Tclk = 10;
 always #(Tclk/2) clk = ~clk;
+initial clk = 0;
 
 // reset
 logic reset;
@@ -267,17 +267,22 @@ initial begin
 end
 
 // unit_pulse
-parameter ClksPerUnit = 16; 
+parameter ClksPerUnit = 32;
 logic unit_pulse;
 initial begin
   forever begin
-    #(ClksPerUnit) @(posedge clk) unit_pulse <= 1;
+    #(ClksPerUnit*Tclk) @(posedge clk) unit_pulse <= 1;
     @(posedge clk) unit_pulse <= 0;
   end
 end
 
 // receiver
+PassiveChannel #(Ntag + Nct) packed_out();
+assign packed_out.v = out.v;
+assign packed_out.d = {out.tag, out.ct};
+assign out.r = packed_out.r;
 
+PassiveChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, reset);
 
 // stimulus
 initial begin
@@ -308,7 +313,7 @@ initial begin
   program_mem.v <= 1;
   program_mem.gen_idx <= 1;
   program_mem.period <= 4;
-  program_mem.ticks <= 1;
+  program_mem.ticks <= 2;
   program_mem.tag <= 513;
 
   @(posedge program_mem.a);
@@ -325,10 +330,13 @@ initial begin
   gens_en <= 3;
 
   // test enable by disabling the first gen
-  #(Tclk * 100)
+  #(Tclk * 300)
   @(posedge clk)
   gens_en <= 2;
 
 end
 
+SpikeGeneratorArray dut(.*);
+
+endmodule
 
