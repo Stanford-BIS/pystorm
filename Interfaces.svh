@@ -36,7 +36,6 @@ endinterface
 interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, parameter Nct = 10);
   logic [Nstate-1:0] state;
   logic [Nfilts-1:0] filt;
-  logic [Nct-1:0] ct;
   logic r;
   logic v;
 endinterface

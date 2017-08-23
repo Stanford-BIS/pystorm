@@ -1,15 +1,16 @@
-`include "SpikeFilterMem.sv"
+`include "SpikeFilterMem.v"
 `include "Interfaces.svh"
 
 // low-pass filters a variable number of spike streams
 // uses a decaying exponential filter
+// implemented as a pipeline, one update/clk
 module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, parameter Nct = 10) ( // 27 is the width of the cyclone 5's high-precision DSP block
   FilterOutputChannel out, 
 
   TagCtChannel in, 
 
   input update_pulse, // prompts all filters to update their values
-  input filts_used,
+  input [Nfilts-1:0] filts_used,
 
   input [Nstate-1:0] increment_constant, // increment by this each time unit
   input [Nstate-1:0] decay_constant, // multiply by this each time unit
@@ -33,207 +34,248 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 //
 // multiplication returns a 54b output, 18.36. We discard the lower 27 bits
 // we can test the MSB, if the rate is over 64K make we should emit a warning
-  
+
 ////////////////////////////////////////////
-// state update logic
+// pipeline structure
+//
+//        s1               s2              s3          s4           s5               
+//       state    /    pipe input    /  mem read /  writeback  / mem write 
+//                                                                      
+//                        in                                            
+//                         |                     +-{inc}-+              
+//    next_state  state    |                     |       |              
+// [FSM]------[*]---+---{logic}--[*]--[mem]--[*]-+     {mux}-[*]--[mem]  
+//   |              |                            |       |              
+//   +--------------+                            +-{dec}-+              
+//                                                   |                  
+//                                                   +-----[*]-- out    
+//                                                                      
+// out.r is treated as ~stall for all registers
 
-logic [Nfilts-1:0] last_filt_idx, filt_idx, next_filt_idx, next_filt_idx_p1;
-enum {READY, INCREMENT_1, INCREMENT_2, FIRST_UPDATE, UPDATE, LAST_UPDATE} state, next_state;
+// instantiate memory, declare ports
+logic mem_rd_en;
+logic [Nfilt-1:0] mem_rd_addr;
+logic [Nstate-1:0] mem_rd_data;
+logic mem_wr_en;
+logic [Nfilt-1:0] mem_wr_addr;
+logic [Nstate-1:0] mem_wr_data;
 
-assign next_filt_idx_p1 = next_filt_idx + 1;
+SpikeFilterMem mem(
+  .wraddress(mem_wr_addr),
+  .data(mem_wr_data),
+  .wren(mem_wr_en),
+  .rdaddress(mem_rd_addr),
+  .q(mem_rd_data),
+  .rden(mem_rd_en),
+  .clock(clk));
+
+////////////////////////////////////////////
+// stage 1: state
+
+logic [Nfilts-1:0] filt_idx, next_filt_idx, filt_idx_p1;
+enum {READY_OR_INCREMENT, DECAY_UPDATE} state, next_state;
+
+assign filt_idx_p1 = filt_idx + 1;
 
 always_ff @(posedge clk, posedge reset)
   if (reset == 1) begin
-    state <= READY;
+    state <= READY_OR_INCREMENT;
     filt_idx <= 0;
-    last_filt_idx <= 'X;
   end
   else begin
     state <= next_state;
     filt_idx <= next_filt_idx;
-    last_filt_idx <= filt_idx;
   end
 
 // next_state computation
 always_comb
-  unique case (state)
+  if (out.r == 0) begin
+    next_state <= state;
+    next_filt_idx <= filt_idx;
+  end
+  else
+    unique case (state)
 
-    READY:
-      // waiting for a tag or the update pulse
-      if (in.v == 1) begin
-        next_state = INCREMENT_1;
-        next_filt_idx = in.tag; // XXX could use a different register for this
-      end
-      else if (update_pulse == 1) begin
-        next_state = FIRST_UPDATE;
-        next_filt_idx = 0;
-      end
-      else begin
-        next_state = READY;
-        next_filt_idx = 'X;
-      end
+      READY_OR_INCREMENT:
+        // waiting for a tag or the update pulse
+        else if (update_pulse == 1) begin
+          next_state = DECAY_UPDATE;
+          next_filt_idx = 0;
+        end
+        else begin
+          next_state = READY_OR_INCREMENT;
+          next_filt_idx = in.tag; 
+        end
 
-    INCREMENT_1: begin
-      // tag arrived, read memory, write next cycle
-      next_state = INCREMENT_2;
-      next_filt_idx = 'X;
-    end
+      DECAY_UPDATE:
+        if (filt_idx_p1 < filts_used) begin
+          next_state = DECAY_UPDATE;
+          next_filt_idx = filt_idx_p1;
+        end
+        else begin
+          next_state = READY_OR_INCREMENT;
+          next_filt_idx = 'X;
+        end
 
-    INCREMENT_2: begin
-      // write increment results after receiving tag
-      next_state = READY;
-      next_filt_idx = 'X;
-    end
-
-    FIRST_UPDATE: begin
-      // read from filt_idx (= 0), no write
-      assert (update_pulse == 0); // failing means we aren't fast enough to update every filter in one time unit
-      if (out.r) 
-        next_filt_idx = filt_idx_p1;
-        next_state = UPDATE;
-      else
-        next_filt_idx = filt_idx;
-        next_state = FIRST_UPDATE;
-    end
-
-    UPDATE: begin
-      assert (update_pulse == 0); // failing means we aren't fast enough to update every filter in one time unit
-      // we are in this state for Nfilt - 1 cycles
-      // read from filt_idx and write to last_filt_idx
-      if (out.r) begin
-        next_filt_idx = filt_idx_p1;
-        if (filt_idx_p1 < filts_used) // note _p1
-          next_state = UPDATE;
-        else
-          next_state = LAST_UPDATE;
-      end
-      else begin
-        next_filt_idx = filt_idx;
-        next_state = UPDATE;
-      end
-    end
-
-    LAST_UPDATE: begin
-      // write to last_filt_idx
-      // don't have to worry about out.r, nothing to send
-      assert (update_pulse == 0); // failing means we aren't fast enough to update every filter in one time unit
-      next_state = READY;
-      next_filt_idx = 0;
-    end
-      
-  endcase
+      endcase
 
 ////////////////////////////////////////////
-// memory read/write logic
-logic mem_rd_en;
-logic [Nfilt-1:0] mem_rd_addr;
-logic [Nct-1:0] mem_rd_data;
+// pipeline data, use consistent naming for the rest of the pipeline
+//
+// stage N contains some combinational logic followed by a register
+//
+// sN_* refers to the output of stage N, the output of it's register
+// sN_next_* refers to the input to stage N's register, the output next cycle
 
-logic mem_wr_en;
-logic [Nfilt-1:0] mem_wr_addr;
-logic [Nct-1:0] mem_wr_data;
+// filter idx/memory address
+logic [Nfilts-1:0] s2_filt_idx, s2_next_filt_idx, s3_filt_idx, s3_next_filt_idx, s4_filt_idx, s4_next_filt_idx;
+// filter state
+logic [Nstate-1:0] s3_next_state, s3_state, s4_next_state, s4_state;
+// opcodes
+enum {INCREMENT, DECAY, NOP} s2_op, s2_next_op, s3_op, s3_next_op, s4_op, s4_next_op;
+// count, for INCREMENT op
+logic [Nct-1:0] s2_ct, s2_next_ct, s3_ct, s3_next_ct;
 
-// combinational logic for increment
-// meant to synthesize as a DSP multiplier
-// multiply the input count with the increment_constant
-// discard the high-order bits
-// could generate a warning if any of the high bits are non-zero
-logic [(Nstate+Nct)-1:0] increment_mult_out;
-logic [Nstate-1:0] increment_amount;
-logic [Nstate-1:0] increment_writeback;
-assign increment_mult_out = increment_constant * in.ct;
-assign increment_amount = increment_mult_out[Nstate-1:0]; // discard MSBs (Nct.0 * Nstate-9.9)
-assign increment_writeback = mem_rd_data + increment_amount;
+// pipeline register updates
+always_ff @(posedge clk, posedge reset)
+  if (reset == 0)
+    s2_op <= NOP;
+    s3_op <= NOP;
+    s4_op <= NOP;
+    s2_filt_idx <= 'X;
+    s3_filt_idx <= 'X;
+    s4_filt_idx <= 'X;
+    s2_ct <= 'X;
+    s3_ct <= 'X;
+    s4_state <= 'X;
+  else
+    if (out.r == 1) begin // out.r is our inverted stall condition
+      s2_op <= s2_next_op 
+      s3_op <= s3_next_op 
+      s4_op <= s4_next_op 
+      s2_filt_idx <= s2_next_filt_idx 
+      s3_filt_idx <= s3_next_filt_idx 
+      s4_filt_idx <= s4_next_filt_idx 
+      s2_ct <= s2_next_ct 
+      s3_ct <= s3_next_ct 
+      s3_state <= s3_next_state;
+      s4_state <= s4_next_state;
+    end
+    else begin
+      s2_op <= s2_op 
+      s3_op <= s3_op 
+      s4_op <= s4_op 
+      s2_filt_idx <= s2_filt_idx 
+      s3_filt_idx <= s3_filt_idx 
+      s4_filt_idx <= s4_filt_idx 
+      s2_ct <= s2_ct 
+      s3_ct <= s3_ct 
+      s3_state <= s3_state;
+      s4_state <= s4_state;
+    end
 
-// combinational block for update
-// meant to synthesize as a DSP multiplier
-// multiple the state with the decay_constant
-logic [(2*Nstate)-1:0] update_mult_out;
-logic [Nstate-1:0] update_writeback;
-assign update_mult_out = decay_constant * mem_rd_data;
-assign update_writeback = update_mult_out[(2*Nstate)-1:Nstate]; // discard LSBs (see above, 0.Nstate * Nstate-9.9)
+////////////////////////////////////////////
+// stage 2: state output/pipeline input
 
 always_comb
   unique case (state)
 
-    READY: begin
-      // no read or write
-      mem_rd_en = 0;
-      mem_rd_addr = 'X;
+    READY_OR_INCREMENT:
+      if (in.v == 1) begin
+        s2_next_op = INCREMENT;
+        s2_next_filt_idx = in.tag;
+        s2_ct = in.ct;
+      end
+      else begin
+        s2_next_op = NOP;
+        s2_next_filt_idx = 'X;
+        s2_next_ct = 'X;
+      end
 
-      mem_wr_en = 0;
-      mem_wr_addr = 'X;
-      mem_wr_data = 'X;
-    end
+    DECAY_UPDATE: begin 
+      s2_next_op = DECAY;
+      s2_next_filt_idx = filt_idx;
+      s2_next_ct = 'X;
 
-    INCREMENT_1: begin
-      // do read, no write yet
-      mem_rd_en = 1;
-      mem_rd_addr = filt_idx;
-
-      mem_wr_en = 0;
-      mem_wr_addr = 'X;
-      mem_wr_data = 'X;
-    end
-
-    INCREMENT_2: begin
-      // no read, do write
-      mem_rd_en = 0;
-      mem_rd_addr = 'X;
-
-      mem_wr_en = 1;
-      mem_wr_addr = last_filt_idx;
-      mem_wr_data = increment_writeback;
-    end
-
-    FIRST_UPDATE: begin
-      // read from filt_idx (= 0), no write
-      mem_rd_en = 1;
-      mem_rd_addr = filt_idx;
-
-      mem_wr_en = 0;
-      mem_wr_addr = 'X;
-      mem_wr_data = 'X;
-    end
-
-    UPDATE: begin
-      // read from filt_idx and write to last_filt_idx
-      mem_rd_en = 1;
-      mem_rd_addr = filt_idx;
-
-      mem_wr_en = 1;
-      mem_wr_addr = last_filt_idx;
-      mem_wr_data = update_writeback;
-    end
-
-    LAST_UPDATE: begin
-      mem_rd_en = 0;
-      mem_rd_addr = 'X;
-
-      mem_wr_en = 1;
-      mem_wr_addr = last_filt_idx;
-      mem_wr_data = update_writeback;
-    end
   endcase
 
-////////////////////////////////////////////
-// in.a logic, don't handshake until INCREMENT_2 to hold in.ct
-assign in.a = (state == INCREMENT_2);
+// handshake input
+assign in.r = out.r;
 
 ////////////////////////////////////////////
-// output logic
-always_comb 
-  if (state == UPDATE || state == LAST_UPDATE) begin
-    out.state = mem_rd_data;
-    out.filt = last_filt_idx;
+// stage 3: memory read
+
+// memory inputs
+assign mem_rd_en = (s2_op != NOP);
+assign mem_rd_addr = s2_filt_idx;
+
+// memory output
+assign s3_next_state = mem_rd_data;
+
+// passthrough
+assign s3_next_op = s2_op;
+assign s3_next_filt_idx = s2_filt_idx;
+assign s3_next_ct = s2_ct;
+
+////////////////////////////////////////////
+// stage 4: memory writeback computation, output
+
+// combinational logic for INCREMENT
+// meant to synthesize as a DSP multiplier
+// multiply the count with the increment_constant
+// discard the high-order bits
+// could generate a warning to the user if any of the high bits are non-zero
+logic [(Nstate+Nct)-1:0] increment_mult_out;
+logic [Nstate-1:0] increment_amount;
+logic [Nstate-1:0] increment_writeback;
+assign increment_mult_out = increment_constant * s3_ct;
+assign increment_amount = increment_mult_out[Nstate-1:0]; // discard MSBs (Nct.0 * Nstate-9.9)
+assign increment_writeback = s3_state + increment_amount;
+
+// combinational block for DECAY
+// meant to synthesize as a DSP multiplier
+// multiple the state with the decay_constant
+logic [(2*Nstate)-1:0] decay_mult_out;
+logic [Nstate-1:0] decay_writeback;
+assign decay_mult_out = decay_constant * s3_state;
+assign decay_writeback = decay_mult_out[(2*Nstate)-1:Nstate]; // discard LSBs (see above, 0.Nstate * Nstate-9.9)
+
+// mux INCREMENT and DECAY writebacks
+always_comb
+  unique case (s3_op)
+    INCREMENT:
+      s4_next_state = increment_writeback;
+    DECAY:
+      s4_next_state = decay_writeback;
+    NOP:
+      s4_next_state = 'X;
+
+// passthrough
+s4_next_filt_idx = s3_filt_idx;
+s4_next_op = s3_op;
+// no more ct
+
+// drive outputs if DECAY
+always_comb
+  if (s3_op == DECAY) begin
     out.v = 1;
+    out.state = s3_state;
+    out.filt = s3_filt_idx;
   end
-  else
+  else begin
+    out.v = 0;
     out.state = 'X;
     out.filt = 'X;
-    out.v = 0;
   end
 
+////////////////////////////////////////////
+// stage 5: memory write
+
+assign mem_wr_en = (s4_op != NOP);
+assign mem_wr_addr = s4_filt_idx;
+assign mem_wr_data = s4_state;
 
 
+////////////////////////////////////////////
+// TESTBENCH
 
