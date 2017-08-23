@@ -22,6 +22,8 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
+constexpr uint64_t     NeuronConfig::field_hard_values[];
+constexpr unsigned int NeuronConfig::field_widths[];
 constexpr uint64_t     DACWord::field_hard_values[];
 constexpr unsigned int DACWord::field_widths[];
 constexpr uint64_t     FIFOInputTag::field_hard_values[];
@@ -329,12 +331,35 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 ////////////////////////////////////////////////////////////////////////////////
 // Neuron controls
 ////////////////////////////////////////////////////////////////////////////////
+///
+/// Soma has an ID between 0 and 4095. Synapse has an ID between 0 and 1023.
+///
+/// The Soma ID is split as follows:
+/// Tile ID: 8 bits     => 0 - 255
+/// In-tile ID: 4 bits  => 0 - 15
+///
+/// The Synapse ID is split as follows:
+/// Tile ID: 8 bits     => 0 - 255
+/// In-tile ID: 2 bits  => 0 - 3
 
 ////////////////////////////////////////////////////////////////////////////////
 // Soma controls
 ////////////////////////////////////////////////////////////////////////////////
 void Driver::SetSomaEnableStatus(unsigned int core_id, unsigned int soma_id,
                                  bdpars::SomaStatusId status) {
+    unsigned int tile_id = soma_id / 16;
+    unsigned int intra_tile_id = soma_id % 16;
+    unsigned int tile_mem_loc = config_soma_mem_[bdpars::ConfigSomaID::ENABLE][intra_tile_id];
+    unsigned int bit_val = (status == bdpars::SomaStatusId::DISABLED ? 0 : 1);
+    BDWord::Create<NeuronConfig>({
+        {NeuronConfig::ROW_HI, tile_mem_loc},
+        {NeuronConfig::ROW_LO, tile_mem_loc},
+        {NeuronConfig::COL_HI, tile_mem_loc},
+        {NeuronConfig::COL_LO, tile_mem_loc},
+        {NeuronConfig::BIT_SEL, tile_mem_loc},
+        {NeuronConfig::BIT_VAL, bit_val},
+        {NeuronConfig::TILE_ADDR, tile_id}
+    });
     assert(false && "not implemented");
 }
 

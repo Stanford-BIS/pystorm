@@ -685,6 +685,19 @@ enum MiscWidthId {
 };
 
 /// Neuron configuration options
+  enum class ConfigSomaID {
+    GAIN_0,
+    GAIN_1,
+    OFFSET_0,
+    OFFSET_1,
+    ENABLE,
+    SUBTRACT_OFFSET
+  };
+
+  enum class ConfigSynapseID {
+    SYN_DISABLE,
+    ADC_DISABLE
+  };
 
 enum class SomaStatusId { DISABLED, ENABLED };
 
