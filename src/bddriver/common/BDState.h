@@ -31,6 +31,31 @@ class BDState {
   void SetReg(bdpars::RegId reg_id, BDWord data);
   const std::pair<const BDWord *, bool> GetReg(bdpars::RegId reg_id) const;
 
+
+  void SetNeuronConfigMem(unsigned int core_id,
+                          unsigned int tile_id,
+                          unsigned int elem_id,
+                          bdpars::ConfigSomaID config_type,
+                          unsigned int config_value){
+    soma_config_mem_[tile_id][config_type][elem_id] = config_value;
+  }
+
+  void SetNeuronConfigMem(unsigned int core_id,
+                          unsigned int tile_id,
+                          unsigned int elem_id,
+                          bdpars::ConfigSynapseID config_type,
+                          unsigned int config_value){
+    synapse_config_mem_[tile_id][config_type][elem_id] = config_value;
+  }
+
+  void SetNeuronConfigMem(unsigned int core_id,
+                          unsigned int tile_id,
+                          unsigned int elem_id,
+                          bdpars::DiffusorCutLocationId config_type,
+                          unsigned int config_value){
+    diffusor_config_mem_[tile_id][config_type][elem_id] = config_value;
+  }
+
   // A toggle is a special case of register
   void SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en);
   std::tuple<bool, bool, bool> GetToggle(bdpars::RegId reg_id) const;
@@ -53,6 +78,28 @@ class BDState {
 
   // binary vectors denote whether memory entries have been programmed
   std::array<std::vector<bool>, bdpars::MemIdCount> mems_valid_;
+
+  //////////////////////////////////////////////////////////////////////
+  /// Neuron state
+  //////////////////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////////////////
+  /// Soma State Memory
+  //////////////////////////////////////////////////////////////////////
+  // soma_config_mem_[tile_id][bdpars::ConfigSomaID][soma_id]
+  std::vector<std::map<bdpars::ConfigSomaID, std::vector<unsigned int>>> soma_config_mem_;
+
+  //////////////////////////////////////////////////////////////////////
+  /// Synapse State Memory
+  //////////////////////////////////////////////////////////////////////
+  // synapse_config_mem_[tile_id][bdpars::ConfigSynapseID][synapse_id]
+  std::vector<std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>>> synapse_config_mem_;
+
+  //////////////////////////////////////////////////////////////////////
+  /// Diffusor State Memory
+  //////////////////////////////////////////////////////////////////////
+  // diffusor_config_mem_[tile_id][bdpars::DiffusorCutLocationId][0]
+  std::vector<std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>>> diffusor_config_mem_;
 
   // I iterate through these a lot, this is for convenience
   const std::vector<bdpars::RegId> kTrafficRegs = {

@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.0)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 project(bddriver CXX)
+
+# This has to be done after 'project' is set
+include(CheckRequirements)
+include(Common)
 
 ############################################################################
 #
@@ -9,13 +14,12 @@ project(bddriver CXX)
 ############################################################################
 
 set(TARGET_NAME "Driver")
-
-set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
+set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Driver.h)
 set(SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Driver.cpp)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/comm)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/common)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/decoder)
@@ -24,41 +28,11 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/model)
 
 ############################################################################
 #
-# Check dependencies that must be met for all platforms
+# Additional packages
 #
 ############################################################################
 
-function(check_multiplatform_system_dependencies)
-    find_package(Threads REQUIRED)
-    #find_package(GTest REQUIRED)
-
-    if(NOT CMAKE_HOST_SYSTEM_NAME)
-        message(FATAL_ERROR "system name not set")
-    endif()
-
-    # check pre-build requirements
-    if (NOT (CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR
-             CMAKE_CXX_COMPILER_ID MATCHES "MSVC"))
-        message(FATAL_ERROR "CMakesLists.txt has not been tested/written for your compiler")
-    endif()
-endfunction()
-
-############################################################################
-#
-# Set properties common to all platforms
-#
-############################################################################
-
-function(set_common_properties target_name)
-    target_link_libraries(${target_name}
-        ${CMAKE_THREADS_LIB_INIT})
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-
-    set_property(TARGET ${target_name} PROPERTY CXX_STANDARD 11)
-endfunction()
+find_package(Threads REQUIRED)
 
 ############################################################################
 #
@@ -68,7 +42,8 @@ endfunction()
 ############################################################################
 
 function(build_common)
-    # Setup build environment variables
+    # This should be before TARGET is set
+    SetupSharedLibrary()
 
     # define the library being built
     add_library(${TARGET_NAME} SHARED
@@ -76,43 +51,13 @@ function(build_common)
         ${SRC_FILES}
         )
 
-    # set the properties related to the target
-    # this is a function common to all platforms
+    target_link_libraries(${TARGET_NAME}
+        ${CMAKE_THREADS_LIB_INIT})
 
-    set_common_properties(${TARGET_NAME})
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+    include_directories(${INCLUDE_DIRS})
 
-    # GCC compiler, mostly for linux
-    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-        set(CMAKE_CXX_FLAGS "-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
-
-    # Clang, mostly for Mac
-    if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "-g -ggdb -O0 -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
-
-    # MSVC, for windows
-    if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-        set(CMAKE_CXX_FLAGS "/Wall" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_DEBUG "/Zi /Od -DLOG_ENABLED" CACHE STRING "" FORCE)
-        set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG" CACHE STRING "" FORCE)
-    endif()
-endfunction()
-
-function(build_on_linux)
-    build_common()
-endfunction()
-
-function(build_on_mac)
-    build_common()
-endfunction()
-
-function(build_on_windows)
-    build_common()
+    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
 endfunction()
 
 ############################################################################
@@ -121,18 +66,15 @@ endfunction()
 #
 ############################################################################
 
-check_multiplatform_system_dependencies()
-
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
     "Choose the type of build, options are : Debug Release"
     FORCE)
 endif()
 
-if(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Linux")
-    build_on_linux()
-elseif(${CMAKE_HOST_SYSTEM_NAME} STREQUAL "Darwin")
-    build_on_mac()
+if(HOST_IS_VALID)
+    build_common()
 else()
-    message(FATAL_ERROR "Build does not support system type")
+    message(FATAL_ERROR "Build does not support host '"
+        ${CMAKE_HOST_SYSTEM_NAME} "'")
 endif()
