@@ -3,7 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
-#include <functional>
+#include <functional>     // std::bind
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -150,14 +150,44 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   // Neuron controls
   ////////////////////////////////////////////////////////////////////////////
+  template<class U>
+  void SetConfigMemory(unsigned int core_id, unsigned int elem_id,
+                       std::map<U, std::vector<unsigned int>> config_map,
+                       U config_type,
+                       unsigned int config_value) {
+    unsigned int num_per_tile = config_map[config_type].size();
+    unsigned int tile_id = elem_id / num_per_tile;
+    unsigned int intra_tile_id = elem_id % num_per_tile;
+    unsigned int tile_mem_loc = config_map[config_type][intra_tile_id];
+    unsigned int row        = tile_mem_loc % 8;
+    unsigned int column     = tile_mem_loc / 16;
+    unsigned int bit_select = (tile_mem_loc % 16) / 8;
+    std::vector<BDWord> config_word {BDWord::Create<NeuronConfig>({
+      {NeuronConfig::ROW_HI, (row >> 1) & 0x03},
+      {NeuronConfig::ROW_LO, row & 0x01},
+      {NeuronConfig::COL_HI, (column >> 2) & 0x01},
+      {NeuronConfig::COL_LO, column & 0x03},
+      {NeuronConfig::BIT_SEL, bit_select & 0x01},
+      {NeuronConfig::BIT_VAL, config_value},
+      {NeuronConfig::TILE_ADDR, tile_id}
+    })};
+
+      PauseTraffic(core_id);
+      SendToHorn(core_id, bdpars::HornLeafId::NEURON_CONFIG, config_word);
+      ResumeTraffic(core_id);
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Soma controls
   ////////////////////////////////////////////////////////////////////////////
-
-  void SetSomaConfigMemory(unsigned int core_id, unsigned int soma_id,
-                           bdpars::ConfigSomaID config_type,
-                           unsigned int config_value);
+  std::function<void(unsigned int, unsigned int, bdpars::ConfigSomaID, unsigned int)> SetSomaConfigMemory =
+    std::bind(&Driver::SetConfigMemory<bdpars::ConfigSomaID>, this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                config_soma_mem_,
+                std::placeholders::_3,
+                std::placeholders::_4
+            );
 
   /// Enable/Disable Soma
   /// Map between memory and status
@@ -166,7 +196,7 @@ class Driver {
   ///       1         ENABLED
   void SetSomaEnableStatus(unsigned int core_id,
                            unsigned int soma_id,
-                           bdpars::SomaStatusId soma_status);
+                           bdpars::SomaStatusId status);
 
   /// Enable Soma
   std::function<void(unsigned int, unsigned int)> EnableSoma =
@@ -190,7 +220,7 @@ class Driver {
   ///      1           0          ONE_HALF (1/2)
   ///      1           1          ONE (1)
   void SetSomaGain(unsigned int core_id, unsigned int soma_id,
-                   bdpars::SomaGainId soma_gain);
+                   bdpars::SomaGainId gain);
 
   /// Set offset sign (pre rectifier)
   /// Map between memory and sign
@@ -198,7 +228,7 @@ class Driver {
   ///       0         POSITIVE
   ///       1         NEGATIVE
   void SetSomaOffsetSign(unsigned int core_id, unsigned int soma_id,
-                         bdpars::SomaOffsetSignId soma_offset_sign);
+                         bdpars::SomaOffsetSignId offset_sign);
 
   /// Set Soma offset gain (pre rectifier)
   /// Map between memory and gain values:
@@ -213,6 +243,15 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   // Synapse controls
   ////////////////////////////////////////////////////////////////////////////
+  std::function<void(unsigned int, unsigned int, bdpars::ConfigSynapseID, unsigned int)> SetSynapseConfigMemory =
+    std::bind(&Driver::SetConfigMemory<bdpars::ConfigSynapseID>, this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                config_synapse_mem_,
+                std::placeholders::_3,
+                std::placeholders::_4
+            );
+
 
   /// Enable/Disable Synapse
   /// Map between memory and status
@@ -273,6 +312,15 @@ class Driver {
   ///     DIFF_CUT   Status
   ///       0         CLOSE
   ///       1         OPEN
+  std::function<void(unsigned int, unsigned int, bdpars::DiffusorCutLocationId, unsigned int)> SetDiffusorConfigMemory =
+    std::bind(&Driver::SetConfigMemory<bdpars::DiffusorCutLocationId>, this,
+                std::placeholders::_1,
+                std::placeholders::_2,
+                config_diff_cut_mem_,
+                std::placeholders::_3,
+                std::placeholders::_4
+            );
+
   void SetDiffusorCutStatus(unsigned int core_id,
                             unsigned int tile_id,
                             bdpars::DiffusorCutLocationId cut_id,
@@ -511,11 +559,11 @@ class Driver {
 
   /// Diffusor cut 'enable' memory config.
   /// Setting 1 cuts the diffusor at the location.
-  std::map<bdpars::DiffusorCutLocationId, unsigned int> config_diff_cut_mem_{
-    {bdpars::DiffusorCutLocationId::NORTH_LEFT, 99},
-    {bdpars::DiffusorCutLocationId::NORTH_RIGHT, 100},
-    {bdpars::DiffusorCutLocationId::WEST_TOP, 107},
-    {bdpars::DiffusorCutLocationId::WEST_BOTTOM, 43},
+  std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>> config_diff_cut_mem_{
+    {bdpars::DiffusorCutLocationId::NORTH_LEFT, {99}},
+    {bdpars::DiffusorCutLocationId::NORTH_RIGHT, {100}},
+    {bdpars::DiffusorCutLocationId::WEST_TOP, {107}},
+    {bdpars::DiffusorCutLocationId::WEST_BOTTOM, {43}},
   };
 };
 

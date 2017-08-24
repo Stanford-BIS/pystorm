@@ -345,56 +345,78 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 ////////////////////////////////////////////////////////////////////////////////
 // Soma controls
 ////////////////////////////////////////////////////////////////////////////////
-void Driver::SetSomaConfigMemory(unsigned int core_id, unsigned int soma_id,
-                       bdpars::ConfigSomaID config_type, unsigned int config_value){
-    unsigned int tile_id = soma_id / 16;
-    unsigned int intra_tile_id = soma_id % 16;
-    unsigned int tile_mem_loc = config_soma_mem_[config_type][intra_tile_id];
-    //TODO: split tile_mem_loc to bit fields.
-    BDWord::Create<NeuronConfig>({
-        {NeuronConfig::ROW_HI, tile_mem_loc},
-        {NeuronConfig::ROW_LO, tile_mem_loc},
-        {NeuronConfig::COL_HI, tile_mem_loc},
-        {NeuronConfig::COL_LO, tile_mem_loc},
-        {NeuronConfig::BIT_SEL, tile_mem_loc},
-        {NeuronConfig::BIT_VAL, config_value},
-        {NeuronConfig::TILE_ADDR, tile_id}
-    });
-}
-    
+
 void Driver::SetSomaEnableStatus(unsigned int core_id, unsigned int soma_id,
                                  bdpars::SomaStatusId status) {
     unsigned int bit_val = (status == bdpars::SomaStatusId::DISABLED ? 0 : 1);
     SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::ENABLE, bit_val);
-    assert(false && "not implemented");
 }
 
 void Driver::SetSomaGain(unsigned int core_id, unsigned int soma_id,
-                         bdpars::SomaGainId soma_gain) {
-    assert(false && "not implemented");
+                         bdpars::SomaGainId gain) {
+    unsigned int g1, g0;
+    switch (gain) {
+        case bdpars::SomaGainId::ONE_FOURTH :
+            g1 = 0; g0 = 0;
+            break;
+        case bdpars::SomaGainId::ONE_THIRD :
+            g1 = 0; g0 = 1;
+            break;
+        case bdpars::SomaGainId::ONE_HALF :
+            g1 = 1; g0 = 0;
+            break;
+        case bdpars::SomaGainId::ONE :
+            g1 = 1; g0 = 1;
+            break;
+        default:
+            break;
+    }
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::GAIN_0, g0);
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::GAIN_1, g1);
 }
 
 void Driver::SetSomaOffsetSign(unsigned int core_id, unsigned int soma_id,
-                               bdpars::SomaOffsetSignId soma_offset_sign) {
-    assert(false && "not implemented");
+                               bdpars::SomaOffsetSignId offset_sign) {
+    unsigned int bit_val = (offset_sign == bdpars::SomaOffsetSignId::POSITIVE ? 0 : 1);
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::SUBTRACT_OFFSET, bit_val);
 }
 
 void Driver::SetSomaOffsetMultiplier(unsigned int core_id, unsigned int soma_id,
-                                     bdpars::SomaOffsetMultiplierId soma_offset_multiplier) {
-    assert(false && "not implemented");
+                                     bdpars::SomaOffsetMultiplierId offset_multiplier) {
+    unsigned int b1, b0;
+    switch (offset_multiplier) {
+        case bdpars::SomaOffsetMultiplierId::ZERO :
+            b1 = 0; b0 = 0;
+            break;
+        case bdpars::SomaOffsetMultiplierId::ONE :
+            b1 = 0; b0 = 1;
+            break;
+        case bdpars::SomaOffsetMultiplierId::TWO :
+            b1 = 1; b0 = 0;
+            break;
+        case bdpars::SomaOffsetMultiplierId::THREE :
+            b1 = 1; b0 = 1;
+            break;
+        default:
+            break;
+    }
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::OFFSET_0, b0);
+    SetSomaConfigMemory(core_id, soma_id, bdpars::ConfigSomaID::OFFSET_1, b1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Synapse controls
 ////////////////////////////////////////////////////////////////////////////////
-void Driver::SetSynapseEnableStatus(unsigned int core_id, unsigned int soma_id,
+void Driver::SetSynapseEnableStatus(unsigned int core_id, unsigned int synapse_id,
                                     bdpars::SynapseStatusId status) {
-    assert(false && "not implemented");
+    unsigned int bit_val = (status == bdpars::SynapseStatusId::ENABLED ? 0 : 1);
+    SetSynapseConfigMemory(core_id, synapse_id, bdpars::ConfigSynapseID::SYN_DISABLE, bit_val);
 }
 
-void Driver::SetSynapseADCStatus(unsigned int core_id, unsigned int soma_id,
+void Driver::SetSynapseADCStatus(unsigned int core_id, unsigned int synapse_id,
                                  bdpars::SynapseStatusId status) {
-    assert(false && "not implemented");
+    unsigned int bit_val = (status == bdpars::SynapseStatusId::ENABLED ? 0 : 1);
+    SetSynapseConfigMemory(core_id, synapse_id, bdpars::ConfigSynapseID::ADC_DISABLE, bit_val);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -404,13 +426,19 @@ void Driver::SetDiffusorCutStatus(unsigned int core_id,
                                   unsigned int tile_id,
                                   bdpars::DiffusorCutLocationId cut_id,
                                   bdpars::DiffusorCutStatusId status) {
-    assert(false && "not implemented");
+    unsigned int bit_val = (status == bdpars::DiffusorCutStatusId::CLOSE ? 0 : 1);
+    SetDiffusorConfigMemory(core_id, tile_id, cut_id, bit_val);
 }
 
 void Driver::SetDiffusorAllCutsStatus(unsigned int core_id,
                                       unsigned int tile_id,
                                       bdpars::DiffusorCutStatusId status) {
-    assert(false && "not implemented");
+    unsigned int bit_val = (status == bdpars::DiffusorCutStatusId::CLOSE ? 0 : 1);
+
+    SetDiffusorConfigMemory(core_id, tile_id, bdpars::DiffusorCutLocationId::NORTH_LEFT, bit_val);
+    SetDiffusorConfigMemory(core_id, tile_id, bdpars::DiffusorCutLocationId::NORTH_RIGHT, bit_val);
+    SetDiffusorConfigMemory(core_id, tile_id, bdpars::DiffusorCutLocationId::WEST_TOP, bit_val);
+    SetDiffusorConfigMemory(core_id, tile_id, bdpars::DiffusorCutLocationId::WEST_BOTTOM, bit_val);
 }
 
 void Driver::SetMem(
