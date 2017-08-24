@@ -172,9 +172,11 @@ class Driver {
       {NeuronConfig::TILE_ADDR, tile_id}
     })};
 
-      PauseTraffic(core_id);
-      SendToHorn(core_id, bdpars::HornLeafId::NEURON_CONFIG, config_word);
-      ResumeTraffic(core_id);
+    bd_state_[core_id].SetNeuronConfigMem(core_id, tile_id, intra_tile_id, config_type, config_value);
+
+    PauseTraffic(core_id);
+    SendToHorn(core_id, bdpars::HornLeafId::NEURON_CONFIG, config_word);
+    ResumeTraffic(core_id);
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -548,7 +550,7 @@ class Driver {
     {bdpars::ConfigSomaID::OFFSET_0, {113, 115, 83, 81, 118, 116, 84, 86, 54, 52, 20, 22, 49, 51, 19, 17}},
     {bdpars::ConfigSomaID::OFFSET_1, {120, 122, 90, 88, 127, 125, 93, 95, 63, 61, 29, 31, 56, 58, 26, 24}},
     {bdpars::ConfigSomaID::ENABLE, {121, 123, 91, 89, 126, 124, 92, 94, 62, 60, 28, 30, 57, 59, 27, 25}},
-    {bdpars::ConfigSomaID::SUBTRACT_OFFSET, {96, 106, 74, 64, 103, 109, 77, 71, 39, 45, 13, 7, 32, 42, 10, 0}},
+    {bdpars::ConfigSomaID::SUBTRACT_OFFSET, {96, 106, 74, 64, 103, 109, 77, 71, 39, 45, 13, 7, 32, 42, 10, 0}}
   };
 
   /// Synapse configuration bits for 4 Synapses in a tile.

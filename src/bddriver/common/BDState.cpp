@@ -36,6 +36,28 @@ BDState::BDState(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
     reg_[i] = BDWord(0);
     reg_valid_[i] = false;
   }
+
+  // Valid config values are 0 or 1. 2 => uninitialized
+  soma_config_mem_ = std::vector<std::map<bdpars::ConfigSomaID, std::vector<unsigned int>>>(256, {
+    {bdpars::ConfigSomaID::GAIN_0, std::vector<unsigned int>(16, 2)},
+    {bdpars::ConfigSomaID::GAIN_1, std::vector<unsigned int>(16, 2)},
+    {bdpars::ConfigSomaID::OFFSET_0, std::vector<unsigned int>(16, 2)},
+    {bdpars::ConfigSomaID::OFFSET_1, std::vector<unsigned int>(16, 2)},
+    {bdpars::ConfigSomaID::ENABLE, std::vector<unsigned int>(16, 2)},
+    {bdpars::ConfigSomaID::SUBTRACT_OFFSET, std::vector<unsigned int>(16, 2)}
+  });
+
+  synapse_config_mem_ = std::vector<std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>>>(256, {
+    {bdpars::ConfigSynapseID::SYN_DISABLE, std::vector<unsigned int>(4, 2)},
+    {bdpars::ConfigSynapseID::ADC_DISABLE, std::vector<unsigned int>(4, 2)},
+  });
+
+  diffusor_config_mem_ = std::vector<std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>>>(256, {
+    {bdpars::DiffusorCutLocationId::NORTH_LEFT, std::vector<unsigned int>(1, 2)},
+    {bdpars::DiffusorCutLocationId::NORTH_RIGHT, std::vector<unsigned int>(1, 2)},
+    {bdpars::DiffusorCutLocationId::WEST_TOP, std::vector<unsigned int>(1, 2)},
+    {bdpars::DiffusorCutLocationId::WEST_BOTTOM, std::vector<unsigned int>(1, 2)},
+  });
 }
 
 BDState::~BDState() {}
