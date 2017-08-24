@@ -59,6 +59,28 @@ constexpr unsigned int DelayWord::field_widths[];
 constexpr uint64_t     ToggleWord::field_hard_values[];
 constexpr unsigned int ToggleWord::field_widths[];
 
+std::map<bdpars::ConfigSomaID, std::vector<unsigned int>> Driver::config_soma_mem_ = {
+  {bdpars::ConfigSomaID::GAIN_0, {112, 114, 82, 80, 119, 117, 85, 87, 55, 53, 21, 23, 48, 50, 18, 16}},
+  {bdpars::ConfigSomaID::GAIN_1, {104, 97, 65, 72, 111, 102, 70, 79, 47, 38, 6, 15, 40, 33, 1, 8}},
+  {bdpars::ConfigSomaID::OFFSET_0, {113, 115, 83, 81, 118, 116, 84, 86, 54, 52, 20, 22, 49, 51, 19, 17}},
+  {bdpars::ConfigSomaID::OFFSET_1, {120, 122, 90, 88, 127, 125, 93, 95, 63, 61, 29, 31, 56, 58, 26, 24}},
+  {bdpars::ConfigSomaID::ENABLE, {121, 123, 91, 89, 126, 124, 92, 94, 62, 60, 28, 30, 57, 59, 27, 25}},
+  {bdpars::ConfigSomaID::SUBTRACT_OFFSET, {96, 106, 74, 64, 103, 109, 77, 71, 39, 45, 13, 7, 32, 42, 10, 0}}
+};
+  
+std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>> Driver::config_synapse_mem_ = {
+  {bdpars::ConfigSynapseID::SYN_DISABLE, {75, 76, 12, 11}},
+  {bdpars::ConfigSynapseID::ADC_DISABLE, {67, 68, 4, 3}}
+};
+
+std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>> Driver::config_diff_cut_mem_ = {
+  {bdpars::DiffusorCutLocationId::NORTH_LEFT, {99}},
+  {bdpars::DiffusorCutLocationId::NORTH_RIGHT, {100}},
+  {bdpars::DiffusorCutLocationId::WEST_TOP, {107}},
+  {bdpars::DiffusorCutLocationId::WEST_BOTTOM, {43}},
+};
+
+
 // Driver * Driver::GetInstance()
 //{
 //    // In C++11, if control from two threads occurs concurrently, execution
@@ -341,6 +363,34 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 /// The Synapse ID is split as follows:
 /// Tile ID: 8 bits     => 0 - 255
 /// In-tile ID: 2 bits  => 0 - 3
+template<class U>
+    void Driver::SetConfigMemory(unsigned int core_id, unsigned int elem_id,
+                       std::map<U, std::vector<unsigned int>> config_map,
+                       U config_type,
+                       unsigned int config_value) {
+    unsigned int num_per_tile = config_map[config_type].size();
+    unsigned int tile_id = elem_id / num_per_tile;
+    unsigned int intra_tile_id = elem_id % num_per_tile;
+    unsigned int tile_mem_loc = config_map[config_type][intra_tile_id];
+    unsigned int row        = tile_mem_loc % 8;
+    unsigned int column     = tile_mem_loc / 16;
+    unsigned int bit_select = (tile_mem_loc % 16) / 8;
+    std::vector<BDWord> config_word {BDWord::Create<NeuronConfig>({
+      {NeuronConfig::ROW_HI, (row >> 1) & 0x03},
+      {NeuronConfig::ROW_LO, row & 0x01},
+      {NeuronConfig::COL_HI, (column >> 2) & 0x01},
+      {NeuronConfig::COL_LO, column & 0x03},
+      {NeuronConfig::BIT_SEL, bit_select & 0x01},
+      {NeuronConfig::BIT_VAL, config_value},
+      {NeuronConfig::TILE_ADDR, tile_id}
+    })};
+
+    bd_state_[core_id].SetNeuronConfigMem(core_id, tile_id, intra_tile_id, config_type, config_value);
+
+    PauseTraffic(core_id);
+    SendToHorn(core_id, bdpars::HornLeafId::NEURON_CONFIG, config_word);
+    ResumeTraffic(core_id);
+  }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Soma controls
