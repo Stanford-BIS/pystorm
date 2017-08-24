@@ -34,8 +34,8 @@ interface PassiveTagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
 endinterface
 
 interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, parameter Nct = 10);
-  logic [Nstate-1:0] state;
-  logic [Nfilts-1:0] filt;
+  logic [Nstate-1:0] filt_state;
+  logic [Nfilts-1:0] filt_idx;
   logic r;
   logic v;
 endinterface
