@@ -169,10 +169,54 @@ class Test_netobjnode(unittest.TestCase):
                          bkt_node.get_net_obj().get_num_dimensions())
 
     def test_connect__one_adj_node__Pool_Bucket(self):
-        pass
+        net_obj_dims = 2
+        net_obj_nrn_count = 30
+       
+        p1_node = NetObjNode(ps.Pool("Pool1", net_obj_nrn_count, net_obj_dims))
+        bkt_node = NetObjNode(ps.Bucket("Bucket", net_obj_dims))
+
+        resources = []
+
+        resources.append(p1_node.get_resource())
+        resources.append(bkt_node.get_resource())
+
+        w = ps.Weights(np.zeros((net_obj_dims, net_obj_nrn_count), dtype=np.uint32))
+        p1_node.add_adjacent_node(bkt_node,w)
+        p1_node.connect(resources)
+
+        self.assertEqual(len(resources), 3)
+        self.assertEqual(p1_node.get_resource(),resources[0])
+        self.assertEqual(bkt_node.get_resource(),resources[1])
+        self.assertIsInstance(resources[2],MMWeights)
+        self.assertEqual(resources[2].DI(), 
+                         p1_node.get_net_obj().get_num_neurons())
+        self.assertEqual(resources[2].DO(), 
+                         bkt_node.get_net_obj().get_num_dimensions())
 
     def test_connect__one_adj_node__Bucket_Bucket(self):
-        pass
+        net_obj_dims = 2
+       
+        bkt_in_node = NetObjNode(ps.Bucket("BucketIn", net_obj_dims))
+        bkt_out_node = NetObjNode(ps.Bucket("BucketOut", net_obj_dims))
+
+        resources = []
+
+        resources.append(bkt_in_node.get_resource())
+        resources.append(bkt_out_node.get_resource())
+
+        w = ps.Weights(np.zeros((net_obj_dims, net_obj_dims), dtype=np.uint32))
+        bkt_in_node.add_adjacent_node(bkt_out_node, w)
+        bkt_in_node.connect(resources)
+
+        self.assertEqual(len(resources), 4)
+        self.assertEqual(bkt_in_node.get_resource(),resources[0])
+        self.assertEqual(bkt_out_node.get_resource(),resources[1])
+        self.assertIsInstance(resources[2],TATAccumulator)
+        self.assertIsInstance(resources[3],MMWeights)
+        self.assertEqual(resources[3].DI(), 
+                         bkt_in_node.get_net_obj().get_num_dimensions())
+        self.assertEqual(resources[3].DO(), 
+                         bkt_out_node.get_net_obj().get_num_dimensions())
 
     def test_connect__one_adj_node__Bucket_Output(self):
         pass

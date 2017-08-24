@@ -115,7 +115,7 @@ class NetObjNode(object):
 
           Conn 4: Bucket -> Bucket
 
-              AMBuckets -> MMWeights -> AMBuckets
+              AMBuckets -> TATAccumulator -> MMWeights -> AMBuckets
 
           Conn 5: Bucket -> Output
 
@@ -148,14 +148,14 @@ class NetObjNode(object):
             if (type(self.get_net_obj()) == Input) and (type(adj_node.get_net_obj()) == Pool):
                 num_neurons = adj_node.get_net_obj().get_num_neurons()
                 # what to do if dims is odd
-                taps_dim_0 = self.get_net_obj().get_num_dimensions()
-                taps_dim_1 = adj_node.get_net_obj().get_num_dimensions()
+                dims_in = self.get_net_obj().get_num_dimensions()
+                taps_per_dim = 2
 
                 source = self.resource
                 tap = TATTapPoint(np.random.randint(num_neurons,
-                                                    size=(taps_dim_0, taps_dim_1)),
-                                  np.random.randint(1, size=(taps_dim_0,
-                                                             taps_dim_1)) * 2 - 1,
+                                                    size=(dims_in, taps_per_dim)),
+                                  np.random.randint(1, size=(dims_in,
+                                                             taps_per_dim)) * 2 - 1,
                                   num_neurons)
                 neurons = adj_node.get_resource()
 
@@ -197,12 +197,19 @@ class NetObjNode(object):
             # Conn 4: Bucket -> Bucket
             if type(self.get_net_obj()) == Bucket and type(adj_node.get_net_obj()) == Bucket:
                 am_bucket_in = self.get_resource()
+                tat_acc_resource = TATAccumulator(self.get_net_obj().get_num_dimensions())
+                if (adj_node_weights == None):
+                    msg = "Cannot connect Input to Bucket without Weights;\n" \
+                          + "Assign Weights to Pystorm.Connection between Input and Bucket"
+                    raise TypeError(msg)
                 weight_resource = self.create_resources_for_(adj_node_weights)
                 am_bucket_out = adj_node.get_resource()
 
-                am_bucket_in.Connect(weight_resource)
+                am_bucket_in.Connect(tat_acc_resource)
+                tat_acc_resource.Connect(weight_resource)
                 weight_resource.Connect(am_bucket_out)
 
+                resources.append(tat_acc_resource)
                 resources.append(weight_resource)
 
             # Conn 5: Bucket -> Output
