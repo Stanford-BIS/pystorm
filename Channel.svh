@@ -10,6 +10,12 @@ interface Channel #(parameter N = 1);
   logic a;
 endinterface
 
+interface ChannelArray #(parameter N = 1, parameter M = 2);
+  logic [M-1:0][N-1:0] d;
+  logic [M-1:0] v;
+  logic [M-1:0] a;
+endinterface
+
 interface PassiveChannel #(parameter N = 1);
   logic [N-1:0] d;
   logic r;
@@ -27,6 +33,22 @@ interface PassiveDatalessChannel;
   logic r;
   logic v;
 endinterface
+
+////////////////////////////////////////////
+// Synthesizable channel helpers
+
+module UnpackChannelArray #(parameter M) (ChannelArray A, Channel B[M-1:0]);
+
+generate
+for (genvar i = 0; i < M; i++) begin
+  assign B[i].d = A.d[i];
+  assign B[i].v = A.v[i];
+  assign A.a[i] = B[i].a;
+end
+endgenerate
+
+endmodule
+
 
 ////////////////////////////////////////////
 // Testbench code
@@ -144,6 +166,7 @@ module RandomChannelSrc #(
   parameter N = 1, 
   parameter Max = 2**N-1, 
   parameter Min = 0,
+  parameter Mask = (2**N-1)-1,
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
@@ -153,7 +176,7 @@ assign base.a = out.a;
 
 always @(base.v)
   if (base.v == 1)
-    out.d <= $urandom_range(Max, Min); 
+    out.d <= $urandom_range(Max, Min) & Mask;
   else if (base.v == 0)
     out.d <= 'X;
 
