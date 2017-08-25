@@ -1,9 +1,13 @@
 `include "Channel.svh"
 
-module Deserializer #(parameter Nin, parameter Nout) (
+module Deserializer #(parameter Nin = 1, parameter Nout = 2) (
   Channel in, // Nin wide
   Channel out, // Nout wide
   input clk, reset);
+
+// make a wide channel from multiple transmissions of a narrow channel.
+// Send LSBs first
+// if order into in is a, b, c; packed word looks like {c, b, a}
 
 // D = number of registers
 parameter D = Nout % Nin == 0 ? Nout / Nin : Nout / Nin + 1;
@@ -42,7 +46,7 @@ always_comb
     SEND:
       if (out.a == 1) begin
         next_state <= LATCH;
-        next_reg_id <= 'X;
+        next_reg_id <= 0;
       end
       else begin
         next_state <= SEND;
@@ -51,7 +55,7 @@ always_comb
   endcase
 
 // registers
-logic [D-1:0][Nin-1:0] chunk_reg;
+logic [D-1:0][Nin-1:0] chunk_reg; // send in LSBs -> MSBs
 logic [Nin*D-1:0] chunk_reg_unpacked;
 assign chunk_reg_unpacked = chunk_reg;
 always_ff @(posedge clk, posedge reset)
@@ -105,11 +109,11 @@ initial begin
 end
 
 // source
-RandomChannelSource #(.N(Nin)) src(in, clk, reset);
+RandomChannelSrc #(.N(Nin)) src(in, clk, reset);
 
 // sink
 ChannelSink sink(out, clk, reset);
 
-Deserializer dut(.*);
+Deserializer #(Nin, Nout) dut(.*);
 
 endmodule
