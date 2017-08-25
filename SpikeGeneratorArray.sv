@@ -62,6 +62,9 @@ always_ff @(posedge clk, posedge reset)
 logic [Ngens-1:0] gen_idx_p1;
 assign gen_idx_p1 = gen_idx + 1;
 
+logic stall_out;
+assign stall_out = out.v & ~out.a;
+
 // next_state computation
 // we take two clock cycles
 // it's possible to do one update/cycle, but it requires
@@ -78,14 +81,11 @@ always_comb
     end
 
     UPDATE_A: begin
-      // check that we're not stalled, present read address to memory
+      // present read address to memory
       assert (unit_pulse == 0); // failing means we aren't fast enough to update every generator in one time unit
       if (gens_en[gen_idx] == 1) begin
         next_gen_idx = gen_idx;
-        if (out.r == 1)
-          next_state = UPDATE_B;
-        else
-          next_state = UPDATE_A;
+        next_state = UPDATE_B;
       end
       else begin
         next_gen_idx = gen_idx_p1;
@@ -97,22 +97,25 @@ always_comb
       // read data comes out, goes into register
       // could try to write back this cycle, but we're not trying to push the timing
       assert (unit_pulse == 0); 
-      assert (out.r == 1); 
       next_state <= UPDATE_C;
       next_gen_idx <= gen_idx;
     end
 
     UPDATE_C: begin
-      // read data available from output register, do writeback
+      // read data available from output register, do writeback, maybe send data
       assert (unit_pulse == 0); 
-      assert (out.r == 1); 
-      if (gen_idx_p1 < gens_used) begin // note _p1
-        next_state <= UPDATE_A;
-        next_gen_idx <= gen_idx_p1;
-      end
-      else begin
-        next_state <= READY_OR_PROG;
-        next_gen_idx <= 'X;
+      if (stall_out) begin
+        next_state <= UPDATE_C;
+        next_gen_idx <= gen_idx;
+      else
+        if (gen_idx_p1 < gens_used) begin // note _p1
+          next_state <= UPDATE_A;
+          next_gen_idx <= gen_idx_p1;
+        end
+        else begin
+          next_state <= READY_OR_PROG;
+          next_gen_idx <= 'X;
+        end
       end
     end
 
@@ -277,12 +280,12 @@ initial begin
 end
 
 // receiver
-PassiveChannel #(Ntag + Nct) packed_out();
+Channel #(Ntag + Nct) packed_out();
 assign packed_out.v = out.v;
 assign packed_out.d = {out.tag, out.ct};
-assign out.r = packed_out.r;
+assign out.a = packed_out.a;
 
-PassiveChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, reset);
+ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, reset);
 
 // stimulus
 initial begin
