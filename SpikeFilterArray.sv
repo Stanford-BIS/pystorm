@@ -60,7 +60,7 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 //                                                      |                  
 //                             ("m" for merge)          +----------[*]-- out    
 //                                                                      
-// out.r is treated as ~stall for all registers
+// (out.v & ~out.a) is treated as stall for all registers
 
 // instantiate memory, declare ports
 logic mem_rd_en;
@@ -88,93 +88,96 @@ logic saw_update_pulse, next_saw_update_pulse; // record if we got the update pu
 
 assign filt_idx_p1 = filt_idx + 1;
 
+logic stall;
+assign stall = out.v & ~out.a;
+
 always_ff @(posedge clk, posedge reset)
   if (reset == 1) begin
     state <= READY_OR_INCREMENT;
     filt_idx <= 0;
     saw_update_pulse <= 0;
   end
-  else begin
-    state <= next_state;
-    filt_idx <= next_filt_idx;
-    saw_update_pulse <= next_saw_update_pulse;
-  end
+  else
+    if (stall == 1) begin
+      state <= state;
+      filt_idx <= filt_idx;
+      saw_update_pulse <= saw_update_pulse;
+    end
+    else begin
+      state <= next_state;
+      filt_idx <= next_filt_idx;
+      saw_update_pulse <= next_saw_update_pulse;
+    end
 
 // next_state computation
 always_comb
-  if (out.r == 0) begin
-    next_state <= state;
-    next_filt_idx <= filt_idx;
-    next_saw_update_pulse <= saw_update_pulse;
-  end
-  else
-    unique case (state)
+  unique case (state)
 
     READY_OR_INCREMENT: begin
-        // waiting for a tag or the update pulse
-        if (in.v == 1) begin
-          if (update_pulse == 1 || saw_update_pulse == 1)
-            next_saw_update_pulse <= 1;
-          next_state <= READY_OR_INCREMENT;
-          next_filt_idx = 'X;
-        end
-        else if (update_pulse == 1 || saw_update_pulse == 1) begin
-          next_saw_update_pulse <= 0;
-          next_state = PRE_BUBBLE2;
-          next_filt_idx = 'X;
-        end
-        else begin
-          next_saw_update_pulse <= 0;
-          next_state = READY_OR_INCREMENT;
-          next_filt_idx = 'X;
-        end
-      end
-
-      DECAY_UPDATE: begin
-        assert (update_pulse == 0);
-        next_saw_update_pulse <= 0;
-        if (filt_idx_p1 < filts_used) begin
-          next_state = DECAY_UPDATE;
-          next_filt_idx = filt_idx_p1;
-        end
-        else begin
-          next_state = BUBBLE2;
-          next_filt_idx = 'X;
-        end
-      end
-
-      // need to bubble for two cycles to avoid pipeline hazard:
-      // it's possible that we do an increment immediately following decay,
-      // causing the value to be read BEFORE it's decayed and written back
-      // the subsequent write clobbers the decay
-      // same thing can happen with decay following increment
-      BUBBLE2: begin
-        next_state = BUBBLE1;
-        next_filt_idx = 'X;
+      // waiting for a tag or the update pulse
+      if (in.v == 1) begin
         if (update_pulse == 1 || saw_update_pulse == 1)
           next_saw_update_pulse <= 1;
+        next_state <= READY_OR_INCREMENT;
+        next_filt_idx = 'X;
       end
-
-      BUBBLE1: begin
+      else if (update_pulse == 1 || saw_update_pulse == 1) begin
+        next_saw_update_pulse <= 0;
+        next_state = PRE_BUBBLE2;
+        next_filt_idx = 'X;
+      end
+      else begin
+        next_saw_update_pulse <= 0;
         next_state = READY_OR_INCREMENT;
         next_filt_idx = 'X;
-        if (update_pulse == 1 || saw_update_pulse == 1)
-          next_saw_update_pulse <= 1;
       end
+    end
 
-      PRE_BUBBLE2: begin
-        next_state = PRE_BUBBLE1;
-        next_filt_idx = 'X;
-        next_saw_update_pulse <= 0;
-      end
-
-      PRE_BUBBLE1: begin
+    DECAY_UPDATE: begin
+      assert (update_pulse == 0);
+      next_saw_update_pulse <= 0;
+      if (filt_idx_p1 < filts_used) begin
         next_state = DECAY_UPDATE;
-        next_filt_idx = 0; // set to 0
-        next_saw_update_pulse <= 0;
+        next_filt_idx = filt_idx_p1;
       end
+      else begin
+        next_state = BUBBLE2;
+        next_filt_idx = 'X;
+      end
+    end
 
-      endcase
+    // need to bubble for two cycles to avoid pipeline hazard:
+    // it's possible that we do an increment immediately following decay,
+    // causing the value to be read BEFORE it's decayed and written back
+    // the subsequent write clobbers the decay
+    // same thing can happen with decay following increment
+    BUBBLE2: begin
+      next_state = BUBBLE1;
+      next_filt_idx = 'X;
+      if (update_pulse == 1 || saw_update_pulse == 1)
+        next_saw_update_pulse <= 1;
+    end
+
+    BUBBLE1: begin
+      next_state = READY_OR_INCREMENT;
+      next_filt_idx = 'X;
+      if (update_pulse == 1 || saw_update_pulse == 1)
+        next_saw_update_pulse <= 1;
+    end
+
+    PRE_BUBBLE2: begin
+      next_state = PRE_BUBBLE1;
+      next_filt_idx = 'X;
+      next_saw_update_pulse <= 0;
+    end
+
+    PRE_BUBBLE1: begin
+      next_state = DECAY_UPDATE;
+      next_filt_idx = 0; // set to 0
+      next_saw_update_pulse <= 0;
+    end
+
+  endcase
 
 ////////////////////////////////////////////
 // pipeline data, use consistent naming for the rest of the pipeline
@@ -211,19 +214,7 @@ always_ff @(posedge clk, posedge reset)
     s4_filt_state <= 'X;
   end
   else 
-    if (out.r == 1) begin // out.r is our inverted stall condition
-      s2_op <= s2_next_op;
-      s3_op <= s3_next_op;
-      s4_op <= s4_next_op;
-      s2_filt_idx <= s2_next_filt_idx;
-      s3_filt_idx <= s3_next_filt_idx;
-      s4_filt_idx <= s4_next_filt_idx;
-      s2_ct <= s2_next_ct;
-      s3_ct <= s3_next_ct;
-      s3_filt_state <= s3_next_filt_state;
-      s4_filt_state <= s4_next_filt_state;
-    end
-    else begin
+    if (stall == 1) begin
       s2_op <= s2_op;
       s3_op <= s3_op;
       s4_op <= s4_op;
@@ -235,12 +226,27 @@ always_ff @(posedge clk, posedge reset)
       s3_filt_state <= s3_filt_state;
       s4_filt_state <= s4_filt_state;
     end
+    else begin
+      s2_op <= s2_next_op;
+      s3_op <= s3_next_op;
+      s4_op <= s4_next_op;
+      s2_filt_idx <= s2_next_filt_idx;
+      s3_filt_idx <= s3_next_filt_idx;
+      s4_filt_idx <= s4_next_filt_idx;
+      s2_ct <= s2_next_ct;
+      s3_ct <= s3_next_ct;
+      s3_filt_state <= s3_next_filt_state;
+      s4_filt_state <= s4_next_filt_state;
+    end
 
 ////////////////////////////////////////////
 // stage 2: state output/pipeline input
 
+logic do_inc;
+assign do_inc = (state == READY_OR_INCREMENT) & in.v & (in.tag < filts_used);
+
 always_comb
-  if (state == READY_OR_INCREMENT && in.v == 1 && in.tag < filts_used) begin
+  if (do_inc == 1) begin
     s2_next_op = INCREMENT;
     s2_next_filt_idx = in.tag;
     s2_next_ct = in.ct;
@@ -257,7 +263,8 @@ always_comb
   end
 
 // handshake input (maybe this can be improved, depends on last stage)
-assign in.r = (out.r && next_state == READY_OR_INCREMENT);
+// this is almost do_inc, but we handshake anyway if we get an input >= filts_used
+assign in.a = (state == READY_OR_INCREMENT) & in.v & ~stall;
 
 ////////////////////////////////////////////
 // stage 3: memory read
@@ -316,7 +323,7 @@ assign s4_next_op = s3_op;
 
 // drive outputs if DECAY and output is ready
 always_comb
-  if (s3_op == DECAY && out.r == 1) begin
+  if (s3_op == DECAY) begin
     out.v = 1;
     out.filt_state = s3_filt_state;
     out.filt_idx = s3_filt_idx;
@@ -380,11 +387,11 @@ initial begin
 end
 
 // receiver
-PassiveChannel #(Nstate + Nfilts) packed_out();
+Channel #(Nstate + Nfilts) packed_out();
 assign packed_out.v = out.v;
 assign packed_out.d = {out.filt_idx, out.filt_state};
-assign out.r = packed_out.r;
-PassiveChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, reset);
+assign out.a = packed_out.a;
+ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, reset);
 
 // stimulus
 initial begin
@@ -421,29 +428,35 @@ initial begin
   filts_used <= 2;
 
   // send tags
-  repeat (10) begin
+  repeat(10) begin
     #(Tclk * 10) 
     @(posedge clk);
-    if (in.r == 1) begin
-      in.v <= 1;
-      in.tag <= 0;
-      in.ct <= 1;
-      @(posedge clk) 
-      in.v <= 0;
-      in.tag <= 'X;
-      in.ct <= 'X;
+    in.v <= 1;
+    in.tag <= 0;
+    in.ct <= 1;
+    forever begin 
+      @(posedge clk);
+      if (in.a == 1) begin
+        in.v <= 0;
+        in.tag <= 'X;
+        in.ct <= 'X;
+        break;
+      end
     end
 
     #(Tclk * 10) 
     @(posedge clk);
-    if (in.r == 1) begin
-      in.v <= 1;
-      in.tag <= 1;
-      in.ct <= 2;
-      @(posedge clk) 
-      in.v <= 0;
-      in.tag <= 'X;
-      in.ct <= 'X;
+    in.v <= 1;
+    in.tag <= 1;
+    in.ct <= 2;
+    forever begin 
+      @(posedge clk);
+      if (in.a == 1) begin
+        in.v <= 0;
+        in.tag <= 'X;
+        in.ct <= 'X;
+        break;
+      end
     end
   end
 
@@ -454,29 +467,35 @@ initial begin
   decay_constant <= 134083577;
 
   // send tags
-  repeat (10) begin
+  repeat(10) begin
     #(Tclk * 10) 
     @(posedge clk);
-    if (in.r == 1) begin
-      in.v <= 1;
-      in.tag <= 0;
-      in.ct <= 1;
-      @(posedge clk) 
-      in.v <= 0;
-      in.tag <= 'X;
-      in.ct <= 'X;
+    in.v <= 1;
+    in.tag <= 0;
+    in.ct <= 1;
+    forever begin 
+      @(posedge clk);
+      if (in.a == 1) begin
+        in.v <= 0;
+        in.tag <= 'X;
+        in.ct <= 'X;
+        break;
+      end
     end
 
     #(Tclk * 10) 
     @(posedge clk);
-    if (in.r == 1) begin
-      in.v <= 1;
-      in.tag <= 1;
-      in.ct <= 2;
-      @(posedge clk) 
-      in.v <= 0;
-      in.tag <= 'X;
-      in.ct <= 'X;
+    in.v <= 1;
+    in.tag <= 1;
+    in.ct <= 2;
+    forever begin
+      @(posedge clk);
+      if (in.a == 1) begin
+        in.v <= 0;
+        in.tag <= 'X;
+        in.ct <= 'X;
+        break;
+      end
     end
   end
 

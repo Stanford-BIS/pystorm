@@ -28,6 +28,10 @@ interface PassiveDatalessChannel;
   logic v;
 endinterface
 
+////////////////////////////////////////////
+// Testbench code
+// (unsynthesizable)
+
 // can use for channel with data by making combinational function of valid
 module ChannelSender (output logic valid, input ack, condition, clk, reset);
 
