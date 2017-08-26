@@ -4,19 +4,19 @@
 // valid (v) triggers on posedge
 // acknowledge (a) is generated with combinational logic, or negedge
 // this scheme allows for full speed (one data transfer per cycle)
-interface Channel #(parameter N = 1);
+interface Channel #(parameter N = -1);
   logic [N-1:0] d;
   logic v;
   logic a;
 endinterface
 
-interface ChannelArray #(parameter N = 1, parameter M = 2);
+interface ChannelArray #(parameter N = -1, parameter M = -1);
   logic [M-1:0][N-1:0] d;
   logic [M-1:0] v;
   logic [M-1:0] a;
 endinterface
 
-interface PassiveChannel #(parameter N = 1);
+interface PassiveChannel #(parameter N = -1);
   logic [N-1:0] d;
   logic r;
   logic v;
