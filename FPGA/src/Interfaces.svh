@@ -3,22 +3,27 @@
 
 `include "Channel.svh"
 
-// Collects the various interfaces shared between major components.
-
-// PCParser -> TimeMgr
-//
-// reset_time: sets the time_unit counter to 0. Typically used at the start of an experiment
-// unit_len: set the time unit duration, in clock cycles
-//
-// PC_time_elapsed: time PC intended to send subsequent stream elements, in time units
-
-interface TimeMgrCtrlInputs #(parameter Nunit = 16, parameter Ntime = 40);
-  logic reset_time;
-  logic [Nunit-1:0] unit_len;
-
-  logic [Ntime-1:0] PC_time_elapsed;
+// register bundles
+interface SpikeFilterConf #(parameter Nfilts = 10, parameter Nstate = 27);
+  logic [Nfilts-1:0] filts_used;         // max filter idx in use
+  logic [Nstate-1:0] increment_constant; // increment state by this on spike
+  logic [Nstate-1:0] decay_constant;     // multiply state by this each time unit
 endinterface
 
+interface SpikeGeneratorConf #(parameter Ngens = 8);
+  logic [Ngens-1:0] gens_used; // max gen idx in use
+  logic [(2**Ngens)-1:0] gens_en;   // enable signal for each generator
+endinterface
+
+interface TimeMgrConf #(parameter Nunit = 16, parameter Ntime_lo = 20, parameter Ntime_hi = 20);
+  logic reset_time;                        // reset FPGA wall clock
+  logic [Nunit-1:0] unit_len;              // set FPGA wall clock time unit
+  logic [Ntime_lo-1:0] PC_time_elapsed_lo; // PC's downstream heartbeat, LSBs
+  logic [Ntime_hi-1:0] PC_time_elapsed_hi; // PC's downstream heartbeat, MSBs
+endinterface
+
+
+// channels
 interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
   logic [Ntag-1:0] tag;
   logic [Nct-1:0] ct;

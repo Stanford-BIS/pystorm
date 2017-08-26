@@ -10,10 +10,8 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
   TagCtChannel in, 
 
   input update_pulse, // prompts all filters to update their values
-  input [Nfilts-1:0] filts_used,
 
-  input [Nstate-1:0] increment_constant, // increment by this each time unit
-  input [Nstate-1:0] decay_constant, // multiply by this each time unit
+  SpikeFilterConf conf,
 
   input clk,
   input reset);
@@ -30,7 +28,7 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 // let's say the max spike rate is 100KHz. Overkill, but we'll spare the bits
 //
 // a reasonable 27b fixed-point state representation is then 18.9 (max 128K)
-// decay_constants are < 1, so we'll use 0.27
+// conf.decay_constants are < 1, so we'll use 0.27
 //
 // multiplication returns a 54b output, 18.36. We discard the lower 27 bits
 // we can test the MSB, if the rate is over 64K make we should emit a warning
@@ -38,10 +36,10 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 // e.g: 
 // tau = 100 ms = .1 s, Tupdate = 100us = .0001s
 //
-// increment_constant = 1/.1 = 10
+// conf.increment_constant = 1/.1 = 10
 //   2**9 * 10 = 5120
 //
-// decay_constant = exp(-.0001/.1) ~ .9990005
+// conf.decay_constant = exp(-.0001/.1) ~ .9990005
 //   exp(-.0001/.1) * 2**27 = 134083577
 
 ////////////////////////////////////////////
@@ -136,7 +134,7 @@ always_comb
     DECAY_UPDATE: begin
       assert (update_pulse == 0);
       next_saw_update_pulse <= 0;
-      if (filt_idx_p1 < filts_used) begin
+      if (filt_idx_p1 < conf.filts_used) begin
         next_state = DECAY_UPDATE;
         next_filt_idx = filt_idx_p1;
       end
@@ -243,7 +241,7 @@ always_ff @(posedge clk, posedge reset)
 // stage 2: state output/pipeline input
 
 logic do_inc;
-assign do_inc = (state == READY_OR_INCREMENT) & in.v & (in.tag < filts_used);
+assign do_inc = (state == READY_OR_INCREMENT) & in.v & (in.tag < conf.filts_used);
 
 always_comb
   if (do_inc == 1) begin
@@ -263,7 +261,7 @@ always_comb
   end
 
 // handshake input (maybe this can be improved, depends on last stage)
-// this is almost do_inc, but we handshake anyway if we get an input >= filts_used
+// this is almost do_inc, but we handshake anyway if we get an input >= conf.filts_used
 assign in.a = (state == READY_OR_INCREMENT) & in.v & ~stall;
 
 ////////////////////////////////////////////
@@ -287,22 +285,22 @@ assign s3_next_ct = s2_ct;
 
 // combinational logic for INCREMENT
 // meant to synthesize as a DSP multiplier
-// multiply the count with the increment_constant
+// multiply the count with the conf.increment_constant
 // discard the high-order bits
 // could generate a warning to the user if any of the high bits are non-zero
 logic [(Nstate+Nct)-1:0] increment_mult_out;
 logic [Nstate-1:0] increment_amount;
 logic [Nstate-1:0] increment_writeback;
-assign increment_mult_out = increment_constant * s3_ct;
+assign increment_mult_out = conf.increment_constant * s3_ct;
 assign increment_amount = increment_mult_out[Nstate-1:0]; // discard MSBs (Nct.0 * Nstate-9.9)
 assign increment_writeback = s3_filt_state + increment_amount;
 
 // combinational block for DECAY
 // meant to synthesize as a DSP multiplier
-// multiple the state with the decay_constant
+// multiple the state with the conf.decay_constant
 logic [(2*Nstate)-1:0] decay_mult_out;
 logic [Nstate-1:0] decay_writeback;
-assign decay_mult_out = decay_constant * s3_filt_state;
+assign decay_mult_out = conf.decay_constant * s3_filt_state;
 assign decay_writeback = decay_mult_out[(2*Nstate)-1:Nstate]; // discard LSBs (see above, 0.Nstate * Nstate-9.9)
 
 // mux INCREMENT and DECAY writebacks
@@ -356,10 +354,7 @@ FilterOutputChannel out();
 
 TagCtChannel #(.Ntag(Nfilts), .Nct(Nct)) in();
 
-logic [Nfilts-1:0] filts_used;
-
-logic [Nstate-1:0] increment_constant; // increment by this each time unit
-logic [Nstate-1:0] decay_constant; // multiply by this each time unit
+SpikeFilterConf #(Nfilts, Nstate) conf();
 
 // clock
 logic clk;
@@ -397,11 +392,11 @@ ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, res
 initial begin
   @(posedge reset)
   // "count mode"
-  increment_constant <= 1;
-  decay_constant <= 0;
+  conf.increment_constant <= 1;
+  conf.decay_constant <= 0;
 
   // filts initially off
-  filts_used <= 0;
+  conf.filts_used <= 0;
 
   // send some tags, make sure nothing happens
   #(Tclk * 10) 
@@ -425,7 +420,7 @@ initial begin
   in.ct <= 'X;
 
   // turn 2 filts on
-  filts_used <= 2;
+  conf.filts_used <= 2;
 
   // send tags
   repeat(10) begin
@@ -463,8 +458,8 @@ initial begin
   // do the same thing in "decay mode"
   // using numbers from example
   #(Tclk * 10) 
-  increment_constant <= 5120;
-  decay_constant <= 134083577;
+  conf.increment_constant <= 5120;
+  conf.decay_constant <= 134083577;
 
   // send tags
   repeat(10) begin

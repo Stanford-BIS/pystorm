@@ -12,9 +12,7 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
 
   input unit_pulse, // kicks off update of all generators
 
-  input [Ngens-1:0] gens_used, // total number of generators used
-  input [(2**Ngens)-1:0] gens_en, // enable signal for each generator
-
+  SpikeGeneratorConf conf,
   ProgramSpikeGeneratorChannel program_mem,
 
   input clk,
@@ -83,7 +81,7 @@ always_comb
     UPDATE_A: begin
       // present read address to memory
       assert (unit_pulse == 0); // failing means we aren't fast enough to update every generator in one time unit
-      if (gens_en[gen_idx] == 1) begin
+      if (conf.gens_en[gen_idx] == 1) begin
         next_gen_idx = gen_idx;
         next_state = UPDATE_B;
       end
@@ -108,7 +106,7 @@ always_comb
         next_state <= UPDATE_C;
         next_gen_idx <= gen_idx;
       else
-        if (gen_idx_p1 < gens_used) begin // note _p1
+        if (gen_idx_p1 < conf.gens_used) begin // note _p1
           next_state <= UPDATE_A;
           next_gen_idx <= gen_idx_p1;
         end
@@ -250,8 +248,7 @@ parameter Nmem = Nperiod * 2 + Ntag;
 
 TagCtChannel out(); // Ntag + Nct wide
 
-logic [Ngens-1:0] gens_used; // total number of generators used
-logic [(2**Ngens)-1:0] gens_en; // enable signal for each generator
+SpikeGeneratorConf #(Ngens) conf();
 
 ProgramSpikeGeneratorChannel program_mem();
 
@@ -290,8 +287,8 @@ ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(10)) out_sink(packed_out, clk, res
 // stimulus
 initial begin
   @(posedge reset)
-  gens_used <= 0;
-  gens_en <= '0;
+  conf.gens_used <= 0;
+  conf.gens_en <= '0;
 
   // program gen 0 -> tag 512
   #(Tclk * 10) 
@@ -327,15 +324,15 @@ initial begin
   program_mem.ticks <= 'X;
   program_mem.tag <= 'X;
 
-  // set gens_used/gens_en
+  // set conf.gens_used/conf.gens_en
   @(posedge clk)
-  gens_used <= 2;
-  gens_en <= 3;
+  conf.gens_used <= 2;
+  conf.gens_en <= 3;
 
   // test enable by disabling the first gen
   #(Tclk * 300)
   @(posedge clk)
-  gens_en <= 2;
+  conf.gens_en <= 2;
 
 end
 

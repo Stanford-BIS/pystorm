@@ -21,7 +21,7 @@ module TimeMgr #(
   output logic stall_dn, // waiting for wall clock to catch up to PC clock
 
   // inputs from PCParser
-  TimeMgrCtrlInputs ctrl_in,
+  TimeMgrConf conf,
 
   input clk, 
   input reset);
@@ -33,20 +33,20 @@ parameter Ntime = Ntime_hi + Ntime_lo;
 // 2^Ntime = max time value, in epochs
 
 // generate a pulse every time unit
-TimeUnitPulser #(Nunit) unit_pulser(.clks_per_unit(ctrl_in.unit_len), .*);
+TimeUnitPulser #(Nunit) unit_pulser(.clks_per_unit(conf.unit_len), .*);
 
 // increment units_elapsed based on unit_pulse
 always_ff @(posedge clk, posedge reset)
   if (reset == 1)
     time_elapsed <= 1;
   else 
-    if (ctrl_in.reset_time == 1)
+    if (conf.reset_time == 1)
       time_elapsed <= 1; 
     else if (unit_pulse == 1)
       time_elapsed <= time_elapsed + 1;
 
 always_comb
-  if (ctrl_in.PC_time_elapsed > time_elapsed)
+  if ({conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} > time_elapsed)
     stall_dn = 1;
   else
     stall_dn = 0;
@@ -66,7 +66,7 @@ logic [Ntime_hi+Ntime_lo-1:0] time_elapsed;
 
 logic stall_dn;
 
-TimeMgrCtrlInputs #(Nunit, Ntime) ctrl_in();
+TimeMgrConf #(Nunit, Ntime_lo, Ntime_hi) conf();
 
 logic clk;
 logic reset;
@@ -83,17 +83,17 @@ DatalessChannelSrc #(.ClkDelaysMin(ClksPerUnit/2), .ClkDelaysMax(ClksPerUnit/2*3
 assign send_PC_time.a = 1; // always ack, we just want the delay
 
 always @(posedge send_PC_time.v)
-  ctrl_in.PC_time_elapsed <= ctrl_in.PC_time_elapsed + 1;
+  {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_hi} <= {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} + 1;
 
 initial begin
   clk = 0;
-  ctrl_in.unit_len = ClksPerUnit; 
-  ctrl_in.PC_time_elapsed = 0;
+  conf.unit_len = ClksPerUnit; 
+  {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} = 0;
 
   reset = 1;
   #(Tclk) reset = 0;
-  #(Tclk) ctrl_in.reset_time = 1;
-  #(Tclk) ctrl_in.reset_time = 0;
+  #(Tclk) conf.reset_time = 1;
+  #(Tclk) conf.reset_time = 0;
 end
 
 TimeMgr dut(.*);
