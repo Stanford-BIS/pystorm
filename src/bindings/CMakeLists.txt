@@ -71,8 +71,6 @@ include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-message(STATUS "Boost_LIBRARY_DIRS: " ${Boost_LIBRARY_DIRS})
-message(STATUS "Boost_LIBRARIES: " ${Boost_LIBRARIES})
 
 add_library(${TARGET_NAME} SHARED
     ${HEADER_FILES}
@@ -85,3 +83,8 @@ target_link_libraries(${TARGET_NAME}
     ${DRIVER_LIBRARY}
 )
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
+# Python expects modules to end in .so
+if(APPLE)
+    set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+endif(APPLE)
