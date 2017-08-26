@@ -2,21 +2,54 @@ cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 project(PyStormBindings CXX)
+set(TARGET_NAME "Pystorm")
+
+############################################################################
+#
+# Common setup and sanity checks
+#
+############################################################################
 
 # This has to be done after 'project' is set
 include(CheckRequirements)
 include(Common)
 
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+    "Choose the type of build, options are : Debug Release"
+    FORCE)
+endif()
+
+if(NOT HOST_IS_VALID)
+    message(FATAL_ERROR "Build does not support host '"
+            ${CMAKE_HOST_SYSTEM_NAME} "'")
+endif()
+
 ############################################################################
 #
-# Global variables
+# Build setup
 #
 ############################################################################
 
-set(TARGET_NAME "Pystorm")
+# Additional packages
+#find_package(Threads REQUIRED)
+# set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
+find_package(PythonLibs 3.5)
+find_package(PythonInterp 3.5)
+find_package(Numpy)
+
 set(HAL_LIBRARY Hal )
 set(DRIVER_LIBRARY Driver)
+find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+
+# Project settings
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+if(CXX_IS_MSVC)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+endif()
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES "")
@@ -24,76 +57,31 @@ set(SRC_FILES "")
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
-############################################################################
-#
-# Additional packages
-#
-############################################################################
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+include_directories(${INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
+include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${PYTHON_INCLUDE_DIRS})
+include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
-#find_package(Threads REQUIRED)
-find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
-find_package(PythonLibs 3.5)
-find_package(PythonInterp 3.5)
-find_package(Numpy)
+# This should be before TARGET is set
+SetupSharedLibrary()
 
-find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+message(STATUS "Boost_LIBRARY_DIRS: " ${Boost_LIBRARY_DIRS})
+message(STATUS "Boost_LIBRARIES: " ${Boost_LIBRARIES})
 
-############################################################################
-#
-# Entry function to build on Linux
-# We need to make sure that the compiler is correct
-#
-############################################################################
-
-function(build_common)
-    # This should be before TARGET is set
-    SetupSharedLibrary()
-
-    link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-    add_library(${TARGET_NAME} SHARED
-        ${HEADER_FILES}
-        ${SRC_FILES}
-        )
-
-    target_link_libraries(${TARGET_NAME}
-        ${Boost_LIBRARIES}
-        ${PYTHON_LIBRARIES}
-        ${HAL_LIBRARY}
-        ${DRIVER_LIBRARY}
+add_library(${TARGET_NAME} SHARED
+    ${HEADER_FILES}
+    ${SRC_FILES}
     )
-
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
-    include_directories(${INCLUDE_DIRS})
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-    include_directories(${Boost_INCLUDE_DIRS})
-    include_directories(${PYTHON_INCLUDE_DIRS})
-    include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
-
-    set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
-    set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
-endfunction()
-
-
-############################################################################
-#
-# Entry function to build on Linux, Mac OSX and Windows 10
-#
-############################################################################
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-    "Choose the type of build, options are : Debug Release"
-    FORCE)
-endif()
-
-if(HOST_IS_VALID)
-    build_common()
-else()
-    message(FATAL_ERROR "Build does not support host '"
-        ${CMAKE_HOST_SYSTEM_NAME} "'")
-endif()
+target_link_libraries(${TARGET_NAME}
+    ${Boost_LIBRARIES}
+    ${PYTHON_LIBRARIES}
+    ${HAL_LIBRARY}
+    ${DRIVER_LIBRARY}
+)
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
