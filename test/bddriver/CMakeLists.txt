@@ -9,7 +9,7 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bddriver_test)
 project(${PROJECT_NAME_STR} CXX)
 
-set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
     "Choose the type of build, options are : Debug Release"
     FORCE)
 ############################################################################
