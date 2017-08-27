@@ -19,6 +19,11 @@ find_package(PythonInterp 3.5)
 # Build Test
 #-------------------
 enable_testing()
+
+if(CXX_IS_MSVC)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
+endif()
+
 add_test(NAME Pystorm_test
          COMMAND ${PYTHON_EXECUTABLE} -m unittest PyStorm_test
          WORKING_DIRECTORY ${EXECUTABLE_OUTPUT_PATH})

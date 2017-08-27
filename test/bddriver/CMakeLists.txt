@@ -85,6 +85,10 @@ include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
 
+if(CXX_IS_MSVC)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
+endif()
+
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
 add_dependencies(${PROJECT_NAME_STR} gtest)
@@ -104,7 +108,6 @@ set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 
 enable_testing()
-add_test(NAME AllTests
-         COMMAND bddriver_test)
+add_test(NAME AllTests COMMAND bddriver_test)
 
 set_property(TEST AllTests PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
