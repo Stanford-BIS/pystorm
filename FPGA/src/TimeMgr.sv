@@ -10,12 +10,12 @@
 // Generates signals for when to send heartbeats in upstream traffic
 module TimeMgr #(
   parameter Nunit = 16, 
-  parameter Ntime_hi = 20,
-  parameter Ntime_lo = 20) (
+  parameter Ntime = 20) (
 
   // used by other time-dependent units
-  output logic unit_pulse,                           // pulses every time_unit, for 1 clk cycle
-  output logic [Ntime_hi+Ntime_lo-1:0] time_elapsed, // current wall time
+  output logic unit_pulse, // pulses every time_unit, for 1 clk cycle
+  output logic send_HB_up_pulse, // pulses every send_HB_up_every * time_unit, for 1 clk cycle
+  output logic [Ntime-1:0] time_elapsed, // current wall time
 
   // downstream controls
   output logic stall_dn, // waiting for wall clock to catch up to PC clock
@@ -23,13 +23,9 @@ module TimeMgr #(
   // inputs from PCParser
   TimeMgrConf conf,
 
-  input clk, 
-  input reset);
-
-parameter Ntime = Ntime_hi + Ntime_lo;
+  input clk, reset);
 
 // 2^Nunit = time unit max val, in clock cycles
-// 2^Nepoch = epoch length, in time units
 // 2^Ntime = max time value, in epochs
 
 // generate a pulse every time unit
@@ -45,8 +41,22 @@ always_ff @(posedge clk, posedge reset)
     else if (unit_pulse == 1)
       time_elapsed <= time_elapsed + 1;
 
+// generate upstream heartbeat
+logic [Nstate-1:0] time_units_since_HB;
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    time_units_since_HB <= 1;
+  else 
+    if (time_units_since_HB < conf.send_HB_up_every)
+      time_units_since_HB <= time_units_since_HB + 1;
+    else
+      time_units_since_HB <= 1;
+
+assign send_HB_up_pulse = (time_units_since_HB == conf.send_HB_up_every);
+
+// generate stall signal
 always_comb
-  if ({conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} > time_elapsed)
+  if (conf.PC_time_elapsed > time_elapsed)
     stall_dn = 1;
   else
     stall_dn = 0;
@@ -57,16 +67,15 @@ endmodule
 module TimeMgr_tb;
 
 parameter Nunit = 16;
-parameter Ntime_hi = 20;
-parameter Ntime_lo = 20;
-parameter Ntime = Ntime_hi + Ntime_lo;
+parameter Ntime = 48;
 
 logic unit_pulse;
-logic [Ntime_hi+Ntime_lo-1:0] time_elapsed;
+logic send_HB_up_pulse;
+logic [Ntime-1:0] time_elapsed;
 
 logic stall_dn;
 
-TimeMgrConf #(Nunit, Ntime_lo, Ntime_hi) conf();
+TimeMgrConf #(Nunit, Ntime) conf();
 
 logic clk;
 logic reset;
@@ -76,6 +85,7 @@ parameter Tclk = 10;
 always #(Tclk/2) clk = ~clk;
 
 parameter ClksPerUnit = 8; // 4 clks is one unit
+parameter UnitsPerHB = 4;
 
 // PC clock comes in at random times
 DatalessChannel send_PC_time();
@@ -83,12 +93,13 @@ DatalessChannelSrc #(.ClkDelaysMin(ClksPerUnit/2), .ClkDelaysMax(ClksPerUnit/2*3
 assign send_PC_time.a = 1; // always ack, we just want the delay
 
 always @(posedge send_PC_time.v)
-  {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_hi} <= {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} + 1;
+  conf.PC_time_elapsed <= conf.PC_time_elapsed + 1;
 
 initial begin
   clk = 0;
   conf.unit_len = ClksPerUnit; 
-  {conf.PC_time_elapsed_hi, conf.PC_time_elapsed_lo} = 0;
+  conf.send_HB_up_every = UnitsPerHB;
+  conf.PC_time_elapsed = 0;
 
   reset = 1;
   #(Tclk) reset = 0;

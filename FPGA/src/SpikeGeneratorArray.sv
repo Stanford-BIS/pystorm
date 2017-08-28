@@ -13,7 +13,7 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input unit_pulse, // kicks off update of all generators
 
   SpikeGeneratorConf conf,
-  ProgramSpikeGeneratorChannel program_mem,
+  SpikeGeneratorProgChannel program_mem,
 
   input clk,
   input reset);
@@ -250,7 +250,7 @@ TagCtChannel out(); // Ntag + Nct wide
 
 SpikeGeneratorConf #(Ngens) conf();
 
-ProgramSpikeGeneratorChannel program_mem();
+SpikeGeneratorProgChannel program_mem();
 
 // clock
 logic clk;

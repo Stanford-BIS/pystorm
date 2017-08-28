@@ -19,10 +19,11 @@ module PCParser #(
   // input, from PC
   Channel PC_in,
 
+  // reset values for the conf registers
+  // set in PCMapper (because PCMapper assigns the regs meaning)
   input [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals,
 
-  input clk, 
-  input reset);
+  input clk, reset);
 
 /////////////////////////////////////////////////
 //
@@ -38,6 +39,7 @@ module PCParser #(
 /////////////////////////////////////////////////
 // BD-bound word
 //
+//  MSB           LSB
 //   1   2      21
 // [ 0 | X | BD_data ]
 //
@@ -47,6 +49,7 @@ module PCParser #(
 /////////////////////////////////////////////////
 // FPGA-bound reg config word
 //
+//  MSB                 LSB
 //   1   1     6       16
 // [ 1 | 0 | reg_id | data ]
 //
@@ -63,6 +66,7 @@ module PCParser #(
 /////////////////////////////////////////////////
 // FPGA-bound channel config word
 //
+//  MSB                     LSB
 //   1   1        6        16
 // [ 1 | 1 | channel_id | data ]
 //

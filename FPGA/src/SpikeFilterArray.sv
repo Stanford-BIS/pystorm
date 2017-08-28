@@ -5,7 +5,7 @@
 // uses a decaying exponential filter
 // implemented as a pipeline, one update/clk
 module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, parameter Nct = 10) ( // 27 is the width of the cyclone 5's high-precision DSP block
-  FilterOutputChannel out, 
+  SpikeFilterOutputChannel out, 
 
   TagCtChannel in, 
 
@@ -350,7 +350,7 @@ parameter Nfilts = 10;
 parameter Nstate = 27;
 parameter Nct = 10;
 
-FilterOutputChannel out();
+SpikeFilterOutputChannel out();
 
 TagCtChannel #(.Ntag(Nfilts), .Nct(Nct)) in();
 

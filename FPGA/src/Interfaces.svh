@@ -15,11 +15,11 @@ interface SpikeGeneratorConf #(parameter Ngens = 8);
   logic [(2**Ngens)-1:0] gens_en;   // enable signal for each generator
 endinterface
 
-interface TimeMgrConf #(parameter Nunit = 16, parameter Ntime_lo = 20, parameter Ntime_hi = 20);
+interface TimeMgrConf #(parameter Nunit = 16, parameter Ntime = 48);
   logic reset_time;                        // reset FPGA wall clock
   logic [Nunit-1:0] unit_len;              // set FPGA wall clock time unit
-  logic [Ntime_lo-1:0] PC_time_elapsed_lo; // PC's downstream heartbeat, LSBs
-  logic [Ntime_hi-1:0] PC_time_elapsed_hi; // PC's downstream heartbeat, MSBs
+  logic [Ntime-1:0] PC_time_elapsed;       // PC's downstream heartbeat
+  logic [Ntime-1:0] send_HB_up_every;  // send upstream heartbeat every <x> time units
 endinterface
 
 
@@ -38,14 +38,14 @@ interface PassiveTagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
   logic v;
 endinterface
 
-interface FilterOutputChannel #(parameter Nstate = 27, parameter Nfilts = 10, parameter Nct = 10);
-  logic [Nstate-1:0] filt_state;
+interface SpikeFilterOutputChannel #(parameter Nfilts = 10, parameter Nstate = 27);
   logic [Nfilts-1:0] filt_idx;
+  logic [Nstate-1:0] filt_state;
   logic v;
   logic a;
 endinterface
 
-interface ProgramSpikeGeneratorChannel #(parameter Ngens = 8, parameter Nperiod = 16, parameter Ntag = 11);
+interface SpikeGeneratorProgChannel #(parameter Ngens = 8, parameter Nperiod = 16, parameter Ntag = 11);
   logic [Ngens-1:0] gen_idx;
   logic [Nperiod-1:0] period;
   logic [Nperiod-1:0] ticks;

@@ -18,8 +18,7 @@ module PCMapper #(
   parameter N_SG_tag = 11,
 
   // paramters for TimeMgr
-  parameter N_TM_time_hi = 20,
-  parameter N_TM_time_lo = 20,
+  parameter N_TM_time = 48,
   parameter N_TM_unit = 16) (
 
   // reset values for PCParser
@@ -55,8 +54,7 @@ parameter N_SG_gens_chunks    = N_SG_gens    % Nconf == 0 ? N_SG_gens    / Nconf
 parameter N_SG_gens_en_chunks = N_SG_gens_en % Nconf == 0 ? N_SG_gens_en / Nconf : N_SG_gens_en / Nconf + 1;
 parameter N_SG_period_chunks  = N_SG_period  % Nconf == 0 ? N_SG_period  / Nconf : N_SG_period  / Nconf + 1;
 parameter N_SG_tag_chunks     = N_SG_tag     % Nconf == 0 ? N_SG_tag     / Nconf : N_SG_tag     / Nconf + 1;
-parameter N_TM_time_hi_chunks = N_TM_time_hi % Nconf == 0 ? N_TM_time_hi / Nconf : N_TM_time_hi / Nconf + 1;
-parameter N_TM_time_lo_chunks = N_TM_time_lo % Nconf == 0 ? N_TM_time_lo / Nconf : N_TM_time_lo / Nconf + 1;
+parameter N_TM_time_chunks    = N_TM_time    % Nconf == 0 ? N_TM_time    / Nconf : N_TM_time    / Nconf + 1;
 parameter N_TM_unit_chunks    = N_TM_unit    % Nconf == 0 ? N_TM_unit    / Nconf : N_TM_unit    / Nconf + 1;
 
 parameter SF_base                   = 0;
@@ -70,8 +68,8 @@ parameter SG_gens_en_idx            = SG_base + N_SG_gens_chunks;
 
 parameter TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_chunks; // = 23
 parameter TM_unit_len_idx           = TM_base + 0; 
-parameter TM_PC_time_elapsed_lo_idx = TM_base + N_TM_unit_chunks;
-parameter TM_PC_time_elapsed_hi_idx = TM_base + N_TM_unit_chunks + N_TM_time_lo_chunks;
+parameter TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
+parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
 
 // assign registers
 
@@ -83,8 +81,8 @@ assign SG_conf.gens_used          = conf_reg_out[SG_gens_used_idx         +:N_SG
 assign SG_conf.gens_en            = conf_reg_out[SG_gens_en_idx           +:N_SG_gens_en_chunks];
 
 assign TM_conf.unit_len           = conf_reg_out[TM_unit_len_idx          +:N_TM_unit_chunks];
-assign TM_conf.PC_time_elapsed_lo = conf_reg_out[TM_PC_time_elapsed_lo_idx+:N_TM_time_lo_chunks];
-assign TM_conf.PC_time_elapsed_hi = conf_reg_out[TM_PC_time_elapsed_hi_idx+:N_TM_time_hi_chunks];
+assign TM_conf.PC_time_elapsed    = conf_reg_out[TM_PC_time_elapsed_idx   +:N_TM_timechunks];
+assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_time_elapsed       +:N_TM_timechunks];
 
 // assign resets
 
@@ -96,8 +94,8 @@ assign conf_reg_reset_vals[SG_gens_used_idx         +:N_SG_gens_chunks]    = 0; 
 assign conf_reg_reset_vals[SG_gens_en_idx           +:N_SG_gens_en_chunks] = 0;
 
 assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 5000; // for 200 MHz clk, 10 us time resolution
-assign conf_reg_reset_vals[TM_PC_time_elapsed_lo_idx+:N_TM_time_lo_chunks] = 0;
-assign conf_reg_reset_vals[TM_PC_time_elapsed_hi_idx+:N_TM_time_hi_chunks] = 0;
+assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
+assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 100; // send HB every 100 time units
 
 assign conf_reg_reset_vals[Nreg-1:TM_PC_time_elapsed_hi_idx+N_TM_time_hi_chunks] = 0;
 

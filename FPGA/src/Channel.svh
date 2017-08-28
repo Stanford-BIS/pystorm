@@ -34,8 +34,13 @@ interface PassiveDatalessChannel;
   logic v;
 endinterface
 
-////////////////////////////////////////////
+///////////////////////////////////////////
 // Synthesizable channel helpers
+
+////////////////////////////////////////////
+// Unpack ChannelArray into array of Channels
+// easier to pass ChannelArray in module port lists than array of Channels,
+// but array of Channels is easier to work with internally
 
 module UnpackChannelArray #(parameter M) (ChannelArray A, Channel B[M-1:0]);
 
@@ -49,6 +54,79 @@ endgenerate
 
 endmodule
 
+////////////////////////////////////////////
+// block channel transmission with stall signal
+
+module ChannelStaller (
+  Channel in,
+  Channel out,
+  input stall);
+
+// only thing we have to do is hide the .v signal until not stalling
+assign out.v = in.v & ~stall;
+assign out.d = in.d;
+assign in.a = out.a;
+
+endmodule
+
+////////////////////////////////////////////
+// Merge two channels
+// tries to be fair when heavily contested
+
+module MergeChannels (
+  Channel out, 
+  Channel in0, in1,
+  input clk, reset);
+
+logic sel, last_sel;
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    last_sel <= 0;
+  else
+    if (out.a == 1)
+      last_sel <= sel;
+
+// note: output can switch when going from 
+// single-input-valid to both-inputs-valid
+always_comb
+  if (in0.v == 1 && in1.v == 0)
+    sel = 0;
+  else if (in0.v == 0 && in1.v == 1)
+    sel = 1;
+  else if (in0.v == 1 && in1.v == 1)
+    if (last_sel == 0)
+      sel = 1;
+    else
+      sel = 0;
+  else
+    sel = 'X;
+
+assign out.v = in0.v | in1.v;
+assign out.d = (sel == 0) ? in0.d : in1.d;
+assign in0.a = (sel == 0) & out.a;
+assign in1.a = (sel == 1) & out.a;
+
+endmodule
+
+////////////////////////////////////////////
+// fork a channel two ways
+// Mask is the range of bits to evaluate
+// Code0 is the pattern that sends in to out0,
+// any other patterns go to out1
+
+module SplitChannel #(parameter Mask = 0, parameter Code0 = 0) (
+  Channel out0, out1, in);
+
+logic sel0;
+assign sel0 = ((in.d & Mask) == Code0);
+
+assign out0.v = sel0 & in.v;
+assign out0.d = sel0 ? in.d : 'X;
+assign out1.v = ~sel0 & in.v;
+assign out1.d = ~sel0 ? in.d : 'X;
+assign in.a = out0.a | out1.a;
+
+endmodule
 
 ////////////////////////////////////////////
 // Testbench code
