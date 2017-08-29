@@ -10,7 +10,7 @@ module PCMapper #(
   // parameters for SpikeFilterArray config
   parameter N_SF_filts = 10,
   parameter N_SF_state = 27,
-  parameter N_SF_ct = 10,
+  parameter N_SF_ct = 9,
 
   // parameters for SpikeGeneratorArray config
   parameter N_SG_gens = 8,
@@ -70,6 +70,7 @@ parameter TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_
 parameter TM_unit_len_idx           = TM_base + 0; 
 parameter TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
 parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
+parameter TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
 // assign registers
 
@@ -82,7 +83,8 @@ assign SG_conf.gens_en            = conf_reg_out[SG_gens_en_idx           +:N_SG
 
 assign TM_conf.unit_len           = conf_reg_out[TM_unit_len_idx          +:N_TM_unit_chunks];
 assign TM_conf.PC_time_elapsed    = conf_reg_out[TM_PC_time_elapsed_idx   +:N_TM_timechunks];
-assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_time_elapsed       +:N_TM_timechunks];
+assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_send_HB_up_idx     +:N_TM_timechunks];
+assign TM_conf.reset_time         = conf_reg_out[TM_PC_reset_time_idx];
 
 // assign resets
 
@@ -96,8 +98,9 @@ assign conf_reg_reset_vals[SG_gens_en_idx           +:N_SG_gens_en_chunks] = 0;
 assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 5000; // for 200 MHz clk, 10 us time resolution
 assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
 assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 100; // send HB every 100 time units
+assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
-assign conf_reg_reset_vals[Nreg-1:TM_PC_time_elapsed_hi_idx+N_TM_time_hi_chunks] = 0;
+assign conf_reg_reset_vals[Nreg-1:TM_PC_reset_time_idx+1] = 0;
 
 /////////////////////////////////////////////////////
 // Channel mapping, deserialization
@@ -138,7 +141,7 @@ parameter Nchan = 2;
 // parameters for SpikeFilterArray config
 parameter N_SF_filts = 10;
 parameter N_SF_state = 27;
-parameter N_SF_ct = 10;
+parameter N_SF_ct = 9;
 
 // parameters for SpikeGeneratorArray config
 parameter N_SG_gens = 8;

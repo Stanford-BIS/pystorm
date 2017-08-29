@@ -145,8 +145,8 @@ assign SF_in.a = SF_packed.a;
 // Merge *_packed channels
 
 Channel #(NPCout) packed_merge_0_out();
-MergeChannels packed_merge_0(packed_merge_0_out, SF_packed, HB_packed, clk, reset);
-MergeChannels packed_merge_root(PC_out, BD_packed, packed_merge_0.out, clk, reset);
+ChannelMerge packed_merge_0(packed_merge_0_out, SF_packed, HB_packed, clk, reset);
+ChannelMerge packed_merge_root(PC_out, BD_packed, packed_merge_0.out, clk, reset);
 
 endmodule
 

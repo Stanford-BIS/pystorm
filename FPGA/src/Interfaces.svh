@@ -24,18 +24,11 @@ endinterface
 
 
 // channels
-interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
+interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 9);
   logic [Ntag-1:0] tag;
   logic [Nct-1:0] ct;
   logic v;
   logic a;
-endinterface
-
-interface PassiveTagCtChannel #(parameter Ntag = 11, parameter Nct = 10);
-  logic [Ntag-1:0] tag;
-  logic [Nct-1:0] ct;
-  logic r;
-  logic v;
 endinterface
 
 interface SpikeFilterOutputChannel #(parameter Nfilts = 10, parameter Nstate = 27);

@@ -73,7 +73,7 @@ endmodule
 // Merge two channels
 // tries to be fair when heavily contested
 
-module MergeChannels (
+module ChannelMerge (
   Channel out, 
   Channel in0, in1,
   input clk, reset);
@@ -114,7 +114,7 @@ endmodule
 // Code0 is the pattern that sends in to out0,
 // any other patterns go to out1
 
-module SplitChannel #(parameter Mask = 0, parameter Code0 = 0) (
+module ChannelSplit #(parameter Mask = 0, parameter Code0 = 0) (
   Channel out0, out1, in);
 
 logic sel0;
