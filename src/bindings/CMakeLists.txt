@@ -72,7 +72,7 @@ SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-add_library(${TARGET_NAME} SHARED
+add_library(${TARGET_NAME} MODULE
     ${HEADER_FILES}
     ${SRC_FILES}
     )
@@ -86,5 +86,7 @@ set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 # Python expects modules to end in .so
 if(APPLE)
-    set(CMAKE_SHARED_LIBRARY_SUFFIX ".so")
+    set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".so")
+elseif(WIN32)
+    set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)
