@@ -25,10 +25,14 @@ void Emulator::Init() {
   // reading the infile, build a vector of streams that would get returned
   // when a read call is made to the emulator.
   m_in_stream = std::ifstream(m_in_file_name, std::ios::binary);
-  assert(m_in_stream.good());
+  if(!m_in_stream.good()) {
+    throw std::invalid_argument("Emulator in stream invalie");
+  }
 
   m_out_stream = std::ofstream(m_out_file_name, std::ios::binary);
-  assert(m_out_stream.good());
+  if(!m_out_stream.good()) {
+    throw std::invalid_argument("Emulator out stream invalie");
+  }
 
   BuildInputStream();
 }
