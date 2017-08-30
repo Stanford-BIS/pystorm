@@ -1,4 +1,4 @@
-`include "SpikeGeneratorMem.v"
+`include "SpikeGeneratorMem_bb.v"
 `include "Interfaces.svh"
 `include "Channel.svh"
 
@@ -105,6 +105,7 @@ always_comb
       if (stall_out) begin
         next_state <= UPDATE_C;
         next_gen_idx <= gen_idx;
+      end
       else
         if (gen_idx_p1 < conf.gens_used) begin // note _p1
           next_state <= UPDATE_A;
@@ -114,7 +115,6 @@ always_comb
           next_state <= READY_OR_PROG;
           next_gen_idx <= 'X;
         end
-      end
     end
 
   endcase

@@ -6,8 +6,8 @@
 // and inserts heartbeat events signalsed by the TimeMgr
 
 module PCPacker #(
-  parameter NPCout = 40,
-  parameter NBDdata = 34,
+  parameter NPCout = 32,
+  parameter NBDdata = 16,
   parameter Ntime = 48,
   parameter N_SF_filts = 10,
   parameter N_SF_state = 27) (
@@ -29,42 +29,57 @@ module PCPacker #(
 //////////////////////////////////////////////
 // FPGA packet formats
 //
+// All words look like this:
+//
+//    4      12
+// [ code | data ]
+//
+// FPGA and BD codes share the same 4-bit space,
+// there's no FPGA/BD bit
+//
 //////////////////////////////////////////////
 // Word from BD
 //
-//  MSB              LSB
-//   1   5       34
-// [ 0 | X | BD payload ]
+//  MSB            LSB
+//    4            12
+// [ code | BD_payload_chunk ]
 //
-// MSB = 0 means from BD
+// BD words use codes 0-12 (13 funnel leaves)
+// most words get serialized, LSBs first
+//
+// (if we want to free up some codes, could combine
+//  similar streams into new word formats. e.g. the overflows
+//  or FIFO dumps could be combined into a single code)
 //
 //////////////////////////////////////////////
-// FPGA-filtered spike stream
+// FPGA-filtered spike/tag stream
 //
-//  MSB                    LSB
-//   1   1      11       27
-// [ 1 | 0 | filt_idx | state ]
+// 4 words per event:
 //
-// MSB = 1 means from FPGA
-// MSB-1 = 0 means spike stream
-// <filt_idx> is code for which spike filter <state> corresponds to 
-// <state> is the state of the spike filter
+//  MSB                  LSB
+//      4           12
+// [ code=14 |   filt_idx   ]
+// 
+//      4           12
+// [ code=14 | state[11:0]  ]
 //
-// (note: 27 bits is unlikely to change, it's the DSP width,
-//  11 is just the bits remaining, there may not be 2**11 filters)
+//      4           12
+// [ code=14 | state[23:12] ]
+//
+//      4           12
+// [ code=14 | state[26:24] ]
+//
+// (note: 27 state bits is unlikely to change, it's the DSP width,
+//  12 is just the bits remaining for filt_idx, there may not be 2**12 filters)
 //
 //////////////////////////////////////////////
 // FPGA-generated heartbeat
 // (split into two packets)
 //
-//  MSB                      LSB
-//   1   1    14         24 
-// [ 1 | 1 | hi_lo |  time_bits ]
+//  MSB                                   LSB
+//      4                    12 
+// [ code=15 |  time_bits[(12*(N+1))-1:12*N] ]
 //
-// MSB = 1 means from FPGA
-// MSB-1 = 1 means heartbeat
-// <hi_lo> is 0 or 1, 0 for time LSBs, 1 for time MSBs
-// <time_bits> is the time value (MSBs or LSBs), in time units
 
 // turn all the inputs into their PC_out packet formats then merge them
 Channel #(NPCout) BD_packed();

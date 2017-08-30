@@ -42,15 +42,19 @@ always_ff @(posedge clk, posedge reset)
       time_elapsed <= time_elapsed + 1;
 
 // generate upstream heartbeat
-logic [Nstate-1:0] time_units_since_HB;
+logic [Ntime-1:0] time_units_since_HB;
 always_ff @(posedge clk, posedge reset)
   if (reset == 1)
     time_units_since_HB <= 1;
   else 
-    if (time_units_since_HB < conf.send_HB_up_every)
-      time_units_since_HB <= time_units_since_HB + 1;
+    if (unit_pulse == 1)
+      if (time_units_since_HB < conf.send_HB_up_every)
+        time_units_since_HB <= time_units_since_HB + 1;
+      else
+        time_units_since_HB <= 1;
     else
-      time_units_since_HB <= 1;
+      time_units_since_HB <= time_units_since_HB;
+
 
 assign send_HB_up_pulse = (time_units_since_HB == conf.send_HB_up_every);
 

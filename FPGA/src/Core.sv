@@ -1,5 +1,5 @@
-`import "Channel.svh"
-`import "Interfaces.svh"
+`include "Channel.svh"
+`include "Interfaces.svh"
 
 module Core #(
   // common parameters (in/out names relative to FPGA)
@@ -49,13 +49,13 @@ module Core #(
 // Bigger boxes are more complicated modules.
 // 
 //            +----------+                                                                    
-//            |          |
-// PC_in ---->| PCParser |        PCParser_BD_data_out                   PCParser_SG_merged          
+//            |          |                                         (module ChannelSplit)
+// PC_in ---->| PCParser |        PCParser_BD_data_out                      PCParser_SG_merged          
 //  24b       |          |------------------------------------------------->|\     +--------------+               
 //            +----------+                             +-----------+        | |----|ChannelStaller|----> BD_out
 //                | | conf_regs,          +----------->|TagCtPacker|------->|/     +--------------+       22b     
 //                | | conf_channels       |            +-----------+ SG_BD_data_out        |    
-//                | |                     | SG_tags_out                                    |    
+//                | V                     | SG_tags_out                                    |    
 //            +----------+          +----------+                                           |    
 //            |          |          |          |                                           |    
 //            | PCMapper |--------->| SpikeGen.| (contains a memory)                       |    
@@ -67,13 +67,13 @@ module Core #(
 //                | |   +-----------+     |                                                |    
 //                | |   |           |-----+                                                |   
 //                | +---|  TimeMgr  |     |                                                |
-//                |     |           |-----C------------------------------------------------+    
+//                |     |           |-----|------------------------------------------------+    
 //                |     +-----------+     |                                          stall_dn      
 //                |          |            |                                                   
 //                |          |            |                                                   
 //        SF_conf |          |      +----------+                                              
 //                |          |      |          |                                              
-//                +----------C------|SpikeFilt.| (contains a memory)                          
+//                +----------|------|SpikeFilt.| (contains a memory)                          
 //                           | +----|          |                                              
 //                           | |    +----------+                                              
 //         send_HB_pulse_up, | |          ^                                                   
@@ -100,7 +100,7 @@ SpikeFilterConf #(N_SF_filts, N_SF_state) SF_conf();
 SpikeGeneratorConf #(N_SG_gens) SG_conf();
 TimeMgrConf #(N_TM_unit, N_TM_time) TM_conf();
 // conf channels
-ProgramSpikeGeneratorChannel #(N_SG_gens, N_SG_period, N_SG_tag) SG_program_mem();
+SpikeGeneratorProgChannel #(N_SG_gens, N_SG_period, N_SG_tag) SG_program_mem();
 
 // time-related signals
 logic time_unit_pulse;
@@ -117,7 +117,7 @@ Channel #(NBDdata_out) PCParser_SG_merged();
 // data channels: BD -> PC
 Channel #(NBDdata_in) SF_BD_data_in();
 TagCtChannel #(Ntag, Nct) SF_tags_in();
-Channel #(NBDdata) PCPacker_BD_data_in();
+Channel #(NBDdata_in) PCPacker_BD_data_in();
 SpikeFilterOutputChannel #(N_SF_filts, N_SF_state) PCPacker_SF_data_in();
 
 /////////////////////////////////////////////
@@ -214,18 +214,20 @@ ChannelStaller BD_out_stall(
 // BD -> PC datapath
 
 // BDInSplit
-BDInSplit #(NBDData_in) 
-BD_in_split(SF_BD_data_in, PCPacker_BD_data_in, BD_in);
+BDInSplit #(NBDdata_in) 
+BD_in_split(SF_BD_data_in, PCPacker_BD_data_in, BD_in, clk, reset);
 
 // SpikeFilter
 SpikeFilterArray #(
   .Nfilts(N_SF_filts),
   .Nstate(N_SF_state),
-  .Nct(N_SF_ct) 
+  .Nct(N_SF_ct))
 SF_array(
   PCPacker_SF_data_in,
   SF_tags_in,
   time_unit_pulse,
+  SF_conf,
+  clk, reset);
 
 // PCPacker
 PCPacker #(
@@ -248,6 +250,13 @@ endmodule
 // TESTBENCH
 
 module Core_tb;
+
+parameter NPCout = 40;
+parameter NPCin = 24;
+
+parameter NBDdata_in = 34;
+parameter NBDdata_out = 22;
+
 
 // PC-side
 Channel #(NPCin) PC_in();
@@ -275,6 +284,11 @@ RandomChannelSrc #(.N(NPCin)) PC_in_src(PC_in, clk, reset);
 ChannelSink PC_out_sink(PC_out, clk, reset);
 
 RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);
+//assign BD_in.v = 0;
+//assign BD_in.d = 'X;
+
 ChannelSink BD_out_sink(BD_out, clk, reset);
+
+Core dut(.*);
 
 endmodule

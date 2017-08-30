@@ -47,4 +47,18 @@ interface SpikeGeneratorProgChannel #(parameter Ngens = 8, parameter Nperiod = 1
   logic a;
 endinterface
 
+interface DecodedBDWordChannel;
+  logic [3:0] leaf_code; // there are 13 leaves
+  logic [31:0] payload; // the longest data chunk
+  logic v;
+  logic a;
+endinterface
+
+interface SerializedBDWordChannel;
+  logic [3:0] leaf_code;
+  logic [11:0] payload;
+  logic v;
+  logic a;
+endinterface
+
 `endif

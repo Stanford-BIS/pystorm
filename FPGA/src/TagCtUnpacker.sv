@@ -1,5 +1,5 @@
-`include "Channel.sv"
-`include "Interfaces.sv"
+`include "Channel.svh"
+`include "Interfaces.svh"
 
 module TagCtUnpacker #(parameter Ntag = 11, parameter Nct = 9, parameter NBDdata = 34) (
   TagCtChannel tag_ct_data_out,

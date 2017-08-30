@@ -58,8 +58,8 @@ endmodule
 // block channel transmission with stall signal
 
 module ChannelStaller (
-  Channel in,
   Channel out,
+  Channel in,
   input stall);
 
 // only thing we have to do is hide the .v signal until not stalling
@@ -94,12 +94,9 @@ always_comb
   else if (in0.v == 0 && in1.v == 1)
     sel = 1;
   else if (in0.v == 1 && in1.v == 1)
-    if (last_sel == 0)
-      sel = 1;
-    else
-      sel = 0;
+    sel = ~last_sel;
   else
-    sel = 'X;
+    sel = last_sel;
 
 assign out.v = in0.v | in1.v;
 assign out.d = (sel == 0) ? in0.d : in1.d;
@@ -114,7 +111,7 @@ endmodule
 // Code0 is the pattern that sends in to out0,
 // any other patterns go to out1
 
-module ChannelSplit #(parameter Mask = 0, parameter Code0 = 0) (
+module ChannelSplit #(parameter N = -1, parameter logic [N-1:0] Mask = 0, parameter logic [N-1:0] Code0 = 0) (
   Channel out0, out1, in);
 
 logic sel0;
@@ -242,9 +239,9 @@ endmodule
 // Based on DatalessChannelSrc
 module RandomChannelSrc #(
   parameter N = 1, 
-  parameter Max = 2**N-1, 
-  parameter Min = 0,
-  parameter Mask = (2**N-1)-1,
+  parameter logic [N-1:0] Max = 2**N-1, 
+  parameter logic [N-1:0] Min = 0,     
+  parameter logic [N-1:0] Mask = (2**N-1)-1,
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
@@ -252,11 +249,36 @@ DatalessChannel base();
 assign out.v = base.v;
 assign base.a = out.a;
 
+parameter Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
 always @(base.v)
-  if (base.v == 1)
-    out.d <= $urandom_range(Max, Min) & Mask;
+  if (base.v == 1) begin
+    out.d = 0;
+
+    // not uniform random if min/max is used
+    if (N > 32) begin
+      for (int i = 0; i < Chunks32; i++) begin
+        out.d[N-1:32] = out.d[N-32-1:0];
+        out.d[31:0] = $urandom_range(2**32-1, 0);
+      end
+      if (out.d > Max)
+        out.d = Max;
+      if (out.d < Min)
+        out.d = Min;
+    end
+
+    else
+      out.d = $urandom_range(Max, Min);
+
+    out.d = out.d & Mask;
+  end
   else if (base.v == 0)
     out.d <= 'X;
+
+//always @(base.v)
+//  if (base.v == 1)
+//    out.d <= $urandom_range(Max, Min) & Mask;
+//  else if (base.v == 0)
+//    out.d <= 'X;
 
 DatalessChannelSrc #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_src(base, clk, reset);
 

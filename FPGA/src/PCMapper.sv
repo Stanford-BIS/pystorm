@@ -28,7 +28,7 @@ module PCMapper #(
   SpikeFilterConf SF_conf,
 
   // SpikeGenerator
-  ProgramSpikeGeneratorChannel SG_program_mem,
+  SpikeGeneratorProgChannel SG_program_mem,
   SpikeGeneratorConf SG_conf,
 
   // TimeMgr
@@ -82,8 +82,8 @@ assign SG_conf.gens_used          = conf_reg_out[SG_gens_used_idx         +:N_SG
 assign SG_conf.gens_en            = conf_reg_out[SG_gens_en_idx           +:N_SG_gens_en_chunks];
 
 assign TM_conf.unit_len           = conf_reg_out[TM_unit_len_idx          +:N_TM_unit_chunks];
-assign TM_conf.PC_time_elapsed    = conf_reg_out[TM_PC_time_elapsed_idx   +:N_TM_timechunks];
-assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_send_HB_up_idx     +:N_TM_timechunks];
+assign TM_conf.PC_time_elapsed    = conf_reg_out[TM_PC_time_elapsed_idx   +:N_TM_time_chunks];
+assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_send_HB_up_idx     +:N_TM_time_chunks];
 assign TM_conf.reset_time         = conf_reg_out[TM_PC_reset_time_idx];
 
 // assign resets
@@ -97,7 +97,7 @@ assign conf_reg_reset_vals[SG_gens_en_idx           +:N_SG_gens_en_chunks] = 0;
 
 assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 5000; // for 200 MHz clk, 10 us time resolution
 assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
-assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 100; // send HB every 100 time units
+assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 10; // send HB every 10 time units
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
 assign conf_reg_reset_vals[Nreg-1:TM_PC_reset_time_idx+1] = 0;
@@ -109,6 +109,8 @@ assign conf_reg_reset_vals[Nreg-1:TM_PC_reset_time_idx+1] = 0;
 Channel conf_channel_out_unpacked[Nchan-1:0]();
 UnpackChannelArray #(Nchan) conf_channel_unpacker(conf_channel_out, conf_channel_out_unpacked);
 
+parameter Nchans_used = 1;
+
 // pack channel so we can use deserializer
 parameter N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;
 Channel #(N_SG_program_mem) SG_program_mem_flat();
@@ -117,6 +119,12 @@ assign SG_program_mem.v = SG_program_mem_flat.v;
 assign SG_program_mem_flat.a = SG_program_mem.a;
 
 Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(conf_channel_out_unpacked[0], SG_program_mem_flat, clk, reset);
+
+// loop .v back onto .a for unused channels, making them handshake
+generate
+for (genvar i = Nchans_used; i < Nchan; i++)
+  assign conf_channel_out_unpacked[i].a = conf_channel_out_unpacked[i].v;
+endgenerate
 
 endmodule
 

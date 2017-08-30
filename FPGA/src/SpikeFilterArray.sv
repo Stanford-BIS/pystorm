@@ -1,4 +1,4 @@
-`include "SpikeFilterMem.v"
+`include "SpikeFilterMem_bb.v"
 `include "Interfaces.svh"
 
 // low-pass filters a variable number of spike streams

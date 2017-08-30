@@ -5,7 +5,7 @@ module PCParser #(
   parameter NBDdata = 21,
   parameter Nconf = 16,
   parameter Nreg = 32,
-  parameter Nchan = 8) (
+  parameter Nchan = 2) (
 
   // output registers
   output logic [Nreg-1:0][Nconf-1:0] conf_reg_out,
@@ -145,14 +145,17 @@ always_comb
 // handshake input
 // for the channels, there's no slack here
 always_comb
-  unique case (word_type)
-    BD_WORD:
-      PC_in.a = BD_data_out.a;
-    REG_WORD:
-      PC_in.a = PC_in.v;
-    CHANNEL_WORD:
-      PC_in.a = conf_channel_out.a[conf_array_id[$clog2(Nchan)-1:0]];
-  endcase
+  if (PC_in.v == 1)
+    unique case (word_type)
+      BD_WORD:
+        PC_in.a = BD_data_out.a;
+      REG_WORD:
+        PC_in.a = PC_in.v;
+      CHANNEL_WORD:
+        PC_in.a = conf_channel_out.a[conf_array_id[$clog2(Nchan)-1:0]];
+    endcase
+  else
+    PC_in.a = 0;
 
 endmodule
 
