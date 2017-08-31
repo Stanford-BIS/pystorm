@@ -9,6 +9,9 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bddriver_test)
 project(${PROJECT_NAME_STR} CXX)
 
+set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
+    "Choose the type of build, options are : Debug Release"
+    FORCE)
 ############################################################################
 #
 # Set modules required by all platforms
@@ -82,6 +85,10 @@ include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
 
+if(CXX_IS_MSVC)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
+endif()
+
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
 add_dependencies(${PROJECT_NAME_STR} gtest)
@@ -101,7 +108,6 @@ set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 
 enable_testing()
-add_test(NAME AllTests
-         COMMAND bddriver_test)
+add_test(NAME AllTests COMMAND bddriver_test)
 
 set_property(TEST AllTests PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")

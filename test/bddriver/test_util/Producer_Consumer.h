@@ -99,7 +99,7 @@ void ConsumeVectNGiveUpAfter(
     unsigned int M,
     unsigned int try_for_us,
     unsigned int give_up_after_us) {
-  T data[M];
+  T* data = new T[M];
 
   bool give_up = false;
   auto t0      = std::chrono::high_resolution_clock::now();
@@ -173,7 +173,7 @@ void ConsumeVectLockFrontN(
 template <class T>
 void ConsumeAndCheckN(
     bddriver::MutexBuffer<T>* buf, T* check_vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  T data[M];
+  T* data = new T[M];
 
   unsigned int N_consumed = 0;
   while (N_consumed != N) {
