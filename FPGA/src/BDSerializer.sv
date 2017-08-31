@@ -1,9 +1,9 @@
 `include "Channel.svh"
 `include "Interfaces.svh"
 
-module BDSerializer (
+module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
+  SerializedPCWordChannel ser_out,
   DecodedBDWordChannel dec_in,
-  SerializedBDWordChannel ser_out,
   input clk, reset);
 
 // BD funnel routing table (from the wiki)
@@ -25,35 +25,37 @@ module BDSerializer (
 |RO_TAT            |2     |00      |0          |32         |1             |32          |tag output from TAT
 */
 
-// this module isn't really parametrized, it only works for this width
-parameter Ncode = 4;
-parameter NBDpayload = 32;
-parameter Ndata_out = 12;
-parameter Nfunnel = 13;
+parameter NBDpayload = 32; // width of DecodedBDWordChannel.payload (longest "data width")
+parameter Nfunnel = 13; // number of funnel leaves
 
-// our output serialization, not serialization in the table
-// I did this by hand, it seems hard to compute a parameter array from a parameter array...
+parameter int width_used[Nfunnel] = {
+  19,
+  8 ,
+  20,
+  19,
+  19,
+  20,
+  29,
+  29,
+  12,
+  1 ,
+  1 ,
+  28,
+  32};
 
-parameter int serialization[Nfunnel] = {
-  2,
-  1,
-  2,
-  2,
-  2,
-  2,
-  3,
-  3,
-  1,
-  1,
-  1,
-  2,
-  3};
+// have to assign parameters in one shot, at init, so need a fn
+typedef int SerType[Nfunnel];
+function SerType SerFromWidth(input int width_used[Nfunnel]);
+  for (int i = 0; i < Nfunnel; i++)
+    SerFromWidth[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
+endfunction
 
+parameter int serialization[Nfunnel] = SerFromWidth(width_used);
 
-///////////////////////////////////////////
-// logic
+/////////////////////////////////////////
 
-enum {S0, S1, S2} state, next_state;
+// you might need to add more states if Nout is really small compared to NBDdata
+enum {S0, S1} state, next_state;
 
 always_ff @(posedge clk, posedge reset)
   if (reset == 1)
@@ -72,35 +74,29 @@ always_comb
       else
         next_state = S0;
 
-    S1:
-      if (ser_out.a == 1)
-        if (serialization[dec_in.leaf_code] > 2)
-          next_state = S2;
-        else 
-          next_state = S0;
-      else
-        next_state = S1;
-
-    S2:
+    S1: begin
+      assert (serialization[dec_in.leaf_code] <= 2)
       if (ser_out.a == 1)
         next_state = S0;
       else
-        next_state = S2;
+        next_state = S1;
+    end
   endcase
 
 
 // hold the input until we're done sending all parts
 assign ser_out.v = dec_in.v;
 
-assign ser_out.leaf_code = dec_in.leaf_code;
+parameter HiIdx0 = 1*Ndata_out < NBDpayload ? 1*Ndata_out : NBDpayload;
+parameter HiIdx1 = 2*Ndata_out < NBDpayload ? 2*Ndata_out : NBDpayload;
+
+assign ser_out.code = dec_in.leaf_code; // 0-extended
 always_comb
   unique case (state)
     S0:
-      ser_out.payload = dec_in.payload[1*Ndata_out-1 : 0*Ndata_out];
+      ser_out.payload = dec_in.payload[HiIdx0-1 : 0*Ndata_out];
     S1:
-      ser_out.payload = dec_in.payload[2*Ndata_out-1 : 1*Ndata_out];
-    S2:
-      ser_out.payload = dec_in.payload[ NBDpayload-1 : 2*Ndata_out]; // will get zero-extended
+      ser_out.payload = dec_in.payload[HiIdx1-1 : 1*Ndata_out];
   endcase
 
 // handshake input
@@ -113,7 +109,7 @@ endmodule
 module BDSerializer_tb;
 
 DecodedBDWordChannel dec_in();
-SerializedBDWordChannel ser_out();
+SerializedPCWordChannel ser_out();
 
 // clock
 logic clk;
@@ -137,7 +133,7 @@ RandomChannelSrc #(.N(36)) dec_in_src(dec_in_packed, clk, reset);
 
 Channel #(16) ser_out_packed();
 assign ser_out_packed.v = ser_out.v;
-assign ser_out_packed.d = {ser_out.leaf_code, ser_out.payload};
+assign ser_out_packed.d = {ser_out.code, ser_out.payload};
 assign ser_out.a = ser_out_packed.a;
 ChannelSink ser_out_sink(ser_out_packed, clk, reset);
 

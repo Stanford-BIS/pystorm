@@ -54,9 +54,9 @@ interface DecodedBDWordChannel;
   logic a;
 endinterface
 
-interface SerializedBDWordChannel;
-  logic [3:0] leaf_code;
-  logic [11:0] payload;
+interface SerializedPCWordChannel;
+  logic [7:0] code;
+  logic [23:0] payload;
   logic v;
   logic a;
 endinterface
