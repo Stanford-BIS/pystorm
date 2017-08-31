@@ -236,7 +236,6 @@ endmodule
 // module that drives the .v and .d members of a channel with 
 // random data, using random timings. Can parametrize to 
 // control range of random values and delay times.
-// Based on DatalessChannelSrc
 module RandomChannelSrc #(
   parameter N = 1, 
   parameter logic [N-1:0] Max = 2**N-1, 
@@ -245,42 +244,81 @@ module RandomChannelSrc #(
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
-DatalessChannel base();
-assign out.v = base.v;
-assign base.a = out.a;
-
 parameter Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
-always @(base.v)
-  if (base.v == 1) begin
-    out.d = 0;
 
-    // not uniform random if min/max is used
-    if (N > 32) begin
-      for (int i = 0; i < Chunks32; i++) begin
-        out.d[N-1:32] = out.d[N-32-1:0];
-        out.d[31:0] = $urandom_range(2**32-1, 0);
-      end
-      if (out.d > Max)
-        out.d = Max;
-      if (out.d < Min)
-        out.d = Min;
-    end
+// delay_ct only counts down when we're 
+int delay_ct;
 
+enum {READY, HOLD} state, next_state;
+
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    state <= READY;
+  else
+    state <= next_state;
+
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
+  else
+    if (state == READY && delay_ct <= 0)
+      delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
     else
-      out.d = $urandom_range(Max, Min);
+      delay_ct <= delay_ct - 1;
 
-    out.d = out.d & Mask;
-  end
-  else if (base.v == 0)
-    out.d <= 'X;
+always_comb
+  unique case (state)
+    READY:
+      if (delay_ct <= 0)
+        if (out.a == 0)
+          next_state = HOLD;
+        else 
+          next_state = READY;
+      else
+        next_state = READY;
+    HOLD:
+      if (out.a == 1)
+        next_state = READY;
+      else
+        next_state = HOLD;
+  endcase
 
-//always @(base.v)
-//  if (base.v == 1)
-//    out.d <= $urandom_range(Max, Min) & Mask;
-//  else if (base.v == 0)
-//    out.d <= 'X;
+always_comb
+  unique case (state)
+    READY:
+      if (delay_ct <= 0) begin
+        out.v = 1;
 
-DatalessChannelSrc #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_src(base, clk, reset);
+        // this would work for N < 32
+        //out.d = $urandom_range(Max, Min);
+        
+       
+
+        // for some reason this didn't work
+        //for (int i = 0; i < Chunks32; i++) begin
+        //  out.d[(32*(i+1))-1:32*i] = 
+        //end
+        
+        // total hack
+        assert (N < 128);
+        out.d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
+
+        // not uniform random if min/max is used
+        if (out.d > Max)
+          out.d = Max;
+        if (out.d < Min)
+          out.d = Min;
+
+        out.d = out.d & Mask;
+      end
+      else begin
+        out.v = 0;
+        out.d = 'X;
+      end
+    HOLD:
+      out.v = 1;
+
+  endcase
 
 endmodule
 
