@@ -25,11 +25,13 @@ MutexBuffer<T>::~MutexBuffer() {
 
 template <class T>
 bool MutexBuffer<T>::HasAtLeast(unsigned int num) {
+  std::unique_lock<std::mutex> count_lock(count_lock_); 
   return count_ >= num;
 }
 
 template <class T>
 bool MutexBuffer<T>::HasRoomFor(unsigned int size) {
+  std::unique_lock<std::mutex> count_lock(count_lock_); 
   bool has_room = size <= capacity_ - count_;
   return has_room;
 }
@@ -81,12 +83,14 @@ bool MutexBuffer<T>::WaitForHasRoomFor(std::unique_lock<std::mutex>* lock, unsig
 
 template <class T>
 void MutexBuffer<T>::UpdateStateForPush(unsigned int num_pushed) {
+  std::unique_lock<std::mutex> count_lock(count_lock_); 
   back_ = (back_ + num_pushed) % capacity_;
   count_ += num_pushed;
 }
 
 template <class T>
 void MutexBuffer<T>::UpdateStateForPop(unsigned int num_popped) {
+  std::unique_lock<std::mutex> count_lock(count_lock_); 
   front_ = (front_ + num_popped) % capacity_;
   count_ -= num_popped;
 }
