@@ -184,7 +184,7 @@ PYBIND11_MODULE(Pystorm, m)
         .def("get_element",&Weights_32::GetElement)
         .def("set_element",&Weights_32::SetElement)
     ;
-    m.def("Weights", [](PYTHON::object& weights) { return pystorm::makeWeights<uint32_t>(weights); }, PYTHON::return_value_policy::reference);
+    m.def("Weights", [](PYTHON::object& weights) { return pystorm::makeWeights<uint32_t>(weights); }, PYTHON::return_value_policy::reference_internal);
 
     PYTHON::class_<HAL::Connection>
         (m, "Connection")
@@ -204,11 +204,11 @@ PYBIND11_MODULE(Pystorm, m)
     PYTHON::class_<HAL::Network>(m, "Network")
         .def(PYTHON::init<std::string>())
         .def("get_name",&HAL::Network::GetName)
-        .def("get_pools",&HAL::Network::GetPools, PYTHON::return_value_policy::take_ownership)
-        .def("get_buckets",&HAL::Network::GetBuckets, PYTHON::return_value_policy::take_ownership)
-        .def("get_connections",&HAL::Network::GetConnections, PYTHON::return_value_policy::take_ownership)
-        .def("get_inputs",&HAL::Network::GetInputs, PYTHON::return_value_policy::take_ownership)
-        .def("get_outputs",&HAL::Network::GetOutputs, PYTHON::return_value_policy::take_ownership)
+        .def("get_pools",&HAL::Network::GetPools, PYTHON::return_value_policy::automatic)
+        .def("get_buckets",&HAL::Network::GetBuckets, PYTHON::return_value_policy::automatic)
+        .def("get_connections",&HAL::Network::GetConnections, PYTHON::return_value_policy::automatic)
+        .def("get_inputs",&HAL::Network::GetInputs, PYTHON::return_value_policy::automatic)
+        .def("get_outputs",&HAL::Network::GetOutputs, PYTHON::return_value_policy::automatic)
         .def("create_pool", CreatePool_1, PYTHON::return_value_policy::reference_internal)
         .def("create_pool", CreatePool_2, PYTHON::return_value_policy::reference_internal)
         .def("create_bucket",&HAL::Network::CreateBucket, PYTHON::return_value_policy::reference_internal)
