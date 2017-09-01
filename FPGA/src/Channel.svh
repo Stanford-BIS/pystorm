@@ -126,6 +126,44 @@ assign in.a = out0.a | out1.a;
 endmodule
 
 ////////////////////////////////////////////
+// turn a low-frequency pulse + data into a Channel
+
+module PulseToChannel #(parameter N = 1) (
+  Channel out, // N wide
+  input [N-1:0] data,
+  input pulse,
+  input clk, reset);
+
+// assumed to be a relatively infrequent pulse
+// if receiver doesn't ack in time, a pulse can be missed
+
+enum {READY, SENDING} state, next_state;
+
+always_ff @(posedge clk, reset)
+  if (reset == 1)
+    state <= READY;
+  else
+    state <= next_state;
+
+always_comb
+  case (state)
+    READY:
+      if (pulse == 1)
+        next_state = SENDING;
+      else
+        next_state = READY;
+    SENDING:
+      if (out.a == 1)
+        next_state = READY;
+      else
+        next_state = SENDING;
+  endcase
+
+assign out.v = (state == SENDING);
+
+endmodule
+
+////////////////////////////////////////////
 // Testbench code
 // (unsynthesizable)
 
