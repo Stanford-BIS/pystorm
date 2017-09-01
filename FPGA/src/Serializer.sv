@@ -40,21 +40,6 @@ always_comb
 
 assign out.v = in.v;
 
-////parameter int idx_hi[D] = {
-////  Nout*(0 + 1) > Nin ? Nin : Nout*(0 + 1),
-////  Nout*(1 + 1) > Nin ? Nin : Nout*(1 + 1),
-////  Nout*(2 + 1) > Nin ? Nin : Nout*(2 + 1)};
-//parameter int idx_hi[D] = {
-//  Nout*1,
-//  Nout*2,
-//  Nout*3};
-//
-//parameter int idx_lo[D] = {
-//  Nout*0,
-//  Nout*1,
-//  Nout*2};
-//
-//assign out.d = in.d[idx_hi[state]:idx_lo[state]];
 logic [D-1:0][Nout-1:0] out_branch;
 generate
   for (genvar i = 0; i < D; i++)
@@ -65,27 +50,6 @@ generate
 endgenerate
 assign out.d = out_branch[state];
 
-//always_comb
-//  case (state)
-//    0:
-//      if (Nout * (0 + 1) <= Nin)
-//        out.d = in.d[Nout*(0 + 1)-1:Nout*0];
-//      else
-//        out.d = in.d[Nin-1:Nout*0];
-//    1:
-//      if (Nout * (1 + 1) <= Nin)
-//        out.d = in.d[Nout*(1 + 1)-1:Nout*1];
-//      else
-//        out.d = in.d[Nin-1:Nout*1];
-//    2:
-//      if (Nout * (2 + 1) <= Nin)
-//        out.d = in.d[Nout*(2 + 1)-1:Nout*2];
-//      else
-//        out.d = in.d[Nin-1:Nout*2];
-//  endcase
-//    
-//// handshake input
-    
 // handshake input
 assign in.a = out.a & (next_state == 0); // this means that we finished sending a word
 
