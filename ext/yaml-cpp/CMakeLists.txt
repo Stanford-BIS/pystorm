@@ -369,7 +369,7 @@ endif()
 
 ### Formatting
 get_property(all_sources GLOBAL PROPERTY SRCS_LIST)
-add_custom_target(format
-	COMMAND clang-format --style=file -i ${all_sources}
-	COMMENT "Running clang-format"
-	VERBATIM)
+#add_custom_target(format
+#	COMMAND clang-format --style=file -i ${all_sources}
+#	COMMENT "Running clang-format"
+#	VERBATIM)
