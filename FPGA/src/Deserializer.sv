@@ -7,9 +7,9 @@ module Deserializer #(parameter Nin = 1, parameter Nout = 2) (
 
 // make a wide channel from multiple transmissions of a narrow channel.
 // Send LSBs first
-// if order into in is a, b, c; packed word looks like {c, b, a}
+// if order into in is {a}, {b}, {c}; packed word looks like {c, b, a}
 
-// D = number of registers
+// D = number of registers/serialization factor
 parameter D = Nout % Nin == 0 ? Nout / Nin : Nout / Nin + 1;
 
 // one state per D
