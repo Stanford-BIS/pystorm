@@ -33,8 +33,6 @@ endif()
 
 # Additional packages
 #find_package(Threads REQUIRED)
-# set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
 find_package(PythonLibs 3.5)
 find_package(PythonInterp 3.5)
 find_package(Numpy)
@@ -55,15 +53,16 @@ set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES "")
 set(SRC_FILES "")
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11 ${CMAKE_CURRENT_SOURCE_DIR}/python)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 include_directories(${INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/pybind11/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
@@ -72,16 +71,23 @@ SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-add_library(${TARGET_NAME} MODULE
-    ${HEADER_FILES}
-    ${SRC_FILES}
-    )
+add_library(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
 target_link_libraries(${TARGET_NAME}
-    ${Boost_LIBRARIES}
+    pybind11::module
     ${PYTHON_LIBRARIES}
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
 )
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -fvisibility=hidden" CACHE STRING "" FORCE)
+endif()
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto -fvisibility=hidden" CACHE STRING "" FORCE)
+endif()
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /GL /LTCG /bigobj" CACHE STRING "" FORCE)
+endif()
+
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
 set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 # Python expects modules to end in .so
