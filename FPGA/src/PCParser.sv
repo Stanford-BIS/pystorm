@@ -1,8 +1,9 @@
+`include "Interfaces.svh"
 `include "Channel.svh"
 
 module PCParser #(
-  parameter NPCin = 24,
-  parameter NBDdata = 21,
+  parameter NPCin = 32,
+  parameter NBDdata = 20,
   parameter Nconf = 16,
   parameter Nreg = 32,
   parameter Nchan = 2) (
@@ -13,8 +14,8 @@ module PCParser #(
   // output channels
   ChannelArray conf_channel_out, // Nchan channels, Nconf wide
 
-  // passthrough output to BD
-  Channel BD_data_out,
+  // output to BD
+  UnencodedBDWordChannel BD_data_out,
   
   // input, from PC
   Channel PC_in,
@@ -36,25 +37,31 @@ module PCParser #(
 // to their configured components, combining registers or channels to achieve
 // the needed width when necessary
 //
+//    8      24
+// [ code | data ]
+//
 /////////////////////////////////////////////////
 // BD-bound word
 //
-//  MSB           LSB
-//   1   2      21
-// [ 0 | X | BD_data ]
+//  MSB                           LSB
+//           8           4     20
+// [        code       | X | BD_data ]
+//   1   1       6       4     20
+// [ 0 | 0 | leaf_code | X | BD_data ]
 //
-// MSB = 0 means BD passthrough
+// codes 0-34 are horn codes
 // the LSBs contain the data to be passed through
 //
 /////////////////////////////////////////////////
 // FPGA-bound reg config word
 //
-//  MSB                 LSB
-//   1   1     6       16
-// [ 1 | 0 | reg_id | data ]
+//  MSB                     LSB
+//          8         8    16
+// [      code      | X | data ]
+//   1   1      6     8    16
+// [ 1 | 0 | reg_id | X | data ]
 //
-// MSB = 1 means FPGA config word
-// MSB-1 = 0 is means register programming
+// codes 128 - 191 address programmable registers
 // reg_id addresses an array of 16-bit registers
 //  bigger registers needed by the FPGA are composed of multiple 16-bit registers
 //  smaller registers just waste bits
@@ -67,11 +74,12 @@ module PCParser #(
 // FPGA-bound channel config word
 //
 //  MSB                     LSB
-//   1   1        6        16
-// [ 1 | 1 | channel_id | data ]
+//          8          8    16
+// [       code      | X | data ]
+//   1   1       6     8    16
+// [ 1 | 1 | chan_id | X | data ]
 //
-// MSB = 1 means FPGA config word
-// MSB-1 = 1 is means channel programming
+// codes = 192 - 255 address programmable channels
 // channel_id addresses an array of 16-bit channels
 //  bigger channels are made by deserializing multiple transmissions
 //  smaller channels just waste bits
@@ -79,17 +87,21 @@ module PCParser #(
 
 parameter Narray_id_max_bits = NPCin - 2 - Nconf;
 
-// unpack PC_in.d
-logic FPGA_or_BD;
-
-logic BD_data;
-
+// unpack PC_in.d for FPGA-bound word 
+// (coincidentally the same for reg or chan)
+logic FPGA_or_BD; 
 logic reg_or_channel;
-logic [Narray_id_max_bits-1:0] conf_array_id;
+logic [5:0] conf_array_id;
+logic [7:0] FPGA_unused;
 logic [Nconf-1:0] conf_data;
+assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
 
-assign {FPGA_or_BD, reg_or_channel, conf_array_id, conf_data} = PC_in.d;
-assign BD_data = PC_in.d[NBDdata-1:0];
+// unpack PC_in.d for BD-bound word
+logic [1:0] BD_unused_hi;
+logic [5:0] leaf_code;
+logic [3:0] BD_unused_lo;
+logic [NBDdata-1:0] BD_data;
+assign {BD_unused_hi, leaf_code, BD_unused_lo, BD_data} = PC_in.d;
 
 // determine word type, for convenience
 enum {BD_WORD, REG_WORD, CHANNEL_WORD} word_type;
@@ -135,11 +147,13 @@ always_comb
 always_comb
   if (PC_in.v == 1 && word_type == BD_WORD) begin
     BD_data_out.v = 1;
-    BD_data_out.d = BD_data;
+    BD_data_out.leaf_code = leaf_code;
+    BD_data_out.payload = BD_data;
   end
   else begin
     BD_data_out.v = 0;
-    BD_data_out.d = 'X;
+    BD_data_out.leaf_code = 'X;
+    BD_data_out.payload = 'X;
   end
 
 // handshake input
@@ -163,8 +177,8 @@ endmodule
 // TESTBENCH
 module PCParser_tb;
 
-parameter NPCin = 24;
-parameter NBDdata = 21;
+parameter NPCin = 32;
+parameter NBDdata = 20;
 parameter Nconf = 16;
 parameter Nreg = 4;
 parameter Nchan = Nreg;
@@ -178,7 +192,7 @@ Channel #(Nconf) conf_channel_out_unpacked[Nchan-1:0]();
 UnpackChannelArray #(Nchan) conf_unpacker(conf_channel_out, conf_channel_out_unpacked);
 
 // passthrough output to BD
-Channel #(NBDdata) BD_data_out();
+UnencodedBDWordChannel BD_data_out();
 
 // input; from PC
 Channel #(NPCin) PC_in();
@@ -203,7 +217,11 @@ end
 RandomChannelSrc #(.N(NPCin)) PC_src(PC_in, clk, reset);
 
 // BD receiver
-ChannelSink BD_sink(BD_data_out, clk, reset);
+Channel #(26) BD_data_out_packed();
+assign BD_data_out_packed.d = {BD_data_out.leaf_code, BD_data_out.payload};
+assign BD_data_out_packed.v = BD_data_out.v;
+assign BD_data_out.a = BD_data_out_packed.a;
+ChannelSink BD_sink(BD_data_out_packed, clk, reset);
 
 // conf_channel receivers
 ChannelSink chan_sinks[Nchan-1:0](conf_channel_out_unpacked, clk, reset);

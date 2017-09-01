@@ -3,11 +3,13 @@
 
 module Core #(
   // common parameters (in/out names relative to FPGA)
-  parameter NPCout = 40,
-  parameter NPCin = 24,
+  parameter NPCcode = 8,
+  parameter NPCdata = 24,
+  parameter NPCout = NPCcode + NPCdata,
+  parameter NPCin = NPCcode + NPCdata,
 
   parameter NBDdata_in = 34,
-  parameter NBDdata_out = 22,
+  parameter NBDdata_out = 21,
 
   parameter Ntag = 11,
   parameter Nct = 9,
@@ -46,28 +48,27 @@ module Core #(
 // and the IO mechanism (e.g. Opal Kelly USB host module or USB IP core).
 //
 // Arrows for Channels, lines for plain registers.
-// Bigger boxes are more complicated modules.
 // 
-//            +----------+                                                                    
-//            |          |                                         (module ChannelSplit)
-// PC_in ---->| PCParser |        PCParser_BD_data_out                      PCParser_SG_merged          
-//  24b       |          |------------------------------------------------->|\     +--------------+               
-//            +----------+                             +-----------+        | |----|ChannelStaller|----> BD_out
-//                | | conf_regs,          +----------->|TagCtPacker|------->|/     +--------------+       22b     
-//                | | conf_channels       |            +-----------+ SG_BD_data_out        |    
-//                | V                     | SG_tags_out                                    |    
-//            +----------+          +----------+                                           |    
-//            |          |          |          |                                           |    
-//            | PCMapper |--------->| SpikeGen.| (contains a memory)                       |    
-//            |          |----------|          |                                           |    
-//            +----------+ SG_conf, +----------+                                           |    
-//                | |      SG_program_mem |                                                |    
-//                | |                     |                                                |    
-//                | | TM_conf             | time_unit_pulse                                |    
-//                | |   +-----------+     |                                                |    
-//                | |   |           |-----+                                                |   
-//                | +---|  TimeMgr  |     |                                                |
-//                |     |           |-----|------------------------------------------------+    
+//            +----------+                                                              
+//            |          |                                            BDTagMerge_out
+// PC_in ---->| PCParser |        PCParser_BD_data_out   +-----------+        +-----------+      +--------------+ 
+//  32b       |          |-------------------------------|           |        |           |      |              |                
+//            +----------+                               |BDTagMerge |--------| BDEncoder |------|ChannelStaller|-------> BD_out
+//                | | conf_regs,          +------------->|           |        |           |      |              |        22b     
+//                | | conf_channels       |              +-----------+        +-----------+      +--------------+              
+//                | V                     | SG_tags_out                                 BDEncoder_out    |    
+//            +----------+          +----------+                                                         |    
+//            |          |          |          |                                                         |    
+//            | PCMapper |--------->| SpikeGen.| (contains a memory)                                     |    
+//            |          |----------|          |                                                         |    
+//            +----------+ SG_conf, +----------+                                                         |    
+//                | |      SG_program_mem |                                                              |    
+//                | |                     |                                                              |    
+//                | | TM_conf             | time_unit_pulse                                              |    
+//                | |   +-----------+     |                                                              |    
+//                | |   |           |-----+                                                              |   
+//                | +---|  TimeMgr  |     |                                                              |
+//                |     |           |-----|--------------------------------------------------------------+    
 //                |     +-----------+     |                                          stall_dn      
 //                |          |            |                                                   
 //                |          |            |                                                   
@@ -77,14 +78,24 @@ module Core #(
 //                           | +----|          |                                              
 //                           | |    +----------+                                              
 //         send_HB_pulse_up, | |          ^                                                   
-//             time_elapsed  | |          | SF_tags_in 
+//             time_elapsed  | |          |            
 //                           | |          |            
-//            +----------+   | |          |            +-------------+ SF_BD_data_in          
-//            |          |---+ |          +------------|TagCtUnpacker|<----|\                                   
-// PC_out <---| PCPacker |<----+ PCPacker_SF_data_in   +-------------+     | |<--------------------- BD_in
-//  40b       |          |<------------------------------------------------|/                         34b       
-//            +----------+            PCPacker_BD_data_in                   (module BDInSplit)                  
-//                                                                                            
+//                      +----------+      |            
+//                      |          |      |            
+//                      | FPGASer. |      |            
+//                      |          |      |            
+//                      +----------+      |            
+//                           |            |                                                   BDDecoder_out
+//            +----------+   |            |      BDTagSplit_out_tags              +-----------+            +-----------+ 
+//            |          |<--+            +---------------------------------------|           |            |           |             
+// PC_out <---| PCPacker |  FPGASerializer_out           +----------+             |BDTagSplit |<-----------| BDDecoder |<------ BD_in
+//  32b       |          |<------------------------------|          |<------------|           |            |           |         34b       
+//            +----------+        BDSerializer_out       |  BDSer.  | BDTagSplit_ +-----------+            +-----------+                  
+//                                                       |          | out_tags                                    
+//                                                       +----------+
+//
+//
+
 
 /////////////////////////////////////////////
 // PCMapper signals, FPGA config data
