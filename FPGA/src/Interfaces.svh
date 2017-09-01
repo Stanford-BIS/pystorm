@@ -22,6 +22,9 @@ interface TimeMgrConf #(parameter Nunit = 16, parameter Ntime = 48);
   logic [Ntime-1:0] send_HB_up_every;  // send upstream heartbeat every <x> time units
 endinterface
 
+interface TagSplitConf;
+  logic report_tags;
+endinterface
 
 // channels
 interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 9);

@@ -34,6 +34,9 @@ module PCMapper #(
   // TimeMgr
   TimeMgrConf TM_conf,
 
+  // TagSplit
+  TagSplitConf TS_conf,
+
   // inputs from PCParser
   input [Nreg-1:0][Nconf-1:0] conf_reg_out,
   ChannelArray conf_channel_out, // Nchan channels, Nconf wide
@@ -72,6 +75,9 @@ parameter TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
 parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
 parameter TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
+parameter TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
+parameter TS_report_tags_idx        = TM_base + 0
+
 // assign registers
 
 assign SF_conf.filts_used         = conf_reg_out[SF_filts_used_idx        +:N_SF_filts_chunks];
@@ -86,6 +92,7 @@ assign TM_conf.PC_time_elapsed    = conf_reg_out[TM_PC_time_elapsed_idx   +:N_TM
 assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_send_HB_up_idx     +:N_TM_time_chunks];
 assign TM_conf.reset_time         = conf_reg_out[TM_PC_reset_time_idx];
 
+assign TS_conf.report_tags        = conf_reg_out[TS_report_tags_idx];
 // assign resets
 
 assign conf_reg_reset_vals[SF_filts_used_idx        +:N_SF_filts_chunks]   = 0; // no filters enabled, in "decay mode"
@@ -100,7 +107,9 @@ assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
 assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 10; // send HB every 10 time units
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
-assign conf_reg_reset_vals[Nreg-1:TM_PC_reset_time_idx+1] = 0;
+assign conf_reg_reset_vals[TS_report_tags_idx]                             = 1; // report tags by default
+
+assign conf_reg_reset_vals[Nreg-1:TS_report_tags_idx+1] = 0;
 
 /////////////////////////////////////////////////////
 // Channel mapping, deserialization
@@ -173,6 +182,9 @@ SpikeGeneratorConf SG_conf();
 
 // TimeMgr
 TimeMgrConf TM_conf();
+
+// TagSplit
+TagSplitConf TS_conf();
 
 // inputs from PCParser
 logic [Nreg-1:0][Nconf-1:0] conf_reg_out;
