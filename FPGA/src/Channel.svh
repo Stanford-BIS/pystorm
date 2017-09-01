@@ -278,7 +278,7 @@ module RandomChannelSrc #(
   parameter N = 1, 
   parameter logic [N-1:0] Max = 2**N-1, 
   parameter logic [N-1:0] Min = 0,     
-  parameter logic [N-1:0] Mask = (2**N-1)-1,
+  parameter logic [N-1:0] Mask = 2**N-1,
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 

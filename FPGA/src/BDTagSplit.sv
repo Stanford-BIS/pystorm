@@ -1,14 +1,19 @@
+`include "Interfaces.svh"
 `include "Channel.svh"
 
-module BDTagSplit #(parameter NBDdata_in = 34, parameter Ntag = 11, parameter Nct = 9) (
+module BDTagSplit #(
+  parameter NBDdata_in = 34,
+  parameter Ntag = 11,
+  parameter Nct = 9) (
+
   TagCtChannel tag_out,
   DecodedBDWordChannel other_out,
   DecodedBDWordChannel BD_in,
   TagSplitConf conf,
   input clk, reset);
 
-parameter RO_ACC_code = 11;
-parameter RO_TAT_code = 12;
+parameter unsigned RO_ACC_code = 11;
+parameter unsigned RO_TAT_code = 12;
 
 logic [NBDdata_in - Ntag - Nct - 1:0] global_tag; // discarded
 
@@ -24,18 +29,18 @@ assign send_to_tag_out = BD_in.v & is_tag;
 always_comb
   if (send_to_tag_out == 1) begin
     tag_out.v = 1;
-    {global_tag, tag_ct_data_out.tag, tag_ct_data_out.ct} = BD_in.payload;
+    {global_tag, tag_out.tag, tag_out.ct} = BD_in.payload;
   end
   else begin
     tag_out.v = 0;
-    {global_tag, tag_ct_data_out.tag, tag_ct_data_out.ct} = 'X;
+    {global_tag, tag_out.tag, tag_out.ct} = 'X;
   end
 
 always_comb
   if (send_to_other_out == 1) begin
     other_out.v = 1;
     other_out.payload = BD_in.payload;
-    other_out.leaf_code = BD_in.payload;
+    other_out.leaf_code = BD_in.leaf_code;
   end
   else begin
     other_out.v = 0;
@@ -59,9 +64,11 @@ endmodule
 ///////////////////////////////
 // TESTBENCH
 
-module BDInSplit_tb;
+module BDTagSplit_tb;
 
 parameter NBDdata_in = 34;
+parameter NBDpayload = 32;
+parameter NBDcode = 4;
 parameter Ntag = 11;
 parameter Nct = 9;
 
@@ -71,8 +78,8 @@ DecodedBDWordChannel BD_in();
 TagSplitConf conf();
 
 Channel #(Ntag + Nct) tag_out_flat();
-Channel #(NBDdata_in) other_out_flat();
-Channel #(NBDdata_in) BD_in_flat();
+Channel #(NBDpayload + NBDcode) other_out_flat();
+Channel #(NBDpayload + NBDcode) BD_in_flat();
 
 // clock
 logic clk;
@@ -105,7 +112,7 @@ assign {BD_in.leaf_code, BD_in.payload} = BD_in_flat.d;
 assign BD_in.v = BD_in_flat.v;
 assign BD_in_flat.a = BD_in.a;
 
-RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in_flat, clk, reset);
+RandomChannelSrc #(.N(NBDpayload + NBDcode)) BD_in_src(BD_in_flat, clk, reset);
 ChannelSink tag_out_sink(tag_out_flat, clk, reset);
 ChannelSink other_out_sink(other_out_flat, clk, reset);
 
