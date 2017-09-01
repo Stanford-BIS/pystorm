@@ -1,7 +1,7 @@
 `include "Channel.svh"
 `include "Interfaces.svh"
 
-module PCSerializer #(
+module FPGASerializer #(
   parameter NPCcode = 8,
   parameter NPCdata = 24,
   parameter Ntime = 48,
@@ -80,7 +80,7 @@ endmodule
 
 //////////////////////////////////////////////
 // TESTBENCH
-module PCSerializer_tb;
+module FPGASerializer_tb;
 
 parameter NPCcode = 8;
 parameter NPCdata = 24;
