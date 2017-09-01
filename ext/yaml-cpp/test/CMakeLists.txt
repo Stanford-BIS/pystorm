@@ -1,16 +1,22 @@
 set(gtest_force_shared_crt ${MSVC_SHARED_RT} CACHE BOOL
   "Use shared (DLL) run-time lib even when Google Test built as a static lib.")
-add_subdirectory(gmock-1.7.0)
-include_directories(SYSTEM gmock-1.7.0/gtest/include)
-include_directories(SYSTEM gmock-1.7.0/include)
+add_subdirectory(gtest-1.8.0)
+include_directories(SYSTEM gtest-1.8.0/googlemock/include)
+include_directories(SYSTEM gtest-1.8.0/googletest/include)
 
 if(WIN32 AND BUILD_SHARED_LIBS)
   add_definitions("-DGTEST_LINKED_AS_SHARED_LIBRARY")
 endif()
 
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU" OR
-   "${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU" OR
+   CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(yaml_test_flags "-Wno-c99-extensions -Wno-variadic-macros -Wno-sign-compare")
+
+  if(CMAKE_COMPILER_IS_GNUCXX)
+    set(yaml_test_flags "${yaml_test_flags} -std=gnu++11")
+  else()
+    set(yaml_test_flags "${yaml_test_flags} -std=c++11")
+  endif()
 endif()
 
 file(GLOB test_headers [a-z_]*.h)
