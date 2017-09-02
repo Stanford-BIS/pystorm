@@ -2,8 +2,8 @@
 `include "Interfaces.svh"
 
 module BDDecoder (
-  Channel BD_in,
-  DecodedBDWordChannel dec_out);
+  DecodedBDWordChannel dec_out,
+  Channel BD_in);
 
 // BD funnel routing table (from the wiki)
 /*
@@ -31,10 +31,10 @@ module BDDecoder (
 // [ route | X | payload]
 
 // this module isn't really parametrized, it only works for this width
-parameter NBDdata = 34;
-parameter Nbiggest_payload = 32;
-parameter Nfunnel = 13;
-parameter Ncode = 4;
+localparam NBDdata = 34;
+localparam Nbiggest_payload = 32;
+localparam Nfunnel = 13;
+localparam Ncode = 4;
 
 ///////////////////////////////////////////
 // reinterpretation of table data
@@ -56,7 +56,7 @@ enum {
   INVALID} leaf;
 
 // leaf id's value is also the output code
-const logic [Nfunnel-1:0][NBDdata-1:0] route_masks = '{
+const logic [0:Nfunnel-1][NBDdata-1:0] route_masks = '{
   {{6{1'b1}}, {(34-6){1'b0}}},
   {{6{1'b1}}, {(34-6){1'b0}}},
   {{5{1'b1}}, {(34-5){1'b0}}},
@@ -71,22 +71,22 @@ const logic [Nfunnel-1:0][NBDdata-1:0] route_masks = '{
   {{2{1'b1}}, {(34-2){1'b0}}},
   {{2{1'b1}}, {(34-2){1'b0}}}};
 
-const logic [Nfunnel-1:0][NBDdata-1:0] payload_masks = ~route_masks;
+const logic [0:Nfunnel-1][NBDdata-1:0] payload_masks = ~route_masks;
 
-const logic [Nfunnel-1:0][NBDdata-1:0] routes = '{
-  101000  << (NBDdata - 6),
-  101001  << (NBDdata - 6),
-  10101   << (NBDdata - 5),
-  101110  << (NBDdata - 6),
-  101111  << (NBDdata - 6),
-  101101  << (NBDdata - 6),
-  1000    << (NBDdata - 4),
-  1001    << (NBDdata - 4),
-  11      << (NBDdata - 2),
-  1011000 << (NBDdata - 7),
-  1011001 << (NBDdata - 7),
-  01      << (NBDdata - 2),
-  00      << (NBDdata - 2)};
+const logic [0:Nfunnel-1][NBDdata-1:0] routes = '{
+  'b101000  << (NBDdata - 6),
+  'b101001  << (NBDdata - 6),
+  'b10101   << (NBDdata - 5),
+  'b101110  << (NBDdata - 6),
+  'b101111  << (NBDdata - 6),
+  'b101101  << (NBDdata - 6),
+  'b1000    << (NBDdata - 4),
+  'b1001    << (NBDdata - 4),
+  'b11      << (NBDdata - 2),
+  'b1011000 << (NBDdata - 7),
+  'b1011001 << (NBDdata - 7),
+  'b01      << (NBDdata - 2),
+  'b00      << (NBDdata - 2)};
 
 ///////////////////////////////////////////
 // logic
