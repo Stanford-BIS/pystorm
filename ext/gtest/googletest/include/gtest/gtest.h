@@ -1389,7 +1389,11 @@ AssertionResult CmpHelperEQ(const char* lhs_expression,
                             const T1& lhs,
                             const T2& rhs) {
 GTEST_DISABLE_MSC_WARNINGS_PUSH_(4389 /* signed/unsigned mismatch */)
+#ifdef _MSC_VER
+  if (lhs == static_cast<const T1>(rhs)) {
+#else
   if (lhs == rhs) {
+#endif
     return AssertionSuccess();
   }
 GTEST_DISABLE_MSC_WARNINGS_POP_()

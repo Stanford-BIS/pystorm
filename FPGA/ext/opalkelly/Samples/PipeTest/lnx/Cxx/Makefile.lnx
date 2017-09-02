@@ -1,0 +1,25 @@
+PROGRAM := PipeTest
+
+okFP_SDK ?= ../../../API
+
+CPPFLAGS := -I$(okFP_SDK)
+LDFLAGS := -L$(okFP_SDK) -Wl,-rpath=../../../API/
+LIBS := -ldl
+
+okFP_LIBS := -lokFrontPanel
+
+OBJECTS := \
+	PipeTest.o
+
+.SUFFIXES: .o .cpp
+
+all: $(PROGRAM)
+
+$(OBJECTS): %.o:%.cpp
+	$(CXX) $(CPPFLAGS) $(okFP_CXXFLAGS) $(CXXFLAGS) -o $@ -c $<
+
+$(PROGRAM): $(OBJECTS)
+	$(CXX) $(okFP_LDFLAGS) $(LDFLAGS) -o $(PROGRAM) $(OBJECTS) $(okFP_LIBS) $(LIBS)
+
+clean:
+	rm -f *.o $(PROGRAM)

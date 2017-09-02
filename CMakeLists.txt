@@ -28,17 +28,9 @@ function(build_common)
     link_directories(${PROJECT_SOURCE_DIR}/lib)
 
     # External modules
-    if (CXX_IS_GNU OR CXX_IS_CLANG)
-        add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
-    endif()
-
-    # PyStorm modules
     if (CXX_IS_VALID)
+        add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
         add_subdirectory(${PROJECT_SOURCE_DIR}/src)
-    endif()
-
-    # Test modules
-    if (CXX_IS_GNU OR CXX_IS_CLANG)
         add_subdirectory(${PROJECT_SOURCE_DIR}/test)
     endif()
 endfunction()
