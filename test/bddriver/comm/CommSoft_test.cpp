@@ -27,7 +27,7 @@ TEST(CommSoftTests, testConstructionFails) {
     MutexBuffer<COMMWord> * write_buffer = 
         new MutexBuffer<COMMWord>(COMMSOFT_BUFFER_CAP);
 
-    ASSERT_DEATH(new CommSoft(infile, outfile,read_buffer, write_buffer),"");
+    EXPECT_THROW(new CommSoft(infile, outfile,read_buffer, write_buffer),std::invalid_argument);
 }
 
 ///

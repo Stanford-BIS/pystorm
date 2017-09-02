@@ -137,6 +137,7 @@ class MutexBuffer {
   // these locks are only for preventing multiple concurrent two-part calls of the same type
   std::mutex front_lock_;
   std::mutex back_lock_;
+  std::mutex count_lock_;
   std::unique_lock<std::mutex> *front_ulock_;
   std::unique_lock<std::mutex> *back_ulock_;
 

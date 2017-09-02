@@ -72,9 +72,7 @@ SetupSharedLibrary()
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
 pybind11_add_module(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
-#add_library(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
 target_link_libraries(${TARGET_NAME} PRIVATE
-#    pybind11::module
     ${PYTHON_LIBRARIES}
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
@@ -92,9 +90,9 @@ endif()
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
-# Python expects modules to end in .so
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
 if(APPLE)
     set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".so")
 elseif(WIN32)
-    set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd" LINK_FLAGS "/LTCG")
+    set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)
