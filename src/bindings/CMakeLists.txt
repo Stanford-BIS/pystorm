@@ -71,9 +71,10 @@ SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-add_library(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
-target_link_libraries(${TARGET_NAME}
-    pybind11::module
+pybind11_add_module(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
+#add_library(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
+target_link_libraries(${TARGET_NAME} PRIVATE
+#    pybind11::module
     ${PYTHON_LIBRARIES}
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
@@ -88,7 +89,8 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     add_compile_options(/GL /bigobj)
 endif()
 
-set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
 # Python expects modules to end in .so
 if(APPLE)
