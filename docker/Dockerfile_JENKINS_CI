@@ -11,6 +11,6 @@ RUN export HOME="/home/git" \
     && mkdir build \
     && cd build \
     && cmake -G Ninja ..  \
-    && ninja -j
+    && ninja -j 6
 
 WORKDIR /home/git/pystorm/build/
