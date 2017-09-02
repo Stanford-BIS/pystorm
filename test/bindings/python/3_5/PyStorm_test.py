@@ -213,143 +213,143 @@ class TestConnection(unittest.TestCase):
         self.assertRaises(Exception, ps.Connection,
             (self.conn_in[0], self.pool[1], self.weights_2_3))
         
-    #def test_constructor_Pool_Bucket(self):
-    #    try:
-    #        raised = False
-    #        conn = ps.Connection("conn", self.pool[0], self.bucket[0], 
-    #            self.weights_3_3)
-    #        conn = ps.Connection("conn", self.pool[0], self.bucket[1], 
-    #            self.weights_3_2)
-    #        conn = ps.Connection("conn", self.pool[1], self.bucket[0], 
-    #            self.weights_2_3)
-    #        conn = ps.Connection("conn", self.pool[0], self.bucket[1]) 
-    #        conn = ps.Connection("conn", self.pool[1], self.bucket[0]) 
-    #    except:
-    #        raised = True
-    #        self.assertFalse(raised, "Exception raised with Pool-Bucket conn")
+    def test_constructor_Pool_Bucket(self):
+        try:
+            raised = False
+            conn = ps.Connection("conn", self.pool[0], self.bucket[0], 
+                self.weights_3_3)
+            conn = ps.Connection("conn", self.pool[0], self.bucket[1], 
+                self.weights_3_2)
+            conn = ps.Connection("conn", self.pool[1], self.bucket[0], 
+                self.weights_2_3)
+            conn = ps.Connection("conn", self.pool[0], self.bucket[1]) 
+            conn = ps.Connection("conn", self.pool[1], self.bucket[0]) 
+        except:
+            raised = True
+            self.assertFalse(raised, "Exception raised with Pool-Bucket conn")
 
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.pool[1], self.bucket[0], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.pool[0], self.bucket[1], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.pool[1], self.bucket[0], self.weights_2_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.pool[0], self.bucket[1], self.weights_3_2))
+        self.assertRaises(Exception, ps.Connection,
+            (self.pool[1], self.bucket[0], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.pool[0], self.bucket[1], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.pool[1], self.bucket[0], self.weights_2_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.pool[0], self.bucket[1], self.weights_3_2))
 
-    #def test_constructor_Bucket_Output(self):
-    #    try:
-    #        raised = False
-    #        conn = ps.Connection("conn", self.bucket[0], self.conn_out[0], 
-    #            self.weights_3_3)
-    #        conn = ps.Connection("conn", self.bucket[0], self.conn_out[1], 
-    #            self.weights_3_2)
-    #        conn = ps.Connection("conn", self.bucket[1], self.conn_out[0], 
-    #            self.weights_2_3)
-    #        conn = ps.Connection("conn", self.bucket[0], self.conn_out[1])
-    #        conn = ps.Connection("conn", self.bucket[1], self.conn_out[0])
-    #    except:
-    #        raised = True
-    #        self.assertFalse(raised, "Exception raised with Bucket-Output conn")
+    def test_constructor_Bucket_Output(self):
+        try:
+            raised = False
+            conn = ps.Connection("conn", self.bucket[0], self.conn_out[0], 
+                self.weights_3_3)
+            conn = ps.Connection("conn", self.bucket[0], self.conn_out[1], 
+                self.weights_3_2)
+            conn = ps.Connection("conn", self.bucket[1], self.conn_out[0], 
+                self.weights_2_3)
+            conn = ps.Connection("conn", self.bucket[0], self.conn_out[1])
+            conn = ps.Connection("conn", self.bucket[1], self.conn_out[0])
+        except:
+            raised = True
+            self.assertFalse(raised, "Exception raised with Bucket-Output conn")
 
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[1], self.conn_out[0], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[0], self.conn_out[1], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[1], self.conn_out[0], self.weights_2_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[0], self.conn_out[1], self.weights_3_2))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[1], self.conn_out[0], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[0], self.conn_out[1], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[1], self.conn_out[0], self.weights_2_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[0], self.conn_out[1], self.weights_3_2))
 
-    #def test_constructor_Bucket_Bucket(self):
-    #    try:
-    #        raised = False
-    #        conn = ps.Connection("conn", self.bucket[0], self.bucket[0], 
-    #            self.weights_3_3)
-    #        conn = ps.Connection("conn", self.bucket[0], self.bucket[1], 
-    #            self.weights_3_2)
-    #        conn = ps.Connection("conn", self.bucket[1], self.bucket[0], 
-    #            self.weights_2_3)
-    #        conn = ps.Connection("conn", self.bucket[0], self.bucket[1])
-    #        conn = ps.Connection("conn", self.bucket[1], self.bucket[0])
-    #    except:
-    #        raised = True
-    #        self.assertFalse(raised, "Exception raised with Bucket-Bucket conn")
+    def test_constructor_Bucket_Bucket(self):
+        try:
+            raised = False
+            conn = ps.Connection("conn", self.bucket[0], self.bucket[0], 
+                self.weights_3_3)
+            conn = ps.Connection("conn", self.bucket[0], self.bucket[1], 
+                self.weights_3_2)
+            conn = ps.Connection("conn", self.bucket[1], self.bucket[0], 
+                self.weights_2_3)
+            conn = ps.Connection("conn", self.bucket[0], self.bucket[1])
+            conn = ps.Connection("conn", self.bucket[1], self.bucket[0])
+        except:
+            raised = True
+            self.assertFalse(raised, "Exception raised with Bucket-Bucket conn")
 
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[1], self.bucket[0], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[0], self.bucket[1], self.weights_3_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[1], self.bucket[0], self.weights_2_3))
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.bucket[0], self.bucket[1], self.weights_3_2))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[1], self.bucket[0], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[0], self.bucket[1], self.weights_3_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[1], self.bucket[0], self.weights_2_3))
+        self.assertRaises(Exception, ps.Connection,
+            (self.bucket[0], self.bucket[1], self.weights_3_2))
 
-    #def test_constructor_Input_Output(self):
-    #    self.assertRaises(Exception, ps.Connection, 
-    #        (self.conn_in[0], self.conn_out[0], self.weights_3_3))
+    def test_constructor_Input_Output(self):
+        self.assertRaises(Exception, ps.Connection, 
+            (self.conn_in[0], self.conn_out[0], self.weights_3_3))
 
-    #def test_constructor_Input_Input(self):
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.conn_in[0], self.conn_in[0], self.weights_3_3))
+    def test_constructor_Input_Input(self):
+        self.assertRaises(Exception, ps.Connection,
+            (self.conn_in[0], self.conn_in[0], self.weights_3_3))
 
-    #def test_constructor_Output_Output(self):
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.conn_out[0], self.conn_out[0], self.weights_3_3))
+    def test_constructor_Output_Output(self):
+        self.assertRaises(Exception, ps.Connection,
+            (self.conn_out[0], self.conn_out[0], self.weights_3_3))
 
-    #def test_constructor_Pool_Pool(self):
-    #    self.assertRaises(Exception, ps.Connection,
-    #        (self.pool[0], self.pool[0], self.weights_3_3))
-    #    
-    #def test_get_label(self):
-    #    conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-    #        self.weights_3_3)
+    def test_constructor_Pool_Pool(self):
+        self.assertRaises(Exception, ps.Connection,
+            (self.pool[0], self.pool[0], self.weights_3_3))
+        
+    def test_get_label(self):
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+            self.weights_3_3)
 
-    #    self.assertEqual("conn",conn.get_label())
+        self.assertEqual("conn",conn.get_label())
 
-    #def test_get_source(self):
-    #    conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-    #        self.weights_3_3)
+    def test_get_source(self):
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+            self.weights_3_3)
 
-    #    self.assertEqual(self.conn_in[0].get_label(),
-    #        conn.get_source().get_label())
-    #    self.assertEqual(self.conn_in[0].get_num_dimensions(),
-    #        conn.get_source().get_num_dimensions())
+        self.assertEqual(self.conn_in[0].get_label(),
+            conn.get_source().get_label())
+        self.assertEqual(self.conn_in[0].get_num_dimensions(),
+            conn.get_source().get_num_dimensions())
 
-    #def test_get_dest(self):
-    #    conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-    #        self.weights_3_3)
+    def test_get_dest(self):
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+            self.weights_3_3)
 
-    #    self.assertEqual(self.pool[0].get_label(),
-    #        conn.get_dest().get_label())
-    #    self.assertEqual(self.pool[0].get_num_dimensions(),
-    #        conn.get_dest().get_num_dimensions())
-    #    self.assertEqual(self.pool[0].get_num_neurons(),
-    #        conn.get_dest().get_num_neurons())
+        self.assertEqual(self.pool[0].get_label(),
+            conn.get_dest().get_label())
+        self.assertEqual(self.pool[0].get_num_dimensions(),
+            conn.get_dest().get_num_dimensions())
+        self.assertEqual(self.pool[0].get_num_neurons(),
+            conn.get_dest().get_num_neurons())
 
-    #def test_get_weights(self):
-    #    conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-    #        self.weights_3_3)
+    def test_get_weights(self):
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+            self.weights_3_3)
 
-    #    weights = conn.get_weights()
+        weights = conn.get_weights()
 
-    #    for i in range(weights.get_num_rows()):
-    #        for j in range(weights.get_num_columns()):
-    #            self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
+        for i in range(weights.get_num_rows()):
+            for j in range(weights.get_num_columns()):
+                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
 
-    #def test_set_weights(self):
-    #    conn = ps.Connection("conn", self.conn_in[0], self.pool[0])
-    #    weights = conn.get_weights()
+    def test_set_weights(self):
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0])
+        weights = conn.get_weights()
 
-    #    self.assertEqual(weights,None)
+        self.assertEqual(weights,None)
 
-    #    conn.set_weights(self.weights_3_3)
+        conn.set_weights(self.weights_3_3)
 
-    #    weights = conn.get_weights()
+        weights = conn.get_weights()
 
-    #    for i in range(weights.get_num_rows()):
-    #        for j in range(weights.get_num_columns()):
-    #            self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
+        for i in range(weights.get_num_rows()):
+            for j in range(weights.get_num_columns()):
+                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
 
 class TestNetwork(unittest.TestCase):
     num_neurons = 100
