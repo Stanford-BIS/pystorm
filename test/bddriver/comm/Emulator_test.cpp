@@ -64,7 +64,7 @@ TEST(EmulatorTests, testConstructionFails) {
     std::string infile("./infile.txt");
     std::string outfile("./outfile.txt");
 
-    ASSERT_DEATH(new Emulator(infile, outfile),"");
+    EXPECT_THROW(new Emulator(infile, outfile), std::invalid_argument);
 }
 
 ///

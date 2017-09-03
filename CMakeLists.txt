@@ -13,12 +13,10 @@ enable_testing()
 # Load packages
 find_package(PythonLibs 3.5 REQUIRED)
 find_package(PythonInterp 3.5)
-find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
 
 ############################################################################
 #
 # Entry function to build on Linux/Darwin/Windows
-# On entry, we know that Boost is present on the system
 # We need to make sure that the compiler is correct
 #
 ############################################################################

@@ -109,11 +109,15 @@ public:
     /// class after deleting this (consider smart pointers).
     ///
     ~Connection() {
-        if (nullptr != m_weights)
-        {
-            delete m_weights;
-            m_weights = nullptr;
-        }
+        /* HACK: Since, weights are always created by a top-level module,
+          leave it up to the top-level to delete the weights.
+          This is especially true with Python bindings.
+        */
+        //if (nullptr != m_weights)
+        //{
+        //    delete m_weights;
+        //    m_weights = nullptr;
+        //}
     }
 
     Connection(const Connection &) = delete;
