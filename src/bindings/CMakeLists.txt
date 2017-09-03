@@ -3,6 +3,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 project(PyStormBindings CXX)
 set(TARGET_NAME "Pystorm")
+set(TARGET2_NAME "BDDriver")
 
 ############################################################################
 #
@@ -77,6 +78,11 @@ target_link_libraries(${TARGET_NAME} PRIVATE
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
 )
+pybind11_add_module(${TARGET2_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/BDDriver.cpp)
+target_link_libraries(${TARGET2_NAME} PRIVATE
+    ${PYTHON_LIBRARIES}
+    ${DRIVER_LIBRARY}
+)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     add_compile_options(-flto -fvisibility=hidden)
 endif()
@@ -95,4 +101,14 @@ if(APPLE)
     set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".so")
 elseif(WIN32)
     set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
+endif(APPLE)
+
+set_property(TARGET ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${TARGET2_NAME} PROPERTY PREFIX "")
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
+if(APPLE)
+    set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".so")
+elseif(WIN32)
+    set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)
