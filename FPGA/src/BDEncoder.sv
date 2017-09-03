@@ -198,11 +198,6 @@ assign data_shifted8 = enc_in.payload << 8;
 logic [NBDdata-1:0] route_sel;
 assign route_sel = routes[enc_in.leaf_code];
 
-logic [NBDdata-1:0] test1;
-logic [NBDdata-1:0] test3;
-assign test1 = data_shifted1 | route_sel;
-assign test3 = data_shifted3 | route_sel;
-
 logic [Ncode-1:0] route_len;
 assign route_len = route_lens[enc_in.leaf_code];
 
