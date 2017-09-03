@@ -38,8 +38,8 @@ Channel #(N_SF_filts + N_SF_state) SF_packed();
 Channel #(NPCdata) HB_serialized();
 Channel #(NPCdata) SF_serialized();
 
-Channel #(Ncode + NPCdata) HB_coded();
-Channel #(Ncode + NPCdata) SF_coded();
+Channel #(NPCcode + NPCdata) HB_coded();
+Channel #(NPCcode + NPCdata) SF_coded();
 
 //////////////////////////////////////////////
 // Heartbeat
@@ -74,7 +74,12 @@ assign SF_serialized.a = SF_coded.a;
 //////////////////////////////////////////////
 // Merge *_coded channels
 
-ChannelMerge coded_merge(PC_out, SF_coded, HB_coded, clk, reset);
+Channel #(NPCcode + NPCdata) PC_out_packed();
+assign {PC_out.code, PC_out.payload} = PC_out_packed.d;
+assign PC_out.v = PC_out_packed.v;
+assign PC_out_packed.a = PC_out.a;
+
+ChannelMerge coded_merge(PC_out_packed, SF_coded, HB_coded, clk, reset);
 
 endmodule
 
@@ -89,7 +94,7 @@ parameter N_SF_filts = 10;
 parameter N_SF_state = 27;
 
 // our only output goes to the PC
-Channel #(NPCout) PC_out();
+Channel #(NPCcode + NPCdata) PC_out();
 
 // Filtered spikes
 SpikeFilterOutputChannel #(N_SF_filts, N_SF_state) SF_in();

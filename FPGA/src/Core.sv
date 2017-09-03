@@ -136,8 +136,8 @@ DecodedBDWordChannel BDDecoder_out();
 DecodedBDWordChannel BDTagSplit_out_other();
 TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags();
 SpikeFilterOutputChannel SF_tags_out();
-SerializedPCWordChannel BDSerializer_out()
-SerializedPCWordChannel FPGASerializer_out()
+SerializedPCWordChannel BDSerializer_out();
+SerializedPCWordChannel FPGASerializer_out();
 
 /////////////////////////////////////////////
 // Config/FPGA state modules
@@ -208,20 +208,11 @@ SG_array(
   SG_program_mem,
   clk, reset);
 
-// SG TagCtPacker
-TagCtPacker #(
-  .Ntag(Ntag),
-  .Nct(Nct),
-  .NBDdata(NBDdata_out))
-SG_tag_ct_packer(
-  SG_BD_data_out,
-  SG_tags_out);
-
 // PCParser/SG merge
-ChannelMerge tag_merge(
+BDTagMerge tag_merge(
   BDTagMerge_out,
-  SG_tags_out,
   PCParser_BD_data_out,
+  SG_tags_out,
   clk, reset);
 
 // BDEncoder
@@ -239,10 +230,14 @@ ChannelStaller BD_out_stall(
 // BD -> PC datapath
 
 // BDDecoder
-BDDecoder (BDDecoder_out, BD_in);
+BDDecoder BD_decoder(BDDecoder_out, BD_in);
 
 // BDTagSplit
-BDTagSplit #(NBDdata_in, Ntag, Nct) (
+BDTagSplit #(
+  NBDdata_in, 
+  Ntag, 
+  Nct) 
+BD_tag_split(
   BDTagSplit_out_tags,
   BDTagSplit_out_other,
   BDDecoder_out,
@@ -255,8 +250,8 @@ SpikeFilterArray #(
   .Nstate(N_SF_state),
   .Nct(N_SF_ct))
 SF_array(
-  BDTagSplit_out_tags,
   SF_tags_out,
+  BDTagSplit_out_tags,
   time_unit_pulse,
   SF_conf,
   clk, reset);
@@ -272,7 +267,7 @@ FPGA_serializer(
   FPGASerializer_out,
   send_HB_up_pulse,
   time_elapsed,
-  BDTagSplit_out_tags,
+  SF_tags_out,
   clk, reset);
 
 // PCPacker
@@ -292,20 +287,20 @@ endmodule
 
 module Core_tb;
 
-parameter NPCcode = 8,
-parameter NPCdata = 24,
+parameter NPCcode = 8;
+parameter NPCdata = 24;
 
 parameter NBDdata_in = 34;
 parameter NBDdata_out = 22;
 
 
 // PC-side
-Channel #(NPCin) PC_in();
-Channel #(NPCout) PC_out();
+Channel #(NPCcode + NPCdata) PC_in();
+Channel #(NPCcode + NPCdata) PC_out();
 
 // BD-side
-Channel #(NPCode + NPCdata) BD_out();
-Channel #(NPCode + NPCdata) BD_in();
+Channel #(NBDdata_out) BD_out();
+Channel #(NBDdata_in) BD_in();
 
 // clock
 logic clk;
@@ -321,7 +316,7 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
-RandomChannelSrc #(.N(NPCin)) PC_in_src(PC_in, clk, reset);
+RandomChannelSrc #(.N(NPCcode + NPCdata)) PC_in_src(PC_in, clk, reset);
 ChannelSink PC_out_sink(PC_out, clk, reset);
 
 //RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);

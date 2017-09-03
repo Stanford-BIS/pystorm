@@ -76,7 +76,7 @@ parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chu
 parameter TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
 parameter TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
-parameter TS_report_tags_idx        = TM_base + 0
+parameter TS_report_tags_idx        = TS_base + 0;
 
 // assign registers
 
