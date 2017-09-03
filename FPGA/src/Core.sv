@@ -56,42 +56,47 @@ module Core #(
 //            +----------+                               |BDTagMerge |--------| BDEncoder |------|ChannelStaller|-------> BD_out
 //                | | conf_regs,          +------------->|           |        |           |      |              |        22b     
 //                | | conf_channels       |              +-----------+        +-----------+      +--------------+              
-//                | V                     | SG_tags_out                                 BDEncoder_out    |    
+//                | |                     | SG_tags_out                                 BDEncoder_out    |    
+//                | V                     |                                                              |    
 //            +----------+          +----------+                                                         |    
 //            |          |          |          |                                                         |    
 //            | PCMapper |--------->| SpikeGen.| (contains a memory)                                     |    
 //            |          |----------|          |                                                         |    
 //            +----------+ SG_conf, +----------+                                                         |    
-//                | |      SG_program_mem |                                                              |    
-//                | |                     |                                                              |    
-//                | | TM_conf             | time_unit_pulse                                              |    
-//                | |   +-----------+     |                                                              |    
-//                | |   |           |-----+                                                              |   
-//                | +---|  TimeMgr  |     |                                                              |
-//                |     |           |-----|--------------------------------------------------------------+    
-//                |     +-----------+     |                                          stall_dn      
-//                |          |            |                                                   
-//                |          |            |                                                   
-//        SF_conf |          |      +----------+                                              
-//                |          |      |          |                                              
-//                +----------|------|SpikeFilt.| (contains a memory)                          
-//                           | +----|          |                                              
-//                           | |    +----------+                                              
-//         send_HB_pulse_up, | |          ^                                                   
-//             time_elapsed  | |          |            
-//                           | |          |            
-//                      +----------+      |            
-//                      |          |      |            
-//                      | FPGASer. |      |            
-//                      |          |      |            
-//                      +----------+      |            
-//                           |            |                                                   BDDecoder_out
-//            +----------+   |            |      BDTagSplit_out_tags              +-----------+            +-----------+ 
-//            |          |<--+            +---------------------------------------|           |            |           |             
-// PC_out <---| PCPacker |  FPGASerializer_out           +----------+             |BDTagSplit |<-----------| BDDecoder |<------ BD_in
-//  32b       |          |<------------------------------|          |<------------|           |            |           |         34b       
-//            +----------+        BDSerializer_out       |  BDSer.  | BDTagSplit_ +-----------+            +-----------+                  
-//                                                       |          | out_tags                                    
+//                | | |    SG_program_mem |                                                              |    
+//                | | |                   |                                                              |    
+//                | | |                   |                                                              |    
+//                | | +-------------------|---------------------------------------------+                |    
+//                | |                     |                                             |                |    
+//                | | TM_conf             | time_unit_pulse                             |                |    
+//                | |   +-----------+     |                                             |                |    
+//                | |   |           |-----+                                             |                |   
+//                | +---|  TimeMgr  |     |                                             |                |
+//                |     |           |-----|---------------------------------------------|----------------+    
+//                |     +-----------+     |                                             |  stall_dn      
+//                |          |            |                                             |       
+//                |          |            |                                             |       
+//        SF_conf |          |      +----------+                                        |       
+//                |          |      |          |                                        |       
+//                +----------|------|SpikeFilt.| (contains a memory)                    |       
+//                           | +----|          |                                TS_conf |       
+//                           | |    +----------+                                        |       
+//         send_HB_pulse_up, | | SF_tags_ ^                                             |       
+//             time_elapsed  | | out      |                                             |   
+//                           | V          |                                             |             
+//                      +----------+      |                                             |             
+//                      |          |      |                                             |             
+//                      | FPGASer. |      |                                             |             
+//                      |          |      |                                             |             
+//                      +----------+      |                                             |             
+//                           |            |                                             |                    
+//                           |            |                                             |     BDDecoder_out
+//            +----------+   |            |      BDTagSplit_out_tags              +-----------+       +-----------+ 
+//            |          |<--+            +---------------------------------------|           |       |           |             
+// PC_out <---| PCPacker |  FPGASerializer_out           +----------+             |BDTagSplit |<------| BDDecoder |<------ BD_in
+//  32b       |          |<------------------------------|          |<------------|           |       |           |         34b  
+//            +----------+        BDSerializer_out       |  BDSer.  | BDTagSplit_ +-----------+       +-----------+  
+//                                                       |          | out_other                                  
 //                                                       +----------+
 //
 //
@@ -110,6 +115,7 @@ ChannelArray #(Nconf, Nchan) conf_channels();
 SpikeFilterConf #(N_SF_filts, N_SF_state) SF_conf();
 SpikeGeneratorConf #(N_SG_gens) SG_conf();
 TimeMgrConf #(N_TM_unit, N_TM_time) TM_conf();
+TagSplitConf TS_conf();
 // conf channels
 SpikeGeneratorProgChannel #(N_SG_gens, N_SG_period, N_SG_tag) SG_program_mem();
 
@@ -120,16 +126,18 @@ logic stall_dn;
 logic [N_TM_time-1:0] time_elapsed;
 
 // data channels: PC -> BD
-Channel #(NBDdata_out) PCParser_BD_data_out();
+UnencodedBDWordChannel PCParser_BD_data_out();
 TagCtChannel #(Ntag, Nct) SG_tags_out();
-Channel #(NBDdata_out) SG_BD_data_out();
-Channel #(NBDdata_out) PCParser_SG_merged();
+UnencodedBDWordChannel BDTagMerge_out();
+Channel #(NBDdata_out) BDEncoder_out();
 
 // data channels: BD -> PC
-Channel #(NBDdata_in) SF_BD_data_in();
-TagCtChannel #(Ntag, Nct) SF_tags_in();
-Channel #(NBDdata_in) PCPacker_BD_data_in();
-SpikeFilterOutputChannel #(N_SF_filts, N_SF_state) PCPacker_SF_data_in();
+DecodedBDWordChannel BDDecoder_out();
+DecodedBDWordChannel BDTagSplit_out_other();
+TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags();
+SpikeFilterOutputChannel SF_tags_out();
+SerializedPCWordChannel BDSerializer_out()
+SerializedPCWordChannel FPGASerializer_out()
 
 /////////////////////////////////////////////
 // Config/FPGA state modules
@@ -167,6 +175,7 @@ PC_mapper(
   SG_program_mem,
   SG_conf,
   TM_conf,
+  TS_conf,
   conf_regs,
   conf_channels,
   clk, reset);
@@ -209,24 +218,36 @@ SG_tag_ct_packer(
   SG_tags_out);
 
 // PCParser/SG merge
-ChannelMerge PCParser_SG_merge(
-  PCParser_SG_merged,
-  SG_BD_data_out,
+ChannelMerge tag_merge(
+  BDTagMerge_out,
+  SG_tags_out,
   PCParser_BD_data_out,
   clk, reset);
+
+// BDEncoder
+BDEncoder BD_encoder(
+  BDEncoder_out,
+  BDTagMerge_out);
 
 // BD_out staller
 ChannelStaller BD_out_stall(
   BD_out,
-  PCParser_SG_merged,
+  BDEncoder_out,
   stall_dn);
 
 /////////////////////////////////////////////
 // BD -> PC datapath
 
-// BDInSplit
-BDInSplit #(NBDdata_in) 
-BD_in_split(SF_BD_data_in, PCPacker_BD_data_in, BD_in, clk, reset);
+// BDDecoder
+BDDecoder (BDDecoder_out, BD_in);
+
+// BDTagSplit
+BDTagSplit #(NBDdata_in, Ntag, Nct) (
+  BDTagSplit_out_tags,
+  BDTagSplit_out_other,
+  BDDecoder_out,
+  TS_conf,
+  clk, reset);
 
 // SpikeFilter
 SpikeFilterArray #(
@@ -234,25 +255,34 @@ SpikeFilterArray #(
   .Nstate(N_SF_state),
   .Nct(N_SF_ct))
 SF_array(
-  PCPacker_SF_data_in,
-  SF_tags_in,
+  BDTagSplit_out_tags,
+  SF_tags_out,
   time_unit_pulse,
   SF_conf,
   clk, reset);
 
-// PCPacker
-PCPacker #(
-  .NPCout(NPCout),
-  .NBDdata(NBDdata_in),
+// FPGASerializer
+FPGASerializer #(
+  .NPCcode(NPCcode),
+  .NPCdata(NPCdata),
   .Ntime(N_TM_time),
   .N_SF_filts(N_SF_filts),
-  .N_SF_state(N_SF_state))
-PC_packer(
-  PC_out,
-  PCPacker_BD_data_in,
+  .N_SF_state(N_SF_state)) 
+FPGA_serializer(
+  FPGASerializer_out,
   send_HB_up_pulse,
   time_elapsed,
-  PCPacker_SF_data_in,
+  BDTagSplit_out_tags,
+  clk, reset);
+
+// PCPacker
+PCPacker #(
+  .NPCcode(NPCcode),
+  .NPCdata(NPCdata))
+PC_packer(
+  PC_out,
+  BDSerializer_out,
+  FPGASerializer_out,
   clk, reset);
 
 endmodule
@@ -262,8 +292,8 @@ endmodule
 
 module Core_tb;
 
-parameter NPCout = 40;
-parameter NPCin = 24;
+parameter NPCcode = 8,
+parameter NPCdata = 24,
 
 parameter NBDdata_in = 34;
 parameter NBDdata_out = 22;
@@ -274,8 +304,8 @@ Channel #(NPCin) PC_in();
 Channel #(NPCout) PC_out();
 
 // BD-side
-Channel #(NBDdata_out) BD_out();
-Channel #(NBDdata_in) BD_in();
+Channel #(NPCode + NPCdata) BD_out();
+Channel #(NPCode + NPCdata) BD_in();
 
 // clock
 logic clk;
@@ -294,9 +324,9 @@ end
 RandomChannelSrc #(.N(NPCin)) PC_in_src(PC_in, clk, reset);
 ChannelSink PC_out_sink(PC_out, clk, reset);
 
-RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);
-//assign BD_in.v = 0;
-//assign BD_in.d = 'X;
+//RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);
+assign BD_in.v = 0;
+assign BD_in.d = 'X;
 
 ChannelSink BD_out_sink(BD_out, clk, reset);
 
