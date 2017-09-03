@@ -1,18 +1,16 @@
 # Dockerfile for JENKINS CI
-FROM jjaguayo/ubuntu-pystorm:latest
+FROM ubuntu-pystorm:latest
 
 COPY . /home/git/pystorm
 
 # These are the commands that a developer would type to build and run
 # the automated tests for PyStorm
 
-RUN apt-get -y install python3.5 python3-numpy \
-    && ln -s /usr/lib/x86_64-linux-gnu/libboost_python-py35.so /usr/lib/x86_64-linux-gnu/libboost_python3.so \
-    && export HOME="/home/git" \
+RUN export HOME="/home/git" \
     && cd /home/git/pystorm \ 
     && mkdir build \
     && cd build \
-    && cmake ..  \
-    && make 
+    && cmake -G Ninja ..  \
+    && ninja -j 6
 
 WORKDIR /home/git/pystorm/build/
