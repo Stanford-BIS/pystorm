@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR pystorm_test)
 project(${PROJECT_NAME_STR})
 
+include(CheckRequirements)
+include(Common)
+
 set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 #-------------------

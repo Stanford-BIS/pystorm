@@ -1,4 +1,3 @@
-#include <boost/python.hpp>
 #include <bdhal/Hal.h>
 #include <bdhal/common/Pool.h>
 #include <bdhal/common/StateSpace.h>

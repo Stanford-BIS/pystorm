@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bdhal_test)
 project(${PROJECT_NAME_STR} CXX)
 
+include(CheckRequirements)
+include(Common)
+
 set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 find_package(Threads REQUIRED)
@@ -69,7 +72,8 @@ target_link_libraries(${PROJECT_NAME_STR}
     Hal
 )
 
-set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 
 enable_testing()

@@ -9,6 +9,9 @@ cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bddriver_test)
 project(${PROJECT_NAME_STR} CXX)
 
+include(CheckRequirements)
+include(Common)
+
 set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
     "Choose the type of build, options are : Debug Release"
     FORCE)
@@ -103,7 +106,8 @@ target_link_libraries(${PROJECT_NAME_STR}
     Driver
 )
 
-set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD 11)
+set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 
 set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
 

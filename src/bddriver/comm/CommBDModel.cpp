@@ -25,6 +25,10 @@ CommBDModel::CommBDModel(
   stream_state_ = CommStreamState::STOPPED;
 }
 
+CommBDModel::~CommBDModel() {
+
+}
+
 void CommBDModel::RunOnce() {
   unsigned int max_to_read = driver_pars_->Get(driverpars::BDMODELCOMM_MAX_TO_READ);
   unsigned int try_for_us = driver_pars_->Get(driverpars::BDMODELCOMM_TRY_FOR_US);

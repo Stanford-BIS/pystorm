@@ -3,6 +3,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 project(PyStormBindings CXX)
 set(TARGET_NAME "Pystorm")
+set(TARGET2_NAME "BDDriver")
 
 ############################################################################
 #
@@ -33,8 +34,6 @@ endif()
 
 # Additional packages
 #find_package(Threads REQUIRED)
-# set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.58.0 COMPONENTS python3 REQUIRED)
 find_package(PythonLibs 3.5)
 find_package(PythonInterp 3.5)
 find_package(Numpy)
@@ -55,15 +54,16 @@ set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES "")
 set(SRC_FILES "")
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11 ${CMAKE_CURRENT_SOURCE_DIR}/python)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
 include_directories(${INCLUDE_DIRS})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${PYTHON_INCLUDE_DIRS})
 include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
@@ -72,21 +72,43 @@ SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 
-add_library(${TARGET_NAME} MODULE
-    ${HEADER_FILES}
-    ${SRC_FILES}
-    )
-target_link_libraries(${TARGET_NAME}
-    ${Boost_LIBRARIES}
+pybind11_add_module(${TARGET_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
+target_link_libraries(${TARGET_NAME} PRIVATE
     ${PYTHON_LIBRARIES}
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
 )
-set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD 11)
+pybind11_add_module(${TARGET2_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/BDDriver.cpp)
+target_link_libraries(${TARGET2_NAME} PRIVATE
+    ${PYTHON_LIBRARIES}
+    ${DRIVER_LIBRARY}
+)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    add_compile_options(-flto -fvisibility=hidden)
+endif()
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-flto -fvisibility=hidden)
+endif()
+if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    add_compile_options(/GL /bigobj)
+endif()
+
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
 set_property(TARGET ${TARGET_NAME} PROPERTY PREFIX "")
-# Python expects modules to end in .so
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
 if(APPLE)
     set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".so")
 elseif(WIN32)
     set_target_properties(${TARGET_NAME} PROPERTIES SUFFIX ".pyd")
+endif(APPLE)
+
+set_property(TARGET ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${TARGET2_NAME} PROPERTY PREFIX "")
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
+if(APPLE)
+    set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".so")
+elseif(WIN32)
+    set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)

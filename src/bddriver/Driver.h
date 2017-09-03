@@ -6,11 +6,8 @@
 #include <functional>     // std::bind
 
 #include "comm/Comm.h"
-#include "comm/CommSoft.h"
 #include "common/BDPars.h"
 #include "common/BDState.h"
-#include "common/DriverPars.h"
-#include "common/DriverTypes.h"
 #include "common/MutexBuffer.h"
 #include "decoder/Decoder.h"
 #include "encoder/Encoder.h"
