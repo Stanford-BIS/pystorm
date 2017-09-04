@@ -8,17 +8,6 @@ module Core #(
   parameter NPCout = NPCcode + NPCdata,
   parameter NPCin = NPCcode + NPCdata,
 
-  parameter NBDdata_in = 34,
-  parameter NBDdata_out = 21,
-
-  parameter Ntag = 11,
-  parameter Nct = 9,
-
-  // PCParser/configurator parameters
-  parameter Nconf = 16,
-  parameter Nreg = 32,
-  parameter Nchan = 2,
-
   // parameters for SpikeFilterArray
   parameter N_SF_filts = 10,
   parameter N_SF_state = 27,
@@ -30,7 +19,7 @@ module Core #(
   parameter N_SG_tag = Ntag,
   parameter N_SG_ct = Nct,
 
-  // paramters for TimeMgr
+  // parameters for TimeMgr
   parameter N_TM_time = 48,
   parameter N_TM_unit = 16) (
 
@@ -44,6 +33,21 @@ module Core #(
 
   input clk, reset);
 
+// local parameters, unmodifiable without changing submodules
+
+// common parameters (in/out names relative to FPGA)
+parameter Ntag = 11,
+parameter Nct = 9,
+
+parameter NBDdata_in = 34,
+parameter NBDdata_out = 21,
+
+// PCParser/configurator parameters
+parameter Nconf = 16;
+parameter Nreg = 32;
+parameter Nchan = 2;
+
+
 // Core includes all the components that are agnostic to both BD handshaking
 // and the IO mechanism (e.g. Opal Kelly USB host module or USB IP core).
 //
@@ -51,7 +55,7 @@ module Core #(
 // 
 //            +----------+                                                              
 //            |          |                                            BDTagMerge_out
-// PC_in ---->| PCParser |        PCParser_BD_data_out   +-----------+        +-----------+      +--------------+ 
+// PC_in ---->| PCParser |     PCParser_BD_data_out      +-----------+        +-----------+      +--------------+ 
 //  32b       |          |-------------------------------|           |        |           |      |              |                
 //            +----------+                               |BDTagMerge |--------| BDEncoder |------|ChannelStaller|-------> BD_out
 //                | | conf_regs,          +------------->|           |        |           |      |              |        22b     
@@ -244,6 +248,15 @@ BD_tag_split(
   TS_conf,
   clk, reset);
 
+// BDSerializer
+BDSerializer #(
+  .Ncode(NPCcode),
+  .Ndata_out(NPCdata))
+BD_serializer(
+  BDSerializer_out,
+  BDTagSplit_out_other,
+  clk, reset);
+
 // SpikeFilter
 SpikeFilterArray #(
   .Nfilts(N_SF_filts),
@@ -291,7 +304,7 @@ parameter NPCcode = 8;
 parameter NPCdata = 24;
 
 parameter NBDdata_in = 34;
-parameter NBDdata_out = 22;
+parameter NBDdata_out = 21;
 
 
 // PC-side
@@ -316,12 +329,10 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
-RandomChannelSrc #(.N(NPCcode + NPCdata)) PC_in_src(PC_in, clk, reset);
-ChannelSink PC_out_sink(PC_out, clk, reset);
+RandomChannelSrc #(.N(NPCcode + NPCdata), .ClkDelaysMin(0), .ClkDelaysMax(4)) PC_in_src(PC_in, clk, reset);
+ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(1)) PC_out_sink(PC_out, clk, reset);
 
-//RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);
-assign BD_in.v = 0;
-assign BD_in.d = 'X;
+RandomChannelSrc #(.N(NBDdata_in)) BD_in_src(BD_in, clk, reset);
 
 ChannelSink BD_out_sink(BD_out, clk, reset);
 

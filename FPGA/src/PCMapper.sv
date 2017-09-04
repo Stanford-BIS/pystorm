@@ -127,7 +127,7 @@ assign {SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_
 assign SG_program_mem.v = SG_program_mem_flat.v;
 assign SG_program_mem_flat.a = SG_program_mem.a;
 
-Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(conf_channel_out_unpacked[0], SG_program_mem_flat, clk, reset);
+Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(SG_program_mem_flat, conf_channel_out_unpacked[0], clk, reset);
 
 // loop .v back onto .a for unused channels, making them handshake
 generate
