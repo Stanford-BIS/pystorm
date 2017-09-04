@@ -76,7 +76,7 @@ parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chu
 parameter TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
 parameter TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
-parameter TS_report_tags_idx        = TM_base + 0
+parameter TS_report_tags_idx        = TS_base + 0;
 
 // assign registers
 
@@ -127,7 +127,7 @@ assign {SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_
 assign SG_program_mem.v = SG_program_mem_flat.v;
 assign SG_program_mem_flat.a = SG_program_mem.a;
 
-Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(conf_channel_out_unpacked[0], SG_program_mem_flat, clk, reset);
+Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(SG_program_mem_flat, conf_channel_out_unpacked[0], clk, reset);
 
 // loop .v back onto .a for unused channels, making them handshake
 generate

@@ -284,60 +284,19 @@ module RandomChannelSrc #(
 
 parameter Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
 
-// delay_ct only counts down when we're 
 int delay_ct;
 
-enum {READY, HOLD} state, next_state;
-
 always_ff @(posedge clk, posedge reset)
-  if (reset == 1)
-    state <= READY;
-  else
-    state <= next_state;
-
-always_ff @(posedge clk, posedge reset)
-  if (reset == 1)
+  if (reset == 1) begin;
+    out.v <= 0;
+    out.d <= 'X;
     delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-  else
-    if (state == READY && delay_ct <= 0)
-      delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-    else
-      delay_ct <= delay_ct - 1;
-
-always_comb
-  unique case (state)
-    READY:
-      if (delay_ct <= 0)
-        if (out.a == 0)
-          next_state = HOLD;
-        else 
-          next_state = READY;
-      else
-        next_state = READY;
-    HOLD:
-      if (out.a == 1)
-        next_state = READY;
-      else
-        next_state = HOLD;
-  endcase
-
-always_comb
-  unique case (state)
-    READY:
+  end
+  else begin
+    if (out.v == 0) begin
       if (delay_ct <= 0) begin
-        out.v = 1;
+        out.v <= 1;
 
-        // this would work for N < 32
-        //out.d = $urandom_range(Max, Min);
-        
-       
-
-        // for some reason this didn't work
-        //for (int i = 0; i < Chunks32; i++) begin
-        //  out.d[(32*(i+1))-1:32*i] = 
-        //end
-        
-        // total hack
         assert (N < 128);
         out.d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
 
@@ -350,35 +309,34 @@ always_comb
         out.d = out.d & Mask;
       end
       else begin
-        out.v = 0;
-        out.d = 'X;
+        delay_ct <= delay_ct - 1;
       end
-    HOLD:
-      out.v = 1;
+    end
+    else begin
+      if (out.a == 1) begin
+        delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
+        if (delay_ct <= 0) begin
+          out.v = 1;
 
-  endcase
+          assert (N < 128);
+          out.d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
 
-endmodule
+          // not uniform random if min/max is used
+          if (out.d > Max)
+            out.d = Max;
+          if (out.d < Min)
+            out.d = Min;
 
-module RandomPassiveChannelSrc #(
-  parameter N = 1, 
-  parameter Max = 2**N-1, 
-  parameter Min = 0,
-  parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (PassiveChannel out, input clk, reset);
+          out.d = out.d & Mask;
+        end
+        else begin
+          out.v = 0;
+          out.d = 'X;
+        end;
 
-PassiveDatalessChannel base();
-assign out.v = base.v;
-assign base.r = out.r;
-
-always @(base.v, posedge clk)
-  if (base.v == 1)
-    out.d <= $urandom_range(Max, Min); 
-  else if (base.v == 0)
-    out.d <= 'X;
-
-PassiveDatalessChannelSrc #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_src(base, clk, reset);
-
+      end
+    end
+  end
 endmodule
 
 

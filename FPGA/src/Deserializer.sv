@@ -1,8 +1,8 @@
 `include "Channel.svh"
 
 module Deserializer #(parameter Nin = 1, parameter Nout = 2) (
-  Channel in, // Nin wide
   Channel out, // Nout wide
+  Channel in, // Nin wide
   input clk, reset);
 
 // make a wide channel from multiple transmissions of a narrow channel.
