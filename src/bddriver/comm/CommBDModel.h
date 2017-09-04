@@ -1,6 +1,8 @@
 #ifndef COMMBDMODEL_H
 #define COMMBDMODEL_H
 
+// Needs preprocessor definition `-DBD_COMM_TYPE_MODEL`
+
 #include "Comm.h"
 
 #include <atomic>

@@ -6,7 +6,17 @@
 #include <vector>
 
 #include "comm/Comm.h"
+#ifdef BD_COMM_TYPE_SOFT
 #include "comm/CommSoft.h"
+#include "comm/Emulator.h"
+#elif BD_COMM_TYPE_USB
+#include "comm/CommUSB.h"
+#elif BD_COMM_TYPE_MODEL
+#include "comm/CommBDModel.h"
+#elif BD_COMM_TYPE_OPALKELLY
+#include "comm/CommOK.h"
+#endif
+
 #include "common/BDPars.h"
 #include "common/BDState.h"
 #include "common/DriverPars.h"
@@ -128,22 +138,22 @@ Driver::Driver() {
       driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
 
   // initialize Comm
-  if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::SOFT) {
+#ifdef BD_COMM_TYPE_SOFT
     comm_ = new comm::CommSoft(
         *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
         *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
         dec_buf_in_,
         enc_buf_out_);
-
-  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::LIBUSB) {
+#elif BD_COMM_TYPE_USB
     assert(false && "libUSB Comm is not implemented");
-  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::BDMODEL) {
-    // XXX hmm... this is iffy
-    // should be using BDModelDriver, which handles this in its own ctor
+#elif BD_COMM_TYPE_MODEL
     comm_ = nullptr;
-  } else {
+#elif BD_COMM_TYPE_OPALKELLY
+    comm_ = new comm::CommOK;
+#else
     assert(false && "unhandled comm_type");
-  }
+#endif
+
 }
 
 Driver::~Driver() {
@@ -182,6 +192,9 @@ void Driver::InitBD() {
     SetMem(i, bdpars::AM,   std::vector<BDWord>(bd_pars_->Size(bdpars::AM), BDWord(0)), 0);
     SetMem(i, bdpars::MM,   std::vector<BDWord>(bd_pars_->Size(bdpars::MM), BDWord(0)), 0);
 
+#if BD_COMM_TYPE_OPALKELLY
+    static_cast<comm::CommOK*>(comm_)->Init("abc.bit", "serial.txt");
+#endif
     // XXX other stuff to do?
   }
 }

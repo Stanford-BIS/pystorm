@@ -6,7 +6,7 @@
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "Debug",
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-            "cmakeCommandArgs": "-DPYTHON_INCLUDE_DIR=D:\\Apps\\Anaconda3\\include -DPYTHON_LIBRARY=D:\\Apps\\Anaconda3\\libs\\python36.lib -DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe",
+            "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=OPALKELLY",
             "buildCommandArgs": "-m -v:minimal",
             "ctestCommandArgs": ""
         },
@@ -15,7 +15,7 @@
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "Release",
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-            "cmakeCommandArgs": "-DPYTHON_INCLUDE_DIR=D:\\Apps\\Anaconda3\\include -DPYTHON_LIBRARY=D:\\Apps\\Anaconda3\\libs\\python36.lib -DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe",
+            "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=OPALKELLY",
             "buildCommandArgs": "-m -v:minimal",
             "ctestCommandArgs": ""
         }

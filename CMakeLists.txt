@@ -11,8 +11,8 @@ include(Common)
 enable_testing()
 
 # Load packages
-find_package(PythonLibs 3.5 REQUIRED)
 find_package(PythonInterp 3.5)
+find_package(PythonLibs 3.5 REQUIRED)
 
 ############################################################################
 #
@@ -42,6 +42,12 @@ endfunction()
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
     "Choose the type of build, options are : Debug Release"
+    FORCE)
+endif()
+
+if(NOT BD_COMM_TYPE)
+    set(BD_COMM_TYPE "SOFT" CACHE STRING
+    "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"MODEL\" or \"SOFT\""
     FORCE)
 endif()
 

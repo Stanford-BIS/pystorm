@@ -1,6 +1,8 @@
 #ifndef COMMSOFT_H
 #define COMMSOFT_H
 
+// Needs preprocessor definition `-DBD_COMM_TYPE_SOFT`
+
 #include <deque>
 #include <iostream>
 #include <memory>
