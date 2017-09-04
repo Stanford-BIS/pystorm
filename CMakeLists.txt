@@ -46,7 +46,7 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 if(NOT BD_COMM_TYPE)
-    set(BD_COMM_TYPE "SOFT" CACHE STRING
+    set(BD_COMM_TYPE "MODEL" CACHE STRING
     "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"MODEL\" or \"SOFT\""
     FORCE)
 endif()
