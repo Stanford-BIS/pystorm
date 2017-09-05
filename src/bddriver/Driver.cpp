@@ -6,12 +6,10 @@
 #include <vector>
 
 #include "comm/Comm.h"
-#ifdef BD_COMM_TYPE_SOFT
 #include "comm/CommSoft.h"
 #include "comm/Emulator.h"
-#elif BD_COMM_TYPE_USB
 #include "comm/CommUSB.h"
-#elif BD_COMM_TYPE_MODEL
+#if BD_COMM_TYPE_MODEL
 #include "comm/CommBDModel.h"
 #elif BD_COMM_TYPE_OPALKELLY
 #include "comm/CommOK.h"
