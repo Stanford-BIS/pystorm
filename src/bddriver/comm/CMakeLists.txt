@@ -3,21 +3,33 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Comm.h
     PARENT_SCOPE
 )
+# Tests uses SOFT and MODEL. Hence need both irrespective of actual type
 
-if(BD_COMM_TYPE MATCHES "MODEL")
-    set(HEADER_FILES
-        ${HEADER_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/CommBDModel.h
-        PARENT_SCOPE
-        )
-elseif(BD_COMM_TYPE MATCHES "SOFT")
-    set(HEADER_FILES
-        ${HEADER_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/CommSoft.h
-        ${CMAKE_CURRENT_SOURCE_DIR}/Emulator.h
-        PARENT_SCOPE
-        )
-elseif(BD_COMM_TYPE MATCHES "USB")
+set(HEADER_FILES
+    ${HEADER_FILES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommBDModel.h
+    PARENT_SCOPE
+    )
+set(HEADER_FILES
+    ${HEADER_FILES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommSoft.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/Emulator.h
+    PARENT_SCOPE
+    )
+
+set(SRC_FILES
+    ${SRC_FILES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommBDModel.cpp
+    PARENT_SCOPE
+    )
+set(SRC_FILES
+    ${SRC_FILES}
+    ${CMAKE_CURRENT_SOURCE_DIR}/CommSoft.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Emulator.cpp
+    PARENT_SCOPE
+    )
+
+if(BD_COMM_TYPE MATCHES "USB")
     set(HEADER_FILES
         ${HEADER_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/CommUSB.h
@@ -31,20 +43,7 @@ elseif(BD_COMM_TYPE MATCHES "OPALKELLY")
         )
 endif()
 
-if(BD_COMM_TYPE MATCHES "MODEL")
-    set(SRC_FILES
-        ${SRC_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/CommBDModel.cpp
-        PARENT_SCOPE
-        )
-elseif(BD_COMM_TYPE MATCHES "SOFT")
-    set(SRC_FILES
-        ${SRC_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/CommSoft.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/Emulator.cpp
-        PARENT_SCOPE
-        )
-elseif(BD_COMM_TYPE MATCHES "USB")
+if(BD_COMM_TYPE MATCHES "USB")
     set(SRC_FILES
         ${SRC_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/CommUSB.cpp
