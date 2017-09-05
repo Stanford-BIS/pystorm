@@ -30,6 +30,9 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
+static const std::string OK_BITFILE = "OK_BITFILE.bit";
+static const std::string OK_SERIAL = "";
+
 constexpr uint64_t     NeuronConfig::field_hard_values[];
 constexpr unsigned int NeuronConfig::field_widths[];
 constexpr uint64_t     DACWord::field_hard_values[];
@@ -147,7 +150,7 @@ Driver::Driver() {
 #elif BD_COMM_TYPE_MODEL
     comm_ = nullptr;
 #elif BD_COMM_TYPE_OPALKELLY
-    comm_ = new comm::CommOK();
+    comm_ = new comm::CommOK(dec_buf_in_, enc_buf_out_);
 #else
     assert(false && "unhandled comm_type");
 #endif
@@ -169,6 +172,11 @@ Driver::~Driver() {
 }
 
 void Driver::InitBD() {
+#if BD_COMM_TYPE_OPALKELLY
+    // Initialize Opal Kelly Board
+    static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+#endif
+
   for (unsigned int i = 0; i < bd_pars_->NumCores(); i++) {
     // turn off traffic
     SetTagTrafficState(i, false);
@@ -190,9 +198,6 @@ void Driver::InitBD() {
     SetMem(i, bdpars::AM,   std::vector<BDWord>(bd_pars_->Size(bdpars::AM), BDWord(0)), 0);
     SetMem(i, bdpars::MM,   std::vector<BDWord>(bd_pars_->Size(bdpars::MM), BDWord(0)), 0);
 
-#if BD_COMM_TYPE_OPALKELLY
-    static_cast<comm::CommOK*>(comm_)->Init("abc.bit", "serial.txt");
-#endif
     // XXX other stuff to do?
   }
 }

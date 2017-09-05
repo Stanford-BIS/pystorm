@@ -13,10 +13,17 @@ namespace comm {
 static const int PIPE_IN_ADDR = 0x80;  /// Endpoint to send to FPGA
 static const int PIPE_OUT_ADDR = 0xa0; /// Endpoint to read from FPGA
 
+static const int WRITE_SIZE             = 512;
+static const int READ_SIZE              = 512;
+static const int DEFAULT_BUFFER_TIMEOUT = 10;
+
 class CommOK : public Comm {
 public:
     /// Constructor
-    CommOK() = default;
+    CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) {
+        read_buffer_ = new unsigned char[READ_SIZE];
+    };
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
@@ -26,17 +33,19 @@ public:
     /// Default move assignment
     CommOK& operator=(CommOK&&) = delete;
     /// Default destructor
-    ~CommOK() = default;
+    ~CommOK() {
+        delete [] read_buffer_;
+    }
 
     /// Initialization
     int Init(const std::string bitfile, const std::string serial);
 
     /// data_length: length in bytes
-    int Write(long data_length, unsigned char* data);
-    int Read(long data_length, unsigned char* data);
+    int WriteToDevice();
+    int ReadFromDevice();
 
-    void StartStreaming() {}
-    void StopStreaming() {}
+    void StartStreaming();
+    void StopStreaming();
     CommStreamState GetStreamState() { return m_state; }
     MutexBuffer<COMMWord>* getReadBuffer() { return m_read_buffer; }
     MutexBuffer<COMMWord>* getWriteBuffer() { return m_write_buffer; }
@@ -45,6 +54,11 @@ protected:
   MutexBuffer<COMMWord>* m_read_buffer;
   MutexBuffer<COMMWord>* m_write_buffer;
   std::atomic<CommStreamState> m_state;
+  std::thread m_control_thread;
+  unsigned char* read_buffer_;
+  unsigned char* write_buffer_;
+
+  void CommController();
 
 private:
     bool InitializeFPGA(const std::string bitfile, const std::string serial);
