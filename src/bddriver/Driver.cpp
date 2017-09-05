@@ -8,11 +8,11 @@
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
 #include "comm/Emulator.h"
-#include "comm/CommUSB.h"
-#if BD_COMM_TYPE_MODEL
 #include "comm/CommBDModel.h"
-#elif BD_COMM_TYPE_OPALKELLY
+#ifdef BD_COMM_TYPE_OPALKELLY
 #include "comm/CommOK.h"
+#elif BD_COMM_TYPE_USB
+#include "comm/CommUSB.h"
 #endif
 
 #include "common/BDPars.h"
@@ -147,7 +147,7 @@ Driver::Driver() {
 #elif BD_COMM_TYPE_MODEL
     comm_ = nullptr;
 #elif BD_COMM_TYPE_OPALKELLY
-    comm_ = new comm::CommOK;
+    comm_ = new comm::CommOK();
 #else
     assert(false && "unhandled comm_type");
 #endif
