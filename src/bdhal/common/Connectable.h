@@ -21,6 +21,7 @@ public:
     Connectable& operator=(Connectable&&) = delete;
 
     virtual uint32_t GetNumDimensions();
+    virtual uint32_t GetConnectionSize();
 
 protected:
 };
@@ -39,6 +40,7 @@ public:
     ConnectableInput& operator=(ConnectableInput&&) = delete;
 
     virtual uint32_t GetNumDimensions();
+    virtual uint32_t GetConnectionSize();
 
 protected:
 };
@@ -57,6 +59,7 @@ public:
     ConnectableOutput& operator=(ConnectableOutput&&) = delete;
 
     virtual uint32_t GetNumDimensions();
+    virtual uint32_t GetConnectionSize();
 
 protected:
 };

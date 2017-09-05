@@ -104,16 +104,16 @@ TEST(TESTNetwork, testCreateConnection) {
     EXPECT_EQ(_net->GetConnections().at(0)->GetSrc(), _pool);
     EXPECT_EQ(_net->GetConnections().at(0)->GetDest(), _bucket);
 
-    EXPECT_EQ(wMatrix->GetNumRows(),_bucket->GetNumDimensions());
-    EXPECT_EQ(wMatrix->GetNumColumns(),_pool->GetNumDimensions());
+    EXPECT_EQ(wMatrix->GetNumRows(),_bucket->GetConnectionSize());
+    EXPECT_EQ(wMatrix->GetNumColumns(),_pool->GetConnectionSize());
 
     uint32_t* m2 = (uint32_t*)
-        std::calloc((_pool->GetNumDimensions()*_bucket->GetNumDimensions()),         
+        std::calloc((_pool->GetConnectionSize()*_bucket->GetConnectionSize()),         
         sizeof(uint32_t));  
 
     Weights<uint32_t>* wMatrix2 =
-        new Weights<uint32_t>(m2, _bucket->GetNumDimensions(),
-        _pool->GetNumDimensions());
+        new Weights<uint32_t>(m2, _bucket->GetConnectionSize(),
+        _pool->GetConnectionSize());
 
     EXPECT_NO_THROW(_conn2 = _net->CreateConnection(conn2_label, _pool, _bucket,
         wMatrix2));
@@ -125,8 +125,8 @@ TEST(TESTNetwork, testCreateConnection) {
     EXPECT_EQ(_net->GetConnections().at(1)->GetSrc(), _pool);
     EXPECT_EQ(_net->GetConnections().at(1)->GetDest(), _bucket);
 
-    EXPECT_EQ(wMatrix->GetNumRows(),_bucket->GetNumDimensions());
-    EXPECT_EQ(wMatrix->GetNumColumns(),_pool->GetNumDimensions());
+    EXPECT_EQ(wMatrix->GetNumRows(),_bucket->GetConnectionSize());
+    EXPECT_EQ(wMatrix->GetNumColumns(),_pool->GetConnectionSize());
    
     delete _conn2;
     delete _conn;

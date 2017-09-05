@@ -25,12 +25,12 @@ TEST(TESTConnection, testConstructionValidParams) {
     Bucket* _bucket2 = new Bucket(bucket2_label, bucket2_dims);
 
     uint32_t* m = (uint32_t*)
-        std::calloc((_pool->GetNumDimensions()*_bucket->GetNumDimensions()),         
+        std::calloc((_pool->GetConnectionSize()*_bucket->GetConnectionSize()),         
         sizeof(uint32_t));  
 
     Weights<uint32_t>* wMatrix =
-        new Weights<uint32_t>(m, _bucket->GetNumDimensions(),
-        _pool->GetNumDimensions());
+        new Weights<uint32_t>(m, _bucket->GetConnectionSize(),
+        _pool->GetConnectionSize());
 
     Connection* _conn1 = nullptr;
     Connection* _conn2 = nullptr;
@@ -121,12 +121,12 @@ TEST(TESTConnection, testGetLabel) {
     Bucket* _bucket = new Bucket(bucket_label, bucket_dims);
 
     uint32_t* m = (uint32_t*)
-        std::calloc((_pool->GetNumDimensions()*_bucket->GetNumDimensions()),         
+        std::calloc((_pool->GetConnectionSize()*_bucket->GetConnectionSize()),         
         sizeof(uint32_t));  
 
     Weights<uint32_t>* wMatrix =
-        new Weights<uint32_t>(m, _bucket->GetNumDimensions(),
-        _pool->GetNumDimensions());
+        new Weights<uint32_t>(m, _bucket->GetConnectionSize(),
+        _pool->GetConnectionSize());
 
     Connection* _conn1 = new Connection(conn_label, _pool, _bucket, 
         wMatrix);
@@ -149,12 +149,12 @@ TEST(TESTConnection, testGetSrc) {
     Bucket* _bucket = new Bucket(bucket_label, bucket_dims);
 
     uint32_t* m = (uint32_t*)
-        std::calloc((_pool->GetNumDimensions()*_bucket->GetNumDimensions()),         
+        std::calloc((_pool->GetConnectionSize()*_bucket->GetConnectionSize()),         
         sizeof(uint32_t));  
 
     Weights<uint32_t>* wMatrix =
-        new Weights<uint32_t>(m, _bucket->GetNumDimensions(),
-        _pool->GetNumDimensions());
+        new Weights<uint32_t>(m, _bucket->GetConnectionSize(),
+        _pool->GetConnectionSize());
 
     Connection* _conn1 = new Connection(conn_label, _pool, _bucket, 
         wMatrix);
@@ -177,12 +177,12 @@ TEST(TESTConnection, testGetDest) {
     Bucket* _bucket = new Bucket(bucket_label, bucket_dims);
 
     uint32_t* m = (uint32_t*)
-        std::calloc((_pool->GetNumDimensions()*_bucket->GetNumDimensions()),         
+        std::calloc((_pool->GetConnectionSize()*_bucket->GetConnectionSize()),         
         sizeof(uint32_t));  
 
     Weights<uint32_t>* wMatrix =
-        new Weights<uint32_t>(m, _bucket->GetNumDimensions(),
-        _pool->GetNumDimensions());
+        new Weights<uint32_t>(m, _bucket->GetConnectionSize(),
+        _pool->GetConnectionSize());
 
     Connection* _conn1 = new Connection(conn_label, _pool, _bucket, 
         wMatrix);

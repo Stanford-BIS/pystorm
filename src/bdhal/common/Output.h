@@ -44,6 +44,15 @@ public:
     uint32_t GetNumDimensions() {
         return m_dims;
     }
+
+    ///
+    /// Returns size when used as an input to a Connection
+    ///
+    /// \return Size used as input to Connection
+    ///
+    uint32_t GetConnectionSize() {
+        return m_dims;
+    }
 private:
     /// Output name
     std::string m_label;
