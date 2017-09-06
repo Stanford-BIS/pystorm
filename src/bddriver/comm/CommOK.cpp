@@ -55,20 +55,31 @@ void CommOK::StopStreaming() {
 }
 
 int CommOK::WriteToDevice() {
-  auto vectorOfCOMMWords = m_write_buffer->PopVect(WRITE_SIZE, DEFAULT_BUFFER_TIMEOUT);
-  long data_length = vectorOfCOMMWords.size();
+    // There is still no guarantee that m_write_buffer has at least WRITE_SIZE elements
+    // after GetCount().
+    // So, this could potentially fail, but it is unlikely.
+    // So, lock the buffer first, and do the rest.
+    int status = -1;
+    if (m_write_buffer->LockFrontSimple(DEFAULT_BUFFER_TIMEOUT)) {
+        unsigned int data_length = m_write_buffer->GetCount();
+        if (data_length >= WRITE_SIZE) {
+            m_write_buffer->PopSimple(write_buffer_, WRITE_SIZE);
+            status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, write_buffer_);
+            if (status != WRITE_SIZE) {
+                printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, status);
+            }
+        } 
+        m_write_buffer->UnlockFront(false);
 
-  if (vectorOfCOMMWords.size() > 0) {
-      write_buffer_ = reinterpret_cast<unsigned char*>(vectorOfCOMMWords.data());
-      return dev.WriteToPipeIn(PIPE_IN_ADDR, data_length, write_buffer_);
-  }
+    }
+    return status;
 }
 
 int CommOK::ReadFromDevice() {
-    int num_bytes = dev.ReadFromPipeOut(PIPE_OUT_ADDR, READ_SIZE, read_buffer_);
+    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, read_buffer_);
     if (num_bytes > 0) {
-      std::vector<COMMWord> vecOfCWS(read_buffer_, read_buffer_ + num_bytes);
-      m_read_buffer->Push(vecOfCWS, DEFAULT_BUFFER_TIMEOUT);
+      // Write in blocking fashion
+      m_read_buffer->Push(read_buffer_, num_bytes, 0);
     }
     return num_bytes;
 }

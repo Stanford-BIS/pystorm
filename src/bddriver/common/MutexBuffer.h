@@ -77,6 +77,9 @@ class MutexBuffer {
   /// May copy zero elements if the buffer does not contain any contents before <try_for_us> us.
   /// Setting <multiple> > 1 will only return N*<multiple> elements, leaving any remainder in the buffer.
   unsigned int Pop(T *copy_to, unsigned int max_to_pop, unsigned int try_for_us = 0, unsigned int multiple = 1);
+  
+  /// In case we already have the lock, just do a simple Pop without worrying about locking
+  unsigned int PopSimple(T* copy_to, unsigned int max_to_pop, unsigned int multiple = 1);
 
   // Two-part calls
   // These are more complicated, but using them can avoid unecessary copying by the client.
@@ -107,9 +110,25 @@ class MutexBuffer {
   std::pair<const T *, unsigned int> LockFront(unsigned int max_to_pop, unsigned int try_for_us = 0,
                                                unsigned int multiple = 1);
 
+  /// Sometimes, we just need to lock to perform checks on the data to be read
+  /// This function returns true if lock is obtained in <try_for_us> us, else
+  /// returns false.
+  bool LockFrontSimple(unsigned int try_for_us = 1);
+
   /// UnlockFront() is called after the user is done reading from the memory pointed
   /// to by LockFront(), to finish popping it from the buffer.
-  void UnlockFront();
+  /// If the optional paramter `update` is true, the buffer's front pointers are updated
+  /// `update = false` is useful when we are simply unlocking the lock without modifications
+  /// to the buffer
+  void UnlockFront(bool update = true);
+
+  /// Get the number of valid entries in the buffer.
+  ///
+  /// Note that the actual number of valid entries CAN change after calling this function
+  /// and BEFORE calling Pop() or PopVect().
+  unsigned int GetCount() {
+      return count_;
+  }
 
  private:
   T *vals_;
