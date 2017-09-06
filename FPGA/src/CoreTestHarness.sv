@@ -1,6 +1,10 @@
 `include "Channel.svh"
 
-module FPGA_test_harness (
+module CoreTestHarness #(
+  parameter NPCcode = 8,
+  parameter PCtoBDcode = {NPCcode{1'b1}},
+  parameter BDtoPCcode = {NPCcode{1'b1}})
+(
   Channel PC_in,
   Channel PC_out,
   input clk, reset)
@@ -10,8 +14,8 @@ module FPGA_test_harness (
   // adds a merge from BD_out to PC_out
   // this way the PC can inject simulated traffic from BD and can
   // receive all traffic that would go to BD
+  // uses "111..1" codes for both BD_out -> PC streams and PC -> BD_in streams
 
-  parameter NPCcode = 8;
   parameter NPCdata = 24;
   parameter NPCout = NPCcode + NPCdata;
   parameter NPCin = NPCcode + NPCdata;
@@ -29,12 +33,15 @@ module FPGA_test_harness (
   Channel #(NBDdata_out) core_BD_out();
   Channel #(NBDdata_in) core_BD_in();
 
-  // split traffic from PC
+  ////////////////////////////////////////
+  // PC -> BD_in
+
+  // split traffic from PC, code sent into BD is "111..1"
   Channel #(NPCword) PC_to_BD_in();
   ChannelSplit #(
     NPCword, 
     {{NPCcode{1'b1'}}, {NPCdata{1'b0}}}, 
-    {{NPCcode{1'b1'}}, {NPCdata{1'b0}}})
+    {PCtoBDcode, {NPCdata{1'b0}}})
   input_split(
     core_PC_in,
     PC_to_BD_in,
@@ -48,10 +55,13 @@ module FPGA_test_harness (
 
   Deserializer #(NPCdata, NBDdata_in) BD_in_deser(core_BD_in, PC_to_BD_in_payload);
 
-  // merge BD_out with PC_out
+  ////////////////////////////////////////
+  // BD_out -> PC
+
+  // merge BD_out with PC_out, code sent upstream for BD traffic is "111..1"
   Channel #(NPCword) BD_out_to_PC;
   assign BD_out_to_PC_out.v = core_BD_out.v;
-  assign BD_out_to_PC_out.d = {{NPCcode{core_BD_out.v}}, {3{1'b1}}, core_BD_out.d};
+  assign BD_out_to_PC_out.d = {BDtoPCcode, {3{1'b0}}, core_BD_out.d};
   assign core_BD_out.a = BD_out_to_PC_out.a;
 
   ChannelMerge (PC_out, core_PC_out, BD_out_to_PC_out);

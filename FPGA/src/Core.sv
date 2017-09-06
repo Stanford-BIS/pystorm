@@ -21,8 +21,8 @@ module Core #(
 
   // parameters for TimeMgr
   parameter N_TM_time = 48,
-  parameter N_TM_unit = 16) (
-
+  parameter N_TM_unit = 16) 
+(
   // PC-side
   Channel PC_in,
   Channel PC_out,
