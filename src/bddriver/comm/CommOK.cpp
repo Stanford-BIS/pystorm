@@ -69,9 +69,8 @@ int CommOK::WriteToDevice() {
                 printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, status);
             }
         } 
-        m_write_buffer->UnlockFront(false);
-
     }
+    m_write_buffer->UnlockFront(false);
     return status;
 }
 
