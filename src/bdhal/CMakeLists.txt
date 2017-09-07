@@ -14,12 +14,6 @@ set(TARGET_NAME "Hal")
 include(CheckRequirements)
 include(Common)
 
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-    "Choose the type of build, options are : Debug Release"
-    FORCE)
-endif()
-
 if(NOT HOST_IS_VALID)
     message(FATAL_ERROR "Build does not support host '"
             ${CMAKE_HOST_SYSTEM_NAME} "'")

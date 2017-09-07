@@ -21,4 +21,11 @@ function(SetupSharedLibrary)
         set(CMAKE_CXX_FLAGS_RELEASE "/Ox -DNDEBUG" CACHE STRING "" FORCE)
     endif()
 endfunction()
-set(PYSTORM_CXX_STANDARD 14)
+
+if(NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_CONFIGURATION_TYPES "Release;Debug" CACHE STRING
+        "Choose the type of build, options are : Debug Release"
+        FORCE)
+endif()
+
+set(PYSTORM_CXX_STANDARD 14 CACHE INTERNAL "" FORCE)
