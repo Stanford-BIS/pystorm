@@ -98,72 +98,59 @@ module FPGA_TO_BD ( _Reset, clk, req, x, xe);
         end
 endmodule
 
-module BD_TO_FPGA (_Reset, x, Ready, Valid, clk);
+module BD_TO_FPGA (ready, valid, data, Channel channel, reset, clk);
         parameter NUM_BITS=`NUM_BITS_CORE2PIN;
-        parameter NAME="SINK_C2P_CLOCKED";
-        parameter DELAY = 1;
-        parameter FILENAME = {`TBPATH, "c2p_out.dat"}; //output.dat
-        input _Reset, Valid;
+        output ready;   // BD sends data if ready is asserted
+        input valid;    // If asserted, data is valid
+        input data;     // Registered data from BD
+        input reset;    // Global reset
+        input clk;      // Global clock
 
-        input clk;
-        input  x;
-        output Ready;
-        wire[0: (NUM_BITS)-1] x;
-        reg Ready;
-        integer file;
+        wire[0: (NUM_BITS)-1] data;
+        reg ready;
 
-        initial begin
-                //x <= #DELAY 0;
-                Ready <= 1;
-                //seed = SEED;
-                file = $fopen(FILENAME, "w");
-                if (file == 0) begin
-                        $finish;
-                end else begin
-                        $display("%s, Output Data File opened correctly", NAME);
-                end
-
+        initial
+        begin
+                // In the beginning, not ready to receive
+                ready <= 0;
         end
-        always @(negedge clk) begin
-                //if ((clk==0) && (Valid==1)  && (_Reset==1) && (Ready==1)) begin
-                if ((clk==0) && (Valid==0)  && (_Reset==1) && (Ready==1)) begin
+
+        always @(posedge clk)
+        begin
+                // if valid and channel is r, latch data
+                if(valid == 1)
+                begin
+                        // Send data to channel
+                end
+                if ((clk==1) && (valid==0)  && (reset==0) && (ready==1)) begin
 
                         $fwrite(file, x);
                         $fwrite(file, "\n");
                         $display(" writing %d to the output file", x);
-                        Ready <= #DELAY 0;
+                        ready <= #DELAY 0;
                 end
 
                 //else if ((clk==0) && (Valid==0) && (Ready==1) &&  (_Reset==1))
-                else if ((clk==0) && (Valid==0) && (Ready==0) &&  _Reset)
+                else if ((clk==0) && (valid==0) && (ready==0) &&  (reset==0))
                 begin
                         $display("No data is recieved  at this cycle\n");
                 end
 
         end
 
-        always @(~_Reset) begin
-                if (~_Reset)
+        always @(reset) begin
+                if (reset)
                 begin
-                   Ready <= #DELAY 1;
+                   ready <= #DELAY 1;
                 end
 
         end
 
         always @(posedge clk) begin
-                if ( (Valid ==1) && (Ready ==0)) begin
-                //if ( (Valid == 0) && (Ready == 0)) begin
-                        //$fwrite(file, x);
-                       // $fwrite(file, "\n");
-
-			Ready <= #DELAY 1;
+                if ( (valid ==1) && (ready ==0)) begin
+                        ready <= #DELAY 1;
 
 
                 end
-        end
-
-        always @( x) begin
-                  $display("%s. Data =%b, Ready=%d Valid=%d at time %t\n", NAME,  x,  Ready, Valid, $time);
-
         end
 endmodule
