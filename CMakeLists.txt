@@ -53,3 +53,4 @@ endif()
 
 set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
 message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")
+message("Selected configuration: ${CMAKE_BUILD_TYPE}")

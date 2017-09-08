@@ -99,58 +99,52 @@ module FPGA_TO_BD ( _Reset, clk, req, x, xe);
 endmodule
 
 module BD_TO_FPGA (ready, valid, data, Channel channel, reset, clk);
-        parameter NUM_BITS=`NUM_BITS_CORE2PIN;
-        output ready;   // BD sends data if ready is asserted
-        input valid;    // If asserted, data is valid
-        input data;     // Registered data from BD
-        input reset;    // Global reset
-        input clk;      // Global clock
+    parameter NUM_BITS=`NUM_BITS_CORE2PIN;
+    //output channel.d
+    //output channel.v
+    output ready;       // BD sends data if ready is asserted (sync)
+    input valid;        // If asserted, data is valid (sync)
+    input data;         // Registered data from BD (sync)
+    input reset;        // Global reset (asynch)
+    input clk;          // Global clock
+    enum integer {BD_VALID=3, BD_INVALID=2} STATES;
+    wire [1:0] state;
 
-        wire[0: (NUM_BITS)-1] data;
-        reg ready;
+    wire[0: (NUM_BITS)-1] data;
+    reg ready;
 
-        initial
+    // In the beginning, not ready to receive
+    initial
+    begin
+        ready <= 0;
+        channel.v <= 0;
+    end
+
+    assign state = {channel.a, valid};
+    assign ready = channel.a;
+
+    always @(reset)
+    begin
+        if (reset)
         begin
-                // In the beginning, not ready to receive
-                ready <= 0;
+            ready <= 0;
+            channel.v <= 0;
         end
+    end
 
-        always @(posedge clk)
+    always @(posedge clk)
+    begin
+        channel.d <= data;
+
+        // Channel is ready AND BD data is valid
+        if(state == BD_VALID)
         begin
-                // if valid and channel is r, latch data
-                if(valid == 1)
-                begin
-                        // Send data to channel
-                end
-                if ((clk==1) && (valid==0)  && (reset==0) && (ready==1)) begin
-
-                        $fwrite(file, x);
-                        $fwrite(file, "\n");
-                        $display(" writing %d to the output file", x);
-                        ready <= #DELAY 0;
-                end
-
-                //else if ((clk==0) && (Valid==0) && (Ready==1) &&  (_Reset==1))
-                else if ((clk==0) && (valid==0) && (ready==0) &&  (reset==0))
-                begin
-                        $display("No data is recieved  at this cycle\n");
-                end
-
+            channel.v <= 1;
         end
-
-        always @(reset) begin
-                if (reset)
-                begin
-                   ready <= #DELAY 1;
-                end
-
+        // Channel is ready, but invalid BD data
+        else if(state == BD_INVALID)
+        begin
+            channel.v <= 0;
         end
-
-        always @(posedge clk) begin
-                if ( (valid ==1) && (ready ==0)) begin
-                        ready <= #DELAY 1;
-
-
-                end
-        end
+    end
 endmodule
