@@ -20,8 +20,8 @@ module FPGASerializer #(
 
   input clk, reset);
 
-parameter HB_code = 13;
-parameter SF_code = 14;
+localparam logic [NPCcode-1:0] HB_code = 13;
+localparam logic [NPCcode-1:0] SF_code = 14;
 
 // 1. pack/convert inputs into Channels
 // 2. serialize, 
@@ -94,7 +94,7 @@ parameter N_SF_filts = 10;
 parameter N_SF_state = 27;
 
 // our only output goes to the PC
-Channel #(NPCcode + NPCdata) PC_out();
+SerializedPCWordChannel PC_out();
 
 // Filtered spikes
 SpikeFilterOutputChannel #(N_SF_filts, N_SF_state) SF_in();
@@ -137,8 +137,12 @@ assign SF_in.v = SF_in_packed.v;
 RandomChannelSrc #(.N(N_SF_filts + N_SF_state), .ClkDelaysMin(0), .ClkDelaysMax(10)) SF_in_src(SF_in_packed, clk, reset);
 
 // output sink
-ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(2)) PC_out_sink(PC_out, clk, reset);
+Channel #(NPCcode + NPCdata) PC_out_packed();
+assign PC_out_packed.v = PC_out.v;
+assign PC_out_packed.d = {PC_out.code, PC_out.payload};
+assign PC_out.a = PC_out_packed.a;
+ChannelSink #(.ClkDelaysMin(0), .ClkDelaysMax(2)) PC_out_sink(PC_out_packed, clk, reset);
 
-PCPacker dut(.*);
+FPGASerializer dut(.*);
 
 endmodule

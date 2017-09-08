@@ -1,4 +1,3 @@
-`include "SpikeFilterMem_bb.v"
 `include "Interfaces.svh"
 
 // low-pass filters a variable number of spike streams
@@ -80,7 +79,9 @@ SpikeFilterMem mem(
 ////////////////////////////////////////////
 // stage 1: state
 
-logic [Nfilts-1:0] filt_idx, next_filt_idx, filt_idx_p1;
+logic [Nfilts-1:0] filt_idx;
+logic [Nfilts-1:0] next_filt_idx;
+logic [Nfilts-1:0] filt_idx_p1;
 enum {READY_OR_INCREMENT, PRE_BUBBLE2, PRE_BUBBLE1, DECAY_UPDATE, BUBBLE2, BUBBLE1} state, next_state;
 logic saw_update_pulse, next_saw_update_pulse; // record if we got the update pulse while BUBBLEing
 
@@ -116,6 +117,8 @@ always_comb
       if (in.v == 1) begin
         if (update_pulse == 1 || saw_update_pulse == 1)
           next_saw_update_pulse <= 1;
+        else
+          next_saw_update_pulse <= 0;
         next_state <= READY_OR_INCREMENT;
         next_filt_idx = 'X;
       end
@@ -132,7 +135,7 @@ always_comb
     end
 
     DECAY_UPDATE: begin
-      assert (update_pulse == 0);
+      //assert (update_pulse == 0);
       next_saw_update_pulse <= 0;
       if (filt_idx_p1 < conf.filts_used) begin
         next_state = DECAY_UPDATE;
@@ -154,6 +157,8 @@ always_comb
       next_filt_idx = 'X;
       if (update_pulse == 1 || saw_update_pulse == 1)
         next_saw_update_pulse <= 1;
+      else
+        next_saw_update_pulse <= 0;
     end
 
     BUBBLE1: begin
@@ -161,6 +166,8 @@ always_comb
       next_filt_idx = 'X;
       if (update_pulse == 1 || saw_update_pulse == 1)
         next_saw_update_pulse <= 1;
+      else
+        next_saw_update_pulse <= 0;
     end
 
     PRE_BUBBLE2: begin
@@ -246,7 +253,7 @@ assign do_inc = (state == READY_OR_INCREMENT) & in.v & (in.tag < conf.filts_used
 always_comb
   if (do_inc == 1) begin
     s2_next_op = INCREMENT;
-    s2_next_filt_idx = in.tag;
+    s2_next_filt_idx = in.tag[Nfilts-1:0]; // software must ensure that there are fewer tags used than filters
     s2_next_ct = in.ct;
   end
   else if (state == DECAY_UPDATE) begin

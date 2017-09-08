@@ -36,16 +36,16 @@ module Core #(
 // local parameters, unmodifiable without changing submodules
 
 // common parameters (in/out names relative to FPGA)
-parameter Ntag = 11,
-parameter Nct = 9,
+localparam Ntag = 11;
+localparam Nct = 9;
 
-parameter NBDdata_in = 34,
-parameter NBDdata_out = 21,
+localparam NBDdata_in = 34;
+localparam NBDdata_out = 21;
 
 // PCParser/configurator parameters
-parameter Nconf = 16;
-parameter Nreg = 32;
-parameter Nchan = 2;
+localparam Nconf = 16;
+localparam Nreg = 32;
+localparam Nchan = 2;
 
 
 // Core includes all the components that are agnostic to both BD handshaking
@@ -148,7 +148,6 @@ SerializedPCWordChannel FPGASerializer_out();
 
 PCParser #(
   .NPCin(NPCin),
-  .NBDdata(NBDdata_out),
   .Nconf(Nconf),
   .Nreg(Nreg),
   .Nchan(Nchan)) 

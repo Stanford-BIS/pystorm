@@ -3,7 +3,7 @@
 
 module BDTagMerge #(
   parameter NBDData_in = 20,
-  parameter Ncode = 6,
+  parameter Ncode = 6, // leaf code
   parameter Ntag = 11,
   parameter Nct = 9) (
 
@@ -14,9 +14,9 @@ module BDTagMerge #(
 
 Channel #(NBDData_in + Ncode) BD_out_packed();
 Channel #(NBDData_in + Ncode) BD_in_packed();
-Channel #(Ntag + Nct) tag_ct_in_packed();
+Channel #(NBDData_in + Ncode) tag_ct_in_packed(); // adds the code
 
-parameter logic [Ncode-1:0] tag_ct_code = 30;
+localparam logic [Ncode-1:0] tag_ct_code = 30;
 
 assign tag_ct_in_packed.v = tag_ct_in.v;
 assign tag_ct_in_packed.d = {tag_ct_in.tag, tag_ct_in.ct, tag_ct_code};

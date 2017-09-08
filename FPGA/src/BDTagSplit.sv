@@ -12,8 +12,8 @@ module BDTagSplit #(
   TagSplitConf conf,
   input clk, reset);
 
-parameter unsigned RO_ACC_code = 11;
-parameter unsigned RO_TAT_code = 12;
+localparam unsigned RO_ACC_code = 11;
+localparam unsigned RO_TAT_code = 12;
 
 logic [NBDdata_in - Ntag - Nct - 1:0] global_tag; // discarded
 

@@ -1,20 +1,19 @@
 module OKIfc #(
-  parameter Ncode = 8,
-  parameter logic [Ncode-1:0] NOPcode = 64) // upstream nop code
+  parameter NPCcode = 8,
+  parameter logic [NPCcode-1:0] NOPcode = 64) // upstream nop code
 (
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,
 	inout  wire [31:0]  okUHU,
 	inout  wire         okAA,
-  input clk,
-  output reset,
-  Channel core_out,
-  Channel core_in);
+  output wire okClk,
+  Channel data_out,
+  Channel data_in);
 
-parameter Ndata = 24,
-parameter NPCin = Ncode + Ndata;
-parameter Nfifo = 9; // 512-word FIFO
-parameter Nblock = 7, // 128-word block size for BTPipe
+localparam NPCdata = 24;
+localparam NPCin = NPCcode + NPCdata;
+localparam Nfifo = 9; // 512-word FIFO
+localparam Nblock = 7; // 128-word block size for BTPipe
 
 // OK internal bus
 wire [112:0] okHE;
@@ -26,25 +25,19 @@ okHost OK_host(
 	.okHU(okHU),
 	.okUHU(okUHU),
 	.okAA(okAA),
-	.okClk(clk),
+	.okClk(okClk),
 	.okHE(okHE), 
 	.okEH(okEH)
 );
 
+// okWireOR, needed when you have more than one module using okEH
+// in this case, we have 2
+localparam NOKmodules = 2;
+wire [65*NOKmodules-1:0] okEHx;
+okWireOR # (.N(NOKmodules)) wireOR (okEH, okEHx);
+
 // pipe in is addr 0
 // pipe out is addr 1
-// reset wire is addr 2
-
-////////////////////////////////////////////
-// okWireIn for soft reset
-logic [31:0] reset_wire_data;
-
-okWireIn reset_wire(
-  .okHE(okHE),
-  .ep_addr(8'h02),
-  .ep_dataout(reset_wire_data));
-
-assign reset = reset_wire_data[0];
 
 ////////////////////////////////////////////
 // okBTPipeIn/FIFO_in
@@ -60,8 +53,8 @@ logic FIFO_in_empty;
 
 okBTPipeIn OK_BT_pipe_in(
   .okHE(okHE),
-  .okEH(okEH),
-  .ep_addr(8'h00),
+  .okEH(okEHx[0*65+:65]),
+  .ep_addr(8'h80),
   .ep_write(pipe_in_write),
   .ep_blockstrobe(),
   .ep_dataout(pipe_in_data),
@@ -69,21 +62,21 @@ okBTPipeIn OK_BT_pipe_in(
 
 // input FIFO, compute ready signal using usedw
 // if the MSBs aren't all one, there's 128 words free
-assign pipe_in_ready = ~(&FIFO_in_count[Nfifo-1:Nblock]);
+//assign pipe_in_ready = ~(&FIFO_in_count[Nfifo-1:Nblock]);
 
-PipeInFIFO fifo_in(
-  .data(pipe_in_data),
-  .wrreq(pipe_in_write),
-  .q(FIFO_in_data_out),
-  .rdreq(FIFO_in_rd_ack),
-  .empty(FIFO_in_empty)
-  .usedw(FIFO_in_count)
-  .clock(clk));
-
-// handshake output
-assign core_out.v = ~FIFO_in_empty;
-assign core_out.d = FIFO_in_data_out;
-assign FIFO_in_rd_ack = core_out.a;
+//PipeInFIFO fifo_in(
+//  .data(pipe_in_data),
+//  .wrreq(pipe_in_write),
+//  .q(FIFO_in_data_out),
+//  .rdreq(FIFO_in_rd_ack),
+//  .empty(FIFO_in_empty),
+//  .usedw(FIFO_in_count),
+//  .clock(okClk));
+//
+//// handshake output
+//assign data_out.v = ~FIFO_in_empty;
+//assign data_out.d = FIFO_in_data_out;
+//assign FIFO_in_rd_ack = data_out.a;
 
 ////////////////////////////////////////////
 // okPipeOut/FIFO_out
@@ -96,25 +89,25 @@ wire [31:0] pipe_out_data;
 
 okPipeOut OK_pipe_out(
   .okHE(okHE),
-  .okEH(okEH),
-  .ep_addr(8'h01),
+  .okEH(okEHx[1*65+:65]),
+  .ep_addr(8'ha0),
   .ep_datain(pipe_out_data),
   .ep_read(pipe_out_read));
 
-always_comb
-  if (pipe_out_read == 1) // pipe needs data this cycle!
-    if (core_in.v == 1) begin // use data from channel
-      pipe_out_data = core_in.d;
-      core_in.a = 1;
-    end
-    else begin
-      pipe_out_data = {NOPcode, Ndata{0'b0}};
-      core_in.a = 0;
-    end
-  else begin
-    pipe_out_data = 'X;
-    core_in.a = 0;
-  end
+//always_comb
+//  if (pipe_out_read == 1) // pipe needs data this cycle!
+//    if (data_in.v == 1) begin // use data from channel
+//      pipe_out_data = data_in.d;
+//      data_in.a = 1;
+//    end
+//    else begin
+//      pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
+//      data_in.a = 0;
+//    end
+//  else begin
+//    pipe_out_data = 'X;
+//    data_in.a = 0;
+//  end
 
 //// unfinished block-triggered version with FIFO
 //wire        pipe_out_read;
@@ -143,6 +136,6 @@ always_comb
 //  .q(pipe_out_data),
 //  .rdreq(pipe_out_read),
 //  .full(FIFO_out_full),
-//  .clock(clk));
+//  .clock(okClk));
 
 endmodule

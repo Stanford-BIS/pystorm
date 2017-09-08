@@ -25,10 +25,10 @@ module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
 |RO_TAT            |2     |00      |0          |32         |1             |32          |tag output from TAT
 */
 
-parameter NBDpayload = 32; // width of DecodedBDWordChannel.payload (longest "data width")
-parameter Nfunnel = 13; // number of funnel leaves
+localparam NBDpayload = 32; // width of DecodedBDWordChannel.payload (longest "data width")
+localparam Nfunnel = 13; // number of funnel leaves
 
-parameter int width_used[Nfunnel] = {
+localparam int width_used[Nfunnel] = '{
   19,
   8 ,
   20,
@@ -43,14 +43,25 @@ parameter int width_used[Nfunnel] = {
   28,
   32};
 
-// have to assign parameters in one shot, at init, so need a fn
-typedef int SerType[Nfunnel];
-function SerType SerFromWidth(input int width_used[Nfunnel]);
-  for (int i = 0; i < Nfunnel; i++)
-    SerFromWidth[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
-endfunction
+localparam MaxSer = 2;
 
-parameter int serialization[Nfunnel] = SerFromWidth(width_used);
+//// have to assign parameters in one shot, at init, so need a fn
+//typedef int SerType[Nfunnel];
+//function SerType SerFromWidth(input int width_used[Nfunnel]);
+//  for (int i = 0; i < Nfunnel; i++)
+//    SerFromWidth[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
+//endfunction
+
+logic [Nfunnel-1:0][$clog2(MaxSer)-1:0] serialization;
+genvar i;
+generate
+for (i = 0; i < Nfunnel; i++) begin : serialization_generate
+  assign serialization[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
+end
+endgenerate
+
+logic [$clog2(MaxSer)-1:0] serialization_sel;
+assign serialization_sel = serialization[dec_in.leaf_code];
 
 /////////////////////////////////////////
 
@@ -67,7 +78,7 @@ always_comb
   unique case (state)
     S0:
       if (ser_out.a == 1)
-        if (serialization[dec_in.leaf_code] > 1)
+        if (serialization_sel > 1)
           next_state = S1;
         else 
           next_state = S0;
@@ -75,7 +86,7 @@ always_comb
         next_state = S0;
 
     S1: begin
-      assert (serialization[dec_in.leaf_code] <= 2)
+      //assert (serialization_sel <= 2)
       if (ser_out.a == 1)
         next_state = S0;
       else
@@ -87,8 +98,8 @@ always_comb
 // hold the input until we're done sending all parts
 assign ser_out.v = dec_in.v;
 
-parameter HiIdx0 = 1*Ndata_out < NBDpayload ? 1*Ndata_out : NBDpayload;
-parameter HiIdx1 = 2*Ndata_out < NBDpayload ? 2*Ndata_out : NBDpayload;
+localparam HiIdx0 = 1*Ndata_out < NBDpayload ? 1*Ndata_out : NBDpayload;
+localparam HiIdx1 = 2*Ndata_out < NBDpayload ? 2*Ndata_out : NBDpayload;
 
 assign ser_out.code = dec_in.leaf_code; // 0-extended
 always_comb

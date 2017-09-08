@@ -48,35 +48,35 @@ module PCMapper #(
 
 // compute register index offsets automatically
 
-parameter N_SG_gens_en = 2**N_SG_gens;
+localparam N_SG_gens_en = 2**N_SG_gens;
 
-parameter N_SF_filts_chunks   = N_SF_filts   % Nconf == 0 ? N_SF_filts   / Nconf : N_SF_filts   / Nconf + 1;
-parameter N_SF_state_chunks   = N_SF_state   % Nconf == 0 ? N_SF_state   / Nconf : N_SF_state   / Nconf + 1;
-parameter N_SF_ct_chunks      = N_SF_ct      % Nconf == 0 ? N_SF_ct      / Nconf : N_SF_ct      / Nconf + 1;
-parameter N_SG_gens_chunks    = N_SG_gens    % Nconf == 0 ? N_SG_gens    / Nconf : N_SG_gens    / Nconf + 1;
-parameter N_SG_gens_en_chunks = N_SG_gens_en % Nconf == 0 ? N_SG_gens_en / Nconf : N_SG_gens_en / Nconf + 1;
-parameter N_SG_period_chunks  = N_SG_period  % Nconf == 0 ? N_SG_period  / Nconf : N_SG_period  / Nconf + 1;
-parameter N_SG_tag_chunks     = N_SG_tag     % Nconf == 0 ? N_SG_tag     / Nconf : N_SG_tag     / Nconf + 1;
-parameter N_TM_time_chunks    = N_TM_time    % Nconf == 0 ? N_TM_time    / Nconf : N_TM_time    / Nconf + 1;
-parameter N_TM_unit_chunks    = N_TM_unit    % Nconf == 0 ? N_TM_unit    / Nconf : N_TM_unit    / Nconf + 1;
+localparam N_SF_filts_chunks   = N_SF_filts   % Nconf == 0 ? N_SF_filts   / Nconf : N_SF_filts   / Nconf + 1;
+localparam N_SF_state_chunks   = N_SF_state   % Nconf == 0 ? N_SF_state   / Nconf : N_SF_state   / Nconf + 1;
+localparam N_SF_ct_chunks      = N_SF_ct      % Nconf == 0 ? N_SF_ct      / Nconf : N_SF_ct      / Nconf + 1;
+localparam N_SG_gens_chunks    = N_SG_gens    % Nconf == 0 ? N_SG_gens    / Nconf : N_SG_gens    / Nconf + 1;
+localparam N_SG_gens_en_chunks = N_SG_gens_en % Nconf == 0 ? N_SG_gens_en / Nconf : N_SG_gens_en / Nconf + 1;
+localparam N_SG_period_chunks  = N_SG_period  % Nconf == 0 ? N_SG_period  / Nconf : N_SG_period  / Nconf + 1;
+localparam N_SG_tag_chunks     = N_SG_tag     % Nconf == 0 ? N_SG_tag     / Nconf : N_SG_tag     / Nconf + 1;
+localparam N_TM_time_chunks    = N_TM_time    % Nconf == 0 ? N_TM_time    / Nconf : N_TM_time    / Nconf + 1;
+localparam N_TM_unit_chunks    = N_TM_unit    % Nconf == 0 ? N_TM_unit    / Nconf : N_TM_unit    / Nconf + 1;
 
-parameter SF_base                   = 0;
-parameter SF_filts_used_idx         = SF_base + 0;
-parameter SF_increment_constant_idx = SF_base + N_SF_filts_chunks;
-parameter SF_decay_constant_idx     = SF_base + N_SF_filts_chunks + N_SF_state_chunks;
+localparam SF_base                   = 0;
+localparam SF_filts_used_idx         = SF_base + 0;
+localparam SF_increment_constant_idx = SF_base + N_SF_filts_chunks;
+localparam SF_decay_constant_idx     = SF_base + N_SF_filts_chunks + N_SF_state_chunks;
 
-parameter SG_base                   = SF_base + N_SF_filts_chunks + 2*N_SF_state_chunks; // = 5
-parameter SG_gens_used_idx          = SG_base + 0;
-parameter SG_gens_en_idx            = SG_base + N_SG_gens_chunks;
+localparam SG_base                   = SF_base + N_SF_filts_chunks + 2*N_SF_state_chunks; // = 5
+localparam SG_gens_used_idx          = SG_base + 0;
+localparam SG_gens_en_idx            = SG_base + N_SG_gens_chunks;
 
-parameter TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_chunks; // = 23
-parameter TM_unit_len_idx           = TM_base + 0; 
-parameter TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
-parameter TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
-parameter TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
+localparam TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_chunks; // = 23
+localparam TM_unit_len_idx           = TM_base + 0; 
+localparam TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
+localparam TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
+localparam TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
-parameter TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
-parameter TS_report_tags_idx        = TS_base + 0;
+localparam TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
+localparam TS_report_tags_idx        = TS_base + 0;
 
 // assign registers
 
@@ -115,13 +115,13 @@ assign conf_reg_reset_vals[Nreg-1:TS_report_tags_idx+1] = 0;
 // Channel mapping, deserialization
 
 // unpack ChannelArray
-Channel conf_channel_out_unpacked[Nchan-1:0]();
+Channel #(Nconf) conf_channel_out_unpacked[Nchan-1:0]();
 UnpackChannelArray #(Nchan) conf_channel_unpacker(conf_channel_out, conf_channel_out_unpacked);
 
-parameter Nchans_used = 1;
+localparam Nchans_used = 1;
 
 // pack channel so we can use deserializer
-parameter N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;
+localparam N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;
 Channel #(N_SG_program_mem) SG_program_mem_flat();
 assign {SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_program_mem.tag} = SG_program_mem_flat.d;
 assign SG_program_mem.v = SG_program_mem_flat.v;
@@ -130,9 +130,11 @@ assign SG_program_mem_flat.a = SG_program_mem.a;
 Deserializer #(.Nin(Nconf), .Nout(N_SG_program_mem)) SG_program_mem_des(SG_program_mem_flat, conf_channel_out_unpacked[0], clk, reset);
 
 // loop .v back onto .a for unused channels, making them handshake
+genvar i;
 generate
-for (genvar i = Nchans_used; i < Nchan; i++)
+for (i = Nchans_used; i < Nchan; i++) begin : conf_channel_out_unpacked_generate
   assign conf_channel_out_unpacked[i].a = conf_channel_out_unpacked[i].v;
+end
 endgenerate
 
 endmodule
@@ -208,13 +210,17 @@ end
 Channel #(NPCin) PC_in();
 
 // PCParser passthrough output to BD
-Channel #(NBDdata) BD_data_out();
+UnencodedBDWordChannel BD_data_out();
 
 // PC sender
 RandomChannelSrc #(.N(NPCin)) PC_src(PC_in, clk, reset);
 
 // BD receiver
-ChannelSink BD_sink(BD_data_out, clk, reset);
+Channel #(26) BD_data_out_packed();
+assign BD_data_out_packed.d = {BD_data_out.leaf_code, BD_data_out.payload};
+assign BD_data_out_packed.v = BD_data_out.v;
+assign BD_data_out.a = BD_data_out_packed.a;
+ChannelSink BD_sink(BD_data_out_packed, clk, reset);
 
 // SG_program_mem sink
 parameter N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;

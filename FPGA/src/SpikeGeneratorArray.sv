@@ -1,4 +1,3 @@
-`include "SpikeGeneratorMem_bb.v"
 `include "Interfaces.svh"
 `include "Channel.svh"
 
@@ -18,7 +17,7 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input clk,
   input reset);
 
-parameter Nmem = Nperiod * 2 + Ntag;
+localparam Nmem = Nperiod * 2 + Ntag;
 
 // stores one time unit count ("tick") per generator
 
@@ -154,7 +153,7 @@ always_comb
   end
 
 // pack up writeback
-parameter Nunmasked = Nmem - (Nperiod + Ntag);
+localparam Nunmasked = Nmem - (Nperiod + Ntag);
 assign mem_writeback = {wr_tick, period, tag};
 
 //////////////////////////////////////////////////////

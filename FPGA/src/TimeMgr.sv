@@ -1,8 +1,6 @@
 `include "Interfaces.svh" 
 `include "Channel.svh"
 
-`include "TimeUnitPulser.sv" // for now, only I include this
-
 // Responsible for keeping the wall clock, in time_units
 // Also responsible for generating control signals for the downstream traffic.
 // If PC_time_elapsed is current or behind, traffic is running,

@@ -10,11 +10,13 @@ module Deserializer #(parameter Nin = 1, parameter Nout = 2) (
 // if order into in is {a}, {b}, {c}; packed word looks like {c, b, a}
 
 // D = number of registers/serialization factor
-parameter D = Nout % Nin == 0 ? Nout / Nin : Nout / Nin + 1;
+localparam D = Nout % Nin == 0 ? Nout / Nin : Nout / Nin + 1;
 
 // one state per D
 enum {LATCH, SEND} state, next_state;
-logic [$clog2(D)-1:0] reg_id, next_reg_id, reg_id_p1;
+logic [$clog2(D)-1:0] reg_id;
+logic [$clog2(D)-1:0] next_reg_id;
+logic [$clog2(D)-1:0] reg_id_p1;
 
 assign reg_id_p1 = reg_id + 1;
 

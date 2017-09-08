@@ -6,6 +6,9 @@ module TimeUnitPulser #(parameter N = 16) ( // 2^N = time unit max val, in clock
   input reset);
 
 logic [N-1:0] count;
+logic [N-1:0] count_p1;
+
+assign count_p1 = count + 1;
 
 always @(posedge clk, posedge reset) begin
   if (reset == 1) begin
@@ -19,7 +22,7 @@ always @(posedge clk, posedge reset) begin
     end
     else begin
       unit_pulse <= 0; 
-      count <= count + 1;
+      count <= count_p1;
     end
   end
 end

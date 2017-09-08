@@ -7,66 +7,66 @@ module CoreTestHarness #(
 (
   Channel PC_in,
   Channel PC_out,
-  input clk, reset)
+  input clk, reset);
 
-  // instantiates a core without a connection to BD
-  // adds a split to PC_in to BD_in
-  // adds a merge from BD_out to PC_out
-  // this way the PC can inject simulated traffic from BD and can
-  // receive all traffic that would go to BD
-  // uses "111..1" codes for both BD_out -> PC streams and PC -> BD_in streams
+// instantiates a core without a connection to BD
+// adds a split to PC_in to BD_in
+// adds a merge from BD_out to PC_out
+// this way the PC can inject simulated traffic from BD and can
+// receive all traffic that would go to BD
+// uses "111..1" codes for both BD_out -> PC streams and PC -> BD_in streams
 
-  parameter NPCdata = 24;
-  parameter NPCout = NPCcode + NPCdata;
-  parameter NPCin = NPCcode + NPCdata;
+localparam NPCdata = 24;
+localparam NPCout = NPCcode + NPCdata;
+localparam NPCin = NPCcode + NPCdata;
 
-  parameter NBDdata_in = 34;
-  parameter NBDdata_out = 21;
+localparam NBDdata_in = 34;
+localparam NBDdata_out = 21;
 
-  parameter NPCword = NPCcode + NPCdata;
+localparam NPCword = NPCcode + NPCdata;
 
-  // PC-side
-  Channel #(NPCword) core_PC_in();
-  Channel #(NPCword) core_PC_out();
+// PC-side
+Channel #(NPCword) core_PC_in();
+Channel #(NPCword) core_PC_out();
 
-  // BD-side
-  Channel #(NBDdata_out) core_BD_out();
-  Channel #(NBDdata_in) core_BD_in();
+// BD-side
+Channel #(NBDdata_out) core_BD_out();
+Channel #(NBDdata_in) core_BD_in();
 
-  ////////////////////////////////////////
-  // PC -> BD_in
+////////////////////////////////////////
+// PC -> BD_in
 
-  // split traffic from PC, code sent into BD is "111..1"
-  Channel #(NPCword) PC_to_BD_in();
-  ChannelSplit #(
-    NPCword, 
-    {{NPCcode{1'b1'}}, {NPCdata{1'b0}}}, 
-    {PCtoBDcode, {NPCdata{1'b0}}})
-  input_split(
-    core_PC_in,
-    PC_to_BD_in,
-    PC_in);
+// split traffic from PC, code sent into BD is "111..1"
+Channel #(NPCword) PC_to_BD_in();
+ChannelSplit #(
+  NPCword, 
+  {{NPCcode{1'b1}}, {NPCdata{1'b0}}}, 
+  {PCtoBDcode, {NPCdata{1'b0}}})
+input_split(
+  core_PC_in,
+  PC_to_BD_in,
+  PC_in);
 
-  // deserialize PC_in -> BD_in payload
-  Channel #(NPCdata) PC_to_BD_in_payload();
-  assign PC_to_BD_in_payload.d = PC_to_BD_in.d[NPCdata-1:0];
-  assign PC_to_BD_in_payload.v = PC_to_BD_in.v;
-  assign PC_to_BD_in.a = PC_to_BD_in_payload.a;
+// deserialize PC_in -> BD_in payload
+Channel #(NPCdata) PC_to_BD_in_payload();
+assign PC_to_BD_in_payload.d = PC_to_BD_in.d[NPCdata-1:0];
+assign PC_to_BD_in_payload.v = PC_to_BD_in.v;
+assign PC_to_BD_in.a = PC_to_BD_in_payload.a;
 
-  Deserializer #(NPCdata, NBDdata_in) BD_in_deser(core_BD_in, PC_to_BD_in_payload);
+Deserializer #(NPCdata, NBDdata_in) BD_in_deser(core_BD_in, PC_to_BD_in_payload);
 
-  ////////////////////////////////////////
-  // BD_out -> PC
+////////////////////////////////////////
+// BD_out -> PC
 
-  // merge BD_out with PC_out, code sent upstream for BD traffic is "111..1"
-  Channel #(NPCword) BD_out_to_PC;
-  assign BD_out_to_PC_out.v = core_BD_out.v;
-  assign BD_out_to_PC_out.d = {BDtoPCcode, {3{1'b0}}, core_BD_out.d};
-  assign core_BD_out.a = BD_out_to_PC_out.a;
+// merge BD_out with PC_out, code sent upstream for BD traffic is "111..1"
+Channel #(NPCword) BD_out_to_PC();
+assign BD_out_to_PC.v = core_BD_out.v;
+assign BD_out_to_PC.d = {BDtoPCcode, {3{1'b0}}, core_BD_out.d};
+assign core_BD_out.a = BD_out_to_PC.a;
 
-  ChannelMerge (PC_out, core_PC_out, BD_out_to_PC_out);
+ChannelMerge output_merge(PC_out, core_PC_out, BD_out_to_PC);
 
-  // instantiate core
-  Core core(core_PC_in, core_PC_out, core_BD_out, core_BD_in);
+// instantiate core
+Core core(core_PC_in, core_PC_out, core_BD_out, core_BD_in);
 
 endmodule

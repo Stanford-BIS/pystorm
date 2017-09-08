@@ -16,22 +16,11 @@ interface ChannelArray #(parameter N = -1, parameter M = -1);
   logic [M-1:0] a;
 endinterface
 
-interface PassiveChannel #(parameter N = -1);
-  logic [N-1:0] d;
-  logic r;
-  logic v;
-endinterface
-
 // valid/data-acknowledge channel, but no data
 // used for a synchronization handshake
 interface DatalessChannel;
   logic v;
   logic a;
-endinterface
-
-interface PassiveDatalessChannel;
-  logic r;
-  logic v;
 endinterface
 
 ///////////////////////////////////////////
@@ -44,8 +33,9 @@ endinterface
 
 module UnpackChannelArray #(parameter M) (ChannelArray A, Channel B[M-1:0]);
 
+genvar i;
 generate
-for (genvar i = 0; i < M; i++) begin
+for (i = 0; i < M; i++) begin : UnpackChannelArray_generate
   assign B[i].d = A.d[i];
   assign B[i].v = A.v[i];
   assign A.a[i] = B[i].a;
@@ -139,7 +129,7 @@ module PulseToChannel #(parameter N = 1) (
 
 enum {READY, SENDING} state, next_state;
 
-always_ff @(posedge clk, reset)
+always_ff @(posedge clk, posedge reset)
   if (reset == 1)
     state <= READY;
   else
@@ -241,35 +231,6 @@ end
 
 endmodule
 
-// module that drives the .v and .d member of a PassiveDatalessChannel with 
-// random timings. Can parametrize to control range of delay times
-module PassiveDatalessChannelSrc #(
-  parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (PassiveDatalessChannel out, input clk, reset);
-
-int next_delay;
-
-always_ff @(posedge clk, posedge reset)
-  if (reset == 1) begin
-    out.v <= 0;
-    next_delay <= 0;
-  end
-  else begin
-    if (out.r == 0)
-      out.v <= 0;
-    else begin
-      if (next_delay == 0) begin
-        out.v <= 1;
-        next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-      end
-      else begin
-        next_delay <= next_delay - 1;
-        out.v <= 0;
-      end
-    end
-  end
-
-endmodule
 
 // module that drives the .v and .d members of a channel with 
 // random data, using random timings. Can parametrize to 
@@ -282,7 +243,7 @@ module RandomChannelSrc #(
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
 
-parameter Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
+localparam Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
 
 int delay_ct;
 
@@ -371,37 +332,6 @@ initial begin
 end
 endmodule
 
-// module that drives the .r members of a PassiveDatalessChannel
-// uses random timings
-module PassiveDatalessChannelSink #(
-  parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (PassiveDatalessChannel in, input clk, reset);
-
-int next_delay;
-
-// r is meant to be assigned combinationally, can be delayed from posedge
-// we emulate this by assigning on the negedge
-always_ff @(negedge clk, posedge reset)
-  if (reset == 1) begin
-    next_delay <= 0;
-    in.r <= 1;
-  end
-  else begin
-    if (next_delay <= 0) begin
-      in.r <= 1;
-      if (in.v == 1) begin
-        $display("at %g: sunk dataless channel", $time);
-        next_delay <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
-      end
-    end
-    else begin
-      next_delay <= next_delay - 1;
-      in.r <= 0;
-    end
-  end
-
-endmodule
-
 
 // module that drives the .a members of a channel.
 // uses random timings, reports sunk data
@@ -420,23 +350,6 @@ always_ff @(posedge clk)
 
 
 DatalessChannelSink #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_sink(base, clk, reset);
-
-endmodule
-
-
-module PassiveChannelSink #(
-  parameter ClkDelaysMin = 0,
-  parameter ClkDelaysMax = 5) (PassiveChannel in, input clk, reset);
-
-PassiveDatalessChannel base();
-assign base.v = in.v;
-assign in.r = base.r;
-
-always_ff @(posedge clk)
-  if (base.v == 1)
-    $display("at %g: sunk %b", $time, in.d);
-
-PassiveDatalessChannelSink #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_sink(base, clk, reset);
 
 endmodule
 
@@ -461,28 +374,6 @@ end
 
 RandomChannelSrc #(.N(N)) src_dut(.out(chan), .*);
 ChannelSink sink_dut(.in(chan), .*);
-
-endmodule
-
-///////////////////////////////////////
-// TESTBENCH
-module PassiveRandomChannel_tb;
-
-parameter N = 4;
-PassiveChannel #(.N(N)) chan();
-logic clk;
-logic reset = 0;
-
-parameter D = 10;
-
-always #(D) clk = ~clk;
-
-initial begin
-  clk = 0;
-end
-
-RandomPassiveChannelSrc #(.ClkDelaysMin(0), .ClkDelaysMax(4), .N(N)) src_dut(.out(chan), .*);
-PassiveChannelSink sink_dut(.in(chan), .*);
 
 endmodule
 

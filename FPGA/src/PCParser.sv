@@ -3,7 +3,6 @@
 
 module PCParser #(
   parameter NPCin = 32,
-  parameter NBDdata = 20,
   parameter Nconf = 16,
   parameter Nreg = 32,
   parameter Nchan = 2) (
@@ -85,7 +84,8 @@ module PCParser #(
 //  smaller channels just waste bits
 // the LSBs contain (up to) 16 bits of channel data
 
-parameter Narray_id_max_bits = NPCin - 2 - Nconf;
+localparam NBDbiggest_data = 20;
+localparam Narray_id_max_bits = NPCin - 2 - Nconf;
 
 // unpack PC_in.d for FPGA-bound word 
 // (coincidentally the same for reg or chan)
@@ -100,7 +100,7 @@ assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_
 logic [1:0] BD_unused_hi;
 logic [5:0] leaf_code;
 logic [3:0] BD_unused_lo;
-logic [NBDdata-1:0] BD_data;
+logic [NBDbiggest_data-1:0] BD_data;
 assign {BD_unused_hi, leaf_code, BD_unused_lo, BD_data} = PC_in.d;
 
 // determine word type, for convenience
@@ -178,7 +178,7 @@ endmodule
 module PCParser_tb;
 
 parameter NPCin = 32;
-parameter NBDdata = 20;
+parameter NBDbiggest_data = 20;
 parameter Nconf = 16;
 parameter Nreg = 4;
 parameter Nchan = Nreg;
@@ -226,7 +226,7 @@ ChannelSink BD_sink(BD_data_out_packed, clk, reset);
 // conf_channel receivers
 ChannelSink chan_sinks[Nchan-1:0](conf_channel_out_unpacked, clk, reset);
 
-PCParser #(NPCin, NBDdata, Nconf, Nreg, Nchan) dut(.*);
+PCParser #(NPCin, NBDbiggest_data, Nconf, Nreg, Nchan) dut(.*);
 
 endmodule
 

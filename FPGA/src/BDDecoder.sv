@@ -94,8 +94,9 @@ const logic [0:Nfunnel-1][NBDdata-1:0] routes = '{
 // do funnel decode in parallel
 logic [Nfunnel-1:0][NBDdata-1:0] masked_routes;
 logic [Nfunnel-1:0] test;
+genvar i;
 generate
-for (genvar i = 0; i < Nfunnel; i++) begin
+for (i = 0; i < Nfunnel; i++) begin : masked_routes_generate
   assign masked_routes[i] = BD_in.d & route_masks[i];
   assign test[i] = (masked_routes[i] == routes[i]);
 end

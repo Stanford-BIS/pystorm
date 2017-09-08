@@ -11,10 +11,12 @@ module Serializer #(parameter Nin = 2, parameter Nout = 1) (
 
 // D = serialization factor
 // no internal registers, just make the input channel hold while we serialize
-parameter D = Nin % Nout == 0 ? Nin / Nout : Nin / Nout + 1;
+localparam D = Nin % Nout == 0 ? Nin / Nout : Nin / Nout + 1;
 
 // one state per D
-logic [$clog2(D)-1:0] state, next_state, state_p1;
+logic [$clog2(D)-1:0] state;
+logic [$clog2(D)-1:0] next_state;
+logic [$clog2(D)-1:0] state_p1;
 
 assign state_p1 = state + 1;
 
@@ -41,12 +43,14 @@ always_comb
 assign out.v = in.v;
 
 logic [D-1:0][Nout-1:0] out_branch;
+genvar i;
 generate
-  for (genvar i = 0; i < D; i++)
+  for (i = 0; i < D; i++) begin : out_branch_generate
     if (Nout * (i + 1) <= Nin)
       assign out_branch[i] = in.d[Nout*(i + 1)-1:Nout*i];
     else
       assign out_branch[i] = in.d[Nin-1:Nout*i];
+  end
 endgenerate
 assign out.d = out_branch[state];
 

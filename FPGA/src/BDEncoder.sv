@@ -102,7 +102,7 @@ typedef enum {
 //leaf_enum leaf;
 
 // copied from above, with extra zeros filled in
-const logic [0:Nhorn-1][Nlongest_route-1:0] routes_reversed = '{
+const logic [0:Nhorn-1][0:Nlongest_route-1] routes_reversed = '{
   'b10100000,
   'b10110000,
   'b10111010,
@@ -139,11 +139,14 @@ const logic [0:Nhorn-1][Nlongest_route-1:0] routes_reversed = '{
   'b10001001};
 
 // since we filled in zeros, this will have the right route
-const logic [0:Nhorn-1][Nlongest_route-1:0] routes;
-generate
-for (genvar i = 0; i < Nhorn; i++)
-  assign routes[i] = {<<{routes_reversed[i]}}; // that's the stream operator
-endgenerate
+const logic [0:Nhorn-1][Nlongest_route-1:0] routes = routes_reversed; // this should do what we want since routes_reversed is packed ascending
+
+//genvar i;
+//generate
+//for (i = 0; i < Nhorn; i++) begin : routes_generate
+//  assign routes[i] = {<<{routes_reversed[i]}}; // that's the stream operator
+//end
+//endgenerate
 
 const logic [Nhorn-1:0][Ncode-1:0] route_lens = '{
   4,
@@ -187,11 +190,13 @@ const logic [Nhorn-1:0][Ncode-1:0] route_lens = '{
 logic [NBDdata-1:0] data_shifted1;
 logic [NBDdata-1:0] data_shifted3;
 logic [NBDdata-1:0] data_shifted4;
+logic [NBDdata-1:0] data_shifted6;
 logic [NBDdata-1:0] data_shifted7;
 logic [NBDdata-1:0] data_shifted8;
 assign data_shifted1 = enc_in.payload << 1;
 assign data_shifted3 = enc_in.payload << 3;
 assign data_shifted4 = enc_in.payload << 4;
+assign data_shifted6 = enc_in.payload << 6;
 assign data_shifted7 = enc_in.payload << 7;
 assign data_shifted8 = enc_in.payload << 8;
 
@@ -204,17 +209,21 @@ assign route_len = route_lens[enc_in.leaf_code];
 always_comb
   if (enc_in.leaf_code < Nhorn) begin
     BD_out.v = enc_in.v;
-    unique case (route_len)
+    case (route_len)
       1: 
         BD_out.d = data_shifted1 | route_sel;
       3:
         BD_out.d = data_shifted3 | route_sel;
       4:
         BD_out.d = data_shifted4 | route_sel;
+      6:
+        BD_out.d = data_shifted6 | route_sel;
       7:
         BD_out.d = data_shifted7 | route_sel;
       8:
         BD_out.d = data_shifted8 | route_sel;
+      default:
+        BD_out.d = data_shifted1 | route_sel;
     endcase
   end
   else begin
