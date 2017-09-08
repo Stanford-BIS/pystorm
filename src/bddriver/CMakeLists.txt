@@ -14,12 +14,6 @@ set(TARGET_NAME "Driver")
 include(CheckRequirements)
 include(Common)
 
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-    "Choose the type of build, options are : Debug Release"
-    FORCE)
-endif()
-
 if(NOT HOST_IS_VALID)
     message(FATAL_ERROR "Build does not support host '"
             ${CMAKE_HOST_SYSTEM_NAME} "'")
@@ -33,6 +27,35 @@ endif()
 
 # Additional packages
 find_package(Threads REQUIRED)
+
+############################################################################
+#
+# Comm type selection
+# Valid options are OPALKELLY, USB or SOFT
+#
+############################################################################
+if(NOT BD_COMM_TYPE)
+    set(BD_COMM_TYPE "MODEL" CACHE STRING
+    "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"SOFT\" or \"MODEL\""
+    FORCE)
+endif()
+
+# Opal-Kelly support
+if(BD_COMM_TYPE MATCHES "OPALKELLY")
+    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/include)
+    find_library(OK_LIBRARY okFrontPanel HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/lib)
+    add_definitions(-DBD_COMM_TYPE_OPALKELLY)
+    message(STATUS "COMM is Opal Kelly: " ${OK_LIBRARY})
+elseif(BD_COMM_TYPE MATCHES "USB")
+    message(STATUS "COMM is USB")
+    add_definitions(-DBD_COMM_TYPE_USB)
+elseif(BD_COMM_TYPE MATCHES "SOFT")
+    message(STATUS "COMM is SOFT")
+    add_definitions(-DBD_COMM_TYPE_SOFT)
+elseif(BD_COMM_TYPE MATCHES "MODEL")
+    message(STATUS "COMM is MODEL")
+    add_definitions(-DBD_COMM_TYPE_MODEL)
+endif()
 
 # Project settings
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
@@ -62,6 +85,6 @@ add_library(${TARGET_NAME} SHARED
             ${HEADER_FILES}
             ${SRC_FILES}
            )
-target_link_libraries(${TARGET_NAME} ${CMAKE_THREADS_LIB_INIT})
+target_link_libraries(${TARGET_NAME} ${CMAKE_THREADS_LIB_INIT} ${OK_LIBRARY})
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

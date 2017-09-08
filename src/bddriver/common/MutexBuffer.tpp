@@ -182,6 +182,24 @@ unsigned int MutexBuffer<T>::Pop(T* copy_to, unsigned int max_to_pop, unsigned i
   return num_to_pop;
 }
 
+template <class T>
+unsigned int MutexBuffer<T>::PopSimple(T* copy_to, unsigned int max_to_pop, unsigned int multiple)
+// copies data from front_ into copy_to. Returns number read (because maybe num_to_read > count_)
+{
+  // copy the data
+  unsigned int num_to_pop = DetermineNumToPop(max_to_pop, multiple);
+
+  // do copy
+  for (unsigned int i = 0; i < num_to_pop; i++) {
+    copy_to[i] = vals_[(front_ + i) % capacity_];
+  }
+
+  // update buffer state
+  UpdateStateForPop(num_to_pop);
+
+  return num_to_pop;
+}
+
 //template <class T>
 //unsigned int MutexBuffer<T>::Pop(std::vector<T>* push_to, unsigned int max_to_pop, unsigned int try_for_us,
 //                                 unsigned int multiple) {
@@ -243,13 +261,25 @@ std::pair<const T*, unsigned int> MutexBuffer<T>::LockFront(unsigned int max_to_
 }
 
 template <class T>
-void MutexBuffer<T>::UnlockFront() {
+bool MutexBuffer<T>::LockFrontSimple(unsigned int try_for_us) {
+  // can only have one thread doing this type of read at a time
+  // otherwise much harder to keep track of the front_
+  front_ulock_ = new std::unique_lock<std::mutex>(front_lock_);
+
+  // we currently have the lock, but if the buffer is empty, we need to wait
+  return WaitForHasAtLeast(front_ulock_, try_for_us, 1);
+}
+
+template <class T>
+void MutexBuffer<T>::UnlockFront(bool update) {
   // tells the MB that the client is done reading from the memory associated with LockFront()
 
-  assert(num_to_read_ <= count_);
+  if(update){
+      assert(num_to_read_ <= count_);
 
-  // update front_ and count_;
-  UpdateStateForPop(num_to_read_);
+      // update front_ and count_;
+      UpdateStateForPop(num_to_read_);
+  }
 
   // allow someone else to issue LockFront()
   front_lock_.unlock();

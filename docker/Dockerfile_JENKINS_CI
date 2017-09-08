@@ -7,10 +7,10 @@ COPY . /home/git/pystorm
 # the automated tests for PyStorm
 
 RUN export HOME="/home/git" \
-    && cd /home/git/pystorm \ 
+    && cd /home/git/pystorm \
     && mkdir build \
     && cd build \
-    && cmake -G Ninja ..  \
-    && ninja -j 6
+    && cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug ..  \
+    && cmake --build . --config Debug
 
 WORKDIR /home/git/pystorm/build/
