@@ -172,7 +172,10 @@ set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
 set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
-set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/proj2/OKCoreTestHarness.sv
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/src/OKCoreTestHarness.sv
 set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/src/TimeUnitPulser.sv
 set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/src/TimeMgr.sv
 set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/src/SpikeGeneratorArray.sv
@@ -202,7 +205,4 @@ set_global_assignment -name VERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/F
 set_global_assignment -name SYSTEMVERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/proj2/okHost.sv
 set_global_assignment -name SDC_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/proj2/okHost.sdc
 set_global_assignment -name VERILOG_FILE //VBOXSVR/SharedWithCADMonkey/pystorm/FPGA/proj2/okEndpoints.v
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
