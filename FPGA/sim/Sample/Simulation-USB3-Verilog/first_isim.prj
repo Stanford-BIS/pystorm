@@ -1,0 +1,7 @@
+verilog work "./oksim/okWireOR.v"
+verilog work "./oksim/okWireIn.v"
+verilog work "./oksim/okWireOut.v"
+verilog work "./oksim/okHost.v"
+verilog work "./oksim/glbl.v"
+verilog work "First.v"
+verilog work "First_tf.v"
