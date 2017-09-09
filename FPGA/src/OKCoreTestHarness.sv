@@ -40,14 +40,14 @@ endfunction
 assign led      = zem5305_led(4'b1);
 
 // Pipe In
-wire        pipe_in_write;
-wire        pipe_in_ready;
-wire [31:0] pipe_in_data;
+logic        pipe_in_write;
+logic        pipe_in_ready;
+logic [31:0] pipe_in_data;
 
 // Pipe Out
-wire        pipe_out_read;
-wire        pipe_out_ready;
-wire [31:0] pipe_out_data;
+logic        pipe_out_read;
+logic        pipe_out_ready;
+logic [31:0] pipe_out_data;
 
 // Instantiate the okHost and connect endpoints.
 wire [65*2-1:0]  okEHx;
@@ -111,6 +111,7 @@ logic [Nfifo-1:0] FIFO_in_count;
 logic [NPCinout-1:0] FIFO_in_data_out;
 logic FIFO_in_rd_ack;
 logic FIFO_in_empty;
+logic FIFO_in_full; // unused
 
 // input FIFO, compute ready signal using used
 // if the MSBs aren't all one, there's 128 words free
@@ -125,6 +126,7 @@ PipeInFIFO fifo_in(
   .q(FIFO_in_data_out),
   .rdreq(FIFO_in_rd_ack),
   .empty(FIFO_in_empty),
+  .full(FIFO_in_full),
   .usedw(FIFO_in_count),
   .clock(okClk));
 

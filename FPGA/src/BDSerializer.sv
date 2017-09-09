@@ -28,22 +28,22 @@ module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
 localparam NBDpayload = 32; // width of DecodedBDWordChannel.payload (longest "data width")
 localparam Nfunnel = 13; // number of funnel leaves
 
-localparam int width_used[Nfunnel] = '{
-  19,
-  8 ,
-  20,
-  19,
-  19,
-  20,
-  29,
-  29,
-  12,
-  1 ,
-  1 ,
-  28,
-  32};
+// actually serialization - 1
+localparam logic serialization[0:Nfunnel-1] = '{
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  1,
+  1,
+  0,
+  0,
+  0,
+  1,
+  1};
 
-localparam MaxSer = 2;
 
 //// have to assign parameters in one shot, at init, so need a fn
 //typedef int SerType[Nfunnel];
@@ -52,15 +52,7 @@ localparam MaxSer = 2;
 //    SerFromWidth[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
 //endfunction
 
-logic [Nfunnel-1:0][$clog2(MaxSer)-1:0] serialization;
-genvar i;
-generate
-for (i = 0; i < Nfunnel; i++) begin : serialization_generate
-  assign serialization[i] = width_used[i] % Ndata_out == 0 ? width_used[i] / Ndata_out : width_used[i] / Ndata_out + 1;
-end
-endgenerate
-
-logic [$clog2(MaxSer)-1:0] serialization_sel;
+logic serialization_sel;
 assign serialization_sel = serialization[dec_in.leaf_code];
 
 /////////////////////////////////////////
@@ -78,7 +70,7 @@ always_comb
   unique case (state)
     S0:
       if (ser_out.a == 1)
-        if (serialization_sel > 1)
+        if (serialization_sel == 1)
           next_state = S1;
         else 
           next_state = S0;
@@ -86,7 +78,6 @@ always_comb
         next_state = S0;
 
     S1: begin
-      //assert (serialization_sel <= 2)
       if (ser_out.a == 1)
         next_state = S0;
       else

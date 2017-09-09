@@ -16,16 +16,14 @@ module Core #(
   // parameters for SpikeGeneratorArray
   parameter N_SG_gens = 8,
   parameter N_SG_period = 16,
-  parameter N_SG_tag = Ntag,
-  parameter N_SG_ct = Nct,
 
   // parameters for TimeMgr
   parameter N_TM_time = 48,
   parameter N_TM_unit = 16) 
 (
   // PC-side
-  Channel PC_in,
   Channel PC_out,
+  Channel PC_in,
 
   // BD-side
   Channel BD_out,
@@ -47,6 +45,9 @@ localparam Nconf = 16;
 localparam Nreg = 32;
 localparam Nchan = 2;
 
+// SpikeGenerator additional params
+localparam N_SG_tag = Ntag;
+localparam N_SG_ct = Nct;
 
 // Core includes all the components that are agnostic to both BD handshaking
 // and the IO mechanism (e.g. Opal Kelly USB host module or USB IP core).
