@@ -295,12 +295,9 @@ assign s3_next_ct = s2_ct;
 // multiply the count with the conf.increment_constant
 // discard the high-order bits
 // could generate a warning to the user if any of the high bits are non-zero
-logic [(Nstate+Nct)-1:0] increment_mult_out;
-logic [Nstate-1:0] increment_amount;
+
 logic [Nstate-1:0] increment_writeback;
-assign increment_mult_out = conf.increment_constant * s3_ct;
-assign increment_amount = increment_mult_out[Nstate-1:0]; // discard MSBs (Nct.0 * Nstate-9.9)
-assign increment_writeback = s3_filt_state + increment_amount;
+assign increment_writeback = conf.increment_constant * s3_ct + s3_filt_state; // mult discards MSBs (Nct.0 * Nstate-9.9)
 
 // combinational block for DECAY
 // meant to synthesize as a DSP multiplier
