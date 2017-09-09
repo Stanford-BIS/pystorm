@@ -64,7 +64,7 @@ endmodule
 // tries to be fair when heavily contested
 
 module ChannelMerge (
-  Channel out, 
+  Channel out,
   Channel in0, in1,
   input clk, reset);
 
@@ -76,7 +76,7 @@ always_ff @(posedge clk, posedge reset)
     if (out.a == 1)
       last_sel <= sel;
 
-// note: output can switch when going from 
+// note: output can switch when going from
 // single-input-valid to both-inputs-valid
 always_comb
   if (in0.v == 1 && in1.v == 0)
@@ -108,9 +108,9 @@ logic sel0;
 assign sel0 = ((in.d & Mask) == Code0);
 
 assign out0.v = sel0 & in.v;
-assign out0.d = sel0 ? in.d : 'X;
+assign out0.d = sel0 ? in.d : 'x;
 assign out1.v = ~sel0 & in.v;
-assign out1.d = ~sel0 ? in.d : 'X;
+assign out1.d = ~sel0 ? in.d : 'x;
 assign in.a = out0.a | out1.a;
 
 endmodule
@@ -186,7 +186,7 @@ always_comb
   unique case (state)
   WAITING:
     valid = 0;
-  SENDING: 
+  SENDING:
     valid = 1;
   endcase
 
@@ -194,7 +194,7 @@ endmodule
 
 
 
-// module that drives the .v and .d member of a DatalessChannel with 
+// module that drives the .v and .d member of a DatalessChannel with
 // random timings. Can parametrize to control range of delay times
 module DatalessChannelSrc #(
   parameter ClkDelaysMin = 0,
@@ -208,8 +208,8 @@ initial begin
 
   next_delay = $urandom_range(ClkDelaysMax, ClkDelaysMin);
   repeat (next_delay)
-    @ (posedge clk); 
-  
+    @ (posedge clk);
+
   forever begin
     out.v <= 1;
 
@@ -224,7 +224,7 @@ initial begin
     if (next_delay > 0) begin
       out.v <= 0;
       repeat (next_delay - 1)
-        @ (posedge clk); 
+        @ (posedge clk);
     end
   end
 end
@@ -232,13 +232,13 @@ end
 endmodule
 
 
-// module that drives the .v and .d members of a channel with 
-// random data, using random timings. Can parametrize to 
+// module that drives the .v and .d members of a channel with
+// random data, using random timings. Can parametrize to
 // control range of random values and delay times.
 module RandomChannelSrc #(
-  parameter N = 1, 
-  parameter logic [N-1:0] Max = 2**N-1, 
-  parameter logic [N-1:0] Min = 0,     
+  parameter N = 1,
+  parameter logic [N-1:0] Max = 2**N-1,
+  parameter logic [N-1:0] Min = 0,
   parameter logic [N-1:0] Mask = 2**N-1,
   parameter ClkDelaysMin = 0,
   parameter ClkDelaysMax = 5) (Channel out, input clk, reset);
@@ -250,7 +250,7 @@ int delay_ct;
 always_ff @(posedge clk, posedge reset)
   if (reset == 1) begin;
     out.v <= 0;
-    out.d <= 'X;
+    out.d <= 'x;
     delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
   end
   else begin
@@ -292,12 +292,15 @@ always_ff @(posedge clk, posedge reset)
         end
         else begin
           out.v = 0;
-          out.d = 'X;
+          out.d = 'x;
         end;
 
       end
     end
   end
+
+always @ (out.d)
+  $display("[T=%g]: data=%h (RandomChannelSrc)", $time, out.d);
 endmodule
 
 
@@ -326,7 +329,7 @@ initial begin
       @ (negedge clk);
     end
 
-    in.a <= 1; 
+    in.a <= 1;
     $display("at %g: sunk dataless channel", $time);
   end
 end
@@ -346,7 +349,8 @@ assign in.a = base.a;
 
 always_ff @(posedge clk)
   if (base.a == 1)
-    $display("at %g: sunk %b", $time, in.d);
+    //$display("at %g: sunk %b", $time, in.d);
+    $display("[T=%g]: data=%h (ChannelSink)", $time, in.d);
 
 
 DatalessChannelSink #(.ClkDelaysMin(ClkDelaysMin), .ClkDelaysMax(ClkDelaysMax)) base_sink(base, clk, reset);

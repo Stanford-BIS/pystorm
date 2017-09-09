@@ -1,150 +1,132 @@
+`include "Channel.svh"
+
 `define NUM_BITS_PIN2CORE 21
 `define NUM_BITS_CORE2PIN 34
 
-module FPGA_TO_BD ( _Reset, clk, req, x, xe);
-        parameter ONEOF=`NUM_BITS_PIN2CORE;
-        parameter FILENAME={`TBPATH, "p2c_in.dat"}; //file.txt
-        parameter NAME = "SOURCE_P2C_CLOCKED";
-        parameter DELAY = 1;
-        parameter CONST = -1;
-
-        input _Reset, clk, xe;
-        output req;
-        output x;
-        reg req;
-        reg[1:0] read_number;
-        reg [(ONEOF)-1:0]x;
-        integer fd,  error;
-        reg[(ONEOF)-1:0] value[ 0:`MAX_INPUTS-1];
-        reg[1000:0] s;
-        integer i;
-        integer nvalues;
-
-        initial begin
-             if (CONST == -1) begin
-                fd = $fopen(FILENAME,"r");
-                if (fd == 0) begin
-                        $display ("%s: Couldn't open data file for inject_source_clocked: %s", NAME, FILENAME);
-                        $finish;
-                end
-                else begin
-                        $display("%s, Data File opened correctly", NAME);
-                        error = $fscanf(fd, "%d", nvalues);
-                        $display("%s, Reading %d values from file %s to source", NAME, nvalues, FILENAME);
-                end
-                i = 0;
-                while( i < nvalues) begin
-                        error = $fgets(s,fd);
-                        error = $fscanf(fd, "%d", value[i]);
-                        $display("Reading value %d", value[i]);
-                        if ( value[i] >=  2**(ONEOF) ) begin
-                                $display("This value is greater than expected: %s = %d", NAME, value[i]);
-                                $finish;
-                        end
-                        i=i+1;
-                end
-              end
-              else begin
-                if ( CONST >=  2**(ONEOF) ) begin  // ???
-                            $display("This value is greater than expected: %s = %d", NAME, CONST);
-                            $finish;
-                end
-              end
-              i = 0;
-              x <= #DELAY 0;
-              req <= #DELAY 0;
-        end
-
-        always @(posedge clk or negedge _Reset) begin
-
-                if(xe && _Reset && ~req) begin
-                    if (CONST == -1) begin
-                        $display("%s, READY TO SEND - new value at time %t", NAME, $time);
-                        if ( i < nvalues) begin
-                                $display("%s, Sourcing %d value from file= %d", NAME, i, value[i]);
-                                x <= #DELAY value[i]; // (1<<value[i]);
-                                i <= #DELAY i+1;
-                                $display("Req goes high \n");
-				req <= #(DELAY+1) 1'b1;
-                        end
-                        else  begin
-                                 $display("%s: Already sourced all values", NAME);
-                        end
-                    end
-                    else begin
-                        $display ("%s, Sourcing %d", NAME, CONST);
-                        x <= #DELAY (1 << CONST);
-                        i <= #DELAY i+1;
-                    end
-                end
-                else if(~_Reset || ~xe)
-                begin
-                        $display("%s: Source/Req  is in Reset Phase", NAME);
-                        //x <= #DELAY 0;
-			//req <= #DELAY 0;
-                end
-        end
-
-        always @(negedge clk) begin
-                if (req == 1 && xe == 0) begin
-
-		req <= #DELAY 0;
-
-                end
-        end
-
-        always @( x ) begin
-                $display("%s, Data channels set to %b", NAME, x );
-        end
-endmodule
-
-module BD_TO_FPGA (ready, valid, data, Channel channel, reset, clk);
-    parameter NUM_BITS=`NUM_BITS_CORE2PIN;
-    //output channel.d
-    //output channel.v
-    output ready;       // BD sends data if ready is asserted (sync)
-    input valid;        // If asserted, data is valid (sync)
-    input data;         // Registered data from BD (sync)
-    input reset;        // Global reset (asynch)
+module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
+                   (Channel bd_channel,
+                    output reg valid, output reg [NUM_BITS-1:0] data,
+                    input ready, reset, clk);
+    /*
+    input bd_channel.d  // Data read from bd_channel
+    input bd_channel.v  // Asserted if bd_channel data is valid
+    output bd_channel.a // Assert if data sent to BD
+    output data;        // Data sent to BD
+    output valid;       // Assert if data sent to BD is valid
+    input ready;        // Asserted if BD is ready to read
+    input reset;        // Global reset
     input clk;          // Global clock
-    enum integer {BD_VALID=3, BD_INVALID=2} STATES;
-    wire [1:0] state;
+    */
 
-    wire[0: (NUM_BITS)-1] data;
-    reg ready;
+    /*
+    The various states are
+      bd_channel.v  |  ready  ||  bd_channel.a  |  valid
+            0       |    x    ||       0        |    0
+            1       |    0    ||       0        |    0
+            1       |    1    ||       1        |    1
+    */
+    enum bit {BD_VALID=1, BD_INVALID=0} STATES;
+    wire state;
+    assign state = bd_channel.v & ready;
 
-    // In the beginning, not ready to receive
     initial
     begin
-        ready <= 0;
-        channel.v <= 0;
+        bd_channel.a   <= 0;
+        valid       <= 0;
+        //data        <= NUM_BITS'x;
     end
 
-    assign state = {channel.a, valid};
-    assign ready = channel.a;
-
-    always @(reset)
+    always @(negedge clk, posedge reset)
     begin
-        if (reset)
+        if(reset == 1)
         begin
-            ready <= 0;
-            channel.v <= 0;
+            bd_channel.a   <= 0;
+            valid       <= 0;
+            //data        <= NUM_BITS'x;
+        end
+        else
+        begin
+            case(state)
+                BD_INVALID: begin
+                    bd_channel.a   <= 0;
+                    valid       <= 0;
+                end
+                BD_VALID: begin
+                    bd_channel.a   <= 1;
+                    valid       <= 1;
+                    data        <= bd_channel.d;
+                end
+            endcase
         end
     end
+endmodule
 
-    always @(posedge clk)
+module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
+                   (Channel bd_channel,
+                    input valid, input [NUM_BITS-1:0] data,
+                    output reg ready, input reset, clk);
+    /*
+    output channel.d  // Data sent to channel
+    output channel.v  // Assert if valid data to send
+    input channel.a   // At reset 0, asserted if channel.d is latched
+    output ready;     // BD sends data if ready is asserted (sync)
+    input valid;      // If asserted, data is valid (sync)
+    input data;       // Registered data from BD (sync)
+    input reset;      // Global reset (async)
+    input clk;        // Global clock
+    */
+
+    /*
+    The various states are
+      bd_channel.a  |  valid  |  bd_channel.v  ||  bd_channel.v  |  ready
+            0       |    0    |        0       ||        0       |    1
+            0       |    0    |        1       ||        1       |    0
+            1       |    0    |        x       ||        0       |    1
+            0       |    1    |        x       ||        1       |    0
+            1       |    1    |        x       ||        1       |    1
+    */
+
+    enum integer {BOTH_OFF=0, FPGA_OFF=1, BD_OFF=2, BOTH_ON=3} STATES;
+    wire [1:0] state;
+    assign state = {bd_channel.a, valid};
+
+    initial
     begin
-        channel.d <= data;
+        bd_channel.v    <= 0;
+        ready           <= 0;
+        //data        <= NUM_BITS'x;
+    end
 
-        // Channel is ready AND BD data is valid
-        if(state == BD_VALID)
+    always @(posedge clk, posedge reset)
+    begin
+        if(reset == 1)
         begin
-            channel.v <= 1;
+            bd_channel.v   <= 0;
+            ready          <= 0;
+            //data        <= NUM_BITS'x;
         end
-        // Channel is ready, but invalid BD data
-        else if(state == BD_INVALID)
+        else
         begin
-            channel.v <= 0;
+            case(state)
+                BOTH_OFF: begin
+                    bd_channel.v   <= bd_channel.v;
+                    ready          <= ~bd_channel.v;
+                end
+                FPGA_OFF: begin
+                    bd_channel.v   <= 1;
+                    ready          <= 0;
+                    bd_channel.d   <= data;
+                end
+                BD_OFF: begin
+                    bd_channel.v   <= 0;
+                    ready          <= 1;
+                end
+                BOTH_ON: begin
+                    bd_channel.v   <= 1;
+                    ready          <= 1;
+                    bd_channel.d   <= data;
+                end
+            endcase
         end
     end
 endmodule
