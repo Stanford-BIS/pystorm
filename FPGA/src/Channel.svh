@@ -1,9 +1,105 @@
 `ifndef CHANNEL_SVH
 `define CHANNEL_SVH
+
 // valid/data-acknowledge channel
-// valid (v) triggers on posedge
-// acknowledge (a) is generated with combinational logic, or negedge
-// this scheme allows for full speed (one data transfer per cycle)
+//
+// If valid (.v) goes high sometime in clock cycle i,
+// that means that the data has a new, valid value on the next clock edge
+// (the beginning of cycle i+1). 
+// For full throughput, the receiver will assert acknowledge (.a) sometime
+// after .v, still in clock cycle i. The receiver samples the
+// data on the next clock edge (the beginning of cycle i+1).
+// This scheme allows for full speed (one data transfer per cycle).
+//
+// Practically speaking, there's nothing preventing .v/.d from being
+// register outputs, but they're often combinational functions of FSM states, 
+// so I've marked them as transitioning a little after the clock edge in the
+// following diagrams. There's nothing that says that .a can't be a register
+// output, but for full throughput, it needs to be a purely combinational
+// function of .v
+//
+// Timing example:
+//
+// .v |  ______|________|________|________|_       |
+//    |_|      |        |        |        | |______|
+//    |        |        |        |        |        |
+// .d |_  _____|  ______|________|  ______|  ______|
+//    |X\/  1  |\/   2  |   2    |\/   3  |\/   X  |
+//    |_/\_____|/\______|________|/\______|/\______|
+//    |        |        |        |        |        |
+// .a |   _____|__      |   _____|________|__      |
+//    |__|     |  |_____|__|     |        |  |_____|
+//    |        |        |        |        |        |
+//
+//  1.receiver         3.then reads twice
+//    reads once         (full throughput)
+//              
+//            2.then can't                 4.sender has
+//              read for some                no more data
+//              reason, doesn't ack
+//
+// Notes:
+//
+// .v |_   ____|________|
+//    | |_|    |        |
+//    |        |        |
+// .d |________|  ______|
+//    |   1    |\/   2  |
+//    |________|/\______|
+//    |        |        |
+// .a |   _   _|________|
+//    |__| |_| |        |
+//    |        |        |
+//
+//    Technically the above is legal. We're not doing async handshakes with phases.
+//    .a and .d just have to be high by the next clock edge
+//    It's up to the synthesis tool to make sure everything works out.
+//
+// .v |        |  ______|
+//    |________|_|      |
+//    |        |        |
+// .d |________|  ______|
+//    |   X    |\/   1  |
+//    |________|/\______|
+//    |        |        |
+// .a |   _____|__      |
+//    |__|     |  |_____|
+//    |        |        |
+//
+//    This, however, breaks the protocol.
+//    .a should never be high on a clock edge that .v isn't high on
+//
+// .v |  ______|________|_       |
+//    |_|      |        | |______|
+//    |        |        |        |
+// .d |_  _____|  ______|  ______|
+//    |X\/  1  |\/   2  |\/   X  |
+//    |_/\_____|/\______|/\______|
+//    |        |        |        |
+// .a |   _____|__      |        |
+//    |__|     |  |_____|________|
+//    |        |        |        |
+//
+//    It's legal for .v to go away without being acknowledged
+//    (But I don't think I ever do this).
+//    This only works if .a if being generated combinationally.
+//
+// .v |  ______|________|________|________|
+//    |_|      |        |        |        |
+//    |        |        |        |        |
+// .d |_  _____|________|  ______|________|
+//    |X\/  1  |    1   |\/   2  |    2   |
+//    |_/\_____|________|/\______|________|
+//    |        |        |        |        |
+// .a |        |________|        |________|
+//    |________|        |________|        |
+//    |        |        |        |        |
+//
+//    If you know that .v isn't going to drop without being acked
+//    (like it does in the previous example), there's nothing keeping
+//    you from generating .a as a register output.
+//    You're just never going to get more than half throughput.
+//
 interface Channel #(parameter N = -1);
   logic [N-1:0] d;
   logic v;
@@ -43,6 +139,82 @@ end
 endgenerate
 
 endmodule
+
+////////////////////////////////////////////
+// N-stage circular FIFO for Channels
+// Can be used to pipeline components that communicate
+// over Channels. Breaks up long delay paths.
+module ChannelFIFO #(parameter N = 2, parameter M = 1) (
+  Channel out, 
+  Channel in,
+  input clk, reset);
+
+localparam logN = $clog2(N);
+
+logic [N-1:0][M-1:0] data;
+
+logic [logN-1:0] head, head_p1, tail, tail_p1; 
+assign head_p1 = head + 1;
+assign tail_p1 = tail + 1;
+
+// head is where you should read from
+// tail is where you should write to
+// therefore, 
+// with one entry: head + 1 == tail
+// empty: tail == head
+// full: tail + 1 == head
+
+logic full, empty;
+assign empty = (tail == head);
+assign full = (tail_p1 == head);
+
+// tail update
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    tail <= 0;
+  else
+    if (full == 0 && in.v == 1)
+      tail <= tail_p1;
+    else
+      tail <= tail;
+
+// head update
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    head <= 0;
+  else
+    if (empty == 0 && out.a == 1)
+      head <= head_p1;
+    else
+      head <= head;
+
+// data write
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    data <= '0;
+  else
+    for (int i = 0; i < N; i++) 
+      if (i == tail && full == 0 && in.v == 1)
+        data[i] <= in.d;
+      else
+        data[i] <= data[i];
+
+// input handshake
+assign in.a = in.v & ~full;
+
+// data read/output handshake
+always_comb
+  if (empty == 0) begin
+    out.v = 1;
+    out.d = data[head];
+  end
+  else begin
+    out.v = 0;
+    out.d = 'X;
+  end
+    
+endmodule
+
 
 ////////////////////////////////////////////
 // block channel transmission with stall signal
@@ -245,7 +417,10 @@ module RandomChannelSrc #(
 
 localparam Chunks32 = N % 32 == 0 ? N / 32 : N / 32 + 1;
 
-int delay_ct;
+int delay_ct, next_delay_ct;
+
+logic [N-1:0] next_out_d;
+logic next_out_v;
 
 always_ff @(posedge clk, posedge reset)
   if (reset == 1) begin;
@@ -254,50 +429,56 @@ always_ff @(posedge clk, posedge reset)
     delay_ct <= $urandom_range(ClkDelaysMax, ClkDelaysMin);
   end
   else begin
-    if (out.v == 0) begin
+    out.v <= next_out_v;
+    out.d <= next_out_d;
+    delay_ct <= next_delay_ct;
+  end
+
+always_comb
+  if (out.v == 0) begin
+    if (delay_ct <= 0) begin
+      next_out_v = 1;
+
+      assert (N < 128);
+      next_out_d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
+
+      // not uniform random if min/max is used
+      if (out.d > Max)
+        next_out_d = Max;
+      if (out.d < Min)
+        next_out_d = Min;
+
+      next_out_d = next_out_d & Mask;
+    end
+    else begin
+      next_delay_ct = delay_ct - 1;
+    end
+  end
+  else begin
+    if (out.a == 1) begin
+      next_delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
       if (delay_ct <= 0) begin
-        out.v <= 1;
+        next_out_v = 1;
 
         assert (N < 128);
-        out.d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
+        next_out_d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
 
         // not uniform random if min/max is used
         if (out.d > Max)
-          out.d = Max;
+          next_out_d = Max;
         if (out.d < Min)
-          out.d = Min;
+          next_out_d = Min;
 
-        out.d = out.d & Mask;
+        next_out_d = next_out_d & Mask;
       end
       else begin
-        delay_ct <= delay_ct - 1;
-      end
-    end
-    else begin
-      if (out.a == 1) begin
-        delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
-        if (delay_ct <= 0) begin
-          out.v = 1;
+        next_out_v = 0;
+        next_out_d = 'X;
+      end;
 
-          assert (N < 128);
-          out.d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
-
-          // not uniform random if min/max is used
-          if (out.d > Max)
-            out.d = Max;
-          if (out.d < Min)
-            out.d = Min;
-
-          out.d = out.d & Mask;
-        end
-        else begin
-          out.v = 0;
-          out.d = 'X;
-        end;
-
-      end
     end
   end
+
 endmodule
 
 
@@ -374,6 +555,36 @@ end
 
 RandomChannelSrc #(.N(N)) src_dut(.out(chan), .*);
 ChannelSink sink_dut(.in(chan), .*);
+
+endmodule
+
+// FIFO test
+module ChannelFIFO_tb;
+
+parameter N = 4; 
+parameter M = 4;
+
+Channel #(M) out();
+Channel #(M) in();
+
+// clock
+logic clk;
+parameter Tclk = 10;
+always #(Tclk/2) clk = ~clk;
+initial clk = 0;
+
+// reset
+logic reset;
+initial begin
+  reset <= 0;
+  @(posedge clk) reset <= 1;
+  @(posedge clk) reset <= 0;
+end
+
+RandomChannelSrc #(.N(M)) src(in, clk, reset);
+ChannelSink sink(out, clk, reset);
+
+ChannelFIFO #(.N(N), .M(M)) dut(.*);
 
 endmodule
 
