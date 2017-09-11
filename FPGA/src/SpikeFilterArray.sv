@@ -26,6 +26,8 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 // state value is the spike rate in Hz
 // let's say the max spike rate is 100KHz. Overkill, but we'll spare the bits
 //
+// 27 bits is the width of the DSP multiplier on the Cyclone V.
+//
 // a reasonable 27b fixed-point state representation is then 18.9 (max 128K)
 // conf.decay_constants are < 1, so we'll use 0.27
 //
@@ -45,18 +47,25 @@ module SpikeFilterArray #(parameter Nfilts = 10, parameter Nstate = 27, paramete
 // pipeline structure
 // note that the memory has an input register, which complicates things
 //
-//        s1               s2               s3              s4             s5               
-//       state    /    pipe input     /  mem read   /    writeback    / mem write 
-//                                                                      
-//                        in                                            
-//                         |                        +-{inc}-+              
-//    next_state  state    |                        |       |              
-// [FSM]------[*]---+---{logic}--[-[*]-mem]--m--[*]-+     {mux}--[-[*]-[mem]]
-//   |              |      |                 |      |       |              
-//   +--------------+      +-------[*]-------+      +-{dec}-+              
-//                                                      |                  
-//                             ("m" for merge)          +----------[*]-- out    
-//                                                                      
+//        s1               s2               s3              s4               s5               
+//       state    /    pipe input     /  mem read  /     writeback      / mem write 
+//                                                     
+//                                                       +-----------[*]-- out               
+//                        in                             |               
+//                         |                        +--{dec}--+              
+//    next_state  state    |                        |         |              
+// [FSM]------[*]---+---{logic}--[-[*]-mem]-----[*]-+       {mux}--[-[*]-[mem]]
+//   |              |      |                        |         |              
+//   |              |      |                        +--{inc2}-+
+//   +--------------+      +-------[*]--{inc1}--[*]----{    }       
+//                           ct                                           
+//                                                          
+// inc1 does s3_inc = s2_ct * increment_constant
+// inc2 does s4_state = s3_inc + s3_state
+// (you can't do a * b + c at 27 in one DSP block)
+//
+// dec does s4_state = s3_state * decay constant
+//
 // (out.v & ~out.a) is treated as stall for all registers
 
 // instantiate memory, declare ports
@@ -203,7 +212,8 @@ logic [Nstate-1:0] s3_next_filt_state, s3_filt_state, s4_next_filt_state, s4_fil
 // opcodes
 enum {INCREMENT, DECAY, NOP} s2_op, s2_next_op, s3_op, s3_next_op, s4_op, s4_next_op;
 // count, for INCREMENT op
-logic [Nct-1:0] s2_ct, s2_next_ct, s3_ct, s3_next_ct;
+logic [Nct-1:0] s2_ct, s2_next_ct;
+logic [Nstate-1:0] s3_inc, s3_next_inc;
 
 // pipeline register updates
 always_ff @(posedge clk, posedge reset)
@@ -215,7 +225,7 @@ always_ff @(posedge clk, posedge reset)
     s3_filt_idx <= 'X;
     s4_filt_idx <= 'X;
     s2_ct <= 'X;
-    s3_ct <= 'X;
+    s3_inc <= 'X;
     s4_filt_state <= 'X;
   end
   else 
@@ -227,7 +237,7 @@ always_ff @(posedge clk, posedge reset)
       s3_filt_idx <= s3_filt_idx;
       s4_filt_idx <= s4_filt_idx;
       s2_ct <= s2_ct;
-      s3_ct <= s3_ct;
+      s3_inc <= s3_inc;
       s3_filt_state <= s3_filt_state;
       s4_filt_state <= s4_filt_state;
     end
@@ -239,7 +249,7 @@ always_ff @(posedge clk, posedge reset)
       s3_filt_idx <= s3_next_filt_idx;
       s4_filt_idx <= s4_next_filt_idx;
       s2_ct <= s2_next_ct;
-      s3_ct <= s3_next_ct;
+      s3_inc <= s3_next_inc;
       s3_filt_state <= s3_next_filt_state;
       s4_filt_state <= s4_next_filt_state;
     end
@@ -282,10 +292,12 @@ assign mem_rd_addr = s2_next_filt_idx;
 // memory output
 assign s3_next_filt_state = mem_rd_data;
 
+// inc1
+assign s3_next_inc = conf.increment_constant * s2_ct; // mult discards MSBs (Nct.0 * Nstate-9.9)
+
 // passthrough
 assign s3_next_op = s2_op;
 assign s3_next_filt_idx = s2_filt_idx;
-assign s3_next_ct = s2_ct;
 
 ////////////////////////////////////////////
 // stage 4: memory writeback computation, output
@@ -296,8 +308,12 @@ assign s3_next_ct = s2_ct;
 // discard the high-order bits
 // could generate a warning to the user if any of the high bits are non-zero
 
+// inc2
+// It's possible to do 18-bit x * y + z in the DSP, but not at 27 bits
+// so we have two stages to the operation
 logic [Nstate-1:0] increment_writeback;
-assign increment_writeback = conf.increment_constant * s3_ct + s3_filt_state; // mult discards MSBs (Nct.0 * Nstate-9.9)
+assign increment_writeback = s3_inc + s3_filt_state; 
+
 
 // combinational block for DECAY
 // meant to synthesize as a DSP multiplier

@@ -144,16 +144,16 @@ endmodule
 // N-stage circular FIFO for Channels
 // Can be used to pipeline components that communicate
 // over Channels. Breaks up long delay paths.
-module ChannelFIFO #(parameter N = 2, parameter M = 1) (
+module ChannelFIFO #(parameter D = 2, parameter N = 1) (
   Channel out, 
   Channel in,
   input clk, reset);
 
-localparam logN = $clog2(N);
+localparam logD = $clog2(D);
 
-logic [N-1:0][M-1:0] data;
+logic [D-1:0][N-1:0] data;
 
-logic [logN-1:0] head, head_p1, tail, tail_p1; 
+logic [logD-1:0] head, head_p1, tail, tail_p1; 
 assign head_p1 = head + 1;
 assign tail_p1 = tail + 1;
 
@@ -193,7 +193,7 @@ always_ff @(posedge clk, posedge reset)
   if (reset == 1)
     data <= '0;
   else
-    for (int i = 0; i < N; i++) 
+    for (int i = 0; i < D; i++) 
       if (i == tail && full == 0 && in.v == 1)
         data[i] <= in.d;
       else
@@ -564,11 +564,11 @@ endmodule
 // FIFO test
 module ChannelFIFO_tb;
 
-parameter N = 4; 
-parameter M = 4;
+parameter D = 4; 
+parameter N = 4;
 
-Channel #(M) out();
-Channel #(M) in();
+Channel #(N) out();
+Channel #(N) in();
 
 // clock
 logic clk;
@@ -584,10 +584,10 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
-RandomChannelSrc #(.N(M)) src(in, clk, reset);
+RandomChannelSrc #(.N(N)) src(in, clk, reset);
 ChannelSink sink(out, clk, reset);
 
-ChannelFIFO #(.N(N), .M(M)) dut(.*);
+ChannelFIFO #(.D(D), .N(N)) dut(.*);
 
 endmodule
 
