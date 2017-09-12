@@ -308,7 +308,7 @@ always_ff @(posedge clk, posedge reset)
     state <= next_state;
 
 always_comb
-  case (state)
+  unique case (state)
     READY:
       if (pulse == 1)
         next_state = SENDING;
@@ -319,6 +319,14 @@ always_comb
         next_state = READY;
       else
         next_state = SENDING;
+  endcase
+
+always_comb
+  unique case (state)
+    READY:
+      out.d = 'X;
+    SENDING:
+      out.d = data;
   endcase
 
 assign out.v = (state == SENDING);
@@ -438,6 +446,7 @@ always_comb
   if (out.v == 0) begin
     if (delay_ct <= 0) begin
       next_out_v = 1;
+      next_delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
 
       assert (N < 128);
       next_out_d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
@@ -451,14 +460,16 @@ always_comb
       next_out_d = next_out_d & Mask;
     end
     else begin
+      next_out_v = 0;
+      next_out_d = 'X;
       next_delay_ct = delay_ct - 1;
     end
   end
   else begin
     if (out.a == 1) begin
-      next_delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
       if (delay_ct <= 0) begin
         next_out_v = 1;
+        next_delay_ct = $urandom_range(ClkDelaysMax, ClkDelaysMin);
 
         assert (N < 128);
         next_out_d = {$urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0), $urandom_range(2**32-1, 0)};
@@ -475,6 +486,11 @@ always_comb
         next_out_v = 0;
         next_out_d = 'X;
       end;
+    end
+    else begin
+      next_out_v = 1;
+      next_out_d = out.d;
+      next_delay_ct = delay_ct;
     end
   end
 

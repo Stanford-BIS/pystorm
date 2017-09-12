@@ -138,6 +138,10 @@ initial begin
 
   ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
 
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
+
+  #(1000)
   ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
 
 end
