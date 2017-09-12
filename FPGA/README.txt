@@ -1,14 +1,14 @@
 ===========================================
-Temporary instructions (things are still kind of a mess)
+Explanation of directores
 
 /src has the HDL for the FPGA design. Includes anything that we wrote.
 
 /ext has external HDL and source code
 /ext/opalkelly/FrontPanelHDL has the (encrypted) FrontPanel IP cores
 /ext/opalkelly/Simulation has HDL behavioral models for the okHost and endpoints 
+/ext/lib and /ext/include are for the OK software libraries
 
-/proj2 will move to /quartus when I get my act together
-It contains quartus project files (including constraints)
+/quartus contains Quartus project files (including constraints)
 as well as HDL for the altera IP cores (e.g. memories)
 
 /test has HDL test harnesses. But most are with their source for now
@@ -17,12 +17,13 @@ as well as HDL for the altera IP cores (e.g. memories)
 Quartus instructions:
 
 Read quartus/OK_README.txt for some good info if setting up a project from scratch
-using the OK boad.
+using the OK board.
 
 - Load the .qpf in /quartus.
 - You might need to add the license in /ext/opalkelly/FrontPanelHDL.
 - Everything else should already be set up! 
   (All the files from /src and /ext/opalkelly/FrontPanelHDL should already be included)
+  (note that the .hex needs to be in the Quartus project directory)
 - Press the big blue button to compile the project. 
   Hopefully, there are no problems.
 - After that, generate the .rbf bitfile.

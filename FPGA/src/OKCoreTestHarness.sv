@@ -11,6 +11,8 @@ module OKCoreTestHarness (
 	);
 
 localparam NPCcode = 8;
+localparam NPCdata = 24;
+localparam NPCinout = NPCcode + NPCdata;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 localparam PCtoBDcode = {NPCcode{1'b1}}; // downstream traffic with this code goes to the BDInput
 localparam BDtoPCcode = {NPCcode{1'b1}}; // upstream traffic with this code came from BD
