@@ -4,6 +4,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 project(PyStormBindings CXX)
 set(TARGET_NAME "Pystorm")
 set(TARGET2_NAME "BDDriver")
+set(TARGET3_NAME "OpalKelly")
 
 ############################################################################
 #
@@ -36,6 +37,9 @@ set(HAL_LIBRARY Hal )
 set(DRIVER_LIBRARY Driver)
 find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/include)
+find_library(OK_LIBRARY okFrontPanel HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/lib)
 
 # Project settings
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
@@ -77,6 +81,10 @@ target_link_libraries(${TARGET2_NAME} PRIVATE
     ${PYTHON_LIBRARIES}
     ${DRIVER_LIBRARY}
 )
+pybind11_add_module(${TARGET3_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/OpalKelly.cpp)
+target_link_libraries(${TARGET3_NAME} PRIVATE
+    ${OK_LIBRARY}
+)
 if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
     add_compile_options(-flto -fvisibility=hidden)
 endif()
@@ -105,4 +113,14 @@ if(APPLE)
     set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".so")
 elseif(WIN32)
     set_target_properties(${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
+endif(APPLE)
+
+set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${TARGET3_NAME} PROPERTY PREFIX "")
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
+if(APPLE)
+    set_target_properties(${TARGET3_NAME} PROPERTIES SUFFIX ".so")
+elseif(WIN32)
+    set_target_properties(${TARGET3_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)
