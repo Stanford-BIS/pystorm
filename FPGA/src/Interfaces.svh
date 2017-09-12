@@ -26,6 +26,11 @@ interface TagSplitConf;
   logic report_tags;
 endinterface
 
+interface BDIOConf;
+  logic pReset;
+  logic sReset;
+endinterface
+
 // channels
 interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 9);
   logic [Ntag-1:0] tag;

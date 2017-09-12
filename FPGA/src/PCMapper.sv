@@ -37,6 +37,9 @@ module PCMapper #(
   // TagSplit
   TagSplitConf TS_conf,
 
+  // BDIO
+  BDIOConf BD_conf,
+
   // inputs from PCParser
   input [Nreg-1:0][Nconf-1:0] conf_reg_out,
   ChannelArray conf_channel_out, // Nchan channels, Nconf wide
@@ -78,6 +81,9 @@ localparam TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_
 localparam TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
 localparam TS_report_tags_idx        = TS_base + 0;
 
+localparam BD_base                   = TS_base + 1;
+localparam BD_all_idx                = BD_base + 0;
+
 // assign registers
 
 assign SF_conf.filts_used         = conf_reg_out[SF_filts_used_idx        +:N_SF_filts_chunks];
@@ -93,6 +99,10 @@ assign TM_conf.send_HB_up_every   = conf_reg_out[TM_PC_send_HB_up_idx     +:N_TM
 assign TM_conf.reset_time         = conf_reg_out[TM_PC_reset_time_idx];
 
 assign TS_conf.report_tags        = conf_reg_out[TS_report_tags_idx];
+
+assign BD_conf.pReset             = conf_reg_out[BD_all_idx][0];
+assign BD_conf.sReset             = conf_reg_out[BD_all_idx][1];
+
 // assign resets
 
 assign conf_reg_reset_vals[SF_filts_used_idx        +:N_SF_filts_chunks]   = 0; // no filters enabled, in "decay mode"
@@ -108,8 +118,9 @@ assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 2; 
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
 assign conf_reg_reset_vals[TS_report_tags_idx]                             = 1; // report tags by default
+assign conf_reg_reset_vals[BD_all_idx]                                     = 'b11; // reset initially asserted
 
-assign conf_reg_reset_vals[Nreg-1:TS_report_tags_idx+1] = 0;
+assign conf_reg_reset_vals[Nreg-1:BD_all_idx+1] = 0;
 
 /////////////////////////////////////////////////////
 // Channel mapping, deserialization
@@ -187,6 +198,9 @@ TimeMgrConf TM_conf();
 
 // TagSplit
 TagSplitConf TS_conf();
+
+// BD IO
+BDIOConf BD_conf();
 
 // inputs from PCParser
 logic [Nreg-1:0][Nconf-1:0] conf_reg_out;

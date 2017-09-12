@@ -29,6 +29,12 @@ module Core #(
   Channel BD_out,
   Channel BD_in,
 
+  output logic pReset, 
+  output logic sReset,
+
+  input adc0,
+  input adc1,
+
   input clk, reset);
 
 // local parameters, unmodifiable without changing submodules
@@ -130,6 +136,7 @@ SpikeFilterConf #(N_SF_filts, N_SF_state) SF_conf();
 SpikeGeneratorConf #(N_SG_gens) SG_conf();
 TimeMgrConf #(N_TM_unit, N_TM_time) TM_conf();
 TagSplitConf TS_conf();
+BDIOConf BD_conf();
 // conf channels
 SpikeGeneratorProgChannel #(N_SG_gens, N_SG_period, N_SG_tag) SG_program_mem();
 
@@ -154,6 +161,11 @@ TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags_post_FIFO();
 SpikeFilterOutputChannel SF_tags_out();
 SerializedPCWordChannel BDSerializer_out();
 SerializedPCWordChannel FPGASerializer_out();
+
+/////////////////////////////////////////////
+// reset
+pReset = BD_conf.pReset;
+sReset = BD_conf.sReset;
 
 /////////////////////////////////////////////
 // IO FIFOs
@@ -198,6 +210,7 @@ PC_mapper(
   SG_conf,
   TM_conf,
   TS_conf,
+  BD_conf,
   conf_regs,
   conf_channels,
   clk, reset);
