@@ -102,9 +102,9 @@ assign conf_reg_reset_vals[SF_decay_constant_idx    +:N_SF_state_chunks]   = 0;
 assign conf_reg_reset_vals[SG_gens_used_idx         +:N_SG_gens_chunks]    = 0; // all generators disabled
 assign conf_reg_reset_vals[SG_gens_en_idx           +:N_SG_gens_en_chunks] = 0;
 
-assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 5000; // for 200 MHz clk, 10 us time resolution
+assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 100; // for 100 MHz clk, 10 us time resolution
 assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
-assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 10; // send HB every 10 time units
+assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 2; // send HB every 10 time units
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
 assign conf_reg_reset_vals[TS_report_tags_idx]                             = 1; // report tags by default

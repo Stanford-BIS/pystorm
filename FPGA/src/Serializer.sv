@@ -6,7 +6,7 @@ module Serializer #(parameter Nin = 2, parameter Nout = 1) (
   input clk, reset);
 
 // make a wide channel into multiple transmissions of a narrow channel
-// Receive LSBs first
+// send LSBs first
 // if received {a, b, c}; send {c}, {b}, {a}
 
 // D = serialization factor
@@ -55,7 +55,7 @@ endgenerate
 assign out.d = out_branch[state];
 
 // handshake input
-assign in.a = out.a & (next_state == 0); // this means that we finished sending a word
+assign in.a = out.a & (state == D-1); // this means that we finished sending a word
 
 endmodule
 
