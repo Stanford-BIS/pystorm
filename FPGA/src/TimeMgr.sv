@@ -8,7 +8,7 @@
 // Generates signals for when to send heartbeats in upstream traffic
 module TimeMgr #(
   parameter Nunit = 16, 
-  parameter Ntime = 20) (
+  parameter Ntime = 48) (
 
   // used by other time-dependent units
   output logic unit_pulse, // pulses every time_unit, for 1 clk cycle
@@ -42,19 +42,24 @@ always_ff @(posedge clk, posedge reset)
 // generate upstream heartbeat
 logic [Ntime-1:0] time_units_since_HB;
 always_ff @(posedge clk, posedge reset)
-  if (reset == 1)
+  if (reset == 1) begin
     time_units_since_HB <= 1;
+    send_HB_up_pulse <= 0;
+  end
   else 
     if (unit_pulse == 1)
-      if (time_units_since_HB < conf.send_HB_up_every)
-        time_units_since_HB <= time_units_since_HB + 1;
-      else
+      if (time_units_since_HB >= conf.send_HB_up_every) begin
         time_units_since_HB <= 1;
-    else
+        send_HB_up_pulse <= 1;
+      end
+      else begin
+        time_units_since_HB <= time_units_since_HB + 1;
+        send_HB_up_pulse <= 0;
+      end
+    else begin
       time_units_since_HB <= time_units_since_HB;
-
-
-assign send_HB_up_pulse = (time_units_since_HB == conf.send_HB_up_every);
+      send_HB_up_pulse <= 0;
+    end
 
 // generate stall signal
 always_comb
@@ -109,6 +114,6 @@ initial begin
   #(Tclk) conf.reset_time = 0;
 end
 
-TimeMgr dut(.*);
+TimeMgr #(.Ntime(Ntime), .Nunit(Nunit)) dut(.*);
 
 endmodule
