@@ -19,7 +19,7 @@
 #
 # Quartus Prime
 # Version 17.0.0 Build 595 04/25/2017 SJ Lite Edition
-# Date created = 21:19:16  September 11, 2017
+# Date created = 17:58:09  September 07, 2017
 #
 # -------------------------------------------------------------------------- #
 #
@@ -41,7 +41,7 @@ set_global_assignment -name FAMILY "Cyclone V"
 set_global_assignment -name DEVICE 5CEFA2U19C8
 set_global_assignment -name TOP_LEVEL_ENTITY OKCoreTestHarness
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
-set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:19:16  SEPTEMBER 11, 2017"
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "17:58:09  SEPTEMBER 07, 2017"
 set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
@@ -60,8 +60,6 @@ set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
-set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
-set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_location_assignment PIN_P9 -to okUH[0]
 set_location_assignment PIN_M10 -to okUH[1]
 set_location_assignment PIN_L9 -to okUH[2]
@@ -172,13 +170,17 @@ set_instance_assignment -name IO_STANDARD "1.5 V" -to led[3]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
 set_global_assignment -name VERILOG_FILE SpikeGeneratorMem.v
 set_global_assignment -name QIP_FILE SpikeGeneratorMem.qip
 set_global_assignment -name VERILOG_FILE SpikeFilterMem.v
 set_global_assignment -name QIP_FILE SpikeFilterMem.qip
 set_global_assignment -name VERILOG_FILE PipeInFIFO.v
 set_global_assignment -name QIP_FILE PipeInFIFO.qip
-set_global_assignment -name SDC_FILE ../ext/opalkelly/FrontPanelHDL/okHost.sdc
 set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okLibrary.v
 set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.v
 set_global_assignment -name SYSTEMVERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.sv
@@ -203,7 +205,5 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDTagMerge.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDSerializer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDEncoder.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDDecoder.sv
-set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
-set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
-set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
