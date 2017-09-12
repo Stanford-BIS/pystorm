@@ -146,7 +146,7 @@ initial begin
 
 end
 
-`include "./okModels/okHostCalls.v"   // Do not remove!  The tasks, functions, and data stored
-                                      // in okHostCalls.v must be included here.
+`include "../ext/opalkelly/Simulation/okHostCalls.v"   // Do not remove!  The tasks, functions, and data stored
+                                                       // in okHostCalls.v must be included here.
 
 endmodule
