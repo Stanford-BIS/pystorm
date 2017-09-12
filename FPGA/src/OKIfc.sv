@@ -88,13 +88,14 @@ okPipeOut OK_pipe_out(
 
 localparam NPCdata = 24;
 localparam NPCinout = NPCcode + NPCdata;
-localparam Nfifo = 9; // 512-word FIFO
+localparam Nfifo_in = 9; // 512-word FIFO
+localparam Nfifo_out = 10; // 1024-word FIFO
 localparam Nblock = 7; // 128-word block size for BTPipe
 
 ////////////////////////////////
 // downstream: FIFO sinking BTPipeIn
 
-logic [Nfifo-1:0] FIFO_in_count;
+logic [Nfifo_in-1:0] FIFO_in_count;
 logic [NPCinout-1:0] FIFO_in_data_out;
 logic FIFO_in_rd_ack;
 logic FIFO_in_empty;
@@ -102,7 +103,7 @@ logic FIFO_in_full; // unused
 
 // input FIFO, compute ready signal using used
 // if the MSBs aren't all one, there's 128 words free
-assign pipe_in_ready = ~(&FIFO_in_count[Nfifo-1:Nblock]);
+assign pipe_in_ready = ~(&FIFO_in_count[Nfifo_in-1:Nblock]);
 
 // if the Nblock bit is one, there's at least 128 entries
 assign pipe_out_ready = FIFO_in_count[Nblock];
@@ -125,19 +126,51 @@ assign FIFO_in_rd_ack = PC_downstream.a;
 ///////////////////////////////
 // upstream: either supply nop or data (if available)
 
+logic [Nfifo_out-1:0] FIFO_out_count; // unused
+logic [NPCinout-1:0] FIFO_out_data_in;
+logic [NPCinout-1:0] FIFO_out_data_out;
+logic FIFO_out_rd_ack;
+logic FIFO_out_wr;
+logic FIFO_out_empty;
+logic FIFO_out_full; 
+
+PipeOutFIFO fifo_out(
+  .data(FIFO_out_data_in),
+  .wrreq(FIFO_out_wr),
+  .q(FIFO_out_data_out),
+  .rdreq(FIFO_out_rd_ack),
+  .empty(FIFO_out_empty),
+  .full(FIFO_out_full),
+  .usedw(FIFO_out_count),
+  .clock(okClk));
+
+// FIFO -> pipe
 always_comb
   if (pipe_out_read == 1) // pipe needs data this cycle!
-    if (PC_upstream.v == 1) begin // use data from channel
-      pipe_out_data = PC_upstream.d;
-      PC_upstream.a = 1;
+    if (FIFO_out_empty == 0) begin // use data from FPGA
+      pipe_out_data = FIFO_out_data_out;
+      FIFO_out_rd_ack = 1;
     end
     else begin
       pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
-      PC_upstream.a = 0;
+      FIFO_out_rd_ack = 0;
     end
   else begin
     pipe_out_data = 'X;
+    FIFO_out_rd_ack = 0;
+  end
+
+// channel -> FIFO
+always_comb
+  if (PC_upstream.v == 1 && FIFO_out_full == 0) begin
+    FIFO_out_wr = 1;
+    PC_upstream.a = 1;
+  end
+  else begin
+    FIFO_out_wr = 0;
     PC_upstream.a = 0;
   end
+
+assign FIFO_out_data_in = PC_upstream.d;
 
 endmodule
