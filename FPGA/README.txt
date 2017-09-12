@@ -36,7 +36,8 @@ ModelSim (ASE: Altera version) instructions:
 Don't bother with whatever the Quartus->ModelSim integration is supposed to do.
 Run Modelsim by itself.
 
-- Compile everything in /src and everything in /ext/opalkelly/Simulation.
+- Compile everything in /src, the IP cores in /quartus, and everything in /ext/opalkelly/Simulation.
+  Some of the opal kelly modules won't compile. Seems like it's OK though.
   A bunch of modules should show up in libraries:work.
 - To run something with altera IP cores ('megafunctions'), you need to invoke vsim like:
   vsim -L altera_mf_ver -L altera_mf path/to/your/compiled/module
