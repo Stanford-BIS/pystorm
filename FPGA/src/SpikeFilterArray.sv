@@ -133,8 +133,11 @@ always_comb
       end
       else if (update_pulse == 1 || saw_update_pulse == 1) begin
         next_saw_update_pulse <= 0;
-        next_state = PRE_BUBBLE2;
         next_filt_idx = 'X;
+        if (conf.filts_used != 0)
+          next_state = PRE_BUBBLE2;
+        else
+          next_state = READY_OR_INCREMENT;
       end
       else begin
         next_saw_update_pulse <= 0;

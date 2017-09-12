@@ -79,7 +79,6 @@ always_comb
 
     UPDATE_A: begin
       // present read address to memory
-      assert (unit_pulse == 0); // failing means we aren't fast enough to update every generator in one time unit
       if (conf.gens_en[gen_idx] == 1) begin
         next_gen_idx = gen_idx;
         next_state = UPDATE_B;
@@ -93,7 +92,7 @@ always_comb
     UPDATE_B: begin
       // read data comes out, goes into register
       // could try to write back this cycle, but we're not trying to push the timing
-      assert (unit_pulse == 0); 
+      assert (unit_pulse == 0); // failing means we aren't fast enough to update every generator in one time unit
       next_state <= UPDATE_C;
       next_gen_idx <= gen_idx;
     end
