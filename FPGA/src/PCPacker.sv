@@ -45,10 +45,10 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
 //
 //  MSB                  LSB
 //      8             
-// [ code=14 | state[23:0] ]
+// [ code=13 | state[23:0] ]
 // 
 //      8         21            3
-// [ code=14 | filt_idx | state[26:24]  ]
+// [ code=13 | filt_idx | state[26:24]  ]
 //
 // (note: 27 state bits is unlikely to change, it's the DSP width
 //  21 is just the bits remaining for filt_idx, there may not be 2**21 filters)
@@ -59,10 +59,10 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
 //
 //  MSB                      LSB
 //      8             24
-// [ code=15 |  time_bits[23:0] ]
+// [ code=14 |  time_bits[23:0] ]
 //
 //      8             24
-// [ code=15 |  time_bits[47:24] ]
+// [ code=14 |  time_bits[47:24] ]
 
 // pack bits, then merge
 Channel #(NPCcode + NPCdata) BD_packed();
