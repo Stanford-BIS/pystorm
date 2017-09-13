@@ -1,16 +1,16 @@
 `include "Channel.svh"
 
-module OKCoreTestHarness (
+module OKCoreBD (
   // OK ifc
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,
 	inout  wire [31:0]  okUHU,
 	inout  wire         okAA,
 
-  input wire sys_clk_p,
-  input wire sys_clk_n,
-  input wire user_reset,
-	output wire [3:0]   led
+  input wire          sys_clk_p,
+  input wire          sys_clk_n,
+  input wire          user_reset,
+	output wire [3:0]   led,
 
   // BD ifc
   output logic        BD_out_clk,
@@ -23,11 +23,11 @@ module OKCoreTestHarness (
   input               BD_in_valid,
   input [33:0]        BD_in_data,
   
-  output logic pReset,
-  output logic sReset,
+  output logic        pReset,
+  output logic        sReset,
 
-  input adc0,
-  input adc1
+  input               adc0,
+  input               adc1
 	);
 
 localparam NPCcode = 8;
@@ -41,8 +41,8 @@ localparam NBDout = 34;
 // internal clocks
 wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest of the design
 wire sys_clk; // to PLL input
-wire BD_clk_int_in; // clocks to BD's handshakers
-wire BD_clk_int_out;
+wire BD_in_clk_int; // clocks to BD's handshakers
+wire BD_out_clk_int;
 
 // channels between OK ifc and core design
 Channel #(NPCinout) PC_downstream();
@@ -87,9 +87,9 @@ alt_inbuf_diff sys_clk_io(.i(sys_clk_p), .ibar(sys_clk_n), .o(sys_clk));
 
 // PLL generates BD_IO_clk
 BDClkGen (
-  .BD_clk_int_in(BD_clk_int_in),
+  .BD_clk_int_in(BD_in_clk_int),
   .BD_clk_ext_in(BD_in_clk),
-  .BD_clk_int_out(BD_clk_int_out),
+  .BD_clk_int_out(BD_out_clk_int),
   .BD_clk_ext_out(BD_out_clk),
   .clk(sys_clk), 
   .reset(user_reset));
@@ -99,17 +99,15 @@ BDClkGen (
 BDIfc BD_ifc(
   .core_out(BD_upstream),
   .core_in(BD_downstream),
-  .BD_out_clk(BD_out_clk),
   .BD_out_ready(BD_out_ready),
   .BD_out_valid(BD_out_valid),
   .BD_out_data(BD_out_data),
-  .BD_in_clk(BD_IO_clk),
   .BD_in_ready(BD_in_ready),
   .BD_in_valid(BD_in_valid),
   .BD_in_data(BD_in_data),
   .core_clk(okClk),
-  .BD_in_clk(BD_clk_int_in),
-  .BD_out_clk(BD_clk_int_out),
+  .BD_in_clk_int(BD_clk_int_in),
+  .BD_out_clk_int(BD_clk_int_out),
   .reset(user_reset));
 
 endmodule
