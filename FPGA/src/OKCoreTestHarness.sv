@@ -1,3 +1,6 @@
+`include "OKIfc.sv"
+`include "CoreTestHarness.sv"
+
 `default_nettype none
 
 module OKCoreTestHarness (

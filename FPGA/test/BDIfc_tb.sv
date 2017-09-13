@@ -1,5 +1,5 @@
-`include "../src/Channel.svh"
-`timescale 1ns / 1ps
+`include "../src/BDIfc.sv"
+`include "ChannelSrcSink.sv"
 
 module BDIfc_tb;
 

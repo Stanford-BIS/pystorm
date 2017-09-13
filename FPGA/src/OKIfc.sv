@@ -1,3 +1,21 @@
+`include "Channel.svh"
+
+`ifdef SIMULATION
+`include "../ext/opalkelly/Simulation/okHost.v"
+`include "../ext/opalkelly/Simulation/okBTPipeOut.v"
+`include "../ext/opalkelly/Simulation/okBTPipeIn.v"
+`include "../ext/opalkelly/Simulation/okPipeOut.v"
+`include "../ext/opalkelly/Simulation/okPipeIn.v"
+`else
+`include "../ext/opalkelly/FrontPanelHDL/okHost.sv"
+`include "../ext/opalkelly/FrontPanelHDL/okHost.v"
+`include "../ext/opalkelly/FrontPanelHDL/okLibrary.v"
+`include "../ext/opalkelly/FrontPanelHDL/okEndpoints.v"
+`endif
+
+`include "../quartus/PipeInFIFO.v"
+`include "../quartus/PipeOutFIFO.v"
+
 `default_nettype none
 
 module OKIfc #(

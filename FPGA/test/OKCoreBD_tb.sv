@@ -1,3 +1,6 @@
+// use OK sim models
+`define SIMULATION 
+
 `timescale 1ns / 1ps
 
 module OKCoreBD_tb;
@@ -47,11 +50,13 @@ end
 // DUT
 OKCoreBD dut(.*);
 
+logic reset_for_BD_src_sink;
+assign reset_for_BD_src_sink = sReset | pReset;
 // BD src
-BD_Source #(.NUM_BITS(34), .ClkDelaysMin(0), .ClkDelaysMax(1)) src(BD_in_data, BD_in_valid, BD_in_ready, user_reset, BD_in_clk);
+BD_Source #(.NUM_BITS(34), .ClkDelaysMin(0), .ClkDelaysMax(1)) src(BD_in_data, BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
 
 // BD sink
-BD_Sink #(.NUM_BITS(21), .ClkDelaysMin(0), .ClkDelaysMax(1)) sink(BD_out_ready, BD_out_valid, BD_out_data, user_reset, BD_out_clk);
+BD_Sink #(.NUM_BITS(21), .ClkDelaysMin(0), .ClkDelaysMax(1)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
 
 //------------------------------------------------------------------------
 // Begin okHostInterface simulation user configurable  global data
@@ -84,7 +89,7 @@ logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
-const logic[31:0] nop = {2'b10, 6'd31, 24'd1}; // 6'd31 is the highest register, which is unused
+const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
 
 // index into PipeIn
 int i = 0;
@@ -146,6 +151,7 @@ initial begin
 
   SendToBD(0, 3'b101); // ADC 
   SendToBD(1, 11'b10101010101); // DAC0
+  SetReg(31, 0); // turn off resets
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   #(1000)

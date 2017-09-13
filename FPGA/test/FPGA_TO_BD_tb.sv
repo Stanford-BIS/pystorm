@@ -1,6 +1,8 @@
 `include "../src/FPGA_BD_Interface.sv"
+`include "ChannelSrcSink.sv"
+`include "BDSrcSink.sv"
 
-module test_FPGA_TO_BD;
+module FPGA_TO_BD_tb;
 // Connects FPGA channel to BD
 // FPGA channel uses Valid-Acknowledge (active sender, passive receiver)
 // BD uses Ready-Valid (passive sender, active receiver)
@@ -29,7 +31,7 @@ module test_FPGA_TO_BD;
         #20 clk = ~clk;
 endmodule
 
-module test_BD_TO_FPGA;
+module BD_TO_FPGA_tb;
 // Connects BD to FPGA channel
 // FPGA channel uses Valid-Acknowledge (active sender, passive receiver)
 // BD uses Ready-Valid (passive sender, active receiver)

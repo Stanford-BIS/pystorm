@@ -1,6 +1,5 @@
-`include "Channel.svh"
-`include "ChannelUtil.svh"
-`include "Core.sv"
+`include "../src/CoreTestHarness.sv"
+`include "ChannelSrcSink.sv"
 
 module CoreTestHarness #(
   parameter NPCcode = 8,

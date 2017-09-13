@@ -1,3 +1,8 @@
+`ifndef CHANNEL_UTIL_SVH
+`define CHANNEL_SVH
+
+`include "Channel.svh"
+
 ///////////////////////////////////////////
 // Synthesizable channel helpers
 
@@ -212,3 +217,4 @@ assign out.v = (state == SENDING);
 
 endmodule
 
+`endif

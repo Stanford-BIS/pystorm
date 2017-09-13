@@ -1,5 +1,6 @@
 `include "Interfaces.svh"
 `include "Channel.svh"
+`include "../quartus/SpikeGeneratorMem.v"
 
 // Creates a variable number of uniform spike streams.
 // Uses a blockram to store the counter states, cycles through the blockram

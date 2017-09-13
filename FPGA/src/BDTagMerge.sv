@@ -1,4 +1,5 @@
 `include "Channel.svh"
+`include "ChannelUtil.svh"
 `include "Interfaces.svh"
 
 module BDTagMerge #(

@@ -1,4 +1,7 @@
 `include "Channel.svh"
+`include "FPGA_BD_Interface.sv"
+`include "../quartus/BDInFIFO.v"
+`include "../quartus/BDOutFIFO.v"
 
 // Encapsulated BD handshakers and clock-domain-crossing
 // FIFO for upstream and downstream.
@@ -117,7 +120,7 @@ FPGA_TO_BD bd_down_ifc(
   .valid(BD_out_valid),
   .data(BD_out_data),
   .ready(BD_out_ready),
-  .reset(user_reset),
+  .reset(reset),
   .clk(BD_out_clk_int));
 
 /////////////////////////////////////
@@ -128,7 +131,7 @@ BD_TO_FPGA bd_up_ifc(
   .valid(BD_in_valid),
   .data(BD_in_data),
   .ready(BD_in_ready),
-  .reset(user_reset),
+  .reset(reset),
   .clk(BD_in_clk_int));
 
 endmodule

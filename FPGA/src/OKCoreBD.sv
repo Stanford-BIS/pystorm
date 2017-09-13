@@ -1,4 +1,9 @@
 `include "Channel.svh"
+`include "Core.sv"
+`include "OKIfc.sv"
+`include "BDIfc.sv"
+`include "BDClkGen.sv"
+`include "../quartus/SysClkBuf.v"
 
 module OKCoreBD (
   // OK ifc

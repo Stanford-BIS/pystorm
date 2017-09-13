@@ -1,3 +1,5 @@
+`include "../src/Channel.svh"
+
 ////////////////////////////////////////////
 // Testbench code
 // (unsynthesizable)

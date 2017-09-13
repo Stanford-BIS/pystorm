@@ -173,46 +173,6 @@ set_instance_assignment -name IO_STANDARD "1.5 V" -to led[3]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDClkGen.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDIfc.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreBD.sv
-set_global_assignment -name VERILOG_FILE BDOutFIFO.v
-set_global_assignment -name QIP_FILE BDOutFIFO.qip
-set_global_assignment -name VERILOG_FILE BDInFIFO.v
-set_global_assignment -name QIP_FILE BDInFIFO.qip
-set_global_assignment -name VERILOG_FILE SpikeGeneratorMem.v
-set_global_assignment -name QIP_FILE SpikeGeneratorMem.qip
-set_global_assignment -name VERILOG_FILE SpikeFilterMem.v
-set_global_assignment -name QIP_FILE SpikeFilterMem.qip
-set_global_assignment -name VERILOG_FILE PipeInFIFO.v
-set_global_assignment -name QIP_FILE PipeInFIFO.qip
-set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okLibrary.v
-set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.v
-set_global_assignment -name SYSTEMVERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.sv
-set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okEndpoints.v
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/TimeUnitPulser.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/TimeMgr.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/SpikeGeneratorArray.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/SpikeFilterArray.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/Serializer.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCParser.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCPacker.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCMapper.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKIfc.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreTestHarness.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/FPGASerializer.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/FPGA_BD_Interface.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/Deserializer.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/CoreTestHarness.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/Core.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDTagSplit.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDTagMerge.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDSerializer.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDEncoder.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDDecoder.sv
-set_global_assignment -name QIP_FILE PipeOutFIFO.qip
-set_global_assignment -name QIP_FILE BDIOPLL.qip
-set_global_assignment -name SIP_FILE BDIOPLL.sip
 
 set_location_assignment PIN_W12 -to pReset
 set_location_assignment PIN_AA15 -to sReset
@@ -345,5 +305,46 @@ set_instance_assignment -name IO_STANDARD 1.8V -to PIN_F20
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
-set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/ChannelUtil.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDClkGen.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDIfc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreBD.sv
+set_global_assignment -name VERILOG_FILE BDOutFIFO.v
+set_global_assignment -name QIP_FILE BDOutFIFO.qip
+set_global_assignment -name VERILOG_FILE BDInFIFO.v
+set_global_assignment -name QIP_FILE BDInFIFO.qip
+set_global_assignment -name VERILOG_FILE SpikeGeneratorMem.v
+set_global_assignment -name QIP_FILE SpikeGeneratorMem.qip
+set_global_assignment -name VERILOG_FILE SpikeFilterMem.v
+set_global_assignment -name QIP_FILE SpikeFilterMem.qip
+set_global_assignment -name VERILOG_FILE PipeInFIFO.v
+set_global_assignment -name QIP_FILE PipeInFIFO.qip
+set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okLibrary.v
+set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okHost.sv
+set_global_assignment -name VERILOG_FILE ../ext/opalkelly/FrontPanelHDL/okEndpoints.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/TimeUnitPulser.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/TimeMgr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/SpikeGeneratorArray.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/SpikeFilterArray.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/Serializer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCParser.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCPacker.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/PCMapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKIfc.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreTestHarness.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/FPGASerializer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/FPGA_BD_Interface.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/Deserializer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/CoreTestHarness.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/Core.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDTagSplit.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDTagMerge.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDSerializer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDEncoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/BDDecoder.sv
+set_global_assignment -name QIP_FILE PipeOutFIFO.qip
+set_global_assignment -name QIP_FILE BDIOPLL.qip
+set_global_assignment -name SIP_FILE BDIOPLL.sip
 set_global_assignment -name QIP_FILE SysClkBuf.qip
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

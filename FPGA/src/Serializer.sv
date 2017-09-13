@@ -1,3 +1,6 @@
+`ifndef SERIALIZER_SV
+`define SERIALIZER_SV
+
 `include "Channel.svh"
 
 module Serializer #(parameter Nin = 2, parameter Nout = 1) (
@@ -86,3 +89,5 @@ ChannelSink out_sink(out, clk, reset);
 Serializer #(.Nin(36), .Nout(16)) dut(.*);
 
 endmodule
+
+`endif
