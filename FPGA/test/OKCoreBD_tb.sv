@@ -1,0 +1,159 @@
+`include "BDSrcSink.sv"
+
+`timescale 1ns / 1ps
+
+module OKCoreBD_tb;
+
+// OK ifc
+wire [4:0]   okUH;
+wire [2:0]   okHU;
+wire [31:0]  okUHU;
+wire         okAA;
+
+wire [3:0]   led
+
+// BD ifc
+wire        BD_out_clk;
+wire        BD_out_ready;
+wire        BD_out_valid;
+wire [20:0] BD_out_data;
+
+wire        BD_in_clk;
+wire        BD_in_ready;
+wire        BD_in_valid;
+wire[33:0]  BD_in_data;
+
+wire        pReset;
+wire        sReset;
+
+wire        adc0;
+wire        adc1;
+
+// external clock, drives PLL to generate BD IO clocks
+logic sys_clk_p;
+parameter Tsys_clk_p = 10;
+always #(Tsys_clk_p/2) sys_clk_p = ~sys_clk_p;
+initial sys_clk_p = 0;
+
+logic sys_clk_n;
+parameter Tsys_clk_n = 10;
+always #(Tsys_clk_n/2) sys_clk_n = ~sys_clk_n;
+initial sys_clk_n = 0;
+
+// external reset
+logic user_reset;
+initial begin
+  user_reset <= 0;
+  #(10) user_reset <= 1;
+  #(100) user_reset <= 0;
+end
+
+// DUT
+OKCoreTestHarness dut(.*):
+
+// BD src
+BD_Source src(BD_in_data, BD_in_valid, BD_in_ready, user_reset, BD_in_clk);
+
+// BD sink
+BD_Sink sink(BD_out_ready, BD_out_valid, BD_out_data, user_reset, BD_out_clk);
+
+//------------------------------------------------------------------------
+// Begin okHostInterface simulation user configurable  global data
+//------------------------------------------------------------------------
+parameter BlockDelayStates = 5;   // REQUIRED: # of clocks between blocks of pipe data
+parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer before
+                                  //           host interface checks for ready (0-255)
+parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
+                                  //           check that the block transfer begins (0-255)
+parameter pipeInSize = 16;         // REQUIRED: byte (must be even) length of default
+                                  //           PipeIn; Integer 0-2^32
+parameter pipeOutSize = 16;        // REQUIRED: byte (must be even) length of default
+                                  //           PipeOut; Integer 0-2^32
+
+integer k;
+reg  [7:0]  pipeIn [0:(pipeInSize-1)];
+initial for (k=0; k<pipeInSize; k=k+1) pipeIn[k] = 8'h00;
+
+reg  [7:0]  pipeOut [0:(pipeOutSize-1)];
+initial for (k=0; k<pipeOutSize; k=k+1) pipeOut[k] = 8'h00;
+
+wire [31:0] u32Address [0:31];
+reg  [31:0] u32Data [0:31];
+wire [31:0] u32Count;
+wire [31:0] ReadRegisterData;
+
+
+// easier to work in 32bit chunks
+logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
+assign {<<8{pipeIn}} = pipeInFlat;
+
+// functions for creating downstream words
+const logic[31:0] nop = {2'b10, 6'd31, 24'd1}; // 6'd31 is the highest register, which is unused
+
+// index into PipeIn
+int i = 0;
+
+task SetReg(logic [4:0] reg_id, logic[15:0] data);
+  pipeInFlat[i] = {2'b10, 1'b0, reg_id, 8'b0, data};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
+
+task SetChan(logic [4:0] chan_id, logic[15:0] data);
+  pipeInFlat[i] = {2'b11, 1'b0, chan_id, 8'b0, data};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
+
+task SendToBD(logic[5:0] code, logic[19:0] payload);
+  pipeInFlat[i] = {2'b00, code, 4'b0, payload};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
+
+task SendFromBD(logic[33:0] payload);
+  pipeInFlat[i] = {8'hff, payload[23:0]};
+  assert(i < pipeInSize);
+  i = i + 1;
+  pipeInFlat[i] = {8'hff, 14'd0, payload[33:24]};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
+
+task FlushAndSendPipeIn();
+  while (i < pipeInSize) begin
+    pipeInFlat[i] = nop;
+    i = i + 1;
+  end
+  WriteToBlockPipeIn(8'h80, pipeInSize, pipeInSize);
+  for (i = 0; i < pipeInSize; i++) begin
+    pipeInFlat[i] = 32'd0;
+  end
+  i = 0;
+endtask
+
+// OK program
+initial begin
+  user_reset <= 1;
+	FrontPanelReset;                      // Start routine with FrontPanelReset;
+  user_reset <= 0;
+
+  SendToBD(0, 3'b101); // ADC 
+  SendToBD(1, 11'b10101010101); // DAC0
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+end
+
+`include "../ext/opalkelly/Simulation/okHostCalls.v"   // Do not remove!  The tasks, functions, and data stored
+                                                       // in okHostCalls.v must be included here.
+
+endmodule
