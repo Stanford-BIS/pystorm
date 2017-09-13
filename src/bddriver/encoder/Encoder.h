@@ -36,7 +36,7 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
  private:
   void RunOnce();
   void Encode(const EncInput* inputs, unsigned int num_popped, EncOutput* outputs) const;
-  uint32_t EncodeHorn(bdpars::FHRoute route, uint32_t payload) const;
+  uint32_t EncodeHorn(uint8_t route, uint32_t payload) const;
 };
 
 }  // bddriver

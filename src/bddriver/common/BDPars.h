@@ -619,20 +619,11 @@ enum DACSignalId {
 
 /// Identifier for particular BD horn leaf
 enum HornLeafId {
-  NEURON_INJECT,
-  RI,
-  PROG_AMMM,
-  PROG_PAT,
-  PROG_TAT0,
-  PROG_TAT1,
-  INIT_FIFO_DCT,
-  INIT_FIFO_HT,
-  TOGGLE_PRE_FIFO_LEAF,
-  TOGGLE_POST_FIFO0_LEAF,
-  TOGGLE_POST_FIFO1_LEAF,
-  NEURON_DUMP_TOGGLE_LEAF,
-  NEURON_CONFIG,
+  ADC_LEAF,
   DAC0_LEAF,
+  DAC10_LEAF,
+  DAC11_LEAF,
+  DAC12_LEAF,
   DAC1_LEAF,
   DAC2_LEAF,
   DAC3_LEAF,
@@ -642,10 +633,6 @@ enum HornLeafId {
   DAC7_LEAF,
   DAC8_LEAF,
   DAC9_LEAF,
-  DAC10_LEAF,
-  DAC11_LEAF,
-  DAC12_LEAF,
-  ADC_LEAF,
   DELAY0_LEAF,
   DELAY1_LEAF,
   DELAY2_LEAF,
@@ -653,25 +640,38 @@ enum HornLeafId {
   DELAY4_LEAF,
   DELAY5_LEAF,
   DELAY6_LEAF,
+  INIT_FIFO_DCT,
+  INIT_FIFO_HT,
+  NEURON_CONFIG,
+  NEURON_DUMP_TOGGLE_LEAF,
+  NEURON_INJECT,
+  PROG_AMMM,
+  PROG_PAT,
+  PROG_TAT0,
+  PROG_TAT1,
+  RI,
+  TOGGLE_POST_FIFO0_LEAF,
+  TOGGLE_POST_FIFO1_LEAF,
+  TOGGLE_PRE_FIFO_LEAF,
 
   HornLeafIdCount
 };
 
 /// Identifier for particular BD funnel leaf
 enum FunnelLeafId {
-  RO_ACC,
-  RO_TAT,
-  NRNI,
   DUMP_AM,
   DUMP_MM,
   DUMP_PAT,
-  DUMP_TAT0,
-  DUMP_TAT1,
-  DUMP_PRE_FIFO,
   DUMP_POST_FIFO0,
   DUMP_POST_FIFO1,
+  DUMP_PRE_FIFO,
+  DUMP_TAT0,
+  DUMP_TAT1,
+  NRNI,
   OVFLW0,
   OVFLW1,
+  RO_ACC,
+  RO_TAT,
 
   FunnelLeafIdCount
 };
@@ -761,25 +761,12 @@ class BDPars {
   /////////////////////////////////////
   // funnel/horn queries
 
-  /// Get the route to a given horn leaf
-  inline FHRoute HornRoute(HornLeafId leaf) const { return horn_routes_[leaf]; }
-  /// Get the route to a given horn leaf
-  inline FHRoute HornRoute(unsigned int leaf) const { return horn_routes_[leaf]; }
-  /// Get the route to a given funnel leaf
-  inline FHRoute FunnelRoute(FunnelLeafId leaf) const { return funnel_routes_[leaf]; }
-  /// Get the route to a given funnel leaf
-  inline FHRoute FunnelRoute(unsigned int leaf) const { return funnel_routes_[leaf]; }
-
   /// Horn leaf ids may be used to index tables, this performs that mapping
-  inline unsigned int HornIdx(HornLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  inline uint8_t HornIdx(HornLeafId leaf) const { return static_cast<uint8_t>(leaf); }
   /// Funnel leaf ids may be used to index tables, this performs that mapping
-  inline unsigned int FunnelIdx(FunnelLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  inline uint8_t FunnelIdx(FunnelLeafId leaf) const { return static_cast<uint8_t>(leaf); }
 
   // useful if you need to iterate through routing table, returns const ptr
-  /// return reference to Horn routing table
-  inline const std::array<FHRoute, HornLeafIdCount>* HornRoutes() const { return &horn_routes_; }
-  /// return reference to Funnel routing table
-  inline const std::array<FHRoute, FunnelLeafIdCount>* FunnelRoutes() const { return &funnel_routes_; }
 
   // look up serialization
   /// Get serialization for a given horn leaf.
@@ -875,13 +862,6 @@ class BDPars {
   /// register descriptions (data field packing + misc info)
   /// keyed by RegId
   std::array<RegInfo, RegIdCount> reg_;
-
-  /// horn route tables
-  /// keyed by HornLeafId
-  std::array<FHRoute, HornLeafIdCount> horn_routes_;
-  /// funnel route tables
-  /// keyed by FunnelLeafId
-  std::array<FHRoute, FunnelLeafIdCount> funnel_routes_;
 
   /// miscellaneous hardware widths
   /// keyed by MiscFieldId

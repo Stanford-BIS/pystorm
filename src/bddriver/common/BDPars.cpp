@@ -143,19 +143,6 @@ BDPars::BDPars() {
   //////////////////////////////////////////////////////
   // Postprocessing
 
-  // create direct-mapped tables used in encoding/decoding
-  unsigned int i = 0;
-  for (LeafInfo& leaf_info : horn_) {
-    auto to_push = std::make_pair(leaf_info.route_val, leaf_info.route_len);
-    horn_routes_[i++] = to_push;
-  }
-
-  i = 0;
-  for (LeafInfo& leaf_info : funnel_) {
-    auto to_push = std::make_pair(leaf_info.route_val, leaf_info.route_len);
-    funnel_routes_[i++] = to_push;
-  }
-
 }
 
 RegId BDPars::DACSignalIdToDACRegisterId(DACSignalId id) const {

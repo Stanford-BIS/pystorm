@@ -61,44 +61,6 @@ Decoder::Decoder(
     : Xcoder(pars, in_buf, out_bufs, chunk_size * bytesPerInput, chunk_size, timeout_us)  // call default constructor
 {
   // set up the vectors we use to do the decoding
-
-  for (const bdpars::FHRoute& it : *(pars_->FunnelRoutes())) {
-    uint64_t one = 1;
-
-    uint64_t route_val   = static_cast<uint64_t>(it.first);
-    uint64_t route_len   = static_cast<uint64_t>(it.second);
-    uint64_t payload_len = static_cast<uint64_t>(pars_->Width(bdpars::BD_OUTPUT)) - route_len;
-
-    // cout << "route len " << route_len << endl;
-    // cout << "payload len " << payload_len << endl;
-
-    leaf_route_lens_.push_back(route_len);
-    leaf_payload_lens_.push_back(payload_len);
-
-    // route mask looks like 111100000000
-    uint64_t route_mask = ((one << route_len) - one) << payload_len;
-    leaf_route_masks_.push_back(route_mask);
-
-    // cout << "route mask " << route_mask << endl;
-
-    // payload mask looks like 000011111111
-    uint64_t payload_mask = (one << payload_len) - one;
-    leaf_payload_masks_.push_back(payload_mask);
-
-    // cout << "payload mask " << payload_mask << endl;
-
-    // route looks like 101100000000
-    // cout << "route " << route_val << endl;
-    uint64_t route_shifted = route_val << payload_len;
-    leaf_routes_.push_back(route_shifted);
-
-    // cout << "route shifted " << route_shifted << endl;
-  }
-
-  // payload shifts are all zero for decoder
-  leaf_payload_shifts_ = std::vector<unsigned int>(leaf_routes_.size(), 0);
-
-  // num_processed_ = 0;
 }
 
 Decoder::~Decoder() {
@@ -116,16 +78,16 @@ void Decoder::Decode(
     // Pack 5 bytes into uint64_t
     // this is the safe way, there's probably a lower-level, sketchier way that relies on endianess
     // XXX this should probably be optimized: cuts decoder throughput in half vs taking in uint64_t
-    uint64_t input_bytes64[bytesPerInput];
+    uint32_t input_bytes32[bytesPerInput];
     for (unsigned int j = 0; j < bytesPerInput; j++) {
-      input_bytes64[j] = static_cast<uint64_t>(inputs[i * bytesPerInput + j]);
+      input_bytes32[j] = static_cast<uint32_t>(inputs[i * bytesPerInput + j]);
     }
     unsigned int byte_widths[bytesPerInput];
     for (unsigned int j = 0; j < bytesPerInput; j++) {
       byte_widths[j] = 8;
     }
 
-    uint64_t input = Pack64(input_bytes64, byte_widths, bytesPerInput);
+    uint32_t input = Pack32(input_bytes32, byte_widths, bytesPerInput);
 
     // XXX this is where you would decode the FPGA
     // do something with time
@@ -135,12 +97,10 @@ void Decoder::Decode(
     unsigned int core_id = 0;
 
     // decode funnel
-    unsigned int leaf_idx;
+    uint8_t leaf_idx;
     uint32_t payload;
-    std::tie(leaf_idx, payload) =
-        DecodeFH<uint64_t, uint32_t>(input, leaf_routes_, leaf_route_masks_, leaf_payload_masks_, leaf_payload_shifts_);
 
-    // std::tie(leaf_idx, payload) = DecodeFunnel(input);
+    std::tie(leaf_idx, payload) = DecodeFunnel(input);
 
     unsigned int num_pushed_to_this          = num_pushed_to_each->at(leaf_idx);
     (*outputs)[leaf_idx][num_pushed_to_this] = {payload, core_id, time_epoch};
@@ -149,44 +109,16 @@ void Decoder::Decode(
   }
 }
 
-inline std::pair<unsigned int, uint32_t> Decoder::DecodeFunnel(uint64_t payload_route) const {
-  assert(false && "deprecated");
-  // XXX this could probably be optimized to be less branch-y
-  // this could also be optimized if the FPGA was used to decode the variable-width
-  // route into a fixed-width route, then it would just be a lookup
+inline std::pair<uint8_t, uint32_t> Decoder::DecodeFunnel(uint32_t input) const {
+  uint8_t leaf_idx;
+  uint32_t payload;
 
-  // msb <- lsb
-  // [ route | X | payload ]
+  // FPGA-BD word is
+  // | leaf ID (8 bits) | Payload (24 bits) |
 
-  // test which routes match, break out payload for the one that does, return matching leaf name
-  // cout << "payload_route" << endl;
-  // cout << UintAsString(payload_route, 34) << endl;
-  for (unsigned int i = 0; i < leaf_routes_.size(); i++) {
-    // cout << "trying leaf " << i << endl;
-
-    // mask out everything except the route bits used by this leaf
-    uint64_t eligible_route_bits_only = leaf_route_masks_[i] & payload_route;
-
-    // cout << "eligible bits: ";
-    // cout << UintAsString(eligible_route_bits_only, 34) << " = " << eligible_route_bits_only << endl;
-
-    // check if the route bits match
-    uint64_t route = leaf_routes_[i];
-    // cout << "route: " << route << endl;
-
-    if (eligible_route_bits_only == route) {
-      // mask out payload, make binary
-      uint32_t payload = static_cast<uint32_t>(leaf_payload_masks_[i] & payload_route);
-
-      // return payload and leaf name tuple
-      unsigned int leaf_idx = i;
-      // cout << "HIT" << endl;
-
-      return std::make_pair(leaf_idx, payload);
-    }
-  }
-  assert(false && "input word missed all possible route words: malformed route table");
-  return std::make_pair(0, 0);  // squelch compiler warning
+  leaf_idx = (input >> 24) & 0xFF;
+  payload = input & 0x00FFFFFF;
+  return std::make_pair(leaf_idx, payload);
 }
 
 }  // bddriver

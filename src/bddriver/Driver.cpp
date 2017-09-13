@@ -117,7 +117,7 @@ Driver::Driver() {
   enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::ENC_BUF_OUT_CAPACITY));
   dec_buf_in_  = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY));
 
-  for (unsigned int i = 0; i < bd_pars_->FunnelRoutes()->size(); i++) {
+  for (unsigned int i = 0; i < bdpars::FunnelLeafIdCount; i++) {
     MutexBuffer<DecOutput>* buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY));
     dec_bufs_out_.push_back(buf_ptr);
   }
@@ -699,7 +699,7 @@ void Driver::SendSpikes(const std::vector<unsigned int>& core_ids, const std::ve
   EncInput* write_to = enc_buf_in_->LockBack(spikes.size());
 
 
-  unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_SPIKES));
+  uint8_t leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_SPIKES));
 
   for (unsigned int i = 0; i < spikes.size(); i++) {
     // XXX throwing times on the ground for now
@@ -719,7 +719,7 @@ void Driver::SendTags(const std::vector<unsigned int>& core_ids, const std::vect
   // get reference to enc_buf_in_'s memory
   EncInput* write_to = enc_buf_in_->LockBack(tags.size());
 
-  unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_TAGS));
+  uint8_t leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_TAGS));
 
   for (unsigned int i = 0; i <tags.size(); i++) {
     // XXX throwing times on the ground for now
@@ -815,7 +815,7 @@ void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const 
   std::tie(serialized_words, serialized_width) = SerializeWordsToLeaf(raw_payloads, leaf_id);
 
   // Encoder doesn't know about the enums, cast leaf_id as a uint
-  unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id);
+  uint8_t leaf_id_as_uint = static_cast<uint8_t>(leaf_id);
 
   // have to make sure that we don't send something bigger than the buffer
   std::vector<EncInput> enc_inputs;

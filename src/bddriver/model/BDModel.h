@@ -100,21 +100,21 @@ class BDModel {
 
   // used in ParseInput, once words have been horn-decoded and deserialized
   
-  void Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t>& inputs);
-  void ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input);
-  void ProcessReg(bdpars::RegId reg_id, uint64_t input);
-  void ProcessInput(bdpars::InputId input_id, uint64_t input);
-  void ProcessMM(uint64_t input);
-  void ProcessAM(uint64_t input);
-  void ProcessTAT(unsigned int TAT_idx, uint64_t input);
-  void ProcessPAT(uint64_t input);
+  void Process(bdpars::HornLeafId leaf_id, const std::vector<uint32_t>& inputs);
+  void ProcessInput(bdpars::HornLeafId leaf_id, uint32_t input);
+  void ProcessReg(bdpars::RegId reg_id, uint32_t input);
+  void ProcessInput(bdpars::InputId input_id, uint32_t input);
+  void ProcessMM(uint32_t input);
+  void ProcessAM(uint32_t input);
+  void ProcessTAT(unsigned int TAT_idx, uint32_t input);
+  void ProcessPAT(uint32_t input);
 
   // used in GenerateOutputs
   
-  std::vector<uint64_t> Generate(bdpars::FunnelLeafId leaf_id);
+  std::vector<uint32_t> Generate(bdpars::FunnelLeafId leaf_id);
 
   // more complicated than the other cases
-  std::vector<uint64_t> GenerateTAT(unsigned int tat_idx);
+  std::vector<uint32_t> GenerateTAT(unsigned int tat_idx);
 
   /// helper for Process calls (just to look up funnel id)
   inline void PushMem(bdpars::MemId mem_id, const std::vector<BDWord> & to_append) {
