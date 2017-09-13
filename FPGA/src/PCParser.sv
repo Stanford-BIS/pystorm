@@ -4,7 +4,7 @@
 module PCParser #(
   parameter NPCin = 32,
   parameter Nconf = 16,
-  parameter Nreg = 32,
+  parameter Nreg = 64,
   parameter Nchan = 2) (
 
   // output registers

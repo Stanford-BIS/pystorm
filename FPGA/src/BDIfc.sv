@@ -65,7 +65,7 @@ assign out_FIFO_wr_en   = core_in.v & ~out_FIFO_wr_full;
 assign core_in.a        = core_in.v & ~out_FIFO_wr_full;
 
 // handshake FIFO output
-assign out_FIFO_rd_clk  = BD_clk;
+assign out_FIFO_rd_clk  = BD_out_clk_int;
 assign core_in_slow.d   = out_FIFO_data_out;
 assign out_FIFO_rd_ack  = core_in_slow.a;
 assign core_in_slow.v   = ~out_FIFO_rd_empty;
@@ -94,7 +94,7 @@ BDInFIFO BD_in_FIFO(
   .wrfull(out_FIFO_wr_full));
 
 // handshake FIFO input
-assign in_FIFO_wr_clk  = BD_clk;
+assign in_FIFO_wr_clk  = BD_in_clk_int;
 assign in_FIFO_data_in = core_in_slow.d;
 assign in_FIFO_wr_en   = core_in_slow.v & ~in_FIFO_wr_full;
 assign core_in_slow.a  = core_in_slow.v & ~in_FIFO_wr_full;

@@ -15,8 +15,7 @@ BDIOPLL BC_pll(
   .rst(reset),
   .outclk_0(base_clk),
   .outclk_1(skewed_clk),
-  .locked(locked),
-  );
+  .locked(locked));
 
 assign BD_in_clk_ext = skewed_clk;
 assign BD_out_clk_ext = skewed_clk;

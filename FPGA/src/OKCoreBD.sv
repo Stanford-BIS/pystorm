@@ -70,10 +70,10 @@ ok_ifc(
 
 // core design
 Core core(
-  .PC_out(PC_upstream)
-  .PC_in(PC_downstream)
-  .BD_out(BD_downstream)
-  .BD_in(BD_upstream)
+  .PC_out(PC_upstream),
+  .PC_in(PC_downstream),
+  .BD_out(BD_downstream),
+  .BD_in(BD_upstream),
   .pReset(pReset),
   .sReset(sReset),
   .adc0(adc0),

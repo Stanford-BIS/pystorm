@@ -33,6 +33,13 @@ Channel #(NPCword) core_PC_out();
 Channel #(NBDdata_out) core_BD_out();
 Channel #(NBDdata_in) core_BD_in();
 
+// misc
+logic pReset;
+logic sReset;
+
+logic adc0;
+logic adc1;
+
 ////////////////////////////////////////
 // PC -> BD_in
 
@@ -67,6 +74,6 @@ assign core_BD_out.a = BD_out_to_PC.a;
 ChannelMerge output_merge(PC_out, core_PC_out, BD_out_to_PC, clk, reset);
 
 // instantiate core
-Core core(core_PC_out, core_PC_in, core_BD_out, core_BD_in, clk, reset);
+Core core(.PC_out(core_PC_out), .PC_in(core_PC_in), .BD_out(core_BD_out), .BD_in(core_BD_in), .*);
 
 endmodule

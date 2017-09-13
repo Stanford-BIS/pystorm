@@ -4,7 +4,7 @@
 module PCMapper #(
   // parameters of PCParser output
   parameter Nconf = 16,
-  parameter Nreg = 32,
+  parameter Nreg = 64,
   parameter Nchan = 1,
 
   // parameters for SpikeFilterArray config

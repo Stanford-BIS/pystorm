@@ -1,5 +1,3 @@
-`include "BDSrcSink.sv"
-
 `timescale 1ns / 1ps
 
 module OKCoreBD_tb;
@@ -10,7 +8,7 @@ wire [2:0]   okHU;
 wire [31:0]  okUHU;
 wire         okAA;
 
-wire [3:0]   led
+wire [3:0]   led;
 
 // BD ifc
 wire        BD_out_clk;
@@ -49,7 +47,7 @@ initial begin
 end
 
 // DUT
-OKCoreTestHarness dut(.*):
+OKCoreBD dut(.*);
 
 // BD src
 BD_Source src(BD_in_data, BD_in_valid, BD_in_ready, user_reset, BD_in_clk);
@@ -132,6 +130,16 @@ task FlushAndSendPipeIn();
   i = 0;
 endtask
 
+task SendToAllBD(int start, int num_words);
+  localparam NumHornLeaves = 34;
+  for (int i = 0; i < num_words; i++) begin
+    automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
+    automatic logic [19:0] payload = $urandom_range(0, 2**20-1);
+    SendToBD({2'b00, leaf}, payload);
+  end
+endtask
+
+
 // OK program
 initial begin
   user_reset <= 1;
@@ -148,8 +156,19 @@ initial begin
   #(1000)
   ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
 
-  #(1000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+  // send a bunch of BD words
+  // do it a few times in case pipeInSize < number of horn leaves (34)
+  SendToAllBD(0*pipeInSize, pipeInSize); 
+  FlushAndSendPipeIn();
+  SendToAllBD(1*pipeInSize, pipeInSize);
+  FlushAndSendPipeIn();
+  SendToAllBD(2*pipeInSize, pipeInSize);
+  FlushAndSendPipeIn();
+
+  forever begin
+    #(1000)
+    ReadFromPipeOut(8'ha0, pipeOutSize);
+  end
 
 end
 
