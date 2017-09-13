@@ -2,7 +2,7 @@
 #include <pybind11/stl.h>
 #include <okFrontPanelDLL.h>
 
-PYBIND11_MODULE(OpalKelly, m)
+PYBIND11_MODULE(PyOK, m)
 {
     m.def("okFrontPanelDLL_LoadLib", okFrontPanelDLL_LoadLib);
     m.def("okFrontPanelDLL_GetVersion", []() {

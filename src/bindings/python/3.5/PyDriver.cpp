@@ -1717,7 +1717,7 @@ void bind_unknown_unknown_7(std::function< pybind11::module &(std::string const 
 void bind_model_BDModelDriver(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
-PYBIND11_PLUGIN(BDDriver) {
+PYBIND11_PLUGIN(PyDriver) {
 	std::map <std::string, std::shared_ptr<pybind11::module> > modules;
 	ModuleGetter M = [&](std::string const &namespace_) -> pybind11::module & {
 		auto it = modules.find(namespace_);
@@ -1725,7 +1725,7 @@ PYBIND11_PLUGIN(BDDriver) {
 		return * it->second;
 	};
 
-	modules[""] = std::make_shared<pybind11::module>("BDDriver", "BDDriver module");
+	modules[""] = std::make_shared<pybind11::module>("PyDriver", "BDDriver module");
 
 	std::vector< std::pair<std::string, std::string> > sub_modules {
 		{"", "pystorm"},
