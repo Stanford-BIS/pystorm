@@ -13,17 +13,15 @@ module BDIfc (
   Channel core_in,  // input to us
   
   // BD side
-  output logic        BD_out_clk,
   input               BD_out_ready,
   output logic        BD_out_valid,
   output logic [20:0] BD_out_data,
 
-  output logic        BD_in_clk,
   output logic        BD_in_ready,
   input               BD_in_valid,
   input [33:0]        BD_in_data,
 
-  input core_clk, BD_out_clk, BD_in_clk, reset
+  input core_clk, BD_out_clk_int, BD_in_clk_int, reset
   );
 
 localparam NBDin = 21;
