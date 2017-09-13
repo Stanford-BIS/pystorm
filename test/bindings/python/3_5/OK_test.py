@@ -1,5 +1,5 @@
 def main():
-    import OpalKelly as ok
+    import PyOK as ok
     dev = ok.okCFrontPanel()
     m_devInfo = ok.okTDeviceInfo()
 
