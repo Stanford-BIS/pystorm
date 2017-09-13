@@ -34,9 +34,7 @@ always #(Tsys_clk_p/2) sys_clk_p = ~sys_clk_p;
 initial sys_clk_p = 0;
 
 logic sys_clk_n;
-parameter Tsys_clk_n = 10;
-always #(Tsys_clk_n/2) sys_clk_n = ~sys_clk_n;
-initial sys_clk_n = 0;
+assign sys_clk_n = ~sys_clk_p;
 
 // external reset
 logic user_reset;
@@ -50,10 +48,10 @@ end
 OKCoreBD dut(.*);
 
 // BD src
-BD_Source src(BD_in_data, BD_in_valid, BD_in_ready, user_reset, BD_in_clk);
+BD_Source #(.NUM_BITS(34), .ClkDelaysMin(0), .ClkDelaysMax(1)) src(BD_in_data, BD_in_valid, BD_in_ready, user_reset, BD_in_clk);
 
 // BD sink
-BD_Sink sink(BD_out_ready, BD_out_valid, BD_out_data, user_reset, BD_out_clk);
+BD_Sink #(.NUM_BITS(21), .ClkDelaysMin(0), .ClkDelaysMax(1)) sink(BD_out_ready, BD_out_valid, BD_out_data, user_reset, BD_out_clk);
 
 //------------------------------------------------------------------------
 // Begin okHostInterface simulation user configurable  global data

@@ -83,22 +83,22 @@ Core core(
 
 // this is a low-level altera primitive, to turn LVDS -> single-ended, supposedly. 
 // It's what OK uses in the Counters example to get their clk
-alt_inbuf_diff sys_clk_io(.i(sys_clk_p), .ibar(sys_clk_n), .o(sys_clk));
+SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
 
 // PLL generates BD_IO_clk
-BDClkGen (
-  .BD_clk_int_in(BD_in_clk_int),
-  .BD_clk_ext_in(BD_in_clk),
-  .BD_clk_int_out(BD_out_clk_int),
-  .BD_clk_ext_out(BD_out_clk),
+BDClkGen bd_clk_gen(
+  .BD_in_clk_int(BD_in_clk_int),
+  .BD_in_clk_ext(BD_in_clk),
+  .BD_out_clk_int(BD_out_clk_int),
+  .BD_out_clk_ext(BD_out_clk),
   .clk(sys_clk), 
   .reset(user_reset));
 
 
 // BD handshakers and FIFOs
 BDIfc BD_ifc(
-  .core_out(BD_upstream),
-  .core_in(BD_downstream),
+  .core_up(BD_upstream),
+  .core_dn(BD_downstream),
   .BD_out_ready(BD_out_ready),
   .BD_out_valid(BD_out_valid),
   .BD_out_data(BD_out_data),
@@ -106,8 +106,8 @@ BDIfc BD_ifc(
   .BD_in_valid(BD_in_valid),
   .BD_in_data(BD_in_data),
   .core_clk(okClk),
-  .BD_in_clk_int(BD_clk_int_in),
-  .BD_out_clk_int(BD_clk_int_out),
+  .BD_in_clk_int(BD_in_clk_int),
+  .BD_out_clk_int(BD_out_clk_int),
   .reset(user_reset));
 
 endmodule

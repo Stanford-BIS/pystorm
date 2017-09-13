@@ -1,52 +1,54 @@
-vlog -reportprogress 300 -work work ../src/BDClkGen.sv
-vlog -reportprogress 300 -work work ../src/BDDecoder.sv
-vlog -reportprogress 30 -work work ../src/BDEncoder.sv
-vlog -reportprogress 30 -work work ../src/BDIfc.sv
-vlog -reportprogress 30 -work work ../src/BDSerializer.sv
-vlog -reportprogress 30 -work work ../src/BDTagMerge.sv
-vlog -reportprogress 30 -work work ../src/BDTagSplit.sv
-vlog -reportprogress 30 -work work ../src/Channel.svh
-vlog -reportprogress 30 -work work ../src/ChannelUtil.sv
-vlog -reportprogress 30 -work work ../src/Core.sv
-vlog -reportprogress 30 -work work ../src/CoreTestHarness.sv
-vlog -reportprogress 30 -work work ../src/Deserializer.sv
-vlog -reportprogress 30 -work work ../src/FPGA_BD_Interface.sv
-vlog -reportprogress 30 -work work ../src/FPGASerializer.sv
-vlog -reportprogress 30 -work work ../src/Interfaces.svh
-vlog -reportprogress 30 -work work ../src/OKCoreBD.sv
-vlog -reportprogress 30 -work work ../src/OKCoreTestHarness.sv
-vlog -reportprogress 30 -work work ../src/OKIfc.sv
-vlog -reportprogress 30 -work work ../src/PCMapper.sv
-vlog -reportprogress 30 -work work ../src/PCPacker.sv
-vlog -reportprogress 30 -work work ../src/PCParser.sv
-vlog -reportprogress 30 -work work ../src/Serializer.sv
-vlog -reportprogress 30 -work work ../src/SpikeFilterArray.sv
-vlog -reportprogress 30 -work work ../src/SpikeGeneratorArray.sv
-vlog -reportprogress 30 -work work ../src/TimeMgr.sv
-vlog -reportprogress 30 -work work ../src/TimeUnitPulser.sv
-vlog -reportprogress 300 -work work ../ext/opalkelly/Simulation/glbl.v
-vlog -reportprogress 300 -work work ../ext/opalkelly/Simulation/okBTPipeIn.v
-vlog -reportprogress 300 -work work ../ext/opalkelly/Simulation/okBTPipeOut.v
-vlog -reportprogress 300 -work work ../ext/opalkelly/Simulation/okHost.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okPipeIn.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okPipeOut.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okRegisterBridge.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okTriggerIn.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okTriggerOut.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okWireIn.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okWireOR.v
-vlog -reportprogress 30 -work work ../ext/opalkelly/Simulation/okWireOut.v
-vlog -reportprogress 300 -work work ../quartus/BDInFIFO.v
-vlog -reportprogress 300 -work work ../quartus/BDIOPLL.v
-vlog -reportprogress 300 -work work ../quartus/BDOutFIFO.v
-vlog -reportprogress 300 -work work ../quartus/PipeInFIFO.v
-vlog -reportprogress 300 -work work ../quartus/PipeOutFIFO.v
-vlog -reportprogress 300 -work work ../quartus/SpikeFilterMem.v
-vlog -reportprogress 300 -work work ../quartus/SpikeGeneratorMem.v
-vlog -reportprogress 300 -work work ../quartus/BDIOPLL_sim/BDIOPLL.vo
-vlog -reportprogress 300 -work work ../test/ChannelSrcSink.sv
-vlog -reportprogress 300 -work work ../test/OKCoreBD_tb.sv
-vlog -reportprogress 300 -work work ../test/OKCoreBD_tb.sv
-vlog -reportprogress 300 -work work ../test/BDSrcSink.sv
-vlog -reportprogress 300 -work work ../test/OKCoreHarness_tb.sv
-vlog -reportprogress 300 -work work ../test/test_FPGA_TO_BD.sv
+vlog -work work ../src/BDClkGen.sv
+vlog -work work ../src/BDDecoder.sv
+vlog -work work ../src/BDEncoder.sv
+vlog -work work ../src/BDIfc.sv
+vlog -work work ../src/BDSerializer.sv
+vlog -work work ../src/BDTagMerge.sv
+vlog -work work ../src/BDTagSplit.sv
+vlog -work work ../src/Channel.svh
+vlog -work work ../src/ChannelUtil.sv
+vlog -work work ../src/Core.sv
+vlog -work work ../src/CoreTestHarness.sv
+vlog -work work ../src/Deserializer.sv
+vlog -work work ../src/FPGA_BD_Interface.sv
+vlog -work work ../src/FPGASerializer.sv
+vlog -work work ../src/Interfaces.svh
+vlog -work work ../src/OKCoreBD.sv
+vlog -work work ../src/OKCoreTestHarness.sv
+vlog -work work ../src/OKIfc.sv
+vlog -work work ../src/PCMapper.sv
+vlog -work work ../src/PCPacker.sv
+vlog -work work ../src/PCParser.sv
+vlog -work work ../src/Serializer.sv
+vlog -work work ../src/SpikeFilterArray.sv
+vlog -work work ../src/SpikeGeneratorArray.sv
+vlog -work work ../src/TimeMgr.sv
+vlog -work work ../src/TimeUnitPulser.sv
+vlog -work work ../ext/opalkelly/Simulation/glbl.v
+vlog -work work ../ext/opalkelly/Simulation/okBTPipeIn.v
+vlog -work work ../ext/opalkelly/Simulation/okBTPipeOut.v
+vlog -work work ../ext/opalkelly/Simulation/okHost.v
+vlog -work work ../ext/opalkelly/Simulation/okPipeIn.v
+vlog -work work ../ext/opalkelly/Simulation/okPipeOut.v
+vlog -work work ../ext/opalkelly/Simulation/okRegisterBridge.v
+vlog -work work ../ext/opalkelly/Simulation/okTriggerIn.v
+vlog -work work ../ext/opalkelly/Simulation/okTriggerOut.v
+vlog -work work ../ext/opalkelly/Simulation/okWireIn.v
+vlog -work work ../ext/opalkelly/Simulation/okWireOR.v
+vlog -work work ../ext/opalkelly/Simulation/okWireOut.v
+vlog -work work ../quartus/BDInFIFO.v
+vlog -work work ../quartus/BDIOPLL.v
+vlog -work work ../quartus/BDOutFIFO.v
+vlog -work work ../quartus/PipeInFIFO.v
+vlog -work work ../quartus/PipeOutFIFO.v
+vlog -work work ../quartus/SpikeFilterMem.v
+vlog -work work ../quartus/SpikeGeneratorMem.v
+vlog -work work ../quartus/BDIOPLL_sim/BDIOPLL.vo
+vlog -work work ../quartus/SysClkBuf.v
+vlog -work work ../test/ChannelSrcSink.sv
+vlog -work work ../test/OKCoreBD_tb.sv
+vlog -work work ../test/OKCoreBD_tb.sv
+vlog -work work ../test/BDIfc_tb.sv
+vlog -work work ../test/BDSrcSink.sv
+vlog -work work ../test/OKCoreHarness_tb.sv
+vlog -work work ../test/test_FPGA_TO_BD.sv
