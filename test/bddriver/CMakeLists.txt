@@ -71,8 +71,8 @@ set(TEST_SRC_FILES
     ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
     ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
     ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
-    ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
-    ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
+    #${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
+    #${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
     ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
     ${PROJECT_SOURCE_DIR}/common/BDPars_test.cpp
     ${PROJECT_SOURCE_DIR}/common/DriverPars_test.cpp

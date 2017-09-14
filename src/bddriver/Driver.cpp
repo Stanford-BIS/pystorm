@@ -206,11 +206,11 @@ void Driver::InitBD() {
 /// FPGA configuration
 ////////////////////////////////////////////////////////////////////////////////
 void Driver::SetFPGARegisterValue(unsigned int reg_id, unsigned int value){
-  SendToHorn(0, static_cast<unsigned int>(bdpars::BDEndPointId::REG_OFFSET) + reg_id, {value});
+  SendToHorn(0, static_cast<bdpars::BDEndPointId>(static_cast<unsigned int>(bdpars::FPGAEndpointConfig::REG_OFFSET) + reg_id), {value});
 }
 
 void Driver::SetFPGAChannelValue(unsigned int channel_id, unsigned int value){
-  SendToHorn(0, static_cast<unsigned int>(bdpars::BDEndPointId::CHANNEL_OFFSET) + channel_id, {value});
+  SendToHorn(0, static_cast<bdpars::BDEndPointId>(static_cast<unsigned int>(bdpars::FPGAEndpointConfig::CHANNEL_OFFSET) + channel_id), {value});
 }
 
 void Driver::InitFIFO(unsigned int core_id) {
@@ -552,7 +552,7 @@ void Driver::SetMem(
   PauseTraffic(core_id);
   SendToHorn(core_id, bd_pars_->BDEndPointIdFor(mem_id), encapsulated_words);
   if (mem_id == bdpars::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
-    RecvFromFunnel(core_id, bd_pars_->BDStartPointIdFor(mem_id), data.size());
+    //RecvFromFunnel(core_id, bd_pars_->BDStartPointIdFor(mem_id), data.size());
   }
   ResumeTraffic(core_id);
 }

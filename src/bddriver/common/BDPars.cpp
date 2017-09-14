@@ -52,6 +52,9 @@ BDPars::BDPars() {
   bdendpoints_[DELAY4_LEAF]             = {REG  , static_cast<unsigned int>(DELAY4)             , 9  , 6  , 8  , 1  , 8  , "PAT delay line config"};
   bdendpoints_[DELAY5_LEAF]             = {REG  , static_cast<unsigned int>(DELAY5)             , 25 , 7  , 8  , 1  , 8  , "MM delay line config"};
   bdendpoints_[DELAY6_LEAF]             = {REG  , static_cast<unsigned int>(DELAY6)             , 89 , 7  , 8  , 1  , 8  , "AM delay line config"};
+  for(unsigned int idx = 34; idx < 128; ++idx){
+    bdendpoints_[idx] = {FPGA_REG, 256 + idx, 0, 2, 24, 1, 24, "FPGA dummy endpoints"};
+  }
   for(unsigned int idx = static_cast<unsigned int>(REG_OFFSET); idx < static_cast<unsigned int>(CHANNEL_OFFSET); ++idx){
     bdendpoints_[idx] = {FPGA_REG, idx - static_cast<unsigned int>(REG_OFFSET), 128, 2, 24, 1, 24, "FPGA register configuration"};
   }

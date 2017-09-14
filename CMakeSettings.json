@@ -11,11 +11,20 @@
             "ctestCommandArgs": ""
         },
         {
-            "name": "x64-Release",
+            "name": "x64-Release OPALKELLY",
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "Release",
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
             "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=OPALKELLY",
+            "buildCommandArgs": "-m -v:minimal",
+            "ctestCommandArgs": ""
+        },
+        {
+            "name": "x64-Release MODEL",
+            "generator": "Visual Studio 15 2017 Win64",
+            "configurationType": "Release",
+            "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
+            "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=MODEL",
             "buildCommandArgs": "-m -v:minimal",
             "ctestCommandArgs": ""
         }
