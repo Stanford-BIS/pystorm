@@ -1,3 +1,4 @@
+`define SIMULATION
 module BD_Sink(ready, valid, data, reset, clk);
     parameter ClkDelaysMin = 0;
     parameter ClkDelaysMax = 5;

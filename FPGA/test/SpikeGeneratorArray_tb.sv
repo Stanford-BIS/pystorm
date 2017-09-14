@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/SpikeGeneratorArray.sv"
 `include "ChannelSrcSink.sv"
 

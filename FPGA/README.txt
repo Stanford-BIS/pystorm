@@ -19,11 +19,12 @@ Quartus instructions:
 Read quartus/OK_README.txt for some good info if setting up a project from scratch
 using the OK board.
 
+If you run into weird timing problems with the OK stuff, I recommend just repeating the
+process in OK_README.txt, replacing Counters.v with OKCoreBD (or whatever your toplevel is)
+
 - Load the .qpf in /quartus.
 - You might need to add the license in /ext/opalkelly/FrontPanelHDL.
 - Everything else should already be set up! 
-  (All the files from /src and /ext/opalkelly/FrontPanelHDL should already be included)
-  (note that the .hex needs to be in the Quartus project directory)
 - Press the big blue button to compile the project. 
   Hopefully, there are no problems.
 - After that, generate the .rbf bitfile.

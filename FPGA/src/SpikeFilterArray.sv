@@ -1,6 +1,9 @@
 `include "Interfaces.svh"
 `include "Channel.svh"
-`include "../quartus/SpikeFilterMem.v"
+// for quartus, we add external IP to the project
+`ifdef SIMULATION
+  `include "../quartus/SpikeFilterMem.v"
+`endif
 
 // low-pass filters a variable number of spike streams
 // uses a decaying exponential filter

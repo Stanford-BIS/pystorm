@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/PCParser.sv"
 `include "../src/PCMapper.sv"
 `include "ChannelSrcSink.sv"

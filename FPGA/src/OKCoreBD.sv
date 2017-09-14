@@ -3,7 +3,10 @@
 `include "OKIfc.sv"
 `include "BDIfc.sv"
 `include "BDClkGen.sv"
-`include "../quartus/SysClkBuf.v"
+// for quartus, we add external IP to the project
+`ifdef SIMULATION
+  `include "../quartus/SysClkBuf.v"
+`endif
 
 module OKCoreBD (
   // OK ifc

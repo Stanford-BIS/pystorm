@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/Channel.svh"
 
 ////////////////////////////////////////////

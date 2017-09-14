@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/FPGASerializer.sv"
 `include "ChannelSrcSink.sv"
 

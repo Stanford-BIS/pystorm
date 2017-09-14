@@ -1,7 +1,10 @@
 `include "Channel.svh"
 `include "FPGA_BD_Interface.sv"
-`include "../quartus/BDInFIFO.v"
-`include "../quartus/BDOutFIFO.v"
+// for quartus, we add external IP to the project
+`ifdef SIMULATION
+  `include "../quartus/BDInFIFO.v"
+  `include "../quartus/BDOutFIFO.v"
+`endif
 
 // Encapsulated BD handshakers and clock-domain-crossing
 // FIFO for upstream and downstream.

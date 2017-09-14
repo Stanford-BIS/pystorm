@@ -1,0 +1,142 @@
+#-------------------------------------------------------------------------
+# ZEM5305 - Altera QSF constraints file
+#
+# Pin mappings for the ZEM5305.  Use this as a template and comment out 
+# the pins that are not used in your design.  (By default, map will fail
+# if this file contains constraints for signals not in your design).
+#
+# Copyright (c) 2004-2014 Opal Kelly Incorporated
+#-------------------------------------------------------------------------
+
+#-------------------------------
+# FrontPanel Host Interface pins
+#-------------------------------
+set_location_assignment PIN_P9 -to okUH[0]
+set_location_assignment PIN_M10 -to okUH[1]
+set_location_assignment PIN_L9 -to okUH[2]
+set_location_assignment PIN_Y11 -to okUH[3]
+set_location_assignment PIN_W11 -to okUH[4]
+
+set_location_assignment PIN_P12 -to okHU[0]
+set_location_assignment PIN_R11 -to okHU[1]
+set_location_assignment PIN_AB11 -to okHU[2]
+
+set_location_assignment PIN_AA7 -to okUHU[0]
+set_location_assignment PIN_W7 -to okUHU[1]
+set_location_assignment PIN_T7 -to okUHU[2]
+set_location_assignment PIN_Y7 -to okUHU[3]
+set_location_assignment PIN_AB7 -to okUHU[4]
+set_location_assignment PIN_U7 -to okUHU[5]
+set_location_assignment PIN_P6 -to okUHU[6]
+set_location_assignment PIN_U6 -to okUHU[7]
+set_location_assignment PIN_N6 -to okUHU[8]
+set_location_assignment PIN_R5 -to okUHU[9]
+set_location_assignment PIN_M6 -to okUHU[10]
+set_location_assignment PIN_R6 -to okUHU[11]
+set_location_assignment PIN_M7 -to okUHU[12]
+set_location_assignment PIN_L7 -to okUHU[13]
+set_location_assignment PIN_R7 -to okUHU[14]
+set_location_assignment PIN_L8 -to okUHU[15]
+set_location_assignment PIN_W8 -to okUHU[16] 
+set_location_assignment PIN_V8 -to okUHU[17]
+set_location_assignment PIN_M8 -to okUHU[18]
+set_location_assignment PIN_N8 -to okUHU[19]
+set_location_assignment PIN_N10 -to okUHU[20]
+set_location_assignment PIN_N9 -to okUHU[21]
+set_location_assignment PIN_R10 -to okUHU[22]
+set_location_assignment PIN_AA10 -to okUHU[23]
+set_location_assignment PIN_Y9 -to okUHU[24]
+set_location_assignment PIN_R9 -to okUHU[25]
+set_location_assignment PIN_V9 -to okUHU[26]
+set_location_assignment PIN_U8 -to okUHU[27]
+set_location_assignment PIN_AA8 -to okUHU[28]
+set_location_assignment PIN_AB8 -to okUHU[29]
+set_location_assignment PIN_T9 -to okUHU[30]
+set_location_assignment PIN_T8 -to okUHU[31]
+
+set_location_assignment PIN_T10 -to okAA
+set_location_assignment PIN_U10 -to user_reset
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[0] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[1]  
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[3] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[4]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[1] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[2]  
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[8]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[9]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[10]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[11]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[12]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[13]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[14]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[15]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[16]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[17]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[18]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[19]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[20]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[21]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[22]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[23]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[24]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[25]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[26]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[27]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[28]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[29]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[30]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[31]
+
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[1]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[2]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[3]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[4]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUHU[*]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to okUHU[*]
+
+set_instance_assignment -name MATCH_PLL_COMPENSATION_CLOCK ON -to "okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+
+set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
+set_instance_assignment -name PLL_AUTO_RESET ON -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
+set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
+
+set_instance_assignment -name D1_DELAY 5 -to okUHU[14]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[6]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[10]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[27]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[25]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[31]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[21]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[19]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okAA
+set_instance_assignment -name IO_STANDARD "2.5 V" -to user_reset 
+
+# System Clocks #######################################################
+set_location_assignment PIN_H10 -to sys_clk_p
+set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_p
+set_location_assignment PIN_G11 -to sys_clk_n
+set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_n
+
+# LEDs ################################################################
+set_location_assignment PIN_A20  -to led[0]
+set_location_assignment PIN_A22  -to led[1]
+set_location_assignment PIN_B20  -to led[2]
+set_location_assignment PIN_C20  -to led[3]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[3]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]

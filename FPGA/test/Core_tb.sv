@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/Core.sv"
 `include "ChannelSrcSink.sv"
 

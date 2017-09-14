@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/Deserializer.sv"
 `include "ChannelSrcSink.sv"
 

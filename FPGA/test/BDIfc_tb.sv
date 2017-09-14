@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/BDIfc.sv"
 `include "ChannelSrcSink.sv"
 

@@ -1,4 +1,3 @@
-// use OK sim models
 `define SIMULATION 
 
 `include "../src/OKCoreTestHarness.sv"

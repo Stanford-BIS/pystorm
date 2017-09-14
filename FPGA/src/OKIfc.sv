@@ -1,9 +1,9 @@
 `include "Channel.svh"
 
-`include "../quartus/PipeInFIFO.v"
-`include "../quartus/PipeOutFIFO.v"
-
+// for quartus, we add external IP to the project
 `ifdef SIMULATION
+  `include "../quartus/PipeInFIFO.v"
+  `include "../quartus/PipeOutFIFO.v"
   `include "../ext/opalkelly/Simulation/glbl.v"
   `include "../ext/opalkelly/Simulation/okHost.v"
   `include "../ext/opalkelly/Simulation/okBTPipeOut.v"
@@ -11,11 +11,6 @@
   `include "../ext/opalkelly/Simulation/okPipeOut.v"
   `include "../ext/opalkelly/Simulation/okPipeIn.v"
   `include "../ext/opalkelly/Simulation/okWireOR.v"
-`else
-  `include "../ext/opalkelly/FrontPanelHDL/okHost.sv"
-  `include "../ext/opalkelly/FrontPanelHDL/okHost.v"
-  `include "../ext/opalkelly/FrontPanelHDL/okLibrary.v"
-  `include "../ext/opalkelly/FrontPanelHDL/okEndpoints.v"
 `endif
 
 // OK stuff is a little crazy, apparently

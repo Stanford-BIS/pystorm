@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/BDTagSplit.sv"
 `include "ChannelSrcSink.sv"
 

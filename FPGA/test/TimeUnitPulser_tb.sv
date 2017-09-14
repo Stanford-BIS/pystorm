@@ -1,3 +1,4 @@
+`define SIMULATION
 `include "../src/TimeUnitPulser.sv"
 `include "ChannelSrcSink.sv"
 
