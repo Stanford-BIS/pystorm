@@ -18,7 +18,8 @@
   `include "../ext/opalkelly/FrontPanelHDL/okEndpoints.v"
 `endif
 
-`default_nettype wire
+// OK stuff is a little crazy, apparently
+`resetall
 
 module OKIfc #(
   parameter NPCcode = 8,
