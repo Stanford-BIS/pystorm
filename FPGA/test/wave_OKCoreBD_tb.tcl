@@ -35,8 +35,8 @@ add wave -noupdate /OKCoreBD_tb/dut/PC_downstream/v
 add wave -noupdate /OKCoreBD_tb/dut/PC_downstream/a
 add wave -noupdate /OKCoreBD_tb/dut/PC_upstream/d
 add wave -noupdate /OKCoreBD_tb/dut/PC_upstream/v
-add wave -noupdate -divider Core
 add wave -noupdate /OKCoreBD_tb/dut/PC_upstream/a
+add wave -noupdate -divider Core
 add wave -noupdate /OKCoreBD_tb/dut/core/pReset
 add wave -noupdate /OKCoreBD_tb/dut/core/sReset
 add wave -noupdate /OKCoreBD_tb/dut/core/adc0
@@ -87,7 +87,6 @@ add wave -noupdate /OKCoreBD_tb/dut/BD_ifc/in_FIFO_data_out
 add wave -noupdate /OKCoreBD_tb/dut/BD_ifc/in_FIFO_rd_ack
 add wave -noupdate /OKCoreBD_tb/dut/BD_ifc/in_FIFO_rd_empty
 add wave -noupdate /OKCoreBD_tb/dut/BD_ifc/in_FIFO_rd_clk
-add wave -noupdate /OKCoreBD_tb/dut/BD_ifc/user_reset
 add wave -noupdate /OKCoreBD_tb/dut/sys_clk_buf/datain
 add wave -noupdate /OKCoreBD_tb/dut/sys_clk_buf/datain_b
 add wave -noupdate /OKCoreBD_tb/dut/sys_clk_buf/dataout

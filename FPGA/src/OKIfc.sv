@@ -1,22 +1,24 @@
 `include "Channel.svh"
 
-`ifdef SIMULATION
-`include "../ext/opalkelly/Simulation/okHost.v"
-`include "../ext/opalkelly/Simulation/okBTPipeOut.v"
-`include "../ext/opalkelly/Simulation/okBTPipeIn.v"
-`include "../ext/opalkelly/Simulation/okPipeOut.v"
-`include "../ext/opalkelly/Simulation/okPipeIn.v"
-`else
-`include "../ext/opalkelly/FrontPanelHDL/okHost.sv"
-`include "../ext/opalkelly/FrontPanelHDL/okHost.v"
-`include "../ext/opalkelly/FrontPanelHDL/okLibrary.v"
-`include "../ext/opalkelly/FrontPanelHDL/okEndpoints.v"
-`endif
-
 `include "../quartus/PipeInFIFO.v"
 `include "../quartus/PipeOutFIFO.v"
 
-`default_nettype none
+`ifdef SIMULATION
+  `include "../ext/opalkelly/Simulation/glbl.v"
+  `include "../ext/opalkelly/Simulation/okHost.v"
+  `include "../ext/opalkelly/Simulation/okBTPipeOut.v"
+  `include "../ext/opalkelly/Simulation/okBTPipeIn.v"
+  `include "../ext/opalkelly/Simulation/okPipeOut.v"
+  `include "../ext/opalkelly/Simulation/okPipeIn.v"
+  `include "../ext/opalkelly/Simulation/okWireOR.v"
+`else
+  `include "../ext/opalkelly/FrontPanelHDL/okHost.sv"
+  `include "../ext/opalkelly/FrontPanelHDL/okHost.v"
+  `include "../ext/opalkelly/FrontPanelHDL/okLibrary.v"
+  `include "../ext/opalkelly/FrontPanelHDL/okEndpoints.v"
+`endif
+
+`default_nettype wire
 
 module OKIfc #(
   parameter NPCcode = 8,

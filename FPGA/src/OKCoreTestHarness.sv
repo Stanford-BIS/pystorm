@@ -1,8 +1,6 @@
 `include "OKIfc.sv"
 `include "CoreTestHarness.sv"
 
-`default_nettype none
-
 module OKCoreTestHarness (
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,

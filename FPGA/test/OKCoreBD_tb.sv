@@ -1,7 +1,10 @@
 // use OK sim models
 `define SIMULATION 
 
+`include "../src/OKCoreBD.sv"
+
 `timescale 1ns / 1ps
+`default_nettype none
 
 module OKCoreBD_tb;
 

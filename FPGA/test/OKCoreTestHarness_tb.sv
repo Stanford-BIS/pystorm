@@ -1,6 +1,8 @@
 // use OK sim models
 `define SIMULATION 
 
+`include "../src/OKCoreTestHarness.sv"
+
 // Testbench for OKCoreHarness (tests FPGA logic without BD handshake)
 // uses OK behavioral models for the okHost and endpoints
 // adapated from First.v, following Sample/Simulation-USB3-Verilog/README.txt
@@ -8,7 +10,7 @@
 `timescale 1ns / 1ps
 `default_nettype none
 
-module OKCoreHarness_tb;
+module OKCoreTestHarness_tb;
 
 wire  [4:0]   okUH;
 wire  [2:0]   okHU;

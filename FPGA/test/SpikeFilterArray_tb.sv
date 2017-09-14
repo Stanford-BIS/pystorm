@@ -1,4 +1,4 @@
-`include "../src/ChannelFilterArray.sv"
+`include "../src/SpikeFilterArray.sv"
 `include "ChannelSrcSink.sv"
 
 module SpikeFilterArray_tb;

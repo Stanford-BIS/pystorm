@@ -1,5 +1,5 @@
 `ifndef CHANNEL_UTIL_SVH
-`define CHANNEL_SVH
+`define CHANNEL_UTIL_SVH
 
 `include "Channel.svh"
 
