@@ -32,7 +32,7 @@ class BDModel {
   // calls that will cause the model to emit some traffic, exercising upstream driver calls
   inline void PushOutput(bdpars::OutputId output_id, const std::vector<BDWord> & to_append) {
       std::unique_lock<std::mutex>(mutex_);
-      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(output_id);
+      bdpars::BDStartPointId leaf_id = bd_pars_->BDStartPointIdFor(output_id);
       to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
   }
 
@@ -80,12 +80,12 @@ class BDModel {
 
   // intermediate results of downstream/upstream calls, will be sent by a future GenerateOutputs()
 
-  std::array<std::vector<BDWord>, bdpars::FunnelLeafIdCount> to_send_;
+  std::array<std::vector<BDWord>, bdpars::BDStartPointIdCount> to_send_;
 
   // upstream traffic enqueued by the user, will be sent by a future GenerateOutputs()
 
   // word remainders that couldn't be completely deserialized
-  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> remainders_;
+  std::array<std::vector<uint32_t>, bdpars::BDEndPointIdCount> remainders_;
 
   // memory address register states
 
@@ -100,8 +100,8 @@ class BDModel {
 
   // used in ParseInput, once words have been horn-decoded and deserialized
   
-  void Process(bdpars::HornLeafId leaf_id, const std::vector<uint32_t>& inputs);
-  void ProcessInput(bdpars::HornLeafId leaf_id, uint32_t input);
+  void Process(bdpars::BDEndPointId leaf_id, const std::vector<uint32_t>& inputs);
+  void ProcessInput(bdpars::BDEndPointId leaf_id, uint32_t input);
   void ProcessReg(bdpars::RegId reg_id, uint32_t input);
   void ProcessInput(bdpars::InputId input_id, uint32_t input);
   void ProcessMM(uint32_t input);
@@ -111,14 +111,14 @@ class BDModel {
 
   // used in GenerateOutputs
   
-  std::vector<uint32_t> Generate(bdpars::FunnelLeafId leaf_id);
+  std::vector<uint32_t> Generate(bdpars::BDStartPointId leaf_id);
 
   // more complicated than the other cases
   std::vector<uint32_t> GenerateTAT(unsigned int tat_idx);
 
   /// helper for Process calls (just to look up funnel id)
   inline void PushMem(bdpars::MemId mem_id, const std::vector<BDWord> & to_append) {
-      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(mem_id);
+      bdpars::BDStartPointId leaf_id = bd_pars_->BDStartPointIdFor(mem_id);
       to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
   }
 
