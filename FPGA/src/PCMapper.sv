@@ -74,13 +74,13 @@ localparam SG_base                   = SF_base + N_SF_filts_chunks + 2*N_SF_stat
 localparam SG_gens_used_idx          = SG_base + 0;
 localparam SG_gens_en_idx            = SG_base + N_SG_gens_chunks;
 
-localparam TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_chunks; // = 23
+localparam TM_base                   = SG_base + N_SG_gens_chunks + N_SG_gens_en_chunks; // = 22
 localparam TM_unit_len_idx           = TM_base + 0; 
 localparam TM_PC_time_elapsed_idx    = TM_base + N_TM_unit_chunks;
 localparam TM_PC_send_HB_up_idx      = TM_base + N_TM_unit_chunks + N_TM_time_chunks;
 localparam TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks;
 
-localparam TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 31
+localparam TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 30
 localparam TS_report_tags_idx        = TS_base + 0;
 
 localparam BD_base                   = TS_base + 1;
