@@ -93,12 +93,17 @@ Core core(
 // It's what OK uses in the Counters example to get their clk
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
 
+logic pll_locked;
+logic reset_BDIO;
+assign reset_BDIO = ~pll_locked | user_reset;
+
 // PLL generates BD_IO_clk
 BDClkGen bd_clk_gen(
   .BD_in_clk_int(BD_in_clk_int),
   .BD_in_clk_ext(BD_in_clk),
   .BD_out_clk_int(BD_out_clk_int),
   .BD_out_clk_ext(BD_out_clk),
+  .pll_locked(pll_locked),
   .clk(sys_clk), 
   .reset(user_reset));
 
@@ -116,6 +121,6 @@ BDIfc BD_ifc(
   .core_clk(okClk),
   .BD_in_clk_int(BD_in_clk_int),
   .BD_out_clk_int(BD_out_clk_int),
-  .reset(user_reset));
+  .reset(reset_BDIO));
 
 endmodule

@@ -3,7 +3,7 @@ set_location_assignment PIN_W12  -to pReset          # MC1-Bn1
 set_location_assignment PIN_AA15 -to sReset          # MC1-Bn6
 
 # BD output
-set_location_assignment PIN_AB17 -to BD_in_clock    # CLKOUT0-I/O
+set_location_assignment PIN_AB17 -to BD_in_clk    # CLKOUT0-I/O
 set_location_assignment PIN_AB15 -to BD_in_ready    # MC1-Bn2
 set_location_assignment PIN_T13  -to BD_in_valid    # MC1-Bp0
 
@@ -70,8 +70,8 @@ set_location_assignment PIN_T17  -to BD_out_data[19]  # MC2-Bp17
 set_location_assignment PIN_T18  -to BD_out_data[20]  # MC2-Bn17
 
 # adc input
-#set_location_assignment PIN_J17  -to adc0            # MC2-Bp9
-#set_location_assignment PIN_F20  -to adc1            # MC2-Bn12
+set_location_assignment PIN_J17  -to adc0            # MC2-Bp9
+set_location_assignment PIN_F20  -to adc1            # MC2-Bn12
 
 # reserved for later use
 #set_location_assignment PIN_AB13 -to unused_MC1[0]   # MC1-ASP0
@@ -107,105 +107,174 @@ set_location_assignment PIN_T18  -to BD_out_data[20]  # MC2-Bn17
 #set_location_assignment PIN_K17  -to clkin_unusedn   # CLKINn
 
 # IO voltage setting
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5B
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 4A
+
 set_instance_assignment -name IO_STANDARD "1.8 V" -to pReset         
 set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset         
 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_clock    
+set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_clk    
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_ready    
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_valid    
 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[33] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[32] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[31] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[30] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[29] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[28] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[27] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[26] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[25] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[24] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[23] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[22] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[21] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[20] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[19] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[18] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[17] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[16] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[15] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[14] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[13] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[12] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[11] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[10] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[9]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[8]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[7]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[6]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[5]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[4]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[3]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[2]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[1]  
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[0]  
+set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[*] 
 
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_clk     
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_ready   
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_valid   
 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[0] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[1] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[2] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[3] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[4] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[5] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[6] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[7] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[8] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[9] 
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[10]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[11]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[12]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[13]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[14]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[15]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[16]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[17]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[18]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[19]
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[20]
+set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[*] 
 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to adc0          
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to adc1          
+set_instance_assignment -name IO_STANDARD "1.8 V" -to adc0          
+set_instance_assignment -name IO_STANDARD "1.8 V" -to adc1          
+
+#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[*] 
 #
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[0] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[1] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[2] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[3] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[4] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[5] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[6] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC1[7] 
-#
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[0] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[1] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[2] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[3] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[4] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[5] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[6] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[7] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[8] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[9] 
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[10]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[11]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[12]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[13]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[14]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[15]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[16]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[17]
-#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[18]
+#set_instance_assignment -name IO_STANDARD "1.8 V" -to unused_MC2[*] 
 #
 #set_instance_assignment -name IO_STANDARD "1.8 V" -to clkin_unusedp 
 #set_instance_assignment -name IO_STANDARD "1.8 V" -to clkin_unusedn 
+#
+#-------------------------------------------------------------------------
+# ZEM5305 - Altera QSF constraints file
+#
+# Pin mappings for the ZEM5305.  Use this as a template and comment out 
+# the pins that are not used in your design.  (By default, map will fail
+# if this file contains constraints for signals not in your design).
+#
+# Copyright (c) 2004-2014 Opal Kelly Incorporated
+#-------------------------------------------------------------------------
+
+#-------------------------------
+# FrontPanel Host Interface pins
+#-------------------------------
+set_location_assignment PIN_P9 -to okUH[0]
+set_location_assignment PIN_M10 -to okUH[1]
+set_location_assignment PIN_L9 -to okUH[2]
+set_location_assignment PIN_Y11 -to okUH[3]
+set_location_assignment PIN_W11 -to okUH[4]
+
+set_location_assignment PIN_P12 -to okHU[0]
+set_location_assignment PIN_R11 -to okHU[1]
+set_location_assignment PIN_AB11 -to okHU[2]
+
+set_location_assignment PIN_AA7 -to okUHU[0]
+set_location_assignment PIN_W7 -to okUHU[1]
+set_location_assignment PIN_T7 -to okUHU[2]
+set_location_assignment PIN_Y7 -to okUHU[3]
+set_location_assignment PIN_AB7 -to okUHU[4]
+set_location_assignment PIN_U7 -to okUHU[5]
+set_location_assignment PIN_P6 -to okUHU[6]
+set_location_assignment PIN_U6 -to okUHU[7]
+set_location_assignment PIN_N6 -to okUHU[8]
+set_location_assignment PIN_R5 -to okUHU[9]
+set_location_assignment PIN_M6 -to okUHU[10]
+set_location_assignment PIN_R6 -to okUHU[11]
+set_location_assignment PIN_M7 -to okUHU[12]
+set_location_assignment PIN_L7 -to okUHU[13]
+set_location_assignment PIN_R7 -to okUHU[14]
+set_location_assignment PIN_L8 -to okUHU[15]
+set_location_assignment PIN_W8 -to okUHU[16] 
+set_location_assignment PIN_V8 -to okUHU[17]
+set_location_assignment PIN_M8 -to okUHU[18]
+set_location_assignment PIN_N8 -to okUHU[19]
+set_location_assignment PIN_N10 -to okUHU[20]
+set_location_assignment PIN_N9 -to okUHU[21]
+set_location_assignment PIN_R10 -to okUHU[22]
+set_location_assignment PIN_AA10 -to okUHU[23]
+set_location_assignment PIN_Y9 -to okUHU[24]
+set_location_assignment PIN_R9 -to okUHU[25]
+set_location_assignment PIN_V9 -to okUHU[26]
+set_location_assignment PIN_U8 -to okUHU[27]
+set_location_assignment PIN_AA8 -to okUHU[28]
+set_location_assignment PIN_AB8 -to okUHU[29]
+set_location_assignment PIN_T9 -to okUHU[30]
+set_location_assignment PIN_T8 -to okUHU[31]
+
+set_location_assignment PIN_T10 -to okAA
+set_location_assignment PIN_U10 -to user_reset
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[0] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[1]  
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[3] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[4]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[1] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[2]  
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[2]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[4]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[5]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[6]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[7]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[8]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[9]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[10]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[11]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[12]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[13]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[14]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[15]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[16]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[17]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[18]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[19]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[20]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[21]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[22]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[23]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[24]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[25]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[26]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[27]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[28]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[29]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[30]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[31]
+
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[1]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[2]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[3]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[4]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUHU[*]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to okUHU[*]
+
+set_instance_assignment -name MATCH_PLL_COMPENSATION_CLOCK ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+set_instance_assignment -name PLL_AUTO_RESET ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+
+set_instance_assignment -name D1_DELAY 5 -to okUHU[14]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[6]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[10]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[27]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[25]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[31]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[21]
+set_instance_assignment -name D1_DELAY 5 -to okUHU[19]
+
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okAA
+set_instance_assignment -name IO_STANDARD "2.5 V" -to user_reset 
+
+# System Clocks #######################################################
+set_location_assignment PIN_H10 -to sys_clk_p
+set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_p
+set_location_assignment PIN_G11 -to sys_clk_n
+set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_n
+
+# LEDs ################################################################
+set_location_assignment PIN_A20  -to led[0]
+set_location_assignment PIN_A22  -to led[1]
+set_location_assignment PIN_B20  -to led[2]
+set_location_assignment PIN_C20  -to led[3]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[3]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
+set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
