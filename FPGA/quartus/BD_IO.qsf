@@ -1,3 +1,9 @@
+# IO voltage setting
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5B
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 4A
+
 # BD reset
 set_location_assignment PIN_W12  -to pReset          # MC1-Bn1
 set_location_assignment PIN_AA15 -to sReset          # MC1-Bn6
@@ -105,12 +111,6 @@ set_location_assignment PIN_F20  -to adc1            # MC2-Bn12
 #
 #set_location_assignment PIN_L17  -to clkin_unusedp   # CLKINp
 #set_location_assignment PIN_K17  -to clkin_unusedn   # CLKINn
-
-# IO voltage setting
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2A
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5B
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5A
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 4A
 
 set_instance_assignment -name IO_STANDARD "1.8 V" -to pReset         
 set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset         

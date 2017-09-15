@@ -60,6 +60,12 @@ Channel #(NPCinout) PC_upstream();
 Channel #(NBDin) BD_downstream();
 Channel #(NBDout) BD_upstream();
 
+// led control. Flashes for handshakes.
+logic [3:0] led_in;
+assign led_in[0] = PC_downstream.v & PC_downstream.a;
+assign led_in[1] = PC_upstream.v   & PC_upstream.a;
+assign led_in[2] = BD_out_ready    & BD_out_valid;
+assign led_in[3] = BD_in_ready     & BD_in_valid;
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
@@ -71,6 +77,7 @@ ok_ifc(
 	.okUHU(okUHU),
 	.okAA(okAA),
 	.led(led),
+	.led_in(led_in),
   .okClk(okClk),
   .user_reset(user_reset),
   .PC_downstream(PC_downstream),
