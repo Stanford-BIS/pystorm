@@ -1,69 +1,10 @@
 import sys
-from enum import Enum
-import PyOK as ok
-
 sys.path.append("../../../../lib/")
 sys.path.append("../../../../lib/Release")
+sys.path.append("../../../../lib/Release/PyOK")
 
-ErrorCode = dict({
-      0 : 'NoError'                    ,
-     -1 : 'Failed'                     ,
-     -2 : 'Timeout'                    ,
-     -3 : 'DoneNotHigh'                ,
-     -4 : 'TransferError'              ,
-     -5 : 'CommunicationError'         ,
-     -6 : 'InvalidBitstream'           ,
-     -7 : 'FileError'                  ,
-     -8 : 'DeviceNotOpen'              ,
-     -9 : 'InvalidEndpoint'            ,
-    -10 : 'InvalidBlockSize'           ,
-    -11 : 'I2CRestrictedAddress'       ,
-    -12 : 'I2CBitError'                ,
-    -13 : 'I2CNack'                    ,
-    -14 : 'I2CUnknownStatus'           ,
-    -15 : 'UnsupportedFeature'         ,
-    -16 : 'FIFOUnderflow'              ,
-    -17 : 'FIFOOverflow'               ,
-    -18 : 'DataAlignmentError'         ,
-    -19 : 'InvalidResetProfile'        ,
-    -20 : 'InvalidParameter'
-})
-
-def InitOK(fpga_bitcode="counter.rbf"):
-    dev = ok.okCFrontPanel()
-    m_devInfo = ok.okTDeviceInfo()
-
-    if ok.okFrontPanelDLL_LoadLib(None) is False:
-        print("FrontPanel library could not be loaded");
-        return -1
-
-    lib_date, lib_time = ok.okFrontPanelDLL_GetVersion()
-    print("FrontPanel library loaded")
-    print("Built: %s, %s" % (lib_date, lib_time))
-
-    if dev.OpenBySerial("") != ok.ErrorCode.NoError:
-        print("Device could not be opened. Is one connected?")
-        return -2
-
-    dev.GetDeviceInfo(m_devInfo)
-    print("Found a device: %s" % m_devInfo.productName)
-
-    dev.LoadDefaultPLLConfiguration()
-
-    print("Device firmware version: %d.%d" % (m_devInfo.deviceMajorVersion, m_devInfo.deviceMinorVersion))
-    print("Device serial number: %s" % m_devInfo.serialNumber)
-    print("Device product ID: %d" % m_devInfo.productID)
-
-    if dev.ConfigureFPGA(fpga_bitcode) != ok.ErrorCode.NoError:
-        print("FPGA configuration failed.")
-        return -3
-
-    if dev.IsFrontPanelEnabled():
-        print("FrontPanel support is enabled")
-    else:
-        print("FrontPanel support is not enabled")
-        return -4
-
+from enum import Enum
+import PyOK as ok
 
 class OP():
 
@@ -137,17 +78,66 @@ def __default_commands__():
     return [OP.endpointword(*_item) for _item in OPS]
 
 
+def parse_command_file(FH):
+    lines = FH.read().splitlines()
+    cmds = [l.split() for l in lines]
+    return [OP.endpointword(*_item) for _item in cmds]
+
+
 if __name__ ==  "__main__":
     import argparse
-    PARSER = argparse.ArgumentParser(description='Program Braindrop with OpalKelly FrontPanel interface')
+    PARSER = argparse.ArgumentParser(description='Program Braindrop with OpalKelly FrontPanel interface', formatter_class=argparse.RawTextHelpFormatter)
     PARSER.add_argument('BITFILE', type=str, help="Bitfile to program the FPGA with")
-    PARSER.add_argument('-f', '--cmdfile', type=argparse.FileType('r'), dest='command_file',
-                        help="File with downstream instructions.\nThis file has one 32-bit word per line.")
+    PARSER.add_argument('-f', '--cmdfile', metavar='FILE', type=argparse.FileType('r'), dest='command_file',
+                        help="""File with downstream instructions.
+Each line has three entries:
+
+BDHORN|FPGA_REG|FPGA_CHANNEL <ID> <PAYLOAD>
+
+<ID> is any BDLeafId enum for 'BDHORN' or
+an integer for FPGA_REG and FPGA_CHANNEL.
+<PAYLOAD> is a 24-bit number that can be
+written in binary ('0bnnnn'), decimal or
+hex ('0xnnnn') format.""")
+    PARSER.add_argument('-i', '--ep_in', metavar='EP', default='0x08',
+                        help="Downstream endpoint (PC->FPGA) (default=0x08)")
+    PARSER.add_argument('-o', '--ep_out', metavar='EP', default='0xa0',
+                        help="Upstream endpoint (PC<-FPGA) (default=0xa0)")
+    PARSER.add_argument('-b', '--block', metavar='SIZE', default='512',
+                        help="""Block size in bytes (default=512).
+Must be a power of 2 with a minimum value of 16.
+""")
+    PARSER.add_argument('-v', action='store_true', dest='verbose',
+                        help="Print payload (default=disabled)")
     ARGS = PARSER.parse_args()
     # `args.BITFILE`        : bitfile
     # `args.command_file`   : command file
 
+    payload = None
     if ARGS.command_file is None:
-        print("No command file specified. Using default commands...")
-        print(__default_commands__())
-    #InitOK(args.BITFILE)
+        print("No command file specified. Using default commands.")
+        payload = __default_commands__()
+    else:
+        print("Using command file.")
+        payload = parse_command_file(ARGS.command_file)
+
+    ep_in = int(ARGS.ep_in, 0)
+    ep_out = int(ARGS.ep_out, 0)
+    block_size = int(ARGS.block, 0)
+
+    print("Configuration:")
+    print("  FPGA bitflie: %s" % ARGS.BITFILE)
+    print("  Downstream endpoint: 0x%X" % ep_in)
+    print("  Upstream endpoint: 0x%X" % ep_out)
+    print("  Block size: %d" % block_size)
+
+    if ARGS.verbose is True:
+        print("  Payload (lsB -> msB):")
+        for idx, word in enumerate(payload):
+            print(("    %d: " + ", ".join(list(("0x" + "{0:02X}".format(num) for num in list(word))))) % idx)
+
+    dev = ok.InitOK(ARGS.BITFILE)
+    if dev is not None:
+        dev.WriteToBlockPipeIn(ep_in, block_size, payload)
+    else:
+        print("Device is unavailable")

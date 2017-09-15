@@ -32,7 +32,7 @@ public:
     }
 };
 
-PYBIND11_MODULE(PyOK, m)
+PYBIND11_MODULE(_PyOK, m)
 {
     m.def("okFrontPanelDLL_LoadLib", okFrontPanelDLL_LoadLib);
     m.def("okFrontPanelDLL_GetVersion", []() {

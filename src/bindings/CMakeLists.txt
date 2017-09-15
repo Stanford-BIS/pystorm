@@ -5,7 +5,7 @@ project(PythonBindings CXX)
 
 set(TARGET1_NAME "Pystorm")
 set(TARGET2_NAME "PyDriver")
-set(TARGET3_NAME "PyOK")
+set(TARGET3_NAME "_PyOK")
 
 ############################################################################
 #
@@ -115,11 +115,36 @@ endif(APPLE)
 if(BD_COMM_TYPE MATCHES "OPALKELLY")
     include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/include)
     find_library(OK_LIBRARY okFrontPanel HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/lib)
-    pybind11_add_module(${TARGET3_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK.cpp)
+    pybind11_add_module(${TARGET3_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/PyOK.cpp)
     target_link_libraries(${TARGET3_NAME} PRIVATE
         ${OK_LIBRARY}
     )
 
+    if(CXX_IS_MSVC)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
+
+        add_custom_command(
+            TARGET ${TARGET3_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyOK/__init__.py
+        )
+    else()
+        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
+        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
+        add_custom_command(
+            TARGET ${TARGET3_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+                    ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
+                    ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK/__init__.py
+                    )
+    endif()
     set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
     set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
     set_property(TARGET ${TARGET3_NAME} PROPERTY PREFIX "")
