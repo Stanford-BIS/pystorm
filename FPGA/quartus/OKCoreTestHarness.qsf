@@ -1,26 +1,71 @@
-#-------------------------------------------------------------------------
-# ZEM5305 - Altera QSF constraints file
+# -------------------------------------------------------------------------- #
 #
-# Pin mappings for the ZEM5305.  Use this as a template and comment out 
-# the pins that are not used in your design.  (By default, map will fail
-# if this file contains constraints for signals not in your design).
+# Copyright (C) 2017  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel MegaCore Function License Agreement, or other 
+# applicable license agreement, including, without limitation, 
+# that your use is for the sole purpose of programming logic 
+# devices manufactured by Intel and sold by Intel or its 
+# authorized distributors.  Please refer to the applicable 
+# agreement for further details.
 #
-# Copyright (c) 2004-2014 Opal Kelly Incorporated
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 17.0.0 Build 595 04/25/2017 SJ Lite Edition
+# Date created = 22:16:12  September 14, 2017
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		OKCoreTestHarness_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
 
-#-------------------------------
-# FrontPanel Host Interface pins
-#-------------------------------
+
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CEFA2U19C8
+set_global_assignment -name TOP_LEVEL_ENTITY OKCoreTestHarness
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:16:12  SEPTEMBER 14, 2017"
+set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreTestHarness.sv
+set_global_assignment -name VERILOG_FILE SpikeGeneratorMem.v
+set_global_assignment -name QIP_FILE SpikeGeneratorMem.qip
+set_global_assignment -name VERILOG_FILE SpikeFilterMem.v
+set_global_assignment -name QIP_FILE SpikeFilterMem.qip
+set_global_assignment -name VERILOG_FILE PipeOutFIFO.v
+set_global_assignment -name QIP_FILE PipeOutFIFO.qip
+set_global_assignment -name VERILOG_FILE PipeInFIFO.v
+set_global_assignment -name QIP_FILE PipeInFIFO.qip
+set_global_assignment -name VERILOG_FILE okLibrary.v
+set_global_assignment -name VERILOG_FILE okHost.v
+set_global_assignment -name SYSTEMVERILOG_FILE okHost.sv
+set_global_assignment -name VERILOG_FILE okEndpoints.v
+set_global_assignment -name SDC_FILE okHost.sdc
 set_location_assignment PIN_P9 -to okUH[0]
 set_location_assignment PIN_M10 -to okUH[1]
 set_location_assignment PIN_L9 -to okUH[2]
 set_location_assignment PIN_Y11 -to okUH[3]
 set_location_assignment PIN_W11 -to okUH[4]
-
 set_location_assignment PIN_P12 -to okHU[0]
 set_location_assignment PIN_R11 -to okHU[1]
 set_location_assignment PIN_AB11 -to okHU[2]
-
 set_location_assignment PIN_AA7 -to okUHU[0]
 set_location_assignment PIN_W7 -to okUHU[1]
 set_location_assignment PIN_T7 -to okUHU[2]
@@ -37,7 +82,7 @@ set_location_assignment PIN_M7 -to okUHU[12]
 set_location_assignment PIN_L7 -to okUHU[13]
 set_location_assignment PIN_R7 -to okUHU[14]
 set_location_assignment PIN_L8 -to okUHU[15]
-set_location_assignment PIN_W8 -to okUHU[16] 
+set_location_assignment PIN_W8 -to okUHU[16]
 set_location_assignment PIN_V8 -to okUHU[17]
 set_location_assignment PIN_M8 -to okUHU[18]
 set_location_assignment PIN_N8 -to okUHU[19]
@@ -53,20 +98,20 @@ set_location_assignment PIN_AA8 -to okUHU[28]
 set_location_assignment PIN_AB8 -to okUHU[29]
 set_location_assignment PIN_T9 -to okUHU[30]
 set_location_assignment PIN_T8 -to okUHU[31]
-
 set_location_assignment PIN_T10 -to okAA
 set_location_assignment PIN_U10 -to user_reset
-
-set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[0] 
-set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[1]  
+set_location_assignment PIN_A20 -to led[0]
+set_location_assignment PIN_A22 -to led[1]
+set_location_assignment PIN_B20 -to led[2]
+set_location_assignment PIN_C20 -to led[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[0]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[1]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[2]
-set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[3] 
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[3]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUH[4]
-
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[0]
-set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[1] 
-set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[2]  
-
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[1]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to okHU[2]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[0]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[1]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[2]
@@ -99,20 +144,13 @@ set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[28]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[29]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[30]
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okUHU[31]
-
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[1]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[2]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[3]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUH[4]
 set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUHU[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to okUHU[*]
-
-set_instance_assignment -name MATCH_PLL_COMPENSATION_CLOCK ON -to "okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
-
-set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
-set_instance_assignment -name PLL_AUTO_RESET ON -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
-set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "*ok_altera_pll*|altera_pll:altera_pll_i*|*"
-
+set_instance_assignment -name MATCH_PLL_COMPENSATION_CLOCK ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
 set_instance_assignment -name D1_DELAY 5 -to okUHU[14]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[6]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[10]
@@ -121,22 +159,16 @@ set_instance_assignment -name D1_DELAY 5 -to okUHU[25]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[31]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[21]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[19]
-
 set_instance_assignment -name IO_STANDARD "2.5 V" -to okAA
-set_instance_assignment -name IO_STANDARD "2.5 V" -to user_reset 
-
-# System Clocks #######################################################
-set_location_assignment PIN_H10 -to sys_clk_p
-set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_p
-set_location_assignment PIN_G11 -to sys_clk_n
-set_instance_assignment -name IO_STANDARD LVDS -to sys_clk_n
-
-# LEDs ################################################################
-set_location_assignment PIN_A20  -to led[0]
-set_location_assignment PIN_A22  -to led[1]
-set_location_assignment PIN_B20  -to led[2]
-set_location_assignment PIN_C20  -to led[3]
+set_instance_assignment -name IO_STANDARD "2.5 V" -to user_reset
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[3]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
 set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
+set_instance_assignment -name PLL_AUTO_RESET ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
+set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

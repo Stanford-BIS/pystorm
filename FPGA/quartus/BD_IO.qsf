@@ -247,9 +247,10 @@ set_instance_assignment -name FAST_INPUT_REGISTER ON -to okUHU[*]
 set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to okUHU[*]
 
 set_instance_assignment -name MATCH_PLL_COMPENSATION_CLOCK ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
-set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
-set_instance_assignment -name PLL_AUTO_RESET ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
-set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|outclk_wire"
+
+set_instance_assignment -name PLL_COMPENSATION_MODE "SOURCE SYNCHRONOUS" -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
+set_instance_assignment -name PLL_AUTO_RESET ON -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
+set_instance_assignment -name PLL_BANDWIDTH_PRESET AUTO -to "OKIfc:ok_ifc|okHost:okHI|ok_altera_pll:ok_altera_pll0|altera_pll:altera_pll_i|*"
 
 set_instance_assignment -name D1_DELAY 5 -to okUHU[14]
 set_instance_assignment -name D1_DELAY 5 -to okUHU[6]
