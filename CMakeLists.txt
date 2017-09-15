@@ -11,8 +11,8 @@ include(Common)
 enable_testing()
 
 # Load packages
-find_package(PythonLibs 3.5 REQUIRED)
 find_package(PythonInterp 3.5)
+find_package(PythonLibs 3.5 REQUIRED)
 
 ############################################################################
 #
@@ -38,10 +38,9 @@ endfunction()
 # Entry function to build on Linux, Mac OSX and Windows 10
 #
 ############################################################################
-
-if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-    "Choose the type of build, options are : Debug Release"
+if(NOT BD_COMM_TYPE)
+    set(BD_COMM_TYPE "MODEL" CACHE STRING
+    "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"MODEL\" or \"SOFT\""
     FORCE)
 endif()
 
@@ -51,3 +50,7 @@ else()
     message(FATAL_ERROR "Build does not support host '"
         ${CMAKE_HOST_SYSTEM_NAME} "'")
 endif()
+
+set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
+message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")
+message("Selected configuration: ${CMAKE_BUILD_TYPE}")

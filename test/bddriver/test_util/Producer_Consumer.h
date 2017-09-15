@@ -171,6 +171,28 @@ void ConsumeVectLockFrontN(
 }
 
 template <class T>
+void ConsumeVectLockFrontSimpleN(
+    bddriver::MutexBuffer<T>* buf, vector<T>* vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
+  unsigned int N_consumed = 0;
+  while (N_consumed != N) {
+    // cout << "hi" << endl;
+    T* read_ptr = new T[M];
+    unsigned int num_to_read = 0;
+
+    if (buf->LockFrontSimple(try_for_us)) {
+        num_to_read = buf->PopSimple(read_ptr, M);
+        for (unsigned int j = 0; j < num_to_read; j++) {
+            vals->push_back(read_ptr[j]);
+        }
+    }
+    buf->UnlockFront(false);
+
+    N_consumed += num_to_read;
+    delete read_ptr;
+  }
+}
+
+template <class T>
 void ConsumeAndCheckN(
     bddriver::MutexBuffer<T>* buf, T* check_vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
   T* data = new T[M];

@@ -73,6 +73,20 @@ TEST_F(MutexBufferFixture, Test1to1UseLockFront) {
   }
 }
 
+TEST_F(MutexBufferFixture, Test1to1UseLockFrontSimple) {
+  vector<unsigned int> consumed;
+
+  producer0 = std::thread(ProduceN<unsigned int>, buf, vals0, N, M, 0);
+  consumer0 = std::thread(ConsumeVectLockFrontSimpleN<unsigned int>, buf, &consumed, N, M, 0);
+
+  producer0.join();
+  consumer0.join();
+
+  for (unsigned int i = 0; i < N; i++) {
+    ASSERT_EQ(consumed[i], vals0[i]);
+  }
+}
+
 TEST_F(MutexBufferFixture, Test1to1UseLockBack) {
   vector<unsigned int> consumed;
 

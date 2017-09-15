@@ -7,6 +7,14 @@
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
+#include "comm/Emulator.h"
+#include "comm/CommBDModel.h"
+#ifdef BD_COMM_TYPE_OPALKELLY
+#include "comm/CommOK.h"
+#elif BD_COMM_TYPE_USB
+#include "comm/CommUSB.h"
+#endif
+
 #include "common/BDPars.h"
 #include "common/BDState.h"
 #include "common/DriverPars.h"
@@ -21,6 +29,9 @@ using std::endl;
 
 namespace pystorm {
 namespace bddriver {
+
+static const std::string OK_BITFILE = "OK_BITFILE.bit";
+static const std::string OK_SERIAL = "";
 
 constexpr uint64_t     NeuronConfig::field_hard_values[];
 constexpr unsigned int NeuronConfig::field_widths[];
@@ -128,22 +139,22 @@ Driver::Driver() {
       driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
 
   // initialize Comm
-  if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::SOFT) {
+#ifdef BD_COMM_TYPE_SOFT
     comm_ = new comm::CommSoft(
         *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
         *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
         dec_buf_in_,
         enc_buf_out_);
-
-  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::LIBUSB) {
+#elif BD_COMM_TYPE_USB
     assert(false && "libUSB Comm is not implemented");
-  } else if (driver_pars_->Get(driverpars::COMM_TYPE) == driverpars::BDMODEL) {
-    // XXX hmm... this is iffy
-    // should be using BDModelDriver, which handles this in its own ctor
+#elif BD_COMM_TYPE_MODEL
     comm_ = nullptr;
-  } else {
+#elif BD_COMM_TYPE_OPALKELLY
+    comm_ = new comm::CommOK(dec_buf_in_, enc_buf_out_);
+#else
     assert(false && "unhandled comm_type");
-  }
+#endif
+
 }
 
 Driver::~Driver() {
@@ -161,6 +172,11 @@ Driver::~Driver() {
 }
 
 void Driver::InitBD() {
+#if BD_COMM_TYPE_OPALKELLY
+    // Initialize Opal Kelly Board
+    static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+#endif
+
   for (unsigned int i = 0; i < bd_pars_->NumCores(); i++) {
     // turn off traffic
     SetTagTrafficState(i, false);

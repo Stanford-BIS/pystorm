@@ -12,9 +12,6 @@ project(${PROJECT_NAME_STR} CXX)
 include(CheckRequirements)
 include(Common)
 
-set(CMAKE_BUILD_TYPE "Debug" CACHE STRING
-    "Choose the type of build, options are : Debug Release"
-    FORCE)
 ############################################################################
 #
 # Set modules required by all platforms
