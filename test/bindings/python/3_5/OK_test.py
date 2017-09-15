@@ -85,6 +85,10 @@ def parse_command_file(FH):
 
 
 if __name__ ==  "__main__":
+################################################################################
+# Parse the command line arguments.
+# Normally, don't have to modify this code.
+################################################################################
     import argparse
     PARSER = argparse.ArgumentParser(description='Program Braindrop with OpalKelly FrontPanel interface', formatter_class=argparse.RawTextHelpFormatter)
     PARSER.add_argument('BITFILE', type=str, help="Bitfile to program the FPGA with")
@@ -121,6 +125,10 @@ Must be a power of 2 with a minimum value of 16.
         print("Using command file.")
         payload = parse_command_file(ARGS.command_file)
 
+################################################################################
+# Parameters for Braindrop communication.
+# Normally, don't have to modify this code.
+################################################################################
     ep_in = int(ARGS.ep_in, 0)
     ep_out = int(ARGS.ep_out, 0)
     block_size = int(ARGS.block, 0)
@@ -136,7 +144,16 @@ Must be a power of 2 with a minimum value of 16.
         for idx, word in enumerate(payload):
             print(("    %d: " + ", ".join(list(("0x" + "{0:02X}".format(num) for num in list(word))))) % idx)
 
+################################################################################
+# Handle to OpalKelly FrontPanel
+################################################################################
+
     dev = ok.InitOK(ARGS.BITFILE)
+
+################################################################################
+# Interactions with Braindrop begins here.
+# Modify as required
+################################################################################
     if dev is not None:
         dev.WriteToBlockPipeIn(ep_in, block_size, payload)
     else:
