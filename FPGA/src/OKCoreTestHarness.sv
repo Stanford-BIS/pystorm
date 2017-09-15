@@ -24,6 +24,13 @@ wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest o
 Channel #(NPCinout) PC_downstream();
 Channel #(NPCinout) PC_upstream();
 
+// led control. Flashes for handshakes.
+logic [3:0] led_in;
+assign led_in[0] = PC_downstream.v & PC_downstream.a;
+assign led_in[1] = PC_upstream.v   & PC_upstream.a;
+assign led_in[2] = 0;
+assign led_in[2] = 1;
+
 // Opal-Kelly HDL host and endpoints
 OKIfc #(
   NPCcode, 
@@ -34,6 +41,7 @@ ok_ifc(
 	.okUHU(okUHU),
 	.okAA(okAA),
 	.led(led),
+	.led_in(led_in),
   .okClk(okClk),
   .user_reset(user_reset),
   .PC_downstream(PC_downstream),

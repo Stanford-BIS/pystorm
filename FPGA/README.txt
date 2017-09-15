@@ -31,10 +31,23 @@ for Altera and Opal Kelly (OK) IP.
 
 That's it! We don't program the OK board through Quartus
 
-If you get in trouble:
+Don't worry if you have some unconstrained paths in the timing analyzer.
+It's OK stuff that doesn't seem to matter.
 
-Read quartus/OK_README.txt for some good info for setting up a project from scratch
-using the OK board.
+-------------------------------------------
+If you get in trouble with Quartus:
+
+Read quartus/OK_README.txt for instructions on setting up a project from scratch.
+
+Adapt these instructions as follows:
+- instead of Counters.v, use your own toplevel, e.g. /src/OKCoreBD.sv
+- add /quartus/*.qip and /quartus/BDIOPLL.sip 
+- instead of importing zem5305.qsf, import /quartus/BD_IO.qsf
+- add /quartus/okHost.sdc as well as /quartus/sys_clk.sdc
+- Note that /quartus/okHost.sdc is edited from /ext/.../okHost.sdc
+  and the OK constraints in BD_IO.qsf are edited from zem5305.qsf.
+  okHost moved from the top of the design hierarchy, so its PLL
+  constraints were tweaked.
 
 NOTE THAT A LOT OF SAMPLE STUFF WILL BREAK IF YOU MOVE THE OK MODULES FROM
 THE TOP OF THE PROJECT HIERARCHY!!!!! (or from where they are in my project)
@@ -42,7 +55,13 @@ THE TOP OF THE PROJECT HIERARCHY!!!!! (or from where they are in my project)
 In my project, OK stuff is in OKIFc:ok_ifc|OKHost:okHI.
 If you move it, you have to fix okHost.sdc and the PLL stuff in <project>.qsf
 
-Quartus is really touchy. Don't edit the .qsfs of open projects.
+If Quartus is crashing "unexpectedly" in synthesis, your .qsf is probably busted in
+one way or another. The best way to go is to remake the project from scratch.
+Try putting the toplevel src after all the other project files (but before the .sdcs)
+A git clean (with Quartus closed, so nothing is in memory), also might help.
+
+Quartus is really touchy, and can be really frustrating. 
+Resisting the tempatation to edit the project .qsfs will keep you out of trouble.
 
 ===========================================
 ModelSim (ASE: Altera version) instructions:
