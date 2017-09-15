@@ -25,18 +25,14 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
             1       |    0    ||       0        |    0
             1       |    1    ||       1        |    1
     */
-    enum bit {BD_VALID=1, BD_INVALID=0} STATES;
-    wire state;
-    assign state = bd_channel.v & ready;
+    
+    typedef enum {BD_VALID = 1, BD_INVALID = 0} stateType;
+    stateType state;
+    assign state = stateType'(bd_channel.v & ready);
 
-    initial
-    begin
-        bd_channel.a   <= 0;
-        valid       <= 0;
-        //data        <= NUM_BITS'x;
-    end
-
-    always @(negedge clk, posedge reset)
+    // note negedge!
+    // this is the only negedge in the entire design
+    always_ff @(negedge clk, posedge reset)
     begin
         if(reset == 1)
         begin
@@ -86,18 +82,16 @@ module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
             1       |    1    |        x       ||        1       |    1
     */
 
-    enum integer {BOTH_OFF=0, FPGA_OFF=1, BD_OFF=2, BOTH_ON=3} STATES;
-    wire [1:0] state;
-    assign state = {bd_channel.a, valid};
+    typedef enum {
+      BOTH_OFF = 0,
+      FPGA_OFF = 1,
+      BD_OFF   = 2,
+      BOTH_ON  = 3} stateType;
 
-    initial
-    begin
-        bd_channel.v    <= 0;
-        ready           <= 0;
-        //data        <= NUM_BITS'x;
-    end
+    stateType state;
+    assign state = stateType'({bd_channel.a, valid});
 
-    always @(posedge clk, posedge reset)
+    always_ff @(posedge clk, posedge reset)
     begin
         if(reset == 1)
         begin

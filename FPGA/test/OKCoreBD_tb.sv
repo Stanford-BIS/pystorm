@@ -1,29 +1,64 @@
-// Testbench for OKCoreHarness (tests FPGA logic without BD handshake)
-// uses OK behavioral models for the okHost and endpoints
-// adapated from First.v, following Sample/Simulation-USB3-Verilog/README.txt
+`define SIMULATION 
+
+`include "../src/OKCoreBD.sv"
 
 `timescale 1ns / 1ps
 `default_nettype none
 
-module OKCoreHarness_tb;
+module OKCoreBD_tb;
 
-wire  [4:0]   okUH;
-wire  [2:0]   okHU;
-wire          okAA;
-wire  [31:0]  okUHU;
-wire  [3:0]   led;
+// OK ifc
+wire [4:0]   okUH;
+wire [2:0]   okHU;
+wire [31:0]  okUHU;
+wire         okAA;
 
+wire [3:0]   led;
+
+// BD ifc
+wire        BD_out_clk;
+wire        BD_out_ready;
+wire        BD_out_valid;
+wire [20:0] BD_out_data;
+
+wire        BD_in_clk;
+wire        BD_in_ready;
+wire        BD_in_valid;
+wire[33:0]  BD_in_data;
+
+wire        pReset;
+wire        sReset;
+
+wire        adc0;
+wire        adc1;
+
+// external clock, drives PLL to generate BD IO clocks
+logic sys_clk_p;
+parameter Tsys_clk_p = 10;
+always #(Tsys_clk_p/2) sys_clk_p = ~sys_clk_p;
+initial sys_clk_p = 0;
+
+logic sys_clk_n;
+assign sys_clk_n = ~sys_clk_p;
+
+// external reset
 logic user_reset;
+initial begin
+  user_reset <= 0;
+  #(10) user_reset <= 1;
+  #(100) user_reset <= 0;
+end
 
-OKCoreTestHarness dut (
-	.okUH(okUH),
-	.okHU(okHU),
-  .okAA(okAA),
-	.okUHU(okUHU),
-  .user_reset(user_reset),
-	.led(led)
-	);
+// DUT
+OKCoreBD dut(.*);
 
+logic reset_for_BD_src_sink;
+assign reset_for_BD_src_sink = sReset | pReset;
+// BD src
+BD_Source #(.NUM_BITS(34), .ClkDelaysMin(0), .ClkDelaysMax(1)) src(BD_in_data, BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
+
+// BD sink
+BD_Sink #(.NUM_BITS(21), .ClkDelaysMin(0), .ClkDelaysMax(1)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
 
 //------------------------------------------------------------------------
 // Begin okHostInterface simulation user configurable  global data
@@ -50,35 +85,13 @@ reg  [31:0] u32Data [0:31];
 wire [31:0] u32Count;
 wire [31:0] ReadRegisterData;
 
-//------------------------------------------------------------------------
-//  Available User Task and Function Calls:
-//    FrontPanelReset;                  // Always start routine with FrontPanelReset;
-//    SetWireInValue(ep, val, mask);
-//    UpdateWireIns;
-//    UpdateWireOuts;
-//    GetWireOutValue(ep);
-//    ActivateTriggerIn(ep, bit);       // bit is an integer 0-15
-//    UpdateTriggerOuts;
-//    IsTriggered(ep, mask);            // Returns a 1 or 0
-//    WriteToPipeIn(ep, length);        // passes pipeIn array data
-//    ReadFromPipeOut(ep, length);      // passes data to pipeOut array
-//    WriteToBlockPipeIn(ep, blockSize, length);    // pass pipeIn array data; blockSize and length are integers
-//    ReadFromBlockPipeOut(ep, blockSize, length);  // pass data to pipeOut array; blockSize and length are integers
-//
-//    *Pipes operate by passing arrays of data back and forth to the user's
-//    design.  If you need multiple arrays, you can create a new procedure
-//    above and connect it to a differnet array.  More information is
-//    available in Opal Kelly documentation and online support tutorial.
-//------------------------------------------------------------------------
-
-// User configurable block of called FrontPanel operations.
 
 // easier to work in 32bit chunks
 logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
-const logic[31:0] nop = {2'b10, 6'd31, 24'd1}; // 6'd31 is the highest register, which is unused
+const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
 
 // index into PipeIn
 int i = 0;
@@ -122,6 +135,17 @@ task FlushAndSendPipeIn();
   i = 0;
 endtask
 
+task SendToAllBD(int start, int num_words);
+  localparam NumHornLeaves = 34;
+  for (int i = 0; i < num_words; i++) begin
+    automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
+    automatic logic [19:0] payload = $urandom_range(0, 2**20-1);
+    SendToBD({2'b00, leaf}, payload);
+  end
+endtask
+
+
+// OK program
 initial begin
   user_reset <= 1;
 	FrontPanelReset;                      // Start routine with FrontPanelReset;
@@ -129,17 +153,28 @@ initial begin
 
   SendToBD(0, 3'b101); // ADC 
   SendToBD(1, 11'b10101010101); // DAC0
+  SetReg(31, 0); // turn off resets
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
 
-  SendFromBD({2'b00, {16{2'b10}}}); // crazy TAT word
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  #(1000)
+  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
 
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
+  // send a bunch of BD words
+  // do it a few times in case pipeInSize < number of horn leaves (34)
+  SendToAllBD(0*pipeInSize, pipeInSize); 
+  FlushAndSendPipeIn();
+  SendToAllBD(1*pipeInSize, pipeInSize);
+  FlushAndSendPipeIn();
+  SendToAllBD(2*pipeInSize, pipeInSize);
+  FlushAndSendPipeIn();
 
-  #(3000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get the messages we sent into BD
+  forever begin
+    #(1000)
+    ReadFromPipeOut(8'ha0, pipeOutSize);
+  end
 
 end
 

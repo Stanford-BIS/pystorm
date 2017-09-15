@@ -1,4 +1,20 @@
-`default_nettype none
+`include "Channel.svh"
+
+// for quartus, we add external IP to the project
+`ifdef SIMULATION
+  `include "../quartus/PipeInFIFO.v"
+  `include "../quartus/PipeOutFIFO.v"
+  `include "../ext/opalkelly/Simulation/glbl.v"
+  `include "../ext/opalkelly/Simulation/okHost.v"
+  `include "../ext/opalkelly/Simulation/okBTPipeOut.v"
+  `include "../ext/opalkelly/Simulation/okBTPipeIn.v"
+  `include "../ext/opalkelly/Simulation/okPipeOut.v"
+  `include "../ext/opalkelly/Simulation/okPipeIn.v"
+  `include "../ext/opalkelly/Simulation/okWireOR.v"
+`endif
+
+// OK stuff is a little crazy, apparently
+`resetall
 
 module OKIfc #(
   parameter NPCcode = 8,
