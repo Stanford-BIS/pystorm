@@ -4,12 +4,31 @@
 
 class BD_OK: public okCFrontPanel{
 public:
-    long WriteToBlockPipeIn(unsigned int endpoint, unsigned int block_size, std::vector<uint8_t>& payload){
-        return okCFrontPanel::WriteToBlockPipeIn(
-            static_cast<int>(endpoint),
-            static_cast<int>(block_size),
-            static_cast<long>(payload.size()),
-            static_cast<unsigned char*>(&payload[0]));
+    long WriteToBlockPipeIn(int endpoint, int block_size, pybind11::buffer b){
+            pybind11::buffer_info info = b.request();
+            if (info.format != pybind11::format_descriptor<unsigned char>::format())
+                throw std::runtime_error("Incompatible format: expected a byte array!");
+            unsigned char* payload = static_cast<unsigned char*>(info.ptr);
+            int length = info.shape[0];
+            return okCFrontPanel::WriteToBlockPipeIn(endpoint, block_size, length, payload);
+    }
+
+    long ReadFromBlockPipeOut(int endpoint, int block_size, pybind11::buffer b) {
+            pybind11::buffer_info info = b.request();
+            if (info.format != pybind11::format_descriptor<unsigned char>::format())
+                throw std::runtime_error("Incompatible format: expected a byte array!");
+            unsigned char* buffer = static_cast<unsigned char*>(info.ptr);
+            int length = info.shape[0];
+            return okCFrontPanel::ReadFromBlockPipeOut(endpoint, block_size, length, buffer);
+    }
+
+    long ReadFromPipeOut(int endpoint, pybind11::buffer b) {
+            pybind11::buffer_info info = b.request();
+            if (info.format != pybind11::format_descriptor<unsigned char>::format())
+                throw std::runtime_error("Incompatible format: expected a byte array!");
+            unsigned char* buffer = static_cast<unsigned char*>(info.ptr);
+            int length = info.shape[0];
+            return okCFrontPanel::ReadFromPipeOut(endpoint, length, buffer);
     }
 };
 
@@ -48,9 +67,9 @@ PYBIND11_MODULE(PyOK, m)
 
     pybind11::class_<BD_OK>(m, "okCFrontPanel")
         .def(pybind11::init<>())
-        .def("WriteToBlockPipeIn", (long (BD_OK::*) (unsigned int, unsigned int, std::vector<uint8_t>&)) &BD_OK::WriteToBlockPipeIn)
-        .def("ReadFromBlockPipeOut", &BD_OK::ReadFromBlockPipeOut)
-        .def("ReadFromPipeOut", &BD_OK::ReadFromPipeOut)
+        .def("WriteToBlockPipeIn", (long (BD_OK::*) (int, int, pybind11::buffer b)) &BD_OK::WriteToBlockPipeIn)
+        .def("ReadFromBlockPipeOut", (long (BD_OK::*) (int, int, pybind11::buffer b)) &BD_OK::ReadFromBlockPipeOut)
+        .def("ReadFromPipeOut", (long (BD_OK::*) (int, int, pybind11::buffer b)) &BD_OK::ReadFromPipeOut)
         .def("OpenBySerial", &BD_OK::OpenBySerial)
         .def("GetDeviceInfo", &BD_OK::GetDeviceInfo)
         .def("LoadDefaultPLLConfiguration", &BD_OK::LoadDefaultPLLConfiguration)
