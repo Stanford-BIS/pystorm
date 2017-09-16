@@ -144,6 +144,8 @@ Must be a power of 2 with a minimum value of 16.
         for idx, word in enumerate(payload):
             print(("    %d: " + ", ".join(list(("0x" + "{0:02X}".format(num) for num in list(word))))) % idx)
 
+    payload = b''.join(payload)
+
 ################################################################################
 # Handle to OpalKelly FrontPanel
 ################################################################################
