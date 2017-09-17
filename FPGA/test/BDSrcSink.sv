@@ -173,7 +173,7 @@ module BD_Sink #(
       sync_oute = 1;
     else
       if (sync_outd == 1) begin
-        $display("[T=%g]: data=%h (BD_Sink)", $time, sync_DO);
+        //$display("[T=%g]: data=%h (BD_Sink)", $time, sync_DO);
         delay = $urandom_range(DelayMax, DelayMin);
         for (int i = 0; i < delay + 1; i++) begin
           #(1);
@@ -272,6 +272,19 @@ module BD_Sink_tb;
     @(posedge clk) reset <= 1;
     @(posedge clk) reset <= 0;
   end
+
+  // skewed clock for testing setup violations on ready
+  logic skewed_clk;
+  parameter Tskew = 80;
+  initial begin
+    #(Tskew) skewed_clk = 0;
+    forever
+      #(Tclk/2) skewed_clk = ~skewed_clk;
+  end
+
+  logic ready_at_skewed;
+  always @(skewed_clk)
+    ready_at_skewed = ready;
   
   always @(clk, posedge reset)
     if (reset == 1) begin
@@ -279,14 +292,20 @@ module BD_Sink_tb;
       data = 0;
     end
     else begin
-      //$display("[T=%g]: valid=%h, clk=%h", $time, valid, clk);
+      $display("[T=%g]: valid=%h, clk=%h", $time, valid, clk);
       
-      if (clk == 0 && valid == 0 && ready == 1) begin // valid should go high on negedge
+      // full data rate, but ready can show up near the clock edge
+      if (clk == 0 && valid == 0 && ready == 1) begin
+        if (ready != ready_at_skewed) 
+          $display("ready changed close to negedge");
         valid = 1;
         data = data + 1;
       end
-      else if (clk == 1 && valid == 1 && ready == 0) // valid should go low on posedge
+      else if (clk == 1 && valid == 1 && ready == 0) begin
+        if (ready != ready_at_skewed) 
+          $display("ready changed close to posedge");
         valid = 0;
+      end
     end
 
  BD_Sink #(.DelayMin(DelayMin), .DelayMax(DelayMax)) dut(.*);
