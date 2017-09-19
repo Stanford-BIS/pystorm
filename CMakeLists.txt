@@ -39,7 +39,7 @@ endfunction()
 #
 ############################################################################
 if(NOT BD_COMM_TYPE)
-    set(BD_COMM_TYPE "MODEL" CACHE STRING
+    set(BD_COMM_TYPE "OPALKELLY" CACHE STRING
     "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"MODEL\" or \"SOFT\""
     FORCE)
 endif()
