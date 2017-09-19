@@ -76,5 +76,17 @@ BDPars::BDPars() {
   mem_info_[BDMemId::FIFO_PG]  = {2048,    BDHornEP::bad_hleaf, BDFunnelEP::bad_fleaf, BDHornEP::DELAY1};
 }
 
+uint8_t BDPars::GetDnEPCode(BDHornEP ep) {
+  return static_cast<uint8_t>(ep);
+}
+
+uint8_t BDPars::GetDnEPCode(FPGARegEP ep) {
+  return static_cast<uint8_t>(ep) + DnEPFPGARegOffset;
+}
+
+uint8_t BDPars::GetDnEPCode(FPGAChannelEP ep) {
+  return static_cast<uint8_t>(ep) + DnEPFPGAChannelOffset;
+}
+
 }  // bddriver
 }  // pystorm

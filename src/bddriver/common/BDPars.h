@@ -34,19 +34,19 @@ enum class DnEPType {
 
 enum class BDHornEP {
   ADC              ,  // ADC small/large current enable, output enable
-  DAC_DIFF_G,      ,  // DIFF_G DAC bias value
-  DAC_SOMA_INH,    ,  // SOMA_INH DAC bias value
-  DAC_SYN_PU,      ,  // SYN_PU DAC bias value
-  DAC_UNUSED,      ,  // UNUSED (ghost DAC)
-  DAC_DIFF_R,      ,  // DIFF_R DAC bias value
-  DAC_SOMA_OFFSET, ,  // SOMA_OFFSET DAC bias value
-  DAC_SYN_LK,      ,  // SYN_LK DAC bias value
-  DAC_SYN_DC,      ,  // SYN_DC DAC bias value
-  DAC_SYN_PD,      ,  // SYN_PD DAC bias value
-  DAC_ADC_BIAS_2,  ,  // ADC_BIAS_2 DAC bias value
-  DAC_ADC_BIAS_1,  ,  // ADC_BIAS_1 DAC bias value
-  DAC_SOMA_REF,    ,  // SOMA_REF DAC bias value
-  DAC_SOMA_EXC,    ,  // SOMA_EXC DAC bias value
+  DAC_DIFF_G       ,  // DIFF_G DAC bias value
+  DAC_SOMA_INH     ,  // SOMA_INH DAC bias value
+  DAC_SYN_PU       ,  // SYN_PU DAC bias value
+  DAC_UNUSED       ,  // UNUSED (ghost DAC)
+  DAC_DIFF_R       ,  // DIFF_R DAC bias value
+  DAC_SOMA_OFFSET  ,  // SOMA_OFFSET DAC bias value
+  DAC_SYN_LK       ,  // SYN_LK DAC bias value
+  DAC_SYN_DC       ,  // SYN_DC DAC bias value
+  DAC_SYN_PD       ,  // SYN_PD DAC bias value
+  DAC_ADC_BIAS_2   ,  // ADC_BIAS_2 DAC bias value
+  DAC_ADC_BIAS_1   ,  // ADC_BIAS_1 DAC bias value
+  DAC_SOMA_REF     ,  // SOMA_REF DAC bias value
+  DAC_SOMA_EXC     ,  // SOMA_EXC DAC bias value
   DELAY_DCTFIFO    ,  // FIFO:DCT delay line config
   DELAY_PGFIFO     ,  // FIFO:PG delay line config
   DELAY_TAT0       ,  // TAT 0 delay line config
@@ -88,7 +88,7 @@ enum class FPGARegEP {
   TS_REPORT_TAGS         = 30, // forward tags to PC
   BD_RESET               = 31, // bit 0 is pReset, bit 1 is sReset
   BD_NOP                 = 32, // sending to registers 32-63 is a NOP
-  COUNT                  = 11
+  COUNT                  = 11  // XXX hardcoded, so be careful
 };
 
 //////////////////////////////////////////////
@@ -140,7 +140,7 @@ enum class FPGAOutputEP {
   UPSTREAM_HB = 13, // Upstream report of FPGA clock
   SF_OUTPUT   = 14, // SpikeFilter outputs
   NOP         = 64, // NOP, inserted to pad output pipe
-  COUNT       = 3
+  COUNT       = 3   // XXX hardcoded, be careful
 }
 
 
@@ -213,14 +213,14 @@ class BDPars {
  public:
 
    // misc constants
-   const unsigned intNumCores = 1;
-   const unsigned int DnEPRegOffset = 128;
-   const unsigned int DnEPNumReg = 64;
-   const unsigned int DnEPChannelOffset = 192;
-   const unsigned int DnEPNumChan = 2;
+   const unsigned intNumCores               = 1;
+   const unsigned int DnEPFPGARegOffset     = 128;
+   const unsigned int DnEPFPGANumReg        = 64;
+   const unsigned int DnEPFPGAChannelOffset = 192;
+   const unsigned int DnEPFPGANumChan       = 2;
    
-   const unsigned FPGABitsPerReg = 16;
-   const unsigned FPGABitsPerChannel = 16;
+   const unsigned DnEPFPGABitsPerReg        = 16;
+   const unsigned DnEPFPGABitsPerChannel    = 16;
 
 
   // downstream endpoint info
@@ -236,6 +236,12 @@ class BDPars {
   std::unordered_map<unsigned int, MemInfo> mem_info_;
 
   BDPars();
+
+  // functions
+  uint8_t GetDnEPCode(BDHornEP ep);
+  uint8_t GetDnEPCode(FPGARegEP ep);
+  uint8_t GetDnEPCode(FPGAChannelEP ep);
+
 };
 
 }  // bdpars
