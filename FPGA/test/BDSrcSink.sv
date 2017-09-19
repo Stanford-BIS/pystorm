@@ -29,10 +29,10 @@ module Arbiter(output logic u, v, input a, b, reset);
       u = 0;
       v = 0;
     end
-    else 
+    else
       if (u == 0 && v == 0) begin
         if (a == 1 && b ==1) begin
-          if (last_picked == 0) 
+          if (last_picked == 0)
             v = 1;
           else
             u = 1;
@@ -89,13 +89,13 @@ module SynchronizerStage #(parameter N = 1) (
 
   // DFF for data
   always @(posedge en, posedge reset)
-    for (int i = 0; i < N; i++) 
+    for (int i = 0; i < N; i++)
       if (reset == 1)
         out.D[i] = 0;
       else
         out.D[i] = in.D[i];
 endmodule
-  
+
 module Synchronizer #(parameter N = 1, M = 1) (
   // output side
   output logic [N-1:0] DO,
@@ -108,7 +108,7 @@ module Synchronizer #(parameter N = 1, M = 1) (
   input clk, reset);
 
   // has M*2 stages
-  
+
   SyncIntf #(N) stage_intf[2*M:0] ();
 
   logic _clk;
@@ -173,7 +173,7 @@ module BD_Sink #(
       sync_oute = 1;
     else
       if (sync_outd == 1) begin
-        //$display("[T=%g]: data=%h (BD_Sink)", $time, sync_DO);
+        $display("[T=%g]: data=%h (BD_Sink)", $time, sync_DO);
         delay = $urandom_range(DelayMax, DelayMin);
         for (int i = 0; i < delay + 1; i++) begin
           #(1);
@@ -189,7 +189,7 @@ module BD_Sink #(
       end
 
 endmodule
-    
+
 
 module BD_Source #(
   parameter DelayMin = 0,
@@ -259,11 +259,20 @@ module BD_Sink_tb;
   logic valid;
   logic [NUM_BITS-1:0] data;
 
+  logic ready_2;
+  logic valid_2;
+  logic [NUM_BITS-1:0] data_2;
+
   // clock
   logic clk;
   parameter Tclk = 100;
   always #(Tclk/2) clk = ~clk;
   initial clk = 0;
+
+  logic clk_2;
+  parameter Tclk_2 = 50;
+  always #(Tclk_2/2) clk_2 = ~clk_2;
+  initial clk_2 = 1;
 
   // reset
   logic reset;
@@ -285,7 +294,7 @@ module BD_Sink_tb;
   logic ready_at_skewed;
   always @(skewed_clk)
     ready_at_skewed = ready;
-  
+
   always @(clk, posedge reset)
     if (reset == 1) begin
       valid = 0;
@@ -293,22 +302,46 @@ module BD_Sink_tb;
     end
     else begin
       $display("[T=%g]: valid=%h, clk=%h", $time, valid, clk);
-      
+
       // full data rate, but ready can show up near the clock edge
-      if (clk == 0 && valid == 0 && ready == 1) begin
-        if (ready != ready_at_skewed) 
+      if (clk == 0 && ready == 1) begin
+        if (ready != ready_at_skewed)
           $display("ready changed close to negedge");
-        valid = 1;
-        data = data + 1;
+          if(~valid)
+          begin
+            valid = 1;
+            data = data + 1;
+          end
       end
-      else if (clk == 1 && valid == 1 && ready == 0) begin
-        if (ready != ready_at_skewed) 
+      else if (clk == 1 && ready == 0) begin
+        if (ready != ready_at_skewed)
           $display("ready changed close to posedge");
         valid = 0;
       end
     end
 
+    always @ (posedge clk_2 or posedge reset)
+    begin
+        if(reset)
+        begin
+            valid_2 <= 0;
+            data_2 <= 0;
+        end
+        else if(ready_2)
+        begin
+          if(~valid_2)
+          begin
+            valid_2 <= 1;
+            data_2 <= data_2 + 1;
+          end
+        end
+        else if(~ready_2)
+            valid_2 <= 0;
+    end
+
  BD_Sink #(.DelayMin(DelayMin), .DelayMax(DelayMax)) dut(.*);
+ BD_Sink #(.DelayMin(DelayMin), .DelayMax(DelayMax)) dut_2(.ready(ready_2), .valid(valid_2), .data(data_2),
+  .clk(clk), .reset(reset));
 
 endmodule
 
@@ -322,11 +355,20 @@ module BD_Source_tb;
   logic               _valid;
   logic               ready;
 
+  logic[NUM_BITS-1:0] data_2;
+  logic               _valid_2;
+  logic               ready_2;
+
   // clock
   logic clk;
   parameter Tclk = 100;
   always #(Tclk/2) clk = ~clk;
   initial clk = 0;
+
+  logic clk_2;
+  parameter Tclk_2 = 50;
+  always #(Tclk_2/2) clk_2 = ~clk_2;
+  initial clk_2 = 1;
 
   // reset
   logic reset;
@@ -337,17 +379,37 @@ module BD_Source_tb;
   end
 
   BD_Source #(.DelayMin(DelayMin), .DelayMax(DelayMax)) dut(.*);
+  BD_Source #(.DelayMin(DelayMin), .DelayMax(DelayMax)) dut_2(.ready(ready_2), ._valid(_valid_2), .data(data_2),
+    .clk(clk), .reset(reset));
 
   always @(clk, reset)
     if (reset == 1)
       ready = 1;
     else
-      if (clk == 0 && _valid == 0 && ready == 1) begin
-        ready = 0;
-        $display("[T=%g]: data=%h (testbench sink)", $time, data);
+      if (clk == 0 && _valid == 0) begin
+        if(ready)
+        begin
+          ready = 0;
+          $display("[T=%g]: data=%h (testbench sink)", $time, data);
+        end
       end
-      else if (clk == 1 && _valid == 1 && ready == 0) 
+      else if (clk == 1 && _valid == 1)
         ready = 1;
 
+  always @ (posedge clk_2 or posedge reset)
+  begin
+    if(reset)
+      ready_2 <= 1;
+    else if(~_valid_2)
+    begin
+      if(ready_2)
+      begin
+        ready_2 <= 0;
+        $display("[T=%g]: data=%h (testbench sink_2)", $time, data_2);
+      end
+    end
+    else if(_valid_2)
+      ready_2 <= 1;
+  end
 endmodule
 
