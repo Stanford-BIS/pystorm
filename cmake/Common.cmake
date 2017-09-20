@@ -1,3 +1,12 @@
+# Set variables used commonly throughout build
+# Defines:
+#   CMAKE_CXX_FLAGS
+#   CMAKE_CXX_FLAGS_DEBUG
+#   CMAKE_CXX_FLAGS_RELEASE
+#   CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS
+#   CMAKE_CONFIGURATION_TYPES
+#   PYSTORM_CXX_STANDARD
+
 function(SetupSharedLibrary)
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
