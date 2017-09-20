@@ -6,4 +6,18 @@ BinPackArguments:               false                         # if arguments hav
 BinPackParameters:              false                         # if fn parameters have to be broken, one per line
 AlignAfterOpenBracket:          AlwaysBreak                   # if one of the 2 above have to be broken, start on a new line
 ConstructorInitializerAllOnOneLineOrOnePerLine: true          # if brace constructor arguments have to be broken, one per line
+TabWidth:                       2                             # 2 spaces for tab
+IndentWidth:                    2
+SpacesBeforeTrailingComments:   2
+SpaceBeforeAssignmentOperators: true
+ReflowComments:                 true
+PointerAlignment:               Left
+NamespaceIndentation:           Inner
+MaxEmptyLinesToKeep:            1
+CompactNamespaces:              false
+AlignAfterOpenBracket:          Align
+AlignTrailingComments:          true
+AllowShortBlocksOnASingleLine:  true
+AllowShortFunctionsOnASingleLine: All
+AlwaysBreakTemplateDeclarations: true
 ...
