@@ -16,7 +16,7 @@ namespace bddriver {
 
 class Encoder : public Xcoder<EncInput, EncOutput> {
  public:
-  const static unsigned int bytesPerOutput = 3;  // BD_input is 21 bits, fits in 3 bytes
+  const static unsigned int bytesPerOutput = 4;  
 
   Encoder(
       const bdpars::BDPars* pars,
@@ -36,7 +36,6 @@ class Encoder : public Xcoder<EncInput, EncOutput> {
  private:
   void RunOnce();
   void Encode(const EncInput* inputs, unsigned int num_popped, EncOutput* outputs) const;
-  uint32_t EncodeHorn(bdpars::FHRoute route, uint32_t payload) const;
 };
 
 }  // bddriver

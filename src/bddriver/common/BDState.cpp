@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <vector>
+#include <unordered_map>
 
 #include "BDPars.h"
 
@@ -19,20 +20,20 @@ BDState::BDState(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
   driver_pars_ = driver_pars;
 
   // initialize memory vectors
-  mems_[bdpars::PAT]  = std::vector<BDWord>(bd_pars->Size(bdpars::PAT),  BDWord(0));
-  mems_[bdpars::TAT0] = std::vector<BDWord>(bd_pars->Size(bdpars::TAT0), BDWord(0));
-  mems_[bdpars::TAT1] = std::vector<BDWord>(bd_pars->Size(bdpars::TAT1), BDWord(0));
-  mems_[bdpars::AM]   = std::vector<BDWord>(bd_pars->Size(bdpars::AM),   BDWord(0));
-  mems_[bdpars::MM]   = std::vector<BDWord>(bd_pars->Size(bdpars::MM),   BDWord(0));
+  mems_[bdpars::BDMemId::PAT]  = std::vector<BDWord>(bd_pars->mem_info_[bdpars::BDMemId::PAT],  BDWord(0));
+  mems_[bdpars::BDMemId::TAT0] = std::vector<BDWord>(bd_pars->mem_info_[bdpars::BDMemId::TAT0], BDWord(0));
+  mems_[bdpars::BDMemId::TAT1] = std::vector<BDWord>(bd_pars->mem_info_[bdpars::BDMemId::TAT1], BDWord(0));
+  mems_[bdpars::BDMemId::AM]   = std::vector<BDWord>(bd_pars->mem_info_[bdpars::BDMemId::AM],   BDWord(0));
+  mems_[bdpars::BDMemId::MM]   = std::vector<BDWord>(bd_pars->mem_info_[bdpars::BDMemId::MM],   BDWord(0));
 
-  mems_valid_[bdpars::PAT]  = std::vector<bool>(mems_[bdpars::PAT].size(),  false);
-  mems_valid_[bdpars::TAT0] = std::vector<bool>(mems_[bdpars::TAT0].size(), false);
-  mems_valid_[bdpars::TAT1] = std::vector<bool>(mems_[bdpars::TAT1].size(), false);
-  mems_valid_[bdpars::AM]   = std::vector<bool>(mems_[bdpars::AM].size(),   false);
-  mems_valid_[bdpars::MM]   = std::vector<bool>(mems_[bdpars::MM].size(),   false);
+  mems_valid_[bdpars::BDMemId::PAT]  = std::vector<bool>(mems_[bdpars::BDMemId::PAT].size(),  false);
+  mems_valid_[bdpars::BDMemId::TAT0] = std::vector<bool>(mems_[bdpars::BDMemId::TAT0].size(), false);
+  mems_valid_[bdpars::BDMemId::TAT1] = std::vector<bool>(mems_[bdpars::BDMemId::TAT1].size(), false);
+  mems_valid_[bdpars::BDMemId::AM]   = std::vector<bool>(mems_[bdpars::BDMemId::AM].size(),   false);
+  mems_valid_[bdpars::BDMemId::MM]   = std::vector<bool>(mems_[bdpars::BDMemId::MM].size(),   false);
 
   // initialize register vectors
-  for (unsigned int i = 0; i < bdpars::RegIdCount; i++) {
+  for (unsigned int i = 0; i < bdpars::BDHornEPCount; i++) {
     reg_[i] = BDWord(0);
     reg_valid_[i] = false;
   }
@@ -69,7 +70,7 @@ void BDState::SetMem(bdpars::MemId mem_id, unsigned int start_addr, const std::v
   }
 }
 
-void BDState::SetReg(bdpars::RegId reg_id, BDWord data) {
+void BDState::SetReg(bdpars::BDHornEP reg_id, BDWord data) {
   // we could have just set a traffic toggle
   bool already_off = AreTrafficRegsOff();
 
@@ -81,16 +82,16 @@ void BDState::SetReg(bdpars::RegId reg_id, BDWord data) {
   }
 }
 
-const std::pair<const BDWord *, bool> BDState::GetReg(bdpars::RegId reg_id) const {
+const std::pair<const BDWord *, bool> BDState::GetReg(bdpars::BDHornEP reg_id) const {
   return std::make_pair(&(reg_.at(reg_id)), reg_valid_.at(reg_id));
 }
 
-void BDState::SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en) {
+void BDState::SetToggle(bdpars::BDHornEP reg_id, bool traffic_en, bool dump_en) {
   BDWord toggle_word = BDWord::Create<ToggleWord>({{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}});
   SetReg(reg_id, toggle_word);
 }
 
-std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::RegId reg_id) const
+std::tuple<bool, bool, bool> BDState::GetToggle(bdpars::BDHornEP reg_id) const
 /// Returns traffic_en, dump_en, valid
 {
   BDWord word = reg_.at(reg_id);
@@ -167,11 +168,11 @@ bool operator==(const BDState& lhs, const BDState& rhs)
 
   // check registers
   bool regs_match = true;
-  for (unsigned int i = 0; i < bdpars::RegIdCount; i++) {
+  for (unsigned int i = 0; i < bdpars::BDHornEPCount; i++) {
     const BDWord *lhs_vals, *rhs_vals;
     bool lhs_valid, rhs_valid;
-    std::tie(lhs_vals, lhs_valid) = lhs.GetReg(static_cast<bdpars::RegId>(i));
-    std::tie(rhs_vals, rhs_valid) = rhs.GetReg(static_cast<bdpars::RegId>(i));
+    std::tie(lhs_vals, lhs_valid) = lhs.GetReg(static_cast<bdpars::BDHornEP>(i));
+    std::tie(rhs_vals, rhs_valid) = rhs.GetReg(static_cast<bdpars::BDHornEP>(i));
     bool valid_match = lhs_valid == rhs_valid;
     bool vals_match  = *lhs_vals == *rhs_vals;
     regs_match       = regs_match && valid_match && vals_match;

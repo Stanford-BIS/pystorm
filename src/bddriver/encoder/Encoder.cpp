@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "common/BDPars.h"
+#include "common/BDWord.h"
 #include "common/MutexBuffer.h"
-#include "common/binary_util.h"
 
 #include <iostream>
 using std::cout;
@@ -26,58 +26,27 @@ void Encoder::RunOnce() {
 }
 
 void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput* outputs) const {
+
+  uint32_t* packed_outputs = reinterpret_cast<uint32_t*>(outputs);
+
   for (unsigned int i = 0; i < num_popped; i++) {
     // unpack data
     // unsigned int core_id = inputs[i].core_id;
-    unsigned int leaf_id = inputs[i].leaf_id;
+    unsigned int FPGA_ep_code = inputs[i].FPGA_ep_code;
     uint32_t payload     = inputs[i].payload;
-
-    // look up route for this leaf_id_
-    // XXX not doing anything with core_id
-    bdpars::FHRoute leaf_route = pars_->HornRoute(leaf_id);
 
     // XXX this is where you would do something with the core id
 
-    // encode horn
-    uint32_t horn_encoded = EncodeHorn(leaf_route, payload);
+    // pack into 32 bits
+    // FPGA word format:
+    //  MSB          LSB
+    //    8b      24b
+    // [ code | payload ]
+    uint32_t FPGA_encoded = Pack<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
-    // XXX this is where you would encode the FPGA
-
-    // unpack uint32_t w/ 21 bits into 3 uint8_ts
-    uint32_t unpacked_bytes32[bytesPerOutput];
-    unsigned int byte_widths[bytesPerOutput];
-    for (unsigned int j = 0; j < bytesPerOutput; j++) {
-      byte_widths[j] = 8;
-    }
-
-    Unpack32(horn_encoded, byte_widths, unpacked_bytes32, bytesPerOutput);
-
-    for (unsigned int j = 0; j < bytesPerOutput; j++) {
-      assert(unpacked_bytes32[j] < (1 << 8));
-      outputs[i * bytesPerOutput + j] = static_cast<uint8_t>(unpacked_bytes32[j]);
-    }
-
-    //// XXX this is the sketchier (maybe faster) way. Have to know something about endianess
-    // const uint8_t * bytes_for_USB = reinterpret_cast<const uint8_t *>(&horn_encoded)
-    // for (unsigned int j = 0; j < bytesPerOutput; j++) {
-    //  outputs[i * bytesPerOutput + j] = bytes_for_USB[j];
-    //}
+    // XXX check endianness
+    packed_outputs[i] = FPGA_encoded;
   }
-}
-
-inline uint32_t Encoder::EncodeHorn(bdpars::FHRoute route, uint32_t payload) const {
-  // msb <- lsb
-  // [ X | payload | route ]
-
-  uint32_t route_val;
-  unsigned int route_len;
-  std::tie(route_val, route_len) = route;
-
-  // NOTE: don't need to know payload size
-  // could use PackV32({route_val, payload}, {route_len, 32 - route_len})
-  // optimize here by avoiding extra function call
-  uint32_t retval = route_val | (payload << route_len);
-  return retval;
 }
 
 }  // bddriver

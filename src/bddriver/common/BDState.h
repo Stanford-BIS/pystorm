@@ -4,9 +4,10 @@
 #include <chrono>
 #include <string>
 #include <vector>
-#include <array>
+#include <unordered_map>
 
 #include "BDPars.h"
+#include "BDWord.h"
 #include "DriverPars.h"
 #include "common/DriverTypes.h"
 
@@ -25,11 +26,11 @@ class BDState {
   BDState(const bdpars::BDPars *bd_pars, const driverpars::DriverPars *driver_pars);
   ~BDState();
 
-  void SetMem(bdpars::MemId mem_id, unsigned int start_addr, const std::vector<BDWord> &data);
-  inline const std::vector<BDWord> *GetMem(bdpars::MemId mem_id) const { return &mems_.at(mem_id); }
+  void SetMem(bdpars::BDMemId mem_id, unsigned int start_addr, const std::vector<BDWord> &data);
+  inline const std::vector<BDWord> *GetMem(bdpars::BDMemId mem_id) const { return &mems_.at(mem_id); }
 
-  void SetReg(bdpars::RegId reg_id, BDWord data);
-  const std::pair<const BDWord *, bool> GetReg(bdpars::RegId reg_id) const;
+  void SetReg(bdpars::BDHornEP reg_id, BDWord data);
+  const std::pair<const BDWord *, bool> GetReg(bdpars::BDHornEP reg_id) const;
 
 
   void SetNeuronConfigMem(unsigned int core_id,
@@ -57,8 +58,8 @@ class BDState {
   }
 
   // A toggle is a special case of register
-  void SetToggle(bdpars::RegId reg_id, bool traffic_en, bool dump_en);
-  std::tuple<bool, bool, bool> GetToggle(bdpars::RegId reg_id) const;
+  void SetToggle(bdpars::BDHornEP reg_id, bool traffic_en, bool dump_en);
+  std::tuple<bool, bool, bool> GetToggle(bdpars::BDHornEP reg_id) const;
 
   bool AreTrafficRegsOff() const;  /// is traffic_en == false for all traffic_regs_
   bool IsTrafficOff() const;       /// has AreTrafficRegsOff been true for traffic_drain_us
@@ -70,14 +71,14 @@ class BDState {
   const driverpars::DriverPars *driver_pars_;
 
   // register contents
-  std::array<BDWord, bdpars::RegIdCount> reg_;
-  std::array<bool, bdpars::RegIdCount> reg_valid_;
+  std::unordered_map<bdpars::BDHornEP, BDWord> reg_;
+  std::unordered_map<bdpars::BDHornEP, bool>   reg_valid_;
 
   // memory contents
-  std::array<std::vector<BDWord>, bdpars::MemIdCount> mems_; // conceptually, should be array of arrays, but can't to do that
+  std::unordered_map<bdpars::BDMemId, std::vector<BDWord>> mems_; // conceptually, should be map of different-sized arrays
 
   // binary vectors denote whether memory entries have been programmed
-  std::array<std::vector<bool>, bdpars::MemIdCount> mems_valid_;
+  std::unordered_map<bdpars::BDMemId, std::vector<bool>> mems_valid_;
 
   //////////////////////////////////////////////////////////////////////
   /// Neuron state
@@ -102,11 +103,11 @@ class BDState {
   std::vector<std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>>> diffusor_config_mem_;
 
   // I iterate through these a lot, this is for convenience
-  const std::vector<bdpars::RegId> kTrafficRegs = {
-    bdpars::NEURON_DUMP_TOGGLE, 
-    bdpars::TOGGLE_PRE_FIFO,
-    bdpars::TOGGLE_POST_FIFO0, 
-    bdpars::TOGGLE_POST_FIFO1};
+  const std::vector<bdpars::BDHornEP> kTrafficRegs = {
+    bdpars::BDHornEP::NEURON_DUMP_TOGGLE, 
+    bdpars::BDHornEP::TOGGLE_PRE_FIFO,
+    bdpars::BDHornEP::TOGGLE_POST_FIFO0, 
+    bdpars::BDHornEP::TOGGLE_POST_FIFO1};
 
   // timing: when certain things happened
   std::chrono::high_resolution_clock::time_point all_traffic_off_start_;

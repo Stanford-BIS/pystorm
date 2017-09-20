@@ -63,7 +63,8 @@ constexpr unsigned int FieldHCVal(WordType fname) { \
   return 0; \
 }
 
-namespace bdword {
+namespace pystorm {
+namespace bddriver {
 
 DEFWORD(ToggleWord, 
     FIELDS(TRAFFIC_ENABLE , DUMP_ENABLE ) ,
@@ -223,20 +224,28 @@ DEFWORD(TATOutputTag,
 // [9:8]   = {1, 0}
 // [17:10] = One of 256 tiles
 DEFHCWORD(NeuronConfig,
-    FIELDS(ROW_HI , COL_HI , ROW_LO , COL_LO , BIT_VAL , BIT_SEL , FIXED_2 , TILE_ADDR ,
-    WIDTHS(2      , 1      , 1      , 2      , 1       , 1       , 2       , 8           ) ,
-    HCVALS(0      , 0      , 0      , 0      , 0       , 0       , 2       , 0           )   )
+    FIELDS(ROW_HI , COL_HI , ROW_LO , COL_LO , BIT_VAL , BIT_SEL , FIXED_2 , TILE_ADDR ) ,
+    WIDTHS(2      , 1      , 1      , 2      , 1       , 1       , 2       , 8         ) ,
+    HCVALS(0      , 0      , 0      , 0      , 0       , 0       , 2       , 0         )   )
 
+// FPGA words
+DEFWORD(FPGAIO,
+    FIELDS(PAYLOAD , EP_CODE ) ,
+    WIDTHS(24      , 8       )   )
+
+// There's no proper BDWord type anymore (there never was, really)
+// just a typedef
+typedef uint64_t BDWord;
 
 template <class T>
-uint64_t Pack(const std::initializer_list<std::pair<typename T, uint64_t> > & fields) { 
+uint64_t PackWord(const std::initializer_list<std::pair<T, uint64_t> > & fields) { 
   
   uint64_t retval;
 
   // compute shifts (should be evaluable at compile-time), OR in default values
-  uint64_t shifts[T::FIELDCOUNT];
+  uint64_t shifts[static_cast<unsigned int>(T::FIELDCOUNT)];
   uint64_t curr_shift = 0;
-  for (unsigned int i = 0; i < T::FIELDCOUNT; i++) {
+  for (unsigned int i = 0; i < static_cast<unsigned int>(T::FIELDCOUNT); i++) {
     retval |= FieldHCVal(static_cast<T>(i)) << curr_shift;
     curr_shift += FieldWidth(static_cast<T>(i));
     shifts[i] = curr_shift;
@@ -259,7 +268,7 @@ uint64_t Pack(const std::initializer_list<std::pair<typename T, uint64_t> > & fi
 }
 
 template <class T>
-uint64_t At(uint64_t word, T field) {
+uint64_t GetField(uint64_t word, T field) {
 
   unsigned int field_idx = static_cast<unsigned int>(field);
 
@@ -273,9 +282,10 @@ uint64_t At(uint64_t word, T field) {
 
   uint64_t mask = max_field_val << shift;
 
-  return (val_ & mask) >> shift;
+  return (word & mask) >> shift;
 }
 
-} // bdword
+} // bddriver
+} // pystorm
 
 #endif
