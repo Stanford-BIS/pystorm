@@ -7,7 +7,6 @@ from . MemWordPlaceholders import *
 # objects must define DI() and DO()
 def TestDimsCorrect(src_DO, tgt_DI, src_range, tgt_range):
     # range lengths must match
-    print(src_range, tgt_range)
     assert(len(src_range) == len(tgt_range))
 
     # indices must be valid dimensions
