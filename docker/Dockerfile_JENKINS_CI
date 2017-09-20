@@ -1,5 +1,5 @@
 # Dockerfile for JENKINS CI
-FROM ubuntu-pystorm:latest
+FROM stanfordbis/ubuntu-pystorm:latest
 
 COPY . /home/git/pystorm
 
