@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.0)
 project(PyStorm CXX)
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
-# This has to be done after 'project' is set
+# tell cmake it can find modules in ./cmake/ directory
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(CheckRequirements)
 include(Common)
 
@@ -26,11 +26,9 @@ function(build_common)
     link_directories(${PROJECT_SOURCE_DIR}/lib)
 
     # External modules
-    if (CXX_IS_VALID)
-        add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
-        add_subdirectory(${PROJECT_SOURCE_DIR}/src)
-        add_subdirectory(${PROJECT_SOURCE_DIR}/test)
-    endif()
+    add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+    add_subdirectory(${PROJECT_SOURCE_DIR}/test)
 endfunction()
 
 ############################################################################
@@ -44,12 +42,7 @@ if(NOT BD_COMM_TYPE)
     FORCE)
 endif()
 
-if(HOST_IS_VALID)
-    build_common()
-else()
-    message(FATAL_ERROR "Build does not support host '"
-        ${CMAKE_HOST_SYSTEM_NAME} "'")
-endif()
+build_common()
 
 set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
 message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")

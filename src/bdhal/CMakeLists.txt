@@ -14,11 +14,6 @@ set(TARGET_NAME "Hal")
 include(CheckRequirements)
 include(Common)
 
-if(NOT HOST_IS_VALID)
-    message(FATAL_ERROR "Build does not support host '"
-            ${CMAKE_HOST_SYSTEM_NAME} "'")
-endif()
-
 ############################################################################
 #
 # Build setup

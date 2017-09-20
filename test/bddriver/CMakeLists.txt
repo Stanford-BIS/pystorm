@@ -85,7 +85,7 @@ include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
 
-if(CXX_IS_MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
 endif()
 

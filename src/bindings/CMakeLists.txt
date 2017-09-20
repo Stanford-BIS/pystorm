@@ -17,11 +17,6 @@ set(TARGET3_NAME "PyOK")
 include(CheckRequirements)
 include(Common)
 
-if(NOT HOST_IS_VALID)
-    message(FATAL_ERROR "Build does not support host '"
-            ${CMAKE_HOST_SYSTEM_NAME} "'")
-endif()
-
 ############################################################################
 #
 # Build setup
@@ -41,7 +36,7 @@ find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 # Project settings
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-if(CXX_IS_MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 endif()
 
