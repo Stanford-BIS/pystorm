@@ -50,13 +50,13 @@ public:
             throw std::logic_error("Connection weights point to null pointer");
         }
 
-        if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
-            throw std::logic_error("Connection input dimensions != Weight columns");
-        }
+        //if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
+        //    throw std::logic_error("Connection input dimensions != Weight columns");
+        //}
 
-        if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
-            throw std::logic_error("Connection output dimensions != Weight rows");
-        }
+        //if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
+        //    throw std::logic_error("Connection output dimensions != Weight rows");
+        //}
 
         if ((typeid(*src) == typeid(Pool)) && (typeid(*dest) == typeid(Pool))) {
             std::logic_error("Pools cannot be connected directly to Pools");

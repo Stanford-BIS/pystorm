@@ -52,7 +52,7 @@ class NetObjNode(object):
     def _(self, bucket):
         return AMBuckets(bucket.get_num_dimensions())
 
-    @create_resources_for_.register(Weights)
+    @create_resources_for_.register(WeightsClass)
     def _(self, pystorm_weights):
         weight_arr = np.zeros((pystorm_weights.get_num_rows(),
                               pystorm_weights.get_num_columns()))
