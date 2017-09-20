@@ -2,7 +2,7 @@
 #define BDMODEL_H
 
 #include <cstdint>
-#include <array>
+#include <unordered_map>
 #include <vector>
 #include <mutex>
 
@@ -30,10 +30,9 @@ class BDModel {
   std::vector<uint8_t> GenerateOutputs();
 
   // calls that will cause the model to emit some traffic, exercising upstream driver calls
-  inline void PushOutput(bdpars::OutputId output_id, const std::vector<BDWord> & to_append) {
+  inline void PushOutput(uint8_t ep, const std::vector<BDWord> & to_append) {
       std::unique_lock<std::mutex>(mutex_);
-      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(output_id);
-      to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
+      to_send_.at(ep).insert(to_send_.at(ep).end(), to_append.begin(), to_append.end()); 
   }
 
   // calls to retrieve the results of downstream driver calls
@@ -80,12 +79,12 @@ class BDModel {
 
   // intermediate results of downstream/upstream calls, will be sent by a future GenerateOutputs()
 
-  std::array<std::vector<BDWord>, bdpars::FunnelLeafIdCount> to_send_;
+  std::unordered_map<uint8_t, std::vector<BDWord>> to_send_;
 
   // upstream traffic enqueued by the user, will be sent by a future GenerateOutputs()
 
   // word remainders that couldn't be completely deserialized
-  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> remainders_;
+  std::unordered_map<uint8_t, std::vector<uint32_t>> remainders_;
 
   // memory address register states
 
@@ -100,10 +99,10 @@ class BDModel {
 
   // used in ParseInput, once words have been horn-decoded and deserialized
   
-  void Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t>& inputs);
-  void ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input);
-  void ProcessReg(bdpars::RegId reg_id, uint64_t input);
-  void ProcessInput(bdpars::InputId input_id, uint64_t input);
+  void Process(uint8_t ep, const std::vector<uint64_t>& inputs);
+  void ProcessBDHorn(bdpars::BDHornEP leaf_id, uint64_t input);
+  void ProcessBDReg(bdpars::BDHornEP reg_id, uint64_t input);
+  void ProcessBDInputStream(bdpars::BDHornEP input_id, uint64_t input);
   void ProcessMM(uint64_t input);
   void ProcessAM(uint64_t input);
   void ProcessTAT(unsigned int TAT_idx, uint64_t input);
@@ -111,15 +110,16 @@ class BDModel {
 
   // used in GenerateOutputs
   
-  std::vector<uint64_t> Generate(bdpars::FunnelLeafId leaf_id);
+  std::vector<uint64_t> Generate(uint8_t ep);
 
   // more complicated than the other cases
   std::vector<uint64_t> GenerateTAT(unsigned int tat_idx);
 
   /// helper for Process calls (just to look up funnel id)
-  inline void PushMem(bdpars::MemId mem_id, const std::vector<BDWord> & to_append) {
-      bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(mem_id);
-      to_send_.at(leaf_id).insert(to_send_.at(leaf_id).end(), to_append.begin(), to_append.end()); 
+  inline void PushMem(bdpars::BDMemId mem_id, const std::vector<BDWord> & to_append) {
+      bdpars::BDFunnelEP leaf_id = bd_pars_->mem_info_.at(mem_id).dump_leaf;
+      uint8_t ep = bd_pars_->UpEPCodeFor(leaf_id);
+      to_send_.at(ep).insert(to_send_.at(ep).end(), to_append.begin(), to_append.end()); 
   }
 
 };

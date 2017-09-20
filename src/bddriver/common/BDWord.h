@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
+#include <cassert>
 
 // Macros for defining word parameters
 // invoked like:
@@ -232,6 +233,10 @@ DEFHCWORD(NeuronConfig,
 DEFWORD(FPGAIO,
     FIELDS(PAYLOAD , EP_CODE ) ,
     WIDTHS(24      , 8       )   )
+
+DEFWORD(FPGABYTES,
+    FIELDS(B0 , B1 , B2 , B3 ) ,
+    WIDTHS(8  , 8  , 8  , 8  )   )
 
 // There's no proper BDWord type anymore (there never was, really)
 // just a typedef

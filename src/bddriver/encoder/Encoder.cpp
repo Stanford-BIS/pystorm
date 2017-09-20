@@ -42,7 +42,7 @@ void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput*
     //  MSB          LSB
     //    8b      24b
     // [ code | payload ]
-    uint32_t FPGA_encoded = Pack<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
+    uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
     // XXX check endianness
     packed_outputs[i] = FPGA_encoded;

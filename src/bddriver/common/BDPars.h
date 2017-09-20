@@ -5,9 +5,10 @@
 #include <map>
 #include <unordered_map>
 #include <string>
-#include <array>
+#include <vector>
 #include <typeinfo>
 #include <typeindex>
+#include <algorithm>
 
 using std::cout;
 using std::endl;
@@ -224,7 +225,6 @@ class BDPars {
    const unsigned DnEPFPGABitsPerReg        = 16;
    const unsigned DnEPFPGABitsPerChannel    = 16;
 
-
   // downstream endpoint info
   std::unordered_map<BDHornEP     , unsigned int> BDHorn_size_;
   std::unordered_map<FPGARegEP    , unsigned int> FPGA_reg_size_;
@@ -245,18 +245,58 @@ class BDPars {
   BDPars();
 
   // functions
-  inline uint8_t DnEPCodeFor(BDHornEP ep) { return static_cast<uint8_t>(ep); }
-  inline uint8_t DnEPCodeFor(FPGARegEP ep) { return static_cast<uint8_t>(ep) + DnEPFPGARegOffset; }
-  inline uint8_t DnEPCodeFor(FPGAChannelEP ep) { return static_cast<uint8_t>(ep) + DnEPFPGAChannelOffset; }
+  inline uint8_t DnEPCodeFor(BDHornEP ep)      const { return static_cast<uint8_t>(ep); }
+  inline uint8_t DnEPCodeFor(FPGARegEP ep)     const { return static_cast<uint8_t>(ep) + DnEPFPGARegOffset; }
+  inline uint8_t DnEPCodeFor(FPGAChannelEP ep) const { return static_cast<uint8_t>(ep) + DnEPFPGAChannelOffset; }
 
-  inline uint8_t UpEPCodeFor(BDFunnelEP ep) { return static_cast<uint8_t>(ep); }
-  inline uint8_t UpEPCodeFor(FPGAOutputEP ep) { return static_cast<uint8_t>(ep); }
+  inline uint8_t UpEPCodeFor(BDFunnelEP ep)   const { return static_cast<uint8_t>(ep); }
+  inline uint8_t UpEPCodeFor(FPGAOutputEP ep) const { return static_cast<uint8_t>(ep); }
+
+  inline bool DnEPCodeIsBDHornEP(uint8_t ep)      const { return ep < DnEPFPGARegOffset; }
+  inline bool DnEPCodeIsFPGARegEP(uint8_t ep)     const { return ep >= DnEPFPGARegOffset && ep < DnEPFPGAChannelOffset; }
+  inline bool DnEPCodeIsFPGAChannelEP(uint8_t ep) const { return ep >= DnEPFPGAChannelOffset; }
+
+  inline bool UpEPCodeIsBDFunnelEP(uint8_t ep)   const { return ep < static_cast<uint8_t>(BDFunnelEP::COUNT); }
+  inline bool UpEPCodeIsFPGAOutputEP(uint8_t ep) const { return ep >= static_cast<uint8_t>(BDFunnelEP::COUNT); }
 
   unsigned int NumDnEPs() { return static_cast<unsigned int>(BDHornEP::COUNT) +
                                    static_cast<unsigned int>(FPGARegEP::COUNT) +
                                    static_cast<unsigned int>(FPGAChannelEP::COUNT); }
   unsigned int NumUpEPs() { return static_cast<unsigned int>(BDFunnelEP::COUNT) +
                                    static_cast<unsigned int>(FPGAOutputEP::COUNT); }
+
+  bool BDHornEPIsInputStream(BDHornEP ep) const {
+    const std::vector<BDHornEP> streams = {
+      BDHornEP::NEURON_CONFIG, 
+      BDHornEP::NEURON_INJECT, 
+      BDHornEP::RI};
+    bool found = std::find(streams.begin(), streams.end(), ep) != streams.end();
+    return !found;
+  }
+
+  bool BDHornEPIsMem(BDHornEP ep) const {
+    const std::vector<BDHornEP> mems = {
+      BDHornEP::PROG_AMMM, 
+      BDHornEP::PROG_PAT, 
+      BDHornEP::PROG_TAT0, 
+      BDHornEP::PROG_TAT1};
+    bool found = std::find(mems.begin(), mems.end(), ep) != mems.end();
+    return !found;
+  }
+  
+  bool BDHornEPIsReg(BDHornEP ep) const {
+    return !(BDHornEPIsMem(ep) || BDHornEPIsInputStream(ep));
+  }
+  
+  std::vector<BDHornEP> GetBDRegs() const {
+    std::vector<BDHornEP> retval;
+    for (unsigned int i = 0; i < static_cast<unsigned int>(BDHornEP::COUNT); i++) {
+      if (BDHornEPIsReg(static_cast<BDHornEP>(i))) {
+        retval.push_back(static_cast<BDHornEP>(i));
+      }
+    }
+    return retval;
+  }
 
 };
 

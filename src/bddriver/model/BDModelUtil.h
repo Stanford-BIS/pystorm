@@ -21,13 +21,15 @@ namespace bdmodel {
 std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars* pars);
 
 /// Does deserialization
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > 
-  Deserialize(const std::vector<uint32_t>& inputs, bdpars::BDHornEP leaf_id, const bdpars::BDPars* bd_pars);
+/// return types same as DeserializeWords
+std::pair<std::vector<uint64_t>, std::vector<uint32_t>> 
+  DeserializeHorn(const std::vector<uint32_t>& inputs, bdpars::BDHornEP leaf_id, const bdpars::BDPars* bd_pars);
 
-/// Does deserialization for all horn leaves
-std::pair<std::vector<std::vector<uint64_t>>, 
-          std::vector<std::vector<uint32_t>>> 
-    DeserializeAllHornLeaves(const std::vector<std::vector<uint32_t>>& inputs, const bdpars::BDPars* bd_pars);
+/// Does deserialization for all BD leaves
+/// returns a pair of dictionaries keyed by ep code
+std::pair<std::unordered_map<uint8_t, std::vector<uint64_t>>, 
+          std::unordered_map<uint8_t, std::vector<uint32_t>>>
+    DeserializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint32_t>>& inputs, const bdpars::BDPars* bd_pars);
 
 ////////////////////////////////////////
 // downstream functions
@@ -37,11 +39,11 @@ std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
     const std::vector<uint64_t>& inputs, bdpars::BDFunnelEP leaf_id, const bdpars::BDPars* bd_pars);
 
 /// Does serialization for all Funnel leaves
-std::vector<std::pair<std::vector<uint64_t>, unsigned int>> 
-    SerializeAllFunnelLeaves(const std::vector<std::vector<uint64_t>>& inputs, const bdpars::BDPars* bd_pars);
+std::unordered_map<uint8_t, std::pair<std::vector<uint64_t>, unsigned int>> 
+    SerializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint64_t>>& inputs, const bdpars::BDPars* bd_pars);
 
 /// Unpacks byte stream, will do other stuff eventually
-std::vector<DecInput> FPGAOutput(std::vector<uint64_t> inputs, const bdpars::BDPars* pars);
+std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDPars* pars);
 
 }  // bdmodel
 }  // bddriver

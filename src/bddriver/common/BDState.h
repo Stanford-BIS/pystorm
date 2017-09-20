@@ -65,9 +65,11 @@ class BDState {
   bool IsTrafficOff() const;       /// has AreTrafficRegsOff been true for traffic_drain_us
   void WaitForTrafficOff() const;  /// Busy wait until IsTrafficOff()
 
+  // only private so we can get to it in the == operator function
+  const bdpars::BDPars *bd_pars_;
+
  private:
   // const pointer to driver's pars objects
-  const bdpars::BDPars *bd_pars_;
   const driverpars::DriverPars *driver_pars_;
 
   // register contents

@@ -8,7 +8,6 @@
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
 #include "comm/Emulator.h"
-//#include "comm/CommBDModel.h"
 #ifdef BD_COMM_TYPE_OPALKELLY
 #include "comm/CommOK.h"
 #elif BD_COMM_TYPE_USB
@@ -809,6 +808,7 @@ std::pair<std::vector<BDWord>,
 
 void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word) {
   // form vector of values to set BDState's reg state with, in WordStructure field order
+  assert(bd_pars_->BDHornEPIsReg(reg_id));
   bd_state_[core_id].SetReg(reg_id, word);
   SendToEP(core_id, reg_id, {word});
 }
