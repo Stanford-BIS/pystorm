@@ -50,9 +50,13 @@ public:
             throw std::logic_error("Connection weights point to null pointer");
         }
 
-        if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
-            throw std::logic_error("Connection input dimensions != Weight columns");
-        }
+        // This check fails for connections out of Pools, since they
+        //  should be sized based on the number of neurons
+        // We should eventually fix this, but for now let's just remove
+        //  the check
+        //if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
+        //    throw std::logic_error("Connection input dimensions != Weight columns");
+        //}
 
         if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
             throw std::logic_error("Connection output dimensions != Weight rows");
