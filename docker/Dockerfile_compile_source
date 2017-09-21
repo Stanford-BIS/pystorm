@@ -1,7 +1,7 @@
 # Dockerfile for compiling and testing the pystorm repo
 
 # Start with the image built from Dockerfile_setup_environment
-FROM ubuntu-pystorm:latest
+FROM stanfordbis/ubuntu-pystorm:latest
 
 # Run from the pystorm repo base directory to copy the pystorm repo contents
 COPY . /home/git/pystorm
