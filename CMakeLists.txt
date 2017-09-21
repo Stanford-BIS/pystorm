@@ -24,9 +24,9 @@ find_package(PythonLibs 3.5 REQUIRED)
 function(build_common)
     # Build and install external dependencies into lib/ directory
     link_directories(${PROJECT_SOURCE_DIR}/lib)
-
     # External modules
     add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
+    # Project directories
     add_subdirectory(${PROJECT_SOURCE_DIR}/src)
     add_subdirectory(${PROJECT_SOURCE_DIR}/test)
 endfunction()
