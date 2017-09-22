@@ -257,7 +257,7 @@ class BDPars {
   inline bool UpEPCodeIsFPGAOutputEP(uint8_t ep) const { return ep >= static_cast<uint8_t>(BDFunnelEP::COUNT); }
 
   // get used up ep codes
-  std::vector<uint8_t> GetUpEPs() {
+  std::vector<uint8_t> GetUpEPs() const {
     std::vector<uint8_t> codes;
     for (auto& it : Up_EP_size_) {
       codes.push_back(it.first);

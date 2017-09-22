@@ -369,9 +369,10 @@ class Driver {
       const std::vector<BDTime> times);
 
   /// Receive a stream of spikes
-  std::tuple<std::vector<unsigned int>,
-          std::vector<BDWord>,
-          std::vector<BDTime> > RecvSpikes(unsigned int core_id);
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime> > RecvSpikes(unsigned int core_id) {
+    return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI);
+  }
 
   /// Send a stream of tags
   void SendTags(
@@ -406,9 +407,9 @@ class Driver {
   // data members
 
   /// parameters describing parameters of the software (e.g. buffer depths)
-  driverpars::DriverPars *driver_pars_;
+  const driverpars::DriverPars *driver_pars_;
   /// parameters describing BD hardware
-  bdpars::BDPars *bd_pars_;
+  const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware
   std::vector<BDState> bd_state_;
 

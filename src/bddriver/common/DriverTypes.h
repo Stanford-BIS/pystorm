@@ -24,7 +24,7 @@ typedef uint8_t DecInput;
 // encoder
 struct EncInput {
      unsigned int core_id;
-     unsigned int FPGA_ep_code;
+     uint8_t      FPGA_ep_code;
      uint32_t     payload;
      BDTime       time;
 };

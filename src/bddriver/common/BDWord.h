@@ -22,9 +22,8 @@
 //
 // (HCVALS defaults to all 0s)
 //
-// DEFWORD can have 2 or 3 args
+// was trying to make DEFWORD have 2 or 3 args
 // https://stackoverflow.com/questions/11761703/overloading-macro-on-number-of-arguments
-//
 
 // It's hard to have multiple same-length-but-variable fields in a macro
 // The following three macro definitions are a workaround
@@ -33,34 +32,34 @@
 #define HCVALS(...) {__VA_ARGS__}
 
 // The main macro, gives you an enum class WordType and two functions:
-// FieldWidth(WordType fname) returns width for a fname 
-// FieldHCVal(WordType fname) returns hardcoded value for a fname
-#define DEFHCWORD(WordType, fnames, widths, hcvals) \
-enum class WordType fnames; \
-constexpr unsigned int FieldWidth(WordType fname) { \
+// FieldWidth(WordType field_name) returns width for a field_name 
+// FieldHCVal(WordType field_name) returns hardcoded value for a field_name
+#define DEFHCWORD(WordType, field_names, widths, hcvals) \
+enum class WordType field_names; \
+constexpr unsigned int FieldWidth(WordType field_name) { \
   constexpr unsigned int w[] = widths; \
-  const unsigned int fname_idx = static_cast<unsigned int>(fname); \
-  return w[fname_idx]; \
+  const unsigned int field_name_idx = static_cast<unsigned int>(field_name); \
+  return w[field_name_idx]; \
 } \
-constexpr unsigned int FieldHCVal(WordType fname) { \
+constexpr unsigned int FieldHCVal(WordType field_name) { \
   constexpr unsigned int v[] = hcvals; \
-  const unsigned int fname_idx = static_cast<unsigned int>(fname); \
-  return v[fname_idx]; \
-}
+  const unsigned int field_name_idx = static_cast<unsigned int>(field_name); \
+  return v[field_name_idx]; \
+} 
 
 // two-argument variation with no HCVALS
-// note that the (void)fname does nothing, it's just to squelch the compiler warning
-// about fname being unused
+// note that the (void)field_name does nothing, it's just to squelch the compiler warning
+// about field_name being unused
 // https://stackoverflow.com/questions/1486904/how-do-i-best-silence-a-warning-about-unused-variables
-#define DEFWORD(WordType, fnames, widths) \
-enum class WordType fnames; \
-constexpr unsigned int FieldWidth(WordType fname) { \
+#define DEFWORD(WordType, field_names, widths) \
+enum class WordType field_names; \
+constexpr unsigned int FieldWidth(WordType field_name) { \
   constexpr unsigned int w[] = widths; \
-  const unsigned int fname_idx = static_cast<unsigned int>(fname); \
-  return w[fname_idx]; \
+  const unsigned int field_name_idx = static_cast<unsigned int>(field_name); \
+  return w[field_name_idx]; \
 } \
-constexpr unsigned int FieldHCVal(WordType fname) { \
-  (void)fname; \
+constexpr unsigned int FieldHCVal(WordType field_name) { \
+  (void)field_name; \
   return 0; \
 }
 

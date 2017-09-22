@@ -86,7 +86,7 @@ Driver::Driver() {
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
 
   for (auto& it : up_eps) {
-    dec_bufs_out_[it] = new MutexBuffer<DecOutput>();
+    dec_bufs_out_.insert({it, new MutexBuffer<DecOutput>()});
   }
 
   // initialize deserializers for upstream traffic
