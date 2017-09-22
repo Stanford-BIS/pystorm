@@ -17,25 +17,27 @@ namespace pystorm {
 namespace bddriver {
 
 void Encoder::RunOnce() {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, input_chunk_size_, timeout_us_);
-  Encode(input_chunk_, num_popped, output_chunks_[0]);
-  bool success = false;
-  while (!success && do_run_) {  // if killed, need to stop trying
-    success = out_bufs_[0]->Push(output_chunks_[0], num_popped * bytesPerOutput, timeout_us_);
+  // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
+  std::unique_ptr<std::vector<EncInput>> popped_vect = in_buf_->Pop(timeout_us_);
+  if (popped_vect->size() > 0) {
+    std::unique_ptr<std::vector<EncOutput>> to_push_vect Encode(std::move(popped_vect));
+    out_bufs_[0]->Push(std::move(to_push_vect)); // push can't block indefinitely
   }
 }
 
-void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput* outputs) const {
+std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) const {
 
-  uint32_t* packed_outputs = reinterpret_cast<uint32_t*>(outputs);
+  std::unique_ptr<std::vector<EncOutput>> output (new std::vector<EncOutput>);
 
-  for (unsigned int i = 0; i < num_popped; i++) {
+  for (auto& it : *inputs) {
     // unpack data
-    // unsigned int core_id = inputs[i].core_id;
-    unsigned int FPGA_ep_code = inputs[i].FPGA_ep_code;
-    uint32_t payload     = inputs[i].payload;
+    unsigned int core_id      = it.core_id;
+    unsigned int FPGA_ep_code = it.FPGA_ep_code;
+    uint32_t     payload      = it.payload;
+    BDTime       time         = it.time;
 
-    // XXX this is where you would do something with the core id
+    (void)core_id; // XXX this is where you would do something with core_id
+    (void)time;    // XXX this is where you would do something with time
 
     // pack into 32 bits
     // FPGA word format:
@@ -44,9 +46,18 @@ void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput*
     // [ code | payload ]
     uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
-    // XXX check endianness
-    packed_outputs[i] = FPGA_encoded;
+    // serialize to bytes 
+    uint8_t b0 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B0);
+    uint8_t b1 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B1);
+    uint8_t b2 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B2);
+    uint8_t b3 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B3);
+    output->push_back(b0);
+    output->push_back(b1);
+    output->push_back(b2);
+    output->push_back(b3);
   }
+
+  return output;
 }
 
 }  // bddriver

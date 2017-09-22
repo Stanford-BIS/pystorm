@@ -15,6 +15,7 @@
 #endif
 
 #include "common/BDPars.h"
+#include "common/BDWord.h"
 #include "common/BDState.h"
 #include "common/DriverPars.h"
 #include "common/DriverTypes.h"
@@ -77,29 +78,43 @@ Driver::Driver() {
   }
 
   // initialize buffers
-  enc_buf_in_  = new MutexBuffer<EncInput>(driver_pars_->Get(driverpars::ENC_BUF_IN_CAPACITY));
-  enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::ENC_BUF_OUT_CAPACITY));
-  dec_buf_in_  = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY));
+  enc_buf_in_  = new MutexBuffer<EncInput>();
+  enc_buf_out_ = new MutexBuffer<EncOutput>();
+  dec_buf_in_  = new MutexBuffer<DecInput>();
 
-  for (unsigned int i = 0; i < bd_pars_->NumUpEPs(); i++) {
-    MutexBuffer<DecOutput>* buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY));
-    dec_bufs_out_.push_back(buf_ptr);
+  // there is one dec_buf_out per upstream EP
+  std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
+
+  for (auto& it : up_eps) {
+    dec_bufs_out_[it] = new MutexBuffer<DecOutput>();
+  }
+
+  // initialize deserializers for upstream traffic
+  // deserialization is needed when ep size exceeds FPGA word payload size
+  // deserializers make it possible to track "extra" remainder words
+  // we might get out of the decoder
+  for (auto& ep : up_eps) {
+    const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+    unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
+        ep_data_size / FPGA_payload_width 
+      : ep_data_size / FPGA_payload_width + 1;
+
+    // only create a deserializer when needed
+    if (D > 1) {
+      up_ep_deserializers_.insert({ep, VectorDeserializer<DecOutput>(D)});
+    }
   }
 
   // initialize Encoder and Decoder
-
   enc_ = new Encoder(
-      bd_pars_,
       enc_buf_in_,
       enc_buf_out_,
-      driver_pars_->Get(driverpars::ENC_CHUNK_SIZE),
       driver_pars_->Get(driverpars::ENC_TIMEOUT_US));
 
   dec_ = new Decoder(
-      bd_pars_,
       dec_buf_in_,
       dec_bufs_out_,
-      driver_pars_->Get(driverpars::DEC_CHUNK_SIZE),
       driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
 
   // initialize Comm
@@ -127,8 +142,8 @@ Driver::~Driver() {
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
-  for (MutexBuffer<DecOutput>* it : dec_bufs_out_) {
-    delete it;
+  for (auto& it : dec_bufs_out_) {
+    delete it.second;
   }
   delete enc_;
   delete dec_;
@@ -273,23 +288,19 @@ void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
   SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
 }
 
-std::vector<BDWord> Driver::GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id, unsigned int n_tags) {
-  std::vector<BDWord> data = RecvFromEP(core_id, output_id, n_tags).first;
+std::vector<BDWord> Driver::GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id) {
+  std::vector<BDWord> data = RecvFromEP(core_id, output_id).first;
   return data;
 }
 
-std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id, unsigned int n_tags) {
-  return GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO, n_tags);
+std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {
+  return GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO);
 }
 
-std::pair<std::vector<BDWord>, std::vector<BDWord> > Driver::GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1) {
+std::pair<std::vector<BDWord>, std::vector<BDWord> > Driver::GetPostFIFODump(unsigned int core_id) {
   std::vector<BDWord> tags0, tags1;
-  if (n_tags0 > 0) { // zero has special meaning: "grab something", which isn't what we want here
-    tags0 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0, n_tags0);
-  }
-  if (n_tags1 > 0) { // zero has special meaning: "grab something", which isn't what we want here
-    tags1 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1, n_tags1);
-  }
+  tags0 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0);
+  tags1 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1);
 
   return std::make_pair(tags0, tags1);
 }
@@ -505,7 +516,7 @@ void Driver::SetMem(
   SendToEP(core_id, horn_ep, encapsulated_words);
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
-    RecvFromEP(core_id, funnel_ep, data.size());
+    RecvFromEP(core_id, funnel_ep);
   }
   ResumeTraffic(core_id);
 }
@@ -545,7 +556,7 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
   PauseTraffic(core_id);
   SendToEP(core_id, horn_ep, encapsulated_words);
-  std::vector<BDWord> payloads = RecvFromEP(core_id, funnel_ep, mem_size).first;
+  std::vector<BDWord> payloads = RecvFromEP(core_id, funnel_ep).first;
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to word format
@@ -669,19 +680,15 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
 
 
 std::pair<std::vector<BDWord>,
-          std::vector<BDTime>> Driver::RecvTags(unsigned int core_id, unsigned int max_to_recv) {
+          std::vector<BDTime>> Driver::RecvTags(unsigned int core_id) {
 
   typedef std::pair<std::vector<BDWord>, std::vector<BDTime>> RetType;
 
   RetType tat_tags; 
   RetType acc_tags;
 
-  tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT, max_to_recv);
-  unsigned int n_recvd = tat_tags.first.size();
-  
-  if (max_to_recv - n_recvd > 0) {
-    auto acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC, max_to_recv - n_recvd);
-  }
+  tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT);
+  acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC);
 
   // concatenate
   tat_tags.first.insert(tat_tags.first.end()   , acc_tags.first.begin()  , acc_tags.first.end());
@@ -690,117 +697,105 @@ std::pair<std::vector<BDWord>,
   return tat_tags;
 }
 
-std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWordsToBDLeaf(
-    const std::vector<uint64_t>& inputs, bdpars::BDHornEP ep) const {
-  unsigned int input_width   = bd_pars_->BDHorn_size_.at(ep);
-  unsigned int serialization = bd_pars_->BDHorn_serialization_.at(ep);
-
-  return SerializeWords<uint64_t, uint32_t>(inputs, input_width, serialization);
-}
-
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWordsFromBDLeaf(
-    const std::vector<uint32_t>& inputs, bdpars::BDFunnelEP ep) const {
-  unsigned int deserialization    = bd_pars_->BDFunnel_size_.at(ep);
-  unsigned int deserialized_width = bd_pars_->BDFunnel_serialization_.at(ep);
-
-  return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
-}
-
-
 void Driver::SendToEP(unsigned int core_id,
     uint8_t ep_code,
-    const std::vector<uint32_t> &payload, 
-    const std::vector<BDTime> &times) {
-
-  // package into EncInput
-  std::vector<EncInput> enc_inputs;
-
-  unsigned int i = 0;
-  while (i < payload.size()) {
-    assert(payload[i] < 1<<24);
-    BDTime time = times.size() == 0 ? 0 : times[i]; // time 0 goes in immediately
-    enc_inputs.push_back({core_id, ep_code, static_cast<uint32_t>(payload[i]), time});
-    i++;
-    // have to make sure that we don't send something bigger than the buffer
-    if (i % driver_pars_->Get(driverpars::ENC_BUF_IN_CAPACITY) == 0) {
-      enc_buf_in_->Push(enc_inputs);
-      enc_inputs.clear();
-    }
-  }
-  enc_buf_in_->Push(enc_inputs);  // push any remainder
-}
-
-
-void Driver::SendToEP(unsigned int core_id,
-    bdpars::BDHornEP leaf_ep,
     const std::vector<BDWord>& payload,
     const std::vector<BDTime>& times) {
 
-  // do serialization
-  std::vector<uint32_t> serialized_words;
-  unsigned int serialized_width;
-  std::tie(serialized_words, serialized_width) = SerializeWordsToBDLeaf(payload, leaf_ep);
+  // do serialization, if necessary
+  std::vector<uint32_t> serialized;
 
-  // get ep_code for this BD leaf
-  uint8_t ep_code = bd_pars_->DnEPCodeFor(leaf_ep);
+  const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+  unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
+  const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
+      ep_data_size / FPGA_payload_width 
+    : ep_data_size / FPGA_payload_width + 1;
 
-  SendToEP(core_id, ep_code, serialized_words, times);
+  if (D > 1) {
+    // if the width of a single data object sent downstream ever
+    // exceeds 64 bits, we may need to rethink this
+    assert(D == 2); // only case to deal with for now
+    for (auto& it : payload) {
+      // lsb first, msb second
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::LSB));
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::MSB));
+    }
+  } else {
+    // XXX we have to cast for now. Probably should just change EncInput to have uint64_t/BDWord input
+    for (auto& it : payload) {
+      serialized.push_back(static_cast<uint32_t>(it));
+    }
+  }
+
+  // XXX could save needless allocation + copying here
+  // but this is more clear for now
+
+  // package into EncInput
+  std::unique_ptr<std::vector<EncInput>> enc_inputs(new std::vector<EncInput>);
+
+  for (unsigned int i = 0; i < serialized.size(); i++) {
+    BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
+    assert(serialized.at(i) < 1<<24);
+
+    EncInput to_push;
+    to_push.payload = serialized.at(i);
+    to_push.time = time;
+    to_push.core_id = core_id;
+    to_push.FPGA_ep_code = ep_code;
+
+    enc_inputs->push_back(to_push);
+  }
+
+  enc_buf_in_->Push(std::move(enc_inputs));  // push any remainder
 }
+
+
 
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
-  Driver::RecvFromEP(unsigned int core_id, bdpars::BDFunnelEP leaf_ep, unsigned num_to_recv) {
-  // This is a call of convenience. Often, we're interested not just in a particular
-  // leaf's traffic, but also just the traffic from a particular core.
-  //
-  // This isn't implemented for the multi-core case.
-  // That's complicated, and probably needs some additional interfaces
-  // in the MB to do some fancy locking,
-  // or we need to dynamically allocate MBs by core.
+  Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code) {
 
-  // Decoder doesn't know about enums, cast leaf_ep as uint
-  // this is the index of the dec_bufs_out[] we want to pull from
-  unsigned int leaf_ep_as_uint     = static_cast<unsigned int>(leaf_ep);
-  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(leaf_ep_as_uint);
+  // get data from buffer
+  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(ep_code);
+  std::unique_ptr<std::vector<DecOutput>> new_data = this_buf->Pop();
 
-  // look up serialization, we really need num_to_recv * serialiazation
-  unsigned int deserialization = bd_pars_->BDFunnel_serialization_.at(leaf_ep);
-
-  // Pop <num_to_recv> * deserialization elements from <leaf_ep>'s buffer to outputs
-  std::vector<DecOutput> outputs;
-
-  if (num_to_recv > 0) {
-    unsigned int DecOutput_needed = num_to_recv * deserialization;
-
-    while (outputs.size() < DecOutput_needed) {
-      unsigned int num_to_pop = DecOutput_needed - outputs.size();
-      std::vector<DecOutput> new_outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
-      outputs.insert(outputs.end(), new_outputs.begin(), new_outputs.end());
-    }
-  } else {
-    // if num_to_recv=0, just take whatever's in the queue
-    unsigned int num_to_pop = driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY);
-    outputs = this_buf->PopVect(num_to_pop, 0, deserialization);
-  }
-
-  // deserialize (pull out payloads first)
-  std::vector<uint32_t> payloads;
+  std::vector<BDWord> words;
   std::vector<BDTime> times;
-  for (auto& output : outputs) {
-    payloads.push_back(output.payload);
-    times.push_back(output.time);
-    // throw the time on the ground, if you want it, you're not using this call
-    assert(output.core_id == core_id && "not implmented for multi-core");
+
+  // if there's a deserializer, use it
+  if (up_ep_deserializers_.count(ep_code) > 0) {
+    auto& deserializer = up_ep_deserializers_.at(ep_code);
+    deserializer.NewInput(new_data.get());
+
+    // read first word
+    std::vector<DecOutput> deserialized; // continuosly write into here
+    deserializer.GetOneOutput(&deserialized);
+    while (deserialized.size() > 0) {
+      // for now, D == 2 for all deserializers, so we can do this hack
+      // if the width of a single data object returned from the FPGA ever
+      // exceeds 64 bits, we may need to rethink this
+      assert(deserialized.size() == 2); // the only case to deal with for now
+      
+      uint32_t payload_lsb = deserialized.at(0).payload;
+      uint32_t payload_msb = deserialized.at(1).payload;
+      BDTime   time        = deserialized.at(1).time; // take time on second word
+
+      // concatenate lsb and msb to make output word
+      BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
+      words.push_back(payload_all);
+      times.push_back(time);
+
+      deserializer.GetOneOutput(&deserialized);
+    }
   }
 
-  std::vector<uint64_t> deserialized_payloads;
-  std::vector<uint32_t> remainder;
-  std::tie(deserialized_payloads, remainder) = DeserializeWordsFromBDLeaf(payloads, leaf_ep);
-  assert(remainder.size() == 0);
+  // otherwise, not much to do
+  for (auto& it : *new_data) {
+    uint32_t payload = it.payload;
+    BDTime   time    = it.time; // take time on second word
 
-  std::vector<BDWord> words; // would be better to reinterperet...?
-  for (auto& payload : deserialized_payloads) {
-    words.push_back(BDWord(payload));
+    words.push_back(payload);
+    times.push_back(time);
   }
 
   return {words, times};

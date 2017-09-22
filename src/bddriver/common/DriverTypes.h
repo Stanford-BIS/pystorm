@@ -17,7 +17,6 @@ typedef unsigned int BDTime;
 // decoder
 struct DecOutput {
      uint32_t     payload;
-     unsigned int core_id;
      BDTime       time;
 };
 typedef uint8_t DecInput;

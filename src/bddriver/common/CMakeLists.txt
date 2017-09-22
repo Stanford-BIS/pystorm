@@ -10,7 +10,6 @@ set(HEADER_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/Xcoder.h
     # binary_util.cpp is included from here
     ${CMAKE_CURRENT_SOURCE_DIR}/binary_util.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/TSQueue.h
     PARENT_SCOPE
 )
 

@@ -36,40 +36,40 @@ enum class DnEPType {
 // enum value is the code value
 
 enum class BDHornEP {
-  ADC                ,  // ADC small/large current enable, output enable
-  DAC_DIFF_G         ,  // DIFF_G DAC bias value
-  DAC_SOMA_INH       ,  // SOMA_INH DAC bias value
-  DAC_SYN_PU         ,  // SYN_PU DAC bias value
-  DAC_UNUSED         ,  // UNUSED (ghost DAC)
-  DAC_DIFF_R         ,  // DIFF_R DAC bias value
-  DAC_SOMA_OFFSET    ,  // SOMA_OFFSET DAC bias value
-  DAC_SYN_LK         ,  // SYN_LK DAC bias value
-  DAC_SYN_DC         ,  // SYN_DC DAC bias value
-  DAC_SYN_PD         ,  // SYN_PD DAC bias value
-  DAC_ADC_BIAS_2     ,  // ADC_BIAS_2 DAC bias value
-  DAC_ADC_BIAS_1     ,  // ADC_BIAS_1 DAC bias value
-  DAC_SOMA_REF       ,  // SOMA_REF DAC bias value
-  DAC_SOMA_EXC       ,  // SOMA_EXC DAC bias value
-  DELAY_DCTFIFO      ,  // FIFO:DCT delay line config
-  DELAY_PGFIFO       ,  // FIFO:PG delay line config
-  DELAY_TAT0         ,  // TAT 0 delay line config
-  DELAY_TAT1         ,  // TAT 1 delay line config
-  DELAY_PAT          ,  // PAT delay line config
-  DELAY_MM           ,  // MM delay line config
-  DELAY_AM           ,  // AM delay line config
-  INIT_FIFO_DCT      ,  // inserts a tag into the DCT side of the FIFO
-  INIT_FIFO_HT       ,  // trigger sets FIFO head/tail register to empty state
-  NEURON_CONFIG      ,  // programming input for neuron array tile SRAM
-  NEURON_DUMP_TOGGLE ,  // toggles data/dump traffic for neuron array output
-  NEURON_INJECT      ,  // direct spike injection to neuron array
-  PROG_AMMM          ,  // AM/MM programming/diagnostic port
-  PROG_PAT           ,  // PAT programming/diagnostic port
-  PROG_TAT0          ,  // TAT 0 programming/diagnostic port
-  PROG_TAT1          ,  // TAT 1 programming/diagnostic port
-  RI                 ,  // main tag input to FIFO
-  TOGGLE_POST_FIFO0  ,  // toggles data/dump traffic for FIFO tag class 0 output
-  TOGGLE_POST_FIFO1  ,  // toggles data/dump traffic for FIFO tag class 1 output
-  TOGGLE_PRE_FIFO    ,  // toggles data/dump traffic for FIFO input
+  ADC,                // ADC small/large current enable, output enable
+  DAC_DIFF_G,         // DIFF_G DAC bias value
+  DAC_SOMA_INH,       // SOMA_INH DAC bias value
+  DAC_SYN_PU,         // SYN_PU DAC bias value
+  DAC_UNUSED,         // UNUSED (ghost DAC)
+  DAC_DIFF_R,         // DIFF_R DAC bias value
+  DAC_SOMA_OFFSET,    // SOMA_OFFSET DAC bias value
+  DAC_SYN_LK,         // SYN_LK DAC bias value
+  DAC_SYN_DC,         // SYN_DC DAC bias value
+  DAC_SYN_PD,         // SYN_PD DAC bias value
+  DAC_ADC_BIAS_2,     // ADC_BIAS_2 DAC bias value
+  DAC_ADC_BIAS_1,     // ADC_BIAS_1 DAC bias value
+  DAC_SOMA_REF,       // SOMA_REF DAC bias value
+  DAC_SOMA_EXC,       // SOMA_EXC DAC bias value
+  DELAY_DCTFIFO,      // FIFO:DCT delay line config
+  DELAY_PGFIFO,       // FIFO:PG delay line config
+  DELAY_TAT0,         // TAT 0 delay line config
+  DELAY_TAT1,         // TAT 1 delay line config
+  DELAY_PAT,          // PAT delay line config
+  DELAY_MM,           // MM delay line config
+  DELAY_AM,           // AM delay line config
+  INIT_FIFO_DCT,      // inserts a tag into the DCT side of the FIFO
+  INIT_FIFO_HT,       // trigger sets FIFO head/tail register to empty state
+  NEURON_CONFIG,      // programming input for neuron array tile SRAM
+  NEURON_DUMP_TOGGLE, // toggles data/dump traffic for neuron array output
+  NEURON_INJECT,      // direct spike injection to neuron array
+  PROG_AMMM,          // AM/MM programming/diagnostic port
+  PROG_PAT,           // PAT programming/diagnostic port
+  PROG_TAT0,          // TAT 0 programming/diagnostic port
+  PROG_TAT1,          // TAT 1 programming/diagnostic port
+  RI,                 // main tag input to FIFO
+  TOGGLE_POST_FIFO0,  // toggles data/dump traffic for FIFO tag class 0 output
+  TOGGLE_POST_FIFO1,  // toggles data/dump traffic for FIFO tag class 1 output
+  TOGGLE_PRE_FIFO,    // toggles data/dump traffic for FIFO input
   COUNT
 };
 
@@ -226,45 +226,47 @@ class BDPars {
    const unsigned DnEPFPGABitsPerChannel    = 16;
 
   // downstream endpoint info
-  std::unordered_map<BDHornEP     , unsigned int> BDHorn_size_;
-  std::unordered_map<FPGARegEP    , unsigned int> FPGA_reg_size_;
-  std::unordered_map<FPGAChannelEP, unsigned int> FPGA_channel_size_;
+  std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;
 
   // upstream endpoint info
-  std::unordered_map<BDFunnelEP  , unsigned int> BDFunnel_size_;
-  std::unordered_map<FPGAOutputEP, unsigned int> FPGA_output_size_;
-
-  // BD serialization is special
-  // XXX may eventually offload this functionality to FPGA
-  std::unordered_map<BDHornEP     , unsigned int> BDHorn_serialization_;
-  std::unordered_map<BDFunnelEP  , unsigned int> BDFunnel_serialization_;
+  std::unordered_map<uint8_t , unsigned int> Up_EP_size_;
 
   // memory info
   std::unordered_map<BDMemId, MemInfo> mem_info_;
 
   BDPars();
 
-  // functions
+  // functions for info derived from other pars
+
+  // downstream ep enums -> ep codes (FPGA addresses)
   inline uint8_t DnEPCodeFor(BDHornEP ep)      const { return static_cast<uint8_t>(ep); }
   inline uint8_t DnEPCodeFor(FPGARegEP ep)     const { return static_cast<uint8_t>(ep) + DnEPFPGARegOffset; }
   inline uint8_t DnEPCodeFor(FPGAChannelEP ep) const { return static_cast<uint8_t>(ep) + DnEPFPGAChannelOffset; }
 
+  // up stream ep enums -> ep codes (FPGA addresses)
   inline uint8_t UpEPCodeFor(BDFunnelEP ep)   const { return static_cast<uint8_t>(ep); }
   inline uint8_t UpEPCodeFor(FPGAOutputEP ep) const { return static_cast<uint8_t>(ep); }
 
+  // downstream ep code -> ep type
   inline bool DnEPCodeIsBDHornEP(uint8_t ep)      const { return ep < DnEPFPGARegOffset; }
   inline bool DnEPCodeIsFPGARegEP(uint8_t ep)     const { return ep >= DnEPFPGARegOffset && ep < DnEPFPGAChannelOffset; }
   inline bool DnEPCodeIsFPGAChannelEP(uint8_t ep) const { return ep >= DnEPFPGAChannelOffset; }
 
+  // upstream ep code -> ep type
   inline bool UpEPCodeIsBDFunnelEP(uint8_t ep)   const { return ep < static_cast<uint8_t>(BDFunnelEP::COUNT); }
   inline bool UpEPCodeIsFPGAOutputEP(uint8_t ep) const { return ep >= static_cast<uint8_t>(BDFunnelEP::COUNT); }
 
-  unsigned int NumDnEPs() { return static_cast<unsigned int>(BDHornEP::COUNT) +
-                                   static_cast<unsigned int>(FPGARegEP::COUNT) +
-                                   static_cast<unsigned int>(FPGAChannelEP::COUNT); }
-  unsigned int NumUpEPs() { return static_cast<unsigned int>(BDFunnelEP::COUNT) +
-                                   static_cast<unsigned int>(FPGAOutputEP::COUNT); }
+  // get used up ep codes
+  std::vector<uint8_t> GetUpEPs() {
+    std::vector<uint8_t> codes;
+    for (auto& it : Up_EP_size_) {
+      codes.push_back(it.first);
+    }
+    return codes;
+  }
 
+  // BDHornEP -> BD sub-type
+  // XXX NOTE : this is only used by the model to aid parsing traffic
   bool BDHornEPIsInputStream(BDHornEP ep) const {
     const std::vector<BDHornEP> streams = {
       BDHornEP::NEURON_CONFIG, 

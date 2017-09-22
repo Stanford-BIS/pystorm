@@ -11,32 +11,38 @@
 #include "common/DriverTypes.h"
 #include "common/MutexBuffer.h"
 #include "common/Xcoder.h"
+#include "common/vector_util.h"
 
 namespace pystorm {
 namespace bddriver {
 
-class Decoder : public Xcoder<DecInput, DecOutput> {
+class Decoder : public Xcoder {
  public:
-  const static unsigned int bytesPerInput = 4; 
+  constexpr static unsigned int bytesPerInput = 4; 
 
   Decoder(
-      const bdpars::BDPars *pars,
       MutexBuffer<DecInput> *in_buf,
-      const std::vector<MutexBuffer<DecOutput> *> &out_bufs,
-      unsigned int chunk_size,
-      unsigned int timeout_us = 1000);
+      const std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> &out_bufs,
+      unsigned int timeout_us = 1000)
+    : Xcoder(), 
+    timeout_us_(timeout_us), 
+    in_buf_(in_buf),
+    out_bufs_(out_bufs),
+    deserializer_(VectorDeserializer<DecInput>(bytesPerInput)) {};
+
   ~Decoder();
 
-  // for testing
-  // unsigned int num_processed_;
-
  private:
+
+  const unsigned int timeout_us_;
+  MutexBuffer<DecInput> * in_buf_;
+  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> out_bufs_;
+
+  VectorDeserializer<DecInput> deserializer_;
+
   void RunOnce();
-  void Decode(
-      const DecInput *inputs,
-      unsigned int num_popped,
-      std::vector<DecOutput *> *outputs,
-      std::vector<unsigned int> *num_pushed_to_each) const;
+  std::vector<uint32_t> PackBytes(std::unique_ptr<const std::vector<DecInput>> input);
+  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decode(std::unique_ptr<const std::vector<DecInput>> input);
 
 };
 

@@ -9,6 +9,7 @@
 #include "common/BDPars.h"
 #include "common/BDWord.h"
 #include "common/MutexBuffer.h"
+#include "common/vector_util.h" // JoinedVector
 
 #include <iostream>
 using std::cout;
@@ -18,82 +19,72 @@ namespace pystorm {
 namespace bddriver {
 
 void Decoder::RunOnce() {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, input_chunk_size_, timeout_us_, bytesPerInput);
-  std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
-  Decode(input_chunk_, num_popped, &output_chunks_, &num_pushed_to_each);
+  // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
+  std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
+  if (popped_vect->size() > 0) {
+    std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> to_push_vects = Decode(std::move(popped_vect));
 
-  unsigned int total_pushed_to_each = 0;
-  for (auto& it : num_pushed_to_each) {
-    total_pushed_to_each += it;
-  }
-
-  // XXX can use the Read/PopAfterRead ifc, but doesn't seem to improve throughput
-  // const DecInput * read_data;
-  // unsigned int num_read;
-  // std::tie(read_data, num_read) = in_buf_->Read(input_chunk_size_, timeout_us_);
-  // std::vector<unsigned int> num_pushed_to_each(out_bufs_.size(), 0);
-  // Decode(read_data, num_read, &output_chunks_, &num_pushed_to_each);
-  // in_buf_->PopAfterRead();
-
-  // XXX this is not ideal. Blocking on one queue should not cause other queues to block
-  // hard to get around due to the serial nature of the input, however
-  // in practice, shouldn't be a big issue
-
-  for (unsigned int i = 0; i < out_bufs_.size(); i++) {
-    if (num_pushed_to_each[i] > 0) {
-      bool success = false;
-      // have to check do_run_, since we could potentially get stuck here
-      while (!success && do_run_) {
-        success = out_bufs_[i]->Push(output_chunks_[i], num_pushed_to_each[i], timeout_us_);
-      }
+    // push to each output vector
+    assert(to_push_vects.size() == out_bufs_.size());
+    for (unsigned int i = 0; i < out_bufs_.size(); i++) {
+      out_bufs_[i]->Push(std::move(to_push_vects[i]));
     }
+
   }
-  // num_processed_ += num_popped;
-  // cout << "decoded a chunk size " << num_popped << ". total " << num_processed_ << endl;
 }
 
-Decoder::Decoder(
-    const bdpars::BDPars* pars,
-    MutexBuffer<DecInput>* in_buf,
-    const std::vector<MutexBuffer<DecOutput>*>& out_bufs,
-    unsigned int chunk_size,
-    unsigned int timeout_us)
-    : Xcoder(pars, in_buf, out_bufs, chunk_size * bytesPerInput, chunk_size, timeout_us)  // call default constructor
-{
-  // num_processed_ = 0;
+// pack inputs into 32-bit FPGA words, using remainder
+std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecInput>> input) {
+
+  // load deserializer with new input
+  deserializer_.NewInput(input.get());
+
+  std::vector<uint32_t> packed;
+
+  std::vector<uint8_t> deserialized; // continuosly write into here
+
+  deserializer_.GetOneOutput(&deserialized);
+  while (deserialized.size() > 0) {
+    packed.push_back(PackWord<FPGABYTES>(
+         {{FPGABYTES::B0, deserialized.at(0)}, 
+          {FPGABYTES::B1, deserialized.at(1)}, 
+          {FPGABYTES::B2, deserialized.at(2)}, 
+          {FPGABYTES::B3, deserialized.at(3)}}));
+
+    deserializer_.GetOneOutput(&deserialized);
+  }
+
+  return packed;
 }
 
-Decoder::~Decoder() {
-  // cout << "decoder processed " << num_processed_ << " entries" << endl;
-}
+std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<const std::vector<DecInput>> input) {
 
-void Decoder::Decode(
-    const DecInput* inputs,
-    unsigned int num_popped,
-    std::vector<DecOutput*>* outputs,
-    std::vector<unsigned int>* num_pushed_to_each) const {
-  assert(num_popped % bytesPerInput == 0 && "should have used Pop() with a multiple argument");
+  // pack inputs into 32-bit FPGA words, starting with the remainder
+  std::vector<uint32_t> inputs_packed = PackBytes(std::move(input));
 
-  // XXX check endianness
-  const uint32_t* packed_inputs = reinterpret_cast<const uint32_t*>(&inputs);
+  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> outputs;
 
-  for (unsigned int i = 0; i < num_popped / bytesPerInput; i++) {
+  for (auto& it : inputs_packed) {
 
     // XXX this is where you woudl do something with time
-    unsigned int time_epoch = 0;
+    BDTime time = 0;
 
     // XXX this is where you would do something with the core id
-    unsigned int core_id = 0;
 
     // decode EP_code
-    unsigned int ep_code = GetField<FPGAIO>(packed_inputs[i], FPGAIO::EP_CODE);
-    uint32_t payload = GetField<FPGAIO>(packed_inputs[i], FPGAIO::PAYLOAD);
+    unsigned int ep_code = GetField<FPGAIO>(it, FPGAIO::EP_CODE);
+    uint32_t payload     = GetField<FPGAIO>(it, FPGAIO::PAYLOAD);
 
-    unsigned int num_pushed_to_this         = num_pushed_to_each->at(ep_code);
-    (*outputs)[ep_code][num_pushed_to_this] = {payload, core_id, time_epoch};
+    DecOutput to_push;
+    to_push.payload = payload;
+    to_push.time    = time;
 
-    (*num_pushed_to_each)[ep_code]++;
+    if (outputs.count(ep_code) == 0) {
+      outputs.at(ep_code) = std::unique_ptr<std::vector<DecOutput>>(new std::vector<DecOutput>);
+    }
+    outputs.at(ep_code)->push_back(to_push);
   }
+  return outputs;
 }
 
 }  // bddriver

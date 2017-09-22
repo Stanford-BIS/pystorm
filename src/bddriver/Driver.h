@@ -352,9 +352,9 @@ class Driver {
   void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
 
   /// Get pre-FIFO tags recorded during dump
-  std::vector<BDWord> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+  std::vector<BDWord> GetPreFIFODump(unsigned int core_id);
   /// Get post-FIFO tags recorded during dump
-  std::pair<std::vector<BDWord>, std::vector<BDWord> > GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1);
+  std::pair<std::vector<BDWord>, std::vector<BDWord> > GetPostFIFODump(unsigned int core_id);
 
   /// Get warning count
   std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(unsigned int core_id);
@@ -371,7 +371,7 @@ class Driver {
   /// Receive a stream of spikes
   std::tuple<std::vector<unsigned int>,
           std::vector<BDWord>,
-          std::vector<BDTime> > RecvSpikes(unsigned int max_to_recv);
+          std::vector<BDTime> > RecvSpikes(unsigned int core_id);
 
   /// Send a stream of tags
   void SendTags(
@@ -382,7 +382,7 @@ class Driver {
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   std::pair<std::vector<BDWord>,
-            std::vector<BDTime>> RecvTags(unsigned int core_id, unsigned int max_to_recv);
+            std::vector<BDTime>> RecvTags(unsigned int core_id);
 
   ////////////////////////////////
   // BDState queries
@@ -425,7 +425,10 @@ class Driver {
   MutexBuffer<DecInput> *dec_buf_in_;
 
   /// vector of thread-safe, MPMC buffers between decoder and breadth of upstream driver API
-  std::vector<MutexBuffer<DecOutput> *> dec_bufs_out_;
+  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> dec_bufs_out_;
+
+  /// deserializers for upstream traffic
+  std::unordered_map<uint8_t, VectorDeserializer<DecOutput>> up_ep_deserializers_;
 
   /// encodes traffic to BD
   Encoder *enc_;
@@ -453,12 +456,12 @@ class Driver {
   // Main send/recv calls
 
   /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
-  void SendToEP(unsigned int core_id, uint8_t ep_code, const std::vector<uint32_t> &payload, const std::vector<BDTime> &times = {});
+  void SendToEP(unsigned int core_id, uint8_t ep_code, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
   // can call SendToEP on BDHornEP, FPGARegEP, FPGAChannelEP instead of uint8_t ep_code
-  void SendToEP(unsigned int core_id, bdpars::BDHornEP ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
-  void SendToEP(unsigned int core_id, bdpars::FPGARegEP ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
-  void SendToEP(unsigned int core_id, bdpars::FPGAChannelEP ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
-
+  template <class T>
+  void SendToEP(unsigned int core_id, T ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {}) {
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(ep), payload, times);
+  }
 
   /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
   /// associated with a supplied <core_id>.
@@ -469,20 +472,13 @@ class Driver {
   /// This isn't the most effective call.
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>>
-    RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int num_to_recv = 0);
+    RecvFromEP(unsigned int core_id, uint8_t ep_code);
 
+  /// Wrapper for convenience, can call with BDFunnelEP or FPGAOutputEP
+  template <class T>
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>>
-    RecvFromEP(unsigned int core_id, bdpars::BDFunnelEP leaf_ep, unsigned num_to_recv = 0);
-
-  /////////////////////////////
-  // BD serdes
-
-  std::pair<std::vector<uint32_t>, unsigned int> 
-    SerializeWordsToBDLeaf(const std::vector<uint64_t>& inputs, bdpars::BDHornEP ep) const;
-
-  std::pair<std::vector<uint64_t>, std::vector<uint32_t> > 
-    DeserializeWordsFromBDLeaf(const std::vector<uint32_t>& inputs, bdpars::BDFunnelEP ep) const;
+    RecvFromEP(unsigned int core_id, T ep_enum) { return RecvFromEP(core_id, bd_pars_->UpEPCodeFor(ep_enum)); }
 
   ////////////////////////////////
   // memory programming helpers
@@ -517,7 +513,7 @@ class Driver {
   /// Set memory delay line value
   void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value);
 
-  std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id, unsigned int n_tags);
+  std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id);
 
   /// Config memory map
   /// Soma configuration bits for 16 Somas in a tile.

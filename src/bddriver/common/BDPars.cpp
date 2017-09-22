@@ -23,38 +23,33 @@ BDPars::BDPars() {
 
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDHornEP::COUNT); i++) {
-    BDHorn_size_[static_cast<BDHornEP>(i)]          = 24; // don't care: shorter than 24b
-    BDHorn_serialization_[static_cast<BDHornEP>(i)] = 1;
+    Dn_EP_size_[DnEPCodeFor(static_cast<BDHornEP>(i))]        = 24; // don't care: shorter than 24b
   }
-  // serialization = 4 for a few longer words
-  BDHorn_size_[BDHornEP::PROG_AMMM]          = 42;
-  BDHorn_size_[BDHornEP::PROG_PAT]           = 27;
-  BDHorn_size_[BDHornEP::PROG_TAT0]          = 31;
-  BDHorn_size_[BDHornEP::PROG_TAT1]          = 31;
-  BDHorn_serialization_[BDHornEP::PROG_AMMM] = 4;
-  BDHorn_serialization_[BDHornEP::PROG_PAT]  = 4;
-  BDHorn_serialization_[BDHornEP::PROG_TAT0] = 4;
-  BDHorn_serialization_[BDHornEP::PROG_TAT1] = 4;
+  // is 2 for some leaves
+  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_AMMM)]               = 42;
+  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_PAT)]                = 27;
+  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_TAT0)]               = 31;
+  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_TAT1)]               = 31;
 
   //////////////////////////////////////////////////////
   // FPGA Registers
 
-  FPGA_reg_size_[FPGARegEP::SF_FILTS_USED]          = 9; 
-  FPGA_reg_size_[FPGARegEP::SF_INCREMENT_CONSTANT]  = 27; 
-  FPGA_reg_size_[FPGARegEP::SF_DECAY_CONSTANT]      = 27; 
-  FPGA_reg_size_[FPGARegEP::SG_GENS_USED]           = 8; 
-  FPGA_reg_size_[FPGARegEP::SG_GENS_EN]             = 256; 
-  FPGA_reg_size_[FPGARegEP::TM_UNIT_LEN]            = 16; 
-  FPGA_reg_size_[FPGARegEP::TM_PC_TIME_ELAPSED]     = 48; 
-  FPGA_reg_size_[FPGARegEP::TM_PC_SEND_HB_UP_EVERY] = 48;
-  FPGA_reg_size_[FPGARegEP::TM_PC_RESET_TIME]       = 1; 
-  FPGA_reg_size_[FPGARegEP::TS_REPORT_TAGS]         = 1; 
-  FPGA_reg_size_[FPGARegEP::BD_RESET]               = 2; 
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_FILTS_USED)]          = 9;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_INCREMENT_CONSTANT)]  = 27;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_DECAY_CONSTANT)]      = 27;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_USED)]           = 8;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN)]             = 256;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_UNIT_LEN)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_TIME_ELAPSED)]     = 48;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_SEND_HB_UP_EVERY)] = 48;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_RESET_TIME)]       = 1;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TS_REPORT_TAGS)]         = 1;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::BD_RESET)]               = 2;
 
   //////////////////////////////////////////////////////
   // FPGA Channels
 
-  FPGA_channel_size_[FPGAChannelEP::SG_PROGRAM_MEM] = 51;
+  Dn_EP_size_[DnEPCodeFor(FPGAChannelEP::SG_PROGRAM_MEM)]     = 51;
 
   //////////////////////////////////////////////////////
   // FPGA upstream endpoints
@@ -62,20 +57,21 @@ BDPars::BDPars() {
   
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDFunnelEP::COUNT); i++) {
-    BDFunnel_size_[static_cast<BDFunnelEP>(i)]          = 24; // don't care, shorter than 24b
-    BDFunnel_serialization_[static_cast<BDFunnelEP>(i)] = 1;
+    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))] = 24; // don't care, shorter than 24b
   }
   // serialization is 2 for a few others
-  BDFunnel_size_[BDFunnelEP::DUMP_AM]            = 38;
-  BDFunnel_size_[BDFunnelEP::DUMP_TAT0]          = 29;
-  BDFunnel_size_[BDFunnelEP::DUMP_TAT1]          = 29;
-  BDFunnel_size_[BDFunnelEP::RO_ACC]             = 28;
-  BDFunnel_size_[BDFunnelEP::RO_TAT]             = 32;
-  BDFunnel_serialization_[BDFunnelEP::DUMP_AM]   = 2;
-  BDFunnel_serialization_[BDFunnelEP::DUMP_TAT0] = 2;
-  BDFunnel_serialization_[BDFunnelEP::DUMP_TAT1] = 2;
-  BDFunnel_serialization_[BDFunnelEP::RO_ACC]    = 2;
-  BDFunnel_serialization_[BDFunnelEP::RO_TAT]    = 2;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_AM)]          = 38;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT0)]        = 29;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT1)]        = 29;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_ACC)]           = 28;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_TAT)]           = 32;
+
+  //////////////////////////////////////////////////////
+  // FPGA outputs
+
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB)]    = 48;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::SF_OUTPUT)]      = 48;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::NOP)]            = 24;
 
   //////////////////////////////////////////////////////
   // memory info
