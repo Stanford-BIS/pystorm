@@ -250,7 +250,7 @@ typedef uint64_t BDWord;
 template <class T>
 uint64_t PackWord(const std::initializer_list<std::pair<T, uint64_t> > & fields) { 
   
-  uint64_t retval;
+  uint64_t retval = 0;
 
   // compute shifts (should be evaluable at compile-time), OR in default values
   uint64_t shifts[static_cast<unsigned int>(T::FIELDCOUNT)];
