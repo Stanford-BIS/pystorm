@@ -35,7 +35,11 @@ class MutexBufferFixture : public testing::Test {
     }
   }
 
-  unsigned int N = 1000; // number of messages
+  void TearDown() {
+    delete buf;
+  }
+
+  unsigned int N = 10000; // number of messages
   unsigned int M = 1000; // message chunk size
 
   bddriver::MutexBuffer<unsigned int>* buf;
@@ -49,12 +53,22 @@ class MutexBufferFixture : public testing::Test {
   std::thread consumer1;
 };
 
+TEST_F(MutexBufferFixture, Test1to1PushThenPop) {
+  producer0 = std::thread(Produce<unsigned int>, buf, vals0);
+  producer0.join();
+
+  consumer0 = std::thread(ConsumeAndCheck<unsigned int>, buf, vals0, 0);
+  consumer0.join();
+}
+
 TEST_F(MutexBufferFixture, Test1to1) {
   producer0 = std::thread(Produce<unsigned int>, buf, vals0);
   consumer0 = std::thread(ConsumeAndCheck<unsigned int>, buf, vals0, 0);
 
   producer0.join();
+  cout << "producer joined" << endl;
   consumer0.join();
+  cout << "consumer joined" << endl;
 }
 
 TEST_F(MutexBufferFixture, Test1to1WithTimeout) {

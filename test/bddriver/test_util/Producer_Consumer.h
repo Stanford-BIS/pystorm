@@ -20,9 +20,13 @@ using namespace std;
 template <class T>
 void Produce(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &vals)
 {
+  unsigned int i = 0;
   for (auto& v : vals) {
-    std::unique_ptr<std::vector<T>> un_copy(new std::vector<T>(v));
+    //cout << "prod " << i << endl;
+    // copy each vector and push
+    auto un_copy = std::make_unique<std::vector<T>>(v);
     buf->Push(std::move(un_copy));
+    i++;
   }
 }
 
@@ -30,15 +34,19 @@ template <class T>
 void Consume(bddriver::MutexBuffer<T>* buf, std::vector<std::vector<T>> * vals, unsigned int N, unsigned int try_for_us) {
   vals->clear();
   unsigned int N_consumed = 0;
-  while (N_consumed != N) {
+  while (N_consumed < N) {
+    //cout << "before pop" << N_consumed << endl;
     std::unique_ptr<std::vector<T>> popped = buf->Pop(try_for_us);
+    //cout << "after pop" << N_consumed << endl;
     if (popped->size() > 0) {
+      // copy popped data
       vals->push_back({});
       for (auto& it : *popped) {
         vals->back().push_back(it);
       }
       N_consumed++;
     }
+    //cout << "after pop" << N_consumed << endl;
   }
 }
 

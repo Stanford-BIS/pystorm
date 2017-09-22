@@ -794,7 +794,7 @@ std::pair<std::vector<BDWord>,
   } else {
 
     // otherwise, not much to do
-    for (auto& it : *new_data) {
+    for (auto& it : *(new_data.get())) {
       uint32_t payload = it.payload;
       BDTime   time    = it.time; // take time on second word
 
