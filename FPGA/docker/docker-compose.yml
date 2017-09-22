@@ -1,0 +1,23 @@
+version: "3.2"
+services:
+    quartus:
+        image: centos-fpga
+        volumes:
+            - "homedir:/home/${USER}:Z"
+            - "../../:/home/dev/pystorm:rw"
+            - "./install:/home/dev/install:rw"
+            - "/opt/quartus:/home/quartus:rw"
+            - "/etc/group:/etc/group:ro"
+            - "/etc/passwd:/etc/passwd:ro"
+            - "/etc/shadow:/etc/shadow:ro"
+            - "/etc/sudoers.d:/etc/sudoers.d:ro"
+            - "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+        command: /bin/bash
+        working_dir: /home/quartus
+        environment:
+            USER:
+            DISPLAY: 
+        stdin_open: true
+        tty: true
+volumes:
+    homedir:
