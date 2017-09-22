@@ -9,7 +9,7 @@
 #include "common/BDPars.h"
 #include "common/BDWord.h"
 #include "common/MutexBuffer.h"
-#include "common/vector_util.h" // JoinedVector
+#include "common/vector_util.h" // VectorDeserializer
 
 #include <iostream>
 using std::cout;

@@ -515,6 +515,9 @@ class Driver {
 
   std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id);
 
+  ///////////////////////////////
+  // Neuron config stuff
+
   /// Config memory map
   /// Soma configuration bits for 16 Somas in a tile.
   static std::map<bdpars::ConfigSomaID, std::vector<unsigned int>> config_soma_mem_;

@@ -20,7 +20,7 @@
 #include "common/DriverPars.h"
 #include "common/DriverTypes.h"
 #include "common/MutexBuffer.h"
-#include "common/binary_util.h"
+#include "common/vector_util.h"
 #include "decoder/Decoder.h"
 #include "encoder/Encoder.h"
 
@@ -95,7 +95,7 @@ Driver::Driver() {
   // we might get out of the decoder
   for (auto& ep : up_eps) {
     const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
-    unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
+    const unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
     const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
         ep_data_size / FPGA_payload_width 
       : ep_data_size / FPGA_payload_width + 1;
@@ -702,11 +702,10 @@ void Driver::SendToEP(unsigned int core_id,
     const std::vector<BDWord>& payload,
     const std::vector<BDTime>& times) {
 
-  // do serialization, if necessary
-  std::vector<uint32_t> serialized;
+  std::unique_ptr<std::vector<EncInput>> serialized(new std::vector<EncInput>);
 
   const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
-  unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
+  const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
   const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
       ep_data_size / FPGA_payload_width 
     : ep_data_size / FPGA_payload_width + 1;
@@ -715,38 +714,43 @@ void Driver::SendToEP(unsigned int core_id,
     // if the width of a single data object sent downstream ever
     // exceeds 64 bits, we may need to rethink this
     assert(D == 2); // only case to deal with for now
+    unsigned int i = 0;
     for (auto& it : payload) {
+      EncInput to_push[2];
+      BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
+
       // lsb first, msb second
-      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::LSB));
-      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::MSB));
+      to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
+      to_push[0].time = time;
+      to_push[0].core_id = core_id;
+      to_push[0].FPGA_ep_code = ep_code;
+
+      to_push[1].payload = GetField(it, TWOFPGAPAYLOADS::MSB);
+      to_push[1].time = time;
+      to_push[1].core_id = core_id;
+      to_push[1].FPGA_ep_code = ep_code;
+
+      serialized->push_back(to_push[0]);
+      serialized->push_back(to_push[1]);
+      i++;
     }
   } else {
-    // XXX we have to cast for now. Probably should just change EncInput to have uint64_t/BDWord input
+    unsigned int i = 0;
     for (auto& it : payload) {
-      serialized.push_back(static_cast<uint32_t>(it));
+      EncInput to_push;
+      BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
+      
+      to_push.payload = it;
+      to_push.time = time;
+      to_push.core_id = core_id;
+      to_push.FPGA_ep_code = ep_code;
+
+      serialized->push_back(to_push);
+      i++;
     }
   }
 
-  // XXX could save needless allocation + copying here
-  // but this is more clear for now
-
-  // package into EncInput
-  std::unique_ptr<std::vector<EncInput>> enc_inputs(new std::vector<EncInput>);
-
-  for (unsigned int i = 0; i < serialized.size(); i++) {
-    BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
-    assert(serialized.at(i) < 1<<24);
-
-    EncInput to_push;
-    to_push.payload = serialized.at(i);
-    to_push.time = time;
-    to_push.core_id = core_id;
-    to_push.FPGA_ep_code = ep_code;
-
-    enc_inputs->push_back(to_push);
-  }
-
-  enc_buf_in_->Push(std::move(enc_inputs));  // push any remainder
+  enc_buf_in_->Push(std::move(serialized));
 }
 
 
@@ -787,15 +791,16 @@ std::pair<std::vector<BDWord>,
 
       deserializer.GetOneOutput(&deserialized);
     }
-  }
+  } else {
 
-  // otherwise, not much to do
-  for (auto& it : *new_data) {
-    uint32_t payload = it.payload;
-    BDTime   time    = it.time; // take time on second word
+    // otherwise, not much to do
+    for (auto& it : *new_data) {
+      uint32_t payload = it.payload;
+      BDTime   time    = it.time; // take time on second word
 
-    words.push_back(payload);
-    times.push_back(time);
+      words.push_back(payload);
+      times.push_back(time);
+    }
   }
 
   return {words, times};

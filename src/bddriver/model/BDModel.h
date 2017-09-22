@@ -11,7 +11,6 @@
 #include "common/BDState.h"
 #include "common/DriverPars.h"
 #include "common/DriverTypes.h"
-#include "common/binary_util.h"
 
 namespace pystorm {
 namespace bddriver {
@@ -82,9 +81,6 @@ class BDModel {
   std::unordered_map<uint8_t, std::vector<BDWord>> to_send_;
 
   // upstream traffic enqueued by the user, will be sent by a future GenerateOutputs()
-
-  // word remainders that couldn't be completely deserialized
-  std::unordered_map<uint8_t, std::vector<uint32_t>> remainders_;
 
   // memory address register states
 

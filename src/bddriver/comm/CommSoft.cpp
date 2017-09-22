@@ -28,15 +28,13 @@ void CommSoft::ReadFromDevice() {
 }
 
 void CommSoft::WriteToDevice() {
-  auto vectorOfCOMMWords = m_write_buffer->PopVect(WRITE_SIZE, DEFAULT_BUFFER_TIMEOUT);
+  std::unique_ptr<std::vector<COMMWord>> vectorOfCOMMWords = m_write_buffer->Pop(DEFAULT_BUFFER_TIMEOUT);
 
-  if (vectorOfCOMMWords.size() > 0) {
-    auto wordstream = std::unique_ptr<COMMWordStream>(new COMMWordStream(vectorOfCOMMWords));
-
+  if (vectorOfCOMMWords->size() > 0) {
     std::unique_ptr<EmulatorCallbackData> cb = std::unique_ptr<EmulatorCallbackData>(new EmulatorCallbackData());
 
     cb->client = this;
-    cb->buf    = std::move(wordstream);
+    cb->buf    = std::move(vectorOfCOMMWords);
 
     m_emulator->Write(std::move(cb));
   }
@@ -78,10 +76,9 @@ void CommSoft::StopStreaming() {
 }
 
 void CommSoft::ReadCallback(std::unique_ptr<EmulatorCallbackData> cb) {
-  std::vector<COMMWord> vecOfCWS(*(cb->buf));
+  std::unique_ptr<std::vector<COMMWord>> vecOfCWS(new std::vector<COMMWord>(*(cb->buf)));
 
-  while ((m_read_buffer->Push(vecOfCWS, DEFAULT_BUFFER_TIMEOUT) == false) && (CommStreamState::STOPPED != m_state)) {
-  }
+  m_read_buffer->Push(std::move(vecOfCWS));
 }
 
 void CommSoft::WriteCallback(std::unique_ptr<EmulatorCallbackData> cb) {}

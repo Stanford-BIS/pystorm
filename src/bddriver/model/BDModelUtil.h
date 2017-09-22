@@ -13,36 +13,24 @@ namespace bddriver {
 namespace bdmodel {
 
 // "inverse" driver functions: models of what the FPGA + BD hardware does
+// basically just copy-pasted from Driver/Encoder/Decoder
 
 ////////////////////////////////////////
 // downstream functions
 
-/// Packs byte stream, will do other stuff at some point
+/// Does inverse of Encoder byte-unpacking (looks like Decoder)
 std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars* pars);
 
-/// Does deserialization
-/// return types same as DeserializeWords
-std::pair<std::vector<uint64_t>, std::vector<uint32_t>> 
-  DeserializeHorn(const std::vector<uint32_t>& inputs, bdpars::BDHornEP leaf_id, const bdpars::BDPars* bd_pars);
-
-/// Does deserialization for all BD leaves
-/// returns a pair of dictionaries keyed by ep code
-std::pair<std::unordered_map<uint8_t, std::vector<uint64_t>>, 
-          std::unordered_map<uint8_t, std::vector<uint32_t>>>
-    DeserializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint32_t>>& inputs, const bdpars::BDPars* bd_pars);
+/// Does inverse of SendToEP's serialization (looks like RecvFromEP)
+std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned int D);
 
 ////////////////////////////////////////
 // downstream functions
 
-/// Does serialization, returns pairs of {serialized words chunks, word chunk widths}
-std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
-    const std::vector<uint64_t>& inputs, bdpars::BDFunnelEP leaf_id, const bdpars::BDPars* bd_pars);
+/// Does inverse of RecvFromEP's deserialization (looks like SendToEP)
+std::vector<uint32_t> SerializeEP(const std::vector<BDWord>& inputs, unsigned int D);
 
-/// Does serialization for all Funnel leaves
-std::unordered_map<uint8_t, std::pair<std::vector<uint64_t>, unsigned int>> 
-    SerializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint64_t>>& inputs, const bdpars::BDPars* bd_pars);
-
-/// Unpacks byte stream, will do other stuff eventually
+/// Does inverse of Decoder byte-packing (looks like Encoder)
 std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDPars* pars);
 
 }  // bdmodel

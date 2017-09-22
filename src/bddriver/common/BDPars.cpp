@@ -4,8 +4,6 @@
 #include <unordered_map>
 #include <array>
 
-#include "common/binary_util.h"
-
 namespace pystorm {
 namespace bddriver {
 namespace bdpars {

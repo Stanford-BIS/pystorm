@@ -1,7 +1,7 @@
 #include "BDModelUtil.h"
 
 #include "common/BDState.h"
-#include "common/binary_util.h"
+#include "common/vector_util.h"
 #include "encoder/Encoder.h" // for bytesPerOutput (XXX should be in BDPars??)
 #include "decoder/Decoder.h" // for bytesPerInput (XXX should be in BDPars??)
 
@@ -11,6 +11,7 @@ namespace bdmodel {
 
 std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars* pars) {
   // for now, just deserialize USB bytestream
+  // don't have to worry about remainders/deserialization
 
   assert(inputs.size() % Encoder::bytesPerOutput == 0);
 
@@ -44,63 +45,65 @@ std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDP
   return retval;
 }
 
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > 
-  DeserializeHorn(const std::vector<uint32_t>& inputs, bdpars::BDHornEP leaf_id, const bdpars::BDPars* bd_pars) {
-  unsigned int deserialization    = bd_pars->BDHorn_serialization_.at(leaf_id);
-  unsigned int deserialized_width = bd_pars->BDHorn_size_.at(leaf_id);
+std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned int D) {
 
-  return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
-}
+  std::vector<BDWord> words;
 
-std::pair<std::unordered_map<uint8_t, std::vector<uint64_t>>, 
-          std::unordered_map<uint8_t, std::vector<uint32_t>>>
-    DeserializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint32_t>>& inputs, const bdpars::BDPars* bd_pars) {
+  // read first word
+  if (D > 1) {
+    // we shouldn't have to worry about remainders with BDModel
+    // use a VectorDeserializer anyway so we can copy-paste from RecvFromEP
+    // XXX should maybe figure out a way to reuse this code better
+    assert(D == 2);
+    VectorDeserializer<uint32_t> deserializer(2);
+    deserializer.NewInput(&inputs);
 
-std::pair<std::unordered_map<uint8_t, std::vector<uint64_t>>, 
-          std::unordered_map<uint8_t, std::vector<uint32_t>>> outputs;
+    std::vector<uint32_t> deserialized; // continuosly write into here
+    deserializer.GetOneOutput(&deserialized);
+    while (deserialized.size() > 0) {
+      // for now, D == 2 for all deserializers, so we can do this hack
+      // if the width of a single data object returned from the FPGA ever
+      // exceeds 64 bits, we may need to rethink this
+      assert(deserialized.size() == 2); // the only case to deal with for now
+      
+      uint32_t payload_lsb = deserialized.at(0);
+      uint32_t payload_msb = deserialized.at(1);
 
-  for (auto& it : inputs) {
-    if (bd_pars->DnEPCodeIsBDHornEP(it.first)) {
-      uint8_t code = it.first;
-      bdpars::BDHornEP leaf_id = static_cast<bdpars::BDHornEP>(code);
+      // concatenate lsb and msb to make output word
+      BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
+      words.push_back(payload_all);
 
-      std::vector<uint64_t> deserialized;
-      std::vector<uint32_t> remainder;
-      std::tie(deserialized, remainder) = DeserializeHorn(inputs.at(code), leaf_id, bd_pars);
-
-      outputs.first.at(code) = deserialized;
-      outputs.second.at(code) = remainder;
+      deserializer.GetOneOutput(&deserialized);
     }
-    // XXX do something for the FPGA codes
-  }
-
-  return outputs;
-}
-
-std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
-    const std::vector<uint64_t>& inputs, bdpars::BDFunnelEP leaf_id, const bdpars::BDPars* bd_pars) {
-  unsigned int serialization = bd_pars->BDFunnel_serialization_.at(leaf_id);
-  unsigned int input_width   = bd_pars->BDFunnel_size_.at(leaf_id);
-
-  return SerializeWords<uint64_t, uint64_t>(inputs, input_width, serialization);
-}
-
-/// pairs are (serialized words, chunk widths)
-std::unordered_map<uint8_t, std::pair<std::vector<uint64_t>, unsigned int>> 
-    SerializeAllCodes(const std::unordered_map<uint8_t, std::vector<uint64_t>>& inputs, const bdpars::BDPars* bd_pars) {
-
-  std::unordered_map<uint8_t, std::pair<std::vector<uint64_t>, unsigned int>> outputs;
-
-  for (auto& it : inputs) {
-    uint8_t code = it.first;
-    if (bd_pars->UpEPCodeIsBDFunnelEP(code)) {
-      bdpars::BDFunnelEP leaf_id = static_cast<bdpars::BDFunnelEP>(code);
-      outputs.at(code) = SerializeFunnel(inputs.at(code), leaf_id, bd_pars);
+  } else {
+    // have to cast
+    for (auto& it : inputs) {
+      words.push_back(it);
     }
-    // XXX do something for FPGA inputs
   }
+  return words;
+}
 
-  return outputs;
+std::vector<uint32_t> SerializeEP(const std::vector<BDWord>& inputs, unsigned int D) {
+
+  std::vector<uint32_t> serialized;
+
+  if (D > 1) {
+    // if the width of a single data object sent downstream ever
+    // exceeds 64 bits, we may need to rethink this
+    assert(D == 2); // only case to deal with for now
+    for (auto& it : inputs) {
+      // lsb first, msb second
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::LSB));
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::MSB));
+    }
+  } else {
+    // XXX we have to cast for now. Probably should just change EncInput to have uint64_t/BDWord input
+    for (auto& it : inputs) {
+      serialized.push_back(static_cast<uint32_t>(it));
+    }
+  }
+  return serialized;
 }
 
 }  // bdmodel

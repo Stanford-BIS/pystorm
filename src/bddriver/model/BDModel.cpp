@@ -22,31 +22,34 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
   std::unique_lock<std::mutex>(mutex_);
 
-  // pack uint8_t stream into uint32_ts, other FPGA stuff
+  // pack uint8_t stream into uint32_ts
   std::vector<uint32_t> BD_input_words = FPGAInput(input_stream, bd_pars_);
 
   // decode endpoint
-  std::unordered_map<uint8_t, std::vector<uint32_t>> new_horn_words;
+  std::unordered_map<uint8_t, std::vector<uint32_t>> ep_words;
   for (auto& it : BD_input_words) {
     uint8_t code = GetField<FPGAIO>(it, FPGAIO::EP_CODE);
     uint32_t payload = GetField<FPGAIO>(it, FPGAIO::PAYLOAD);
-    new_horn_words.at(code).push_back(payload);
+    if (ep_words.count(code) == 0) 
+      ep_words.insert({code, {}});
+    ep_words.at(code).push_back(payload);
   }
 
   // deserialize at horn leaves where required
-  
-  // build up starting from remainders of last iteration
-  std::unordered_map<uint8_t, std::vector<uint32_t>> horn_words;
-  horn_words.swap(remainders_);
-  for (unsigned int i = 0 ; i < new_horn_words.size(); i++) {
-    horn_words.at(i).insert(horn_words.at(i).end(), new_horn_words.at(i).begin(), new_horn_words.at(i).end());
+  std::unordered_map<uint8_t, std::vector<BDWord>> des_ep_words;
+  for (auto& it : ep_words) {
+    uint8_t ep = it.first;
+    const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+    const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep);
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
+        ep_data_size / FPGA_payload_width 
+      : ep_data_size / FPGA_payload_width + 1;
+
+    des_ep_words.insert({ep, DeserializeEP(it.second, D)});
   }
 
-  std::unordered_map<uint8_t, std::vector<uint64_t>> des_horn_words;
-  std::tie(des_horn_words, remainders_) = DeserializeAllCodes(horn_words, bd_pars_);
-
-  // iterate through leaves
-  for (auto& it : des_horn_words) {
+  // process each endpoint like FPGA/BD
+  for (auto& it : des_ep_words) {
     uint8_t code = it.first;
     Process(code, it.second);
   }
@@ -55,16 +58,24 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
 std::vector<uint8_t> BDModel::GenerateOutputs() {
 
-  // serialize if necessary (AM word only?)
-  std::unordered_map<uint8_t, std::pair<std::vector<uint64_t>, unsigned int>> 
-    serialized_chunks_and_widths = SerializeAllCodes(to_send_, bd_pars_);
+  // serialize words like FPGA
+  std::unordered_map<uint8_t, std::vector<uint32_t>> ser_ep_words;
+  for (auto& it : to_send_) {
+    uint8_t ep = it.first;
+    const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+    const unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
+        ep_data_size / FPGA_payload_width 
+      : ep_data_size / FPGA_payload_width + 1;
+
+    ser_ep_words.insert({ep, SerializeEP(it.second, D)});
+  }
 
   // then pack into FPGA words
   std::vector<uint32_t> FPGA_words;
-  for (auto& it : serialized_chunks_and_widths) {
+  for (auto& it : ser_ep_words) {
     uint8_t code = it.first;
-    assert(it.second.second < 24); // serialized data width must be less than FPGA payload size
-    for (auto& payload : it.second.first) {
+    for (auto& payload : it.second) {
       FPGA_words.push_back(PackWord<FPGAIO>({{FPGAIO::EP_CODE, code}, {FPGAIO::PAYLOAD, payload}}));
     }
   }

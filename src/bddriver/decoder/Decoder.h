@@ -30,7 +30,7 @@ class Decoder : public Xcoder {
     out_bufs_(out_bufs),
     deserializer_(VectorDeserializer<DecInput>(bytesPerInput)) {};
 
-  ~Decoder();
+  ~Decoder() {};
 
  private:
 

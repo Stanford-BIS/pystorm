@@ -20,8 +20,8 @@ void Encoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<EncInput>> popped_vect = in_buf_->Pop(timeout_us_);
   if (popped_vect->size() > 0) {
-    std::unique_ptr<std::vector<EncOutput>> to_push_vect Encode(std::move(popped_vect));
-    out_bufs_[0]->Push(std::move(to_push_vect)); // push can't block indefinitely
+    std::unique_ptr<std::vector<EncOutput>> to_push_vect = Encode(std::move(popped_vect));
+    out_buf_->Push(std::move(to_push_vect)); // push can't block indefinitely
   }
 }
 
