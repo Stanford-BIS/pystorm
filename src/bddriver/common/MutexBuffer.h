@@ -41,10 +41,12 @@ class MutexBuffer {
   /// Blocks until it can gain the lock (shouldn't take long)
   void Push(std::unique_ptr<std::vector<T>> input) {
     // gain lock, release it when we fall out of scope
-    std::unique_lock<std::mutex>(lock_);
+    std::unique_lock<std::mutex> ulock(lock_);
+
+    assert(input.get() != nullptr);
 
     // push (move) vector pointer to back of queue
-    vals_.push(std::move(input));
+    vals_.emplace(std::move(input));
 
     // let the sleeping threads know they can wake up
     just_pushed_.notify_all();
@@ -58,14 +60,16 @@ class MutexBuffer {
     std::unique_lock<std::mutex> ulock(lock_);
 
     // if empty, go to sleep until notified
-    if (try_for_us == 0) { // sleep indefinitely
-      just_pushed_.wait(ulock, [this] { return !vals_.empty(); });
-    } else { // else, time out after try_for_us microseconds
-      auto timeout = std::chrono::duration<unsigned int, std::micro>(try_for_us);
-      bool success = just_pushed_.wait_for(ulock, timeout, [this] { return !vals_.empty(); });
-      if (!success) {
-        // return empty vector pointer if we timed out
-        return std::make_unique<std::vector<T>>();
+    if (vals_.empty()) {
+      if (try_for_us == 0) { // sleep indefinitely
+        just_pushed_.wait(ulock, [this] { return !vals_.empty(); });
+      } else { // else, time out after try_for_us microseconds
+        auto timeout = std::chrono::duration<unsigned int, std::micro>(try_for_us);
+        bool success = just_pushed_.wait_for(ulock, timeout, [this] { return !vals_.empty(); });
+        if (!success) {
+          // return empty vector pointer if we timed out
+          return std::make_unique<std::vector<T>>();
+        }
       }
     }
 

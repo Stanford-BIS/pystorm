@@ -24,7 +24,8 @@ void Produce(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &v
   for (auto& v : vals) {
     //cout << "prod " << i << endl;
     // copy each vector and push
-    auto un_copy = std::make_unique<std::vector<T>>(v);
+    std::unique_ptr<std::vector<T>> un_copy = std::make_unique<std::vector<T>>(v);
+    assert(un_copy.get() != nullptr);
     buf->Push(std::move(un_copy));
     i++;
   }

@@ -56,9 +56,11 @@ class MutexBufferFixture : public testing::Test {
 TEST_F(MutexBufferFixture, Test1to1PushThenPop) {
   producer0 = std::thread(Produce<unsigned int>, buf, vals0);
   producer0.join();
+  //cout << "producer joined" << endl;
 
   consumer0 = std::thread(ConsumeAndCheck<unsigned int>, buf, vals0, 0);
   consumer0.join();
+  //cout << "consumer joined" << endl;
 }
 
 TEST_F(MutexBufferFixture, Test1to1) {
@@ -66,9 +68,9 @@ TEST_F(MutexBufferFixture, Test1to1) {
   consumer0 = std::thread(ConsumeAndCheck<unsigned int>, buf, vals0, 0);
 
   producer0.join();
-  cout << "producer joined" << endl;
+  //cout << "producer joined" << endl;
   consumer0.join();
-  cout << "consumer joined" << endl;
+  //cout << "consumer joined" << endl;
 }
 
 TEST_F(MutexBufferFixture, Test1to1WithTimeout) {
@@ -78,7 +80,9 @@ TEST_F(MutexBufferFixture, Test1to1WithTimeout) {
   consumer0 = std::thread(ConsumeAndCheck<unsigned int>, buf, vals0, 1000);
 
   producer0.join();
+  //cout << "producer joined" << endl;
   consumer0.join();
+  //cout << "consumer joined" << endl;
 }
 
 
@@ -91,9 +95,12 @@ TEST_F(MutexBufferFixture, Test2to1) {
   consumer0 = std::thread(Consume<unsigned int>, buf, &consumed, 2 * N, 0);
 
   producer0.join();
+  //cout << "producer0 joined" << endl;
   producer1.join();
+  //cout << "producer1 joined" << endl;
 
   consumer0.join();
+  //cout << "consumer joined" << endl;
 
   // because of nondeterminism, can't test for much more than the following
   // XXX FIXME
@@ -121,18 +128,18 @@ TEST_F(MutexBufferFixture, Test2to2) {
   producer0 = std::thread(Produce<unsigned int>, buf, vals0);
   producer1 = std::thread(Produce<unsigned int>, buf, vals1);
 
-  consumer0 = std::thread(Consume<unsigned int>, buf, &consumed0, 2 * N, 0);
-  consumer1 = std::thread(Consume<unsigned int>, buf, &consumed1, 2 * N, 0);
+  consumer0 = std::thread(Consume<unsigned int>, buf, &consumed0, 2, 0);
+  consumer1 = std::thread(Consume<unsigned int>, buf, &consumed1, 2, 0);
 
   producer0.join();
-  // cout << "p 0 joined" << endl;
+  // cout << "producer0 joined" << endl;
   producer1.join();
-  // cout << "p 1 joined" << endl;
+  // cout << "producer1 joined" << endl;
 
   consumer0.join();
-  // cout << "c 0 joined" << endl;
+  // cout << "consumer0 joined" << endl;
   consumer1.join();
-  // cout << "c 1 joined" << endl;
+  // cout << "consumer1 joined" << endl;
 
   //XXX FIXME
   //unsigned int* counts = new unsigned int[2 * N];
