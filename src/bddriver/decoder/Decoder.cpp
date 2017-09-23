@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "common/DriverTypes.h"
 #include "common/BDPars.h"
 #include "common/BDWord.h"
 #include "common/MutexBuffer.h"
@@ -25,9 +26,10 @@ void Decoder::RunOnce() {
     std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> to_push_vects = Decode(std::move(popped_vect));
 
     // push to each output vector
-    assert(to_push_vects.size() == out_bufs_.size());
-    for (unsigned int i = 0; i < out_bufs_.size(); i++) {
-      out_bufs_[i]->Push(std::move(to_push_vects[i]));
+    for (auto& it : to_push_vects) {
+      uint8_t ep_code = it.first;
+      std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
+      out_bufs_.at(ep_code)->Push(std::move(vvect));
     }
 
   }
@@ -80,7 +82,7 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
     to_push.time    = time;
 
     if (outputs.count(ep_code) == 0) {
-      outputs.at(ep_code) = std::unique_ptr<std::vector<DecOutput>>(new std::vector<DecOutput>);
+      outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
     }
     outputs.at(ep_code)->push_back(to_push);
   }

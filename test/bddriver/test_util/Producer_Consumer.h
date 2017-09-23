@@ -46,7 +46,7 @@ void ConsumeAndReport(bddriver::MutexBuffer<T>* buf, std::vector<std::vector<T>>
   unsigned int i = 0;
   while (i < N) {
     if (report_every != 0) {
-      if (i % report_every == 0) cout << "Producer " << std::this_thread::get_id() << " : sent " << i << endl;
+      if (i % report_every == 0) cout << "Consumer " << std::this_thread::get_id() << " : got " << i << endl;
     }
     //cout << "before pop" << i << endl;
     std::unique_ptr<std::vector<T>> popped = buf->Pop(try_for_us);
