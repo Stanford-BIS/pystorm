@@ -31,20 +31,27 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
   std::unordered_map<uint8_t, DOVect> dec_outputs;
   std::vector<uint8_t> up_eps = pars->GetUpEPs();
   for (auto& it : up_eps) {
+    cout << int(it) << endl;
     dec_outputs.insert({it, {}});
   }
 
   // rng
   std::default_random_engine generator(0);
-  std::uniform_int_distribution<uint8_t> input_dist(0, UINT8_MAX);
+  std::uniform_int_distribution<uint8_t> payload_dist(0, UINT8_MAX);
+  std::uniform_int_distribution<uint8_t> code_dist(0, up_eps.size()-1);
 
   for (unsigned int i = 0; i < N; i++) {
     // make random input data
     uint8_t b[4];
-    for (unsigned int j = 0; j < 4; j++) {
-      b[i] = input_dist(generator);
+    for (unsigned int j = 0; j < 3; j++) {
+      b[i] = payload_dist(generator);
       dec_inputs.push_back(b[i]);
     }
+    uint8_t idx = code_dist(generator);
+    assert(idx < up_eps.size());
+    b[3] = up_eps.at(idx);
+    dec_inputs.push_back(b[3]);
+
 
     // pack
     uint32_t packed = PackWord<FPGABYTES>(
@@ -52,16 +59,32 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
          {FPGABYTES::B1, b[1]}, 
          {FPGABYTES::B2, b[2]}, 
          {FPGABYTES::B3, b[3]}});
+    cout << "b " << packed << endl;
+    cout << " b[0] " << int(b[0]) << endl;
+    cout << " b[1] " << int(b[1]) << endl;
+    cout << " b[2] " << int(b[2]) << endl;
+    cout << " b[3] " << int(b[3]) << endl;
+    cout << "packed " << packed << endl;
+    cout << " at0 " << GetField(packed, FPGABYTES::B0) << endl;
+    cout << " at1 " << GetField(packed, FPGABYTES::B1) << endl;
+    cout << " at2 " << GetField(packed, FPGABYTES::B2) << endl;
+    cout << " at3 " << GetField(packed, FPGABYTES::B3) << endl;
 
     // extract code, payload
     uint8_t code = GetField(packed, FPGAIO::EP_CODE);
     uint32_t payload = GetField(packed, FPGAIO::PAYLOAD);
     BDTime time = 0; // XXX temporary
+    cout << " code " << int(code) << endl;
+    cout << " payload " << payload << endl;
 
     DecOutput to_push;
     to_push.payload = payload;
     to_push.time = time;
 
+    if (dec_outputs.count(code) == 0) {
+      cout << int(code) << endl;
+      assert(false);
+    }
     dec_outputs.at(code).push_back(to_push);
   }
 
@@ -84,11 +107,15 @@ TEST(DecoderTest, MainDecoderTest) {
   unsigned int M = 100;
   unsigned int N = 100;
 
+  cout << "hi" << endl;
+  // this is super confusing, turn the map<vector<>> into a map<vector<vector<>>> for outputs
   std::vector<DIVect> all_inputs;
   std::unordered_map<uint8_t, std::vector<DOVect>> all_outputs;
   for (unsigned int i = 0; i < N; i++) {
     auto in_and_out = MakeDecInputAndOutputs(M, &pars);
+    cout << "hi" << endl;
     all_inputs.push_back(in_and_out.first);
+    cout << "hi" << endl;
     for (auto& it : in_and_out.second) {
       if (all_outputs.count(it.first) == 0)
         all_outputs.insert({it.first, {}});
@@ -96,13 +123,16 @@ TEST(DecoderTest, MainDecoderTest) {
     }
   }
   
+  cout << "hi" << endl;
   std::thread producer = std::thread(Produce<DecInput>, &buf_in, all_inputs);
-  std::vector<std::thread> consumers;
 
+  // one consumer per output
+  std::vector<std::thread> consumers;
   std::unordered_map<uint8_t, std::vector<DOVect>> recvd_outputs;
   for (auto& it : bufs_out) {
     recvd_outputs.insert({it.first, {}});
-    consumers.push_back(std::thread(Consume<DecOutput>, it.second, &recvd_outputs.at(it.first), N, 0));
+    unsigned int num_to_consume = all_outputs.at(it.first).size(); // should be N or close to it
+    consumers.push_back(std::thread(Consume<DecOutput>, it.second, &recvd_outputs.at(it.first), num_to_consume, 0));
   }
   
   // need nonzero timeout so we can stop ourselves

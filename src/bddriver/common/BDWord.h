@@ -256,8 +256,8 @@ uint64_t PackWord(const std::initializer_list<std::pair<T, uint64_t> > & fields)
   uint64_t curr_shift = 0;
   for (unsigned int i = 0; i < static_cast<unsigned int>(T::FIELDCOUNT); i++) {
     retval |= FieldHCVal(static_cast<T>(i)) << curr_shift;
-    curr_shift += FieldWidth(static_cast<T>(i));
     shifts[i] = curr_shift;
+    curr_shift += FieldWidth(static_cast<T>(i));
   }
 
   // OR in user values
