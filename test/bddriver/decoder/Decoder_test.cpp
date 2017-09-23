@@ -100,18 +100,21 @@ TEST(DecoderTest, MainDecoderTest) {
   std::vector<std::thread> consumers;
 
   std::unordered_map<uint8_t, std::vector<DOVect>> recvd_outputs;
-  for (auto& it : all_outputs) {
+  for (auto& it : bufs_out) {
     recvd_outputs.insert({it.first, {}});
-    consumers.push_back(std::thread(Consume<DecOutput>, bufs_out.at(it.first), &recvd_outputs.at(it.first), N, 0));
+    consumers.push_back(std::thread(Consume<DecOutput>, it.second, &recvd_outputs.at(it.first), N, 0));
   }
   
-
-  Decoder dec(&buf_in, bufs_out, 0);
+  // need nonzero timeout so we can stop ourselves
+  Decoder dec(&buf_in, bufs_out, 1000);
   dec.Start();
 
   producer.join();
+  cout << "producer joined" << endl;
+  unsigned int i = 0;
   for (auto& it : consumers) {
     it.join();
+    cout << "consumer " << i++ << " joined" << endl;
   }
   
   // because of dumb gtest reasons, we can't just define equality for DecOutput

@@ -33,7 +33,7 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
 
   // rng
   std::default_random_engine generator(0);
-  std::uniform_int_distribution<uint32_t> payload_dist(0, UINT32_MAX);
+  std::uniform_int_distribution<uint32_t> payload_dist(0, (1<<24)-1);
   std::uniform_int_distribution<uint8_t> ep_code_dist(0, UINT8_MAX);
 
   for (unsigned int i = 0; i < N; i++) {
@@ -85,11 +85,14 @@ TEST(EncoderTest, MainEncoderTest) {
   std::thread producer = std::thread(Produce<EncInput>, &buf_in, all_inputs);
   std::thread consumer = std::thread(ConsumeAndCheck<EncOutput>, &buf_out, all_outputs, 0);
 
-  Encoder enc(&buf_in, &buf_out, 0);
+  // need nonzero timeout so we can stop ourselves
+  Encoder enc(&buf_in, &buf_out, 1000);
   enc.Start();
 
   producer.join();
+  //cout << "producer joined" << endl;
   consumer.join();
+  //cout << "consumer joined" << endl;
 
   enc.Stop();
 }
