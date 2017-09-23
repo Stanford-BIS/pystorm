@@ -116,7 +116,7 @@ def SendWords(dev, codes):
     print(dev.WriteToBlockPipeIn(ep_dn, block_size, buf))
 
 import time
-  
+
 if __name__ ==  "__main__":
 
     dev = ok.InitOK(bitfile)
@@ -130,15 +130,15 @@ if __name__ ==  "__main__":
 
     # run through reset cycle, with some delays beween each phase
     SendWords(dev, BD_Reset0)
-    time.sleep(.1)
+    time.sleep(.5)
     SendWords(dev, BD_Reset1)
-    time.sleep(.1)
+    time.sleep(.5)
     SendWords(dev, BD_Reset2)
-    time.sleep(.1)
+    time.sleep(.5)
 
     # gives alex a second to hit trigger on scope
     time.sleep(5)
-    
+
     # reset DACs (should already be reset)
     DACs = [
         ['BDHORN', 'DAC0', '0x000'],
@@ -161,9 +161,7 @@ if __name__ ==  "__main__":
     while(True):
         out_buf = bytearray(block_size*4)
         dev.ReadFromPipeOut(ep_up, out_buf)
-        PrintBytearrayAs32b(out_buf[0:16])
-        print(out_buf)
-        print("done")
+        PrintBytearrayAs32b(out_buf)
         print(i)
         i += 1
         time.sleep(.5)

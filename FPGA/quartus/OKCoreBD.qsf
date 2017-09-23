@@ -42,7 +42,7 @@ set_global_assignment -name DEVICE 5CEFA2U19C8
 set_global_assignment -name TOP_LEVEL_ENTITY OKCoreBD
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "09:07:22  SEPTEMBER 15, 2017"
-set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "17.0.2 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
@@ -64,7 +64,7 @@ set_location_assignment PIN_W12 -to pReset
 set_location_assignment PIN_AA15 -to sReset
 set_location_assignment PIN_AB17 -to BD_in_clk
 set_location_assignment PIN_AB15 -to BD_in_ready
-set_location_assignment PIN_T13 -to BD_in_valid
+set_location_assignment PIN_T13 -to _BD_in_valid
 set_location_assignment PIN_U13 -to BD_in_data[33]
 set_location_assignment PIN_R12 -to BD_in_data[32]
 set_location_assignment PIN_AB16 -to BD_in_data[31]
@@ -129,7 +129,7 @@ set_instance_assignment -name IO_STANDARD "1.8 V" -to pReset
 set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_clk
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_ready
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_valid
+set_instance_assignment -name IO_STANDARD "1.8 V" -to _BD_in_valid
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[*]
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_clk
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_ready
@@ -274,6 +274,7 @@ set_global_assignment -name QIP_FILE BDInFIFO.qip
 set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreBD.sv
 set_global_assignment -name SDC_FILE sys_clk.sdc
 set_global_assignment -name SDC_FILE okHost.sdc
+
 
 
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

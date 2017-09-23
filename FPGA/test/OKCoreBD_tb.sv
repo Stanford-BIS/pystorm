@@ -23,7 +23,7 @@ wire [20:0] BD_out_data;
 
 wire        BD_in_clk;
 wire        BD_in_ready;
-wire        BD_in_valid;
+wire        _BD_in_valid;
 wire[33:0]  BD_in_data;
 
 wire        pReset;
@@ -55,10 +55,10 @@ OKCoreBD dut(.*);
 logic reset_for_BD_src_sink;
 assign reset_for_BD_src_sink = sReset | pReset;
 // BD src
-BD_Source #(.NUM_BITS(34), .ClkDelaysMin(0), .ClkDelaysMax(1)) src(BD_in_data, BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
+BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(200)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
 
 // BD sink
-BD_Sink #(.NUM_BITS(21), .ClkDelaysMin(0), .ClkDelaysMax(1)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
+BD_Sink #(.NUM_BITS(21), .DelayMin(0), .DelayMax(200)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
 
 //------------------------------------------------------------------------
 // Begin okHostInterface simulation user configurable  global data

@@ -27,4 +27,4 @@ services:
         stdin_open: true
         tty: true
         command: /home/quartus/intelFPGA_lite/17.0/modelsim_ase/linux/vsim
-        working_dir: /home/dev/pystorm
+        working_dir: /home/dev/pystorm/FPGA/test
