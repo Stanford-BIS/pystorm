@@ -71,7 +71,7 @@ Beyond the default cmake options, our CMakeLists.txt files use following options
 
 * `-DPYTHON_EXECUTABLE=<path>` tells cmake to use the Python interpreter at `<path>`
 * `-DCMAKE_BUILD_TYPE=<[Release, Debug]>` Used for single-configuration generators (e.g. GNU make and its relatives) to tell which build type to set up and build. For multi-configuration generators (e.g. Visual Studio and Xcode), use the `cmake --build`  `--config` option as described [below](#cmake-build-options). For the distinction between single and multi-configuration generators, see [here](https://stackoverflow.com/a/24470998)
-* `-DBD_COMM_TYPE=<[MODEL, OPALKELLY, SOFT, USB>` tells which kind of communication to expect
+* `-DBD_COMM_TYPE=<[MODEL, OPALKELLY, SOFT, USB]>` tells which kind of communication to expect
 
 For example,
 
@@ -85,11 +85,13 @@ tells cmake to use the python interpreter at `/path/to/python`, to make a `Relea
 
 * `--config <[Release, Debug]>` tells cmake which configuration type to build for multi-configuration generators.
 
-For example,
+We can also pass native compiler options to the build after adding a `--` in the call:
 
-`cmake --build . --config Release`
+As an example,
 
-tells cmake to build the project in the current directory for the `Release` configuration.
+`cmake --build . --config Release -- -j6`
+
+tells cmake to build the project in the current directory for the `Release` configuration and pass `-j6` to the compiler, which for g++ says to use 6 threads for the build.
 
 # TEST 
 
@@ -99,6 +101,12 @@ following command.
 ```
     ctest -C Debug -j6 -T test -VV --timeout 300
 ```
+
+* `-C <[Debug, Release]>` selects between debug and release configurations
+* `-j<number of threads>` parallelizes the build
+* `-T test` specifies the type of test (always `test` for us)
+* `-VV` specifies extra verbosity
+* `--timout 300` specifieds that the tests should be halted at 5 minutes if they're still running (i.e. in case the tests are hanging)
 
 # Dependencies
 
