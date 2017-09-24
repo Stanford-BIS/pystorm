@@ -17,6 +17,18 @@ using std::endl;
 // Downstream FPGA endpoints
 //////////////////////////////////////////////
 
+/// gcc 5 doesn't support enum class as map key.
+/// Using EnumClassHash as the hash to the map
+/// fixes the problem.
+struct EnumClassHash
+{
+  template <typename T>
+  std::size_t operator()(T t) const
+  {
+    return static_cast<std::size_t>(t);
+  }
+};
+
 namespace pystorm {
 namespace bddriver {
 namespace bdpars {
@@ -232,7 +244,7 @@ class BDPars {
   std::unordered_map<uint8_t , unsigned int> Up_EP_size_;
 
   // memory info
-  std::unordered_map<BDMemId, MemInfo> mem_info_;
+  std::unordered_map<BDMemId, MemInfo, EnumClassHash> mem_info_;
 
   BDPars();
 
