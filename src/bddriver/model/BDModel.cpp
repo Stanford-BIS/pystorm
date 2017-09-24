@@ -14,6 +14,10 @@ BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
   bd_pars_     = bd_pars;
 
   state_ = new BDState(bd_pars_, driver_pars_);
+
+  for(auto& it : bd_pars_->GetUpEPs()) {
+    to_send_.insert({it, {}});
+  }
 }
 
 BDModel::~BDModel() { delete state_; }
@@ -53,6 +57,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
     uint8_t code = it.first;
     Process(code, it.second);
   }
+
 }
 
 
@@ -246,6 +251,7 @@ void BDModel::Process(uint8_t code, const std::vector<uint64_t>& inputs) {
       bdpars::BDHornEP leaf_id = static_cast<bdpars::BDHornEP>(code);
       ProcessBDHorn(leaf_id, input);
     }
+    // XXX add other Process()ers
   }
 }
 

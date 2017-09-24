@@ -174,8 +174,8 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::PAT  , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size  , 0) , 0);
     SetMem(i , bdpars::BDMemId::TAT0 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size , 0) , 0);
     SetMem(i , bdpars::BDMemId::TAT1 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size , 0) , 0);
-    SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
     SetMem(i , bdpars::BDMemId::MM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size   , 0) , 0);
+    SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
 
     // XXX other stuff to do?
   }
@@ -288,19 +288,17 @@ void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
   SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
 }
 
-std::vector<BDWord> Driver::GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id) {
-  std::vector<BDWord> data = RecvFromEP(core_id, output_id).first;
-  return data;
-}
-
 std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {
-  return GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO);
+  return RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO).first;
 }
 
 std::pair<std::vector<BDWord>, std::vector<BDWord> > Driver::GetPostFIFODump(unsigned int core_id) {
   std::vector<BDWord> tags0, tags1;
-  tags0 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0);
-  tags1 = GetFIFODump(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1);
+
+  while (tags0.size() == 0 && tags1.size() == 0) {
+    tags0 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0, 1000).first;
+    tags1 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1, 1000).first;
+  }
 
   return std::make_pair(tags0, tags1);
 }
@@ -516,7 +514,18 @@ void Driver::SetMem(
   SendToEP(core_id, horn_ep, encapsulated_words);
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
-    RecvFromEP(core_id, funnel_ep);
+    
+    unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+
+    // XXX this might discard remainders
+    unsigned int n_recvd = 0;
+    while (n_recvd < data.size()) {
+      std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
+      n_recvd += recvd.first.size();
+    }
+    if (n_recvd > mem_size) {
+      cout << "WARNING! LOST SOME AM WORDS" << endl;
+    }
   }
   ResumeTraffic(core_id);
 }
@@ -556,7 +565,16 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
   PauseTraffic(core_id);
   SendToEP(core_id, horn_ep, encapsulated_words);
-  std::vector<BDWord> payloads = RecvFromEP(core_id, funnel_ep).first;
+
+  // XXX this might discard remainders
+  std::vector<BDWord> payloads;
+  while (payloads.size() < mem_size) {
+    std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
+    payloads.insert(payloads.end(), recvd.first.begin(), recvd.first.end());
+  }
+  if (payloads.size() > mem_size) {
+    cout << "WARNING! LOST SOME MEM(BDMemId enum=" << int(mem_id) << ") WORDS" << endl;
+  }
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to word format
@@ -618,7 +636,7 @@ std::vector<BDWord> Driver::PackRIWIDumpWords(
   retval.push_back(PackWord<TSet>({{TSet::ADDRESS, start_addr}}));
 
   for (unsigned int i = 0; i < end_addr - start_addr; i++) {
-    retval.push_back(PackWord<TRead>({{}}));
+    retval.push_back(PackWord<TRead>({}));
   }
 
   return retval;
@@ -639,7 +657,7 @@ std::vector<BDWord> Driver::PackRMWProgWords(
 
   for (auto& it : payload) {
     retval.push_back(PackWord<TReadWrite>({{TReadWrite::DATA, it}}));
-    retval.push_back(PackWord<TInc>({{}}));
+    retval.push_back(PackWord<TInc>({}));
   }
 
   return retval;
@@ -687,8 +705,11 @@ std::pair<std::vector<BDWord>,
   RetType tat_tags; 
   RetType acc_tags;
 
-  tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT);
-  acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC);
+  // XXX need to have a timeout, otherwise we can hang even when we have something to send
+  while (tat_tags.first.size() == 0 && acc_tags.first.size() == 0) {
+    tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT, 1000);
+    acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC, 1000);
+  }
 
   // concatenate
   tat_tags.first.insert(tat_tags.first.end()   , acc_tags.first.begin()  , acc_tags.first.end());
@@ -757,11 +778,11 @@ void Driver::SendToEP(unsigned int core_id,
 
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
-  Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code) {
+  Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
 
   // get data from buffer
   MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(ep_code);
-  std::unique_ptr<std::vector<DecOutput>> new_data = this_buf->Pop();
+  std::unique_ptr<std::vector<DecOutput>> new_data = this_buf->Pop(timeout_us);
 
   std::vector<BDWord> words;
   std::vector<BDTime> times;

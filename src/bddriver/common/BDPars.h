@@ -271,9 +271,11 @@ class BDPars {
     const std::vector<BDHornEP> streams = {
       BDHornEP::NEURON_CONFIG, 
       BDHornEP::NEURON_INJECT, 
+      BDHornEP::INIT_FIFO_DCT,
+      BDHornEP::INIT_FIFO_HT,
       BDHornEP::RI};
     bool found = std::find(streams.begin(), streams.end(), ep) != streams.end();
-    return !found;
+    return found;
   }
 
   bool BDHornEPIsMem(BDHornEP ep) const {
@@ -283,18 +285,23 @@ class BDPars {
       BDHornEP::PROG_TAT0, 
       BDHornEP::PROG_TAT1};
     bool found = std::find(mems.begin(), mems.end(), ep) != mems.end();
-    return !found;
+    return found;
   }
   
   bool BDHornEPIsReg(BDHornEP ep) const {
-    return !(BDHornEPIsMem(ep) || BDHornEPIsInputStream(ep));
+    // if it's not an input stream and it's not a memory, it's a reg
+    return !BDHornEPIsMem(ep) && !BDHornEPIsInputStream(ep);
   }
   
   std::vector<BDHornEP> GetBDRegs() const {
     std::vector<BDHornEP> retval;
-    for (unsigned int i = 0; i < static_cast<unsigned int>(BDHornEP::COUNT); i++) {
-      if (BDHornEPIsReg(static_cast<BDHornEP>(i))) {
-        retval.push_back(static_cast<BDHornEP>(i));
+    for (auto& it : Dn_EP_size_) {
+      uint8_t code = it.first;
+      if (DnEPCodeIsBDHornEP(code)) {
+        BDHornEP ep = static_cast<BDHornEP>(code);
+        if (BDHornEPIsReg(ep)) {
+          retval.push_back(ep);
+        }
       }
     }
     return retval;

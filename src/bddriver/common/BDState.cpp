@@ -155,15 +155,15 @@ bool operator==(const BDState& lhs, const BDState& rhs)
 
   // check memories
   bool AM_matches = *lhs.GetMem(bdpars::BDMemId::AM) == *rhs.GetMem(bdpars::BDMemId::AM);
-  // if (!AM_matches) cout << "AM didn't match" << endl;
+  if (!AM_matches) cout << "AM didn't match" << endl;
   bool MM_matches = *lhs.GetMem(bdpars::BDMemId::MM) == *rhs.GetMem(bdpars::BDMemId::MM);
-  // if (!MM_matches) cout << "MM didn't match" << endl;
+  if (!MM_matches) cout << "MM didn't match" << endl;
   bool TAT0_matches = *lhs.GetMem(bdpars::BDMemId::TAT0) == *rhs.GetMem(bdpars::BDMemId::TAT0);
-  // if (!TAT0_matches) cout << "TAT0 didn't match" << endl;
+  if (!TAT0_matches) cout << "TAT0 didn't match" << endl;
   bool TAT1_matches = *lhs.GetMem(bdpars::BDMemId::TAT1) == *rhs.GetMem(bdpars::BDMemId::TAT1);
-  // if (!TAT1_matches) cout << "TAT1 didn't match" << endl;
+  if (!TAT1_matches) cout << "TAT1 didn't match" << endl;
   bool PAT_matches = *lhs.GetMem(bdpars::BDMemId::PAT) == *rhs.GetMem(bdpars::BDMemId::PAT);
-  // if (!PAT_matches) cout << "PAT didn't match" << endl;
+  if (!PAT_matches) cout << "PAT didn't match" << endl;
   bool mems_match = AM_matches && MM_matches && TAT0_matches && TAT1_matches && PAT_matches;
 
   // check registers
@@ -176,17 +176,13 @@ bool operator==(const BDState& lhs, const BDState& rhs)
     bool valid_match = lhs_valid == rhs_valid;
     bool vals_match  = *lhs_vals == *rhs_vals;
     regs_match       = regs_match && valid_match && vals_match;
-    // if (!valid_match) {
-    //  cout << "reg id " << i << " valid failed" << endl;
-    //  cout << lhs_valid << " vs " << rhs_valid << endl;
-    //}
-    // if (!vals_match) {
-    //  cout << "reg id " << i << " vals failed" << endl;
-    //  cout << "size " << lhs_vals->size() << " vs " << rhs_vals->size() << endl;
-    //  for (unsigned int i = 0; i < lhs_vals->size(); i++) {
-    //    cout << lhs_vals->at(i) << " vs " << rhs_vals->at(i) << endl;
-    //  }
-    //}
+     if (!valid_match) {
+      cout << "reg id " << int(it) << " valid failed" << endl;
+      cout << lhs_valid << " vs " << rhs_valid << endl;
+    }
+     if (!vals_match) {
+      cout << "reg id " << int(it) << " vals failed" << endl;
+    }
   }
 
   return mems_match && regs_match;

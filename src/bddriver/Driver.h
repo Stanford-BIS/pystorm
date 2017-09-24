@@ -473,13 +473,13 @@ class Driver {
   /// This isn't the most effective call.
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>>
-    RecvFromEP(unsigned int core_id, uint8_t ep_code);
+    RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us=0);
 
   /// Wrapper for convenience, can call with BDFunnelEP or FPGAOutputEP
   template <class T>
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>>
-    RecvFromEP(unsigned int core_id, T ep_enum) { return RecvFromEP(core_id, bd_pars_->UpEPCodeFor(ep_enum)); }
+    RecvFromEP(unsigned int core_id, T ep_enum, unsigned int timeout_us=0) { return RecvFromEP(core_id, bd_pars_->UpEPCodeFor(ep_enum), timeout_us); }
 
   ////////////////////////////////
   // memory programming helpers
@@ -513,8 +513,6 @@ class Driver {
 
   /// Set memory delay line value
   void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value);
-
-  std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::BDFunnelEP output_id);
 
   ///////////////////////////////
   // Neuron config stuff
