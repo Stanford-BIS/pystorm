@@ -34,7 +34,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
 endif()
 
 # Clang, mostly for Mac
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     add_definitions(-Wall -ansi -Wno-deprecated -O3 -march=native -DLOG_ENABLED)
 endif()
 
