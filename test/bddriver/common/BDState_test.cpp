@@ -38,8 +38,8 @@ TEST_F(BDStateFixture, TestTrafficTurnsOff) {
   // we haven't set anything, traffic can't be off
   ASSERT_FALSE(state->IsTrafficOff());
 
-  const std::vector<bdpars::RegId> kTrafficRegs = {
-      bdpars::NEURON_DUMP_TOGGLE, bdpars::TOGGLE_PRE_FIFO, bdpars::TOGGLE_POST_FIFO0, bdpars::TOGGLE_POST_FIFO1};
+  const std::vector<bdpars::BDHornEP> kTrafficRegs = {
+      bdpars::BDHornEP::NEURON_DUMP_TOGGLE, bdpars::BDHornEP::TOGGLE_PRE_FIFO, bdpars::BDHornEP::TOGGLE_POST_FIFO0, bdpars::BDHornEP::TOGGLE_POST_FIFO1};
   for (auto& reg : kTrafficRegs) {
     state->SetToggle(reg, false, false);
   }
