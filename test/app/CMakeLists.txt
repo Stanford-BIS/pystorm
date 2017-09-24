@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.0)
 #
 ############################################################################
 
-set(PROJECT_NAME_STR bddriver_test)
+set(PROJECT_NAME_STR bddriver_app)
 project(${PROJECT_NAME_STR} CXX)
 
 include(CheckRequirements)
@@ -67,18 +67,7 @@ set(INCLUDE_DIRS
 )
 
 set(TEST_SRC_FILES
-    ${PROJECT_SOURCE_DIR}/test_util/DriverTypes_util.cpp
-    ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
-    ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
-    #${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
-    #${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Binary_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/BDPars_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/DriverPars_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/BDState_test.cpp
-    ${PROJECT_SOURCE_DIR}/Driver_test.cpp
-    ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
+    ${PROJECT_SOURCE_DIR}/bddriver_app.cpp
 )
 
 include_directories(${INC_BASE_DIRS})
@@ -91,24 +80,12 @@ endif()
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 
-add_dependencies(${PROJECT_NAME_STR} gtest)
-add_dependencies(${PROJECT_NAME_STR} gtest_main)
-
 link_directories(${PYSTORM_BASE_LIB_DIR})
 
 target_link_libraries(${PROJECT_NAME_STR}
-    gtest
-    gtest_main
     ${CMAKE_THREAD_LIBS_INIT}
     Driver
 )
 
 set_property(TARGET ${PROJECT_NAME_STR} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-
-set(CTEST_ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")
-
-enable_testing()
-add_test(NAME AllTests COMMAND bddriver_test)
-
-set_property(TEST AllTests PROPERTY ENVIRONMENT "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${PYSTORM_BASE_LIB_DIR}")

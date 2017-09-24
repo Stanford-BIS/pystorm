@@ -29,17 +29,16 @@ void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput*
   for (unsigned int i = 0; i < num_popped; i++) {
     // unpack data
     // unsigned int core_id = inputs[i].core_id;
-    unsigned int leaf_id = inputs[i].leaf_id;
+    uint8_t leaf_id = inputs[i].leaf_id;
     uint32_t payload     = inputs[i].payload;
 
     // look up route for this leaf_id_
     // XXX not doing anything with core_id
-    bdpars::FHRoute leaf_route = pars_->HornRoute(leaf_id);
 
     // XXX this is where you would do something with the core id
 
     // encode horn
-    uint32_t horn_encoded = EncodeHorn(leaf_route, payload);
+    uint32_t horn_encoded = EncodeHorn(leaf_id, payload);
 
     // XXX this is where you would encode the FPGA
 
@@ -65,18 +64,11 @@ void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput*
   }
 }
 
-inline uint32_t Encoder::EncodeHorn(bdpars::FHRoute route, uint32_t payload) const {
+inline uint32_t Encoder::EncodeHorn(uint8_t leaf_id, uint32_t payload) const {
   // msb <- lsb
-  // [ X | payload | route ]
+  // [ leaf_id | payload ]
 
-  uint32_t route_val;
-  unsigned int route_len;
-  std::tie(route_val, route_len) = route;
-
-  // NOTE: don't need to know payload size
-  // could use PackV32({route_val, payload}, {route_len, 32 - route_len})
-  // optimize here by avoiding extra function call
-  uint32_t retval = route_val | (payload << route_len);
+  uint32_t retval = payload | (leaf_id << 24);
   return retval;
 }
 

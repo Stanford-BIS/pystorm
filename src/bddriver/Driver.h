@@ -15,9 +15,9 @@
 /*
  * TODO LIST: funnel/horn leaves that still need their calls finished
  *
- * horn_["NeuronConfig"]         (? needs impl (Ben))
- * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
- * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
+ * bdendpoints_["NeuronConfig"]         (? needs impl (Ben))
+ * bdendpoints_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
+ * bdendpoints_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
  *
  * XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
  */
@@ -130,6 +130,12 @@ class Driver {
   /// Control spike traffic from neuron array to driver
   void SetSpikeDumpState(unsigned int core_id, bool en);
 
+  ////////////////////////////////////////////////////////////////////////////////
+  /// FPGA configuration
+  ////////////////////////////////////////////////////////////////////////////////
+  void SetFPGARegisterValue(unsigned int reg_id, unsigned int value);
+  void SetFPGAChannelValue(unsigned int channel_id, unsigned int value);
+
   ////////////////////////////////
   // ADC/DAC Config
 
@@ -151,7 +157,7 @@ class Driver {
     void SetConfigMemory(unsigned int core_id, unsigned int elem_id,
                          std::map<U, std::vector<unsigned int>> config_map,
                          U config_type, unsigned int config_value);
-    
+
   ////////////////////////////////////////////////////////////////////////////
   // Soma controls
   ////////////////////////////////////////////////////////////////////////////
@@ -455,9 +461,9 @@ class Driver {
   // helpers
 
   std::pair<std::vector<uint32_t>, unsigned int> SerializeWordsToLeaf(
-      const std::vector<uint64_t> &inputs, bdpars::HornLeafId) const;
+      const std::vector<uint64_t> &inputs, bdpars::BDEndPointId) const;
   std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWordsFromLeaf(
-      const std::vector<uint32_t> &inputs, bdpars::FunnelLeafId leaf_id) const;
+      const std::vector<uint32_t> &inputs, bdpars::BDStartPointId leaf_id) const;
 
   /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
   ///
@@ -465,7 +471,7 @@ class Driver {
   /// For payloads that don't need to be serialized, or that might need to
   /// go to multiple cores, this isn't the most effective call.
   /// SendSpikes(), for example, pushes directly to the encoder's input buffer.
-  void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<BDWord> &payload);
+  void SendToHorn(unsigned int core_id, bdpars::BDEndPointId leaf_id, const std::vector<BDWord> &payload);
 
   /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
   /// associated with a supplied <core_id>.
@@ -476,7 +482,7 @@ class Driver {
   /// This isn't the most effective call.
   std::vector<BDWord> RecvFromFunnel(
       unsigned int core_id,
-      bdpars::FunnelLeafId leaf_id,
+      bdpars::BDStartPointId leaf_id,
       unsigned int num_to_recv = 0);
 
   ////////////////////////////////

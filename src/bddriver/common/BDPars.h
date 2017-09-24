@@ -14,7 +14,7 @@ using std::cout;
 using std::endl;
 
 // Syntactic sugar for defining word structures.
-// Don't be confused that these are structs: they're 
+// Don't be confused that these are structs: they're
 // never instantiated--just passed as template parameters.
 // Think of these are more like namespaces (which can't be passed to templates)
 //
@@ -32,7 +32,7 @@ struct NAME { \
   static constexpr unsigned int width {W0}; \
   static constexpr uint64_t field_hard_values[1] {V0}; \
   enum Field {F0}; \
-}; 
+};
 
 #define DEFWORD1(NAME, F0, W0) \
 struct NAME { \
@@ -126,9 +126,9 @@ struct NAME { \
 
 // XXX Something else you could try: cramming all the values into the enums
 // all we really need is the width and the shift for each field, and the hardcoded
-// value across all fields, If you have that, you can do the necessary operations 
-// (including computing the mask) without referring to the width of other fields. 
-// e.g. 
+// value across all fields, If you have that, you can do the necessary operations
+// (including computing the mask) without referring to the width of other fields.
+// e.g.
 
 /*
 // lsb -> msb
@@ -273,36 +273,36 @@ namespace bddriver {
 
 // register words
 
-DEFWORD2(ToggleWord, 
+DEFWORD2(ToggleWord,
     TRAFFIC_ENABLE, 1, DUMP_ENABLE, 1)
 
-DEFWORD2(DACWord,    
+DEFWORD2(DACWord,
     DAC_TO_ADC_CONN, 1, DAC_VALUE, 10)
 
-DEFWORD3(ADCWord,    
+DEFWORD3(ADCWord,
     ADC_SMALL_LARGE_CURRENT_0, 1, ADC_SMALL_LARGE_CURRENT_1, 1, ADC_OUTPUT_ENABLE, 1)
 
-DEFWORD2(DelayWord,  
+DEFWORD2(DelayWord,
     READ_DELAY, 4, WRITE_DELAY, 4)
 
 // memory words
-DEFWORD4(AMWord, 
+DEFWORD4(AMWord,
     ACCUMULATOR_VALUE, 15, THRESHOLD, 3, STOP, 1, NEXT_ADDRESS, 19)
 
-DEFWORD1(MMWord, 
+DEFWORD1(MMWord,
     WEIGHT, 8)
 
-DEFWORD3(PATWord, 
+DEFWORD3(PATWord,
     AM_ADDRESS, 10, MM_ADDRESS_LO, 8, MM_ADDRESS_HI, 2)
 
-DEFVALWORD4(TATAccWord, 
-    STOP,        1, 0, 
+DEFVALWORD4(TATAccWord,
+    STOP,        1, 0,
     FIXED_0,     2, 0,
     AM_ADDRESS, 10, 0,
     MM_ADDRESS, 16, 0)
 
-DEFVALWORD7(TATSpikeWord, 
-    STOP,               1, 0, 
+DEFVALWORD7(TATSpikeWord,
+    STOP,               1, 0,
     FIXED_1,            2, 1,
     SYNAPSE_ADDRESS_0, 11, 0,
     SYNAPSE_SIGN_0,     1, 0,
@@ -310,9 +310,9 @@ DEFVALWORD7(TATSpikeWord,
     SYNAPSE_SIGN_1,     1, 0,
     UNUSED,             2, 0)
 
-DEFVALWORD5(TATTagWord, 
+DEFVALWORD5(TATTagWord,
     STOP,          1, 0,
-    FIXED_2,       2, 2, 
+    FIXED_2,       2, 2,
     TAG,          11, 0,
     GLOBAL_ROUTE, 12, 0,
     UNUSED,        3, 0)
@@ -333,47 +333,47 @@ DEFVALWORD3(TATSetAddress,
     ADDRESS, 10, 0,
     UNUSED,  19, 0)
 
-DEFVALWORD2(TATWriteIncrement,   
+DEFVALWORD2(TATWriteIncrement,
     FIXED_1, 2, 1,
     DATA,   29, 0)
 
-DEFVALWORD2(TATReadIncrement,    
+DEFVALWORD2(TATReadIncrement,
     FIXED_2, 2, 2,
     UNUSED, 29, 0)
 
-DEFVALWORD3(MMSetAddress,        
+DEFVALWORD3(MMSetAddress,
     FIXED_0,  2, 0,
     ADDRESS, 16, 0,
     UNUSED,  22, 0)
 
-DEFVALWORD3(MMWriteIncrement,    
+DEFVALWORD3(MMWriteIncrement,
     FIXED_1, 2, 1,
     DATA,    8, 0,
     UNUSED, 30, 0)
 
-DEFVALWORD2(MMReadIncrement,     
+DEFVALWORD2(MMReadIncrement,
     FIXED_2, 2, 2,
     UNUSED, 38, 0)
 
-DEFVALWORD3(AMSetAddress,        
+DEFVALWORD3(AMSetAddress,
     FIXED_0,  2, 0,
     ADDRESS, 10, 0,
     UNUSED,  28, 0)
 
-DEFVALWORD2(AMReadWrite,         
+DEFVALWORD2(AMReadWrite,
     FIXED_1, 2, 1,
     DATA,   38, 0)
 
-DEFVALWORD2(AMIncrement,          
+DEFVALWORD2(AMIncrement,
     FIXED_2, 2, 2,
     UNUSED, 38, 0)
 
-DEFVALWORD3(AMEncapsulation,      
+DEFVALWORD3(AMEncapsulation,
     FIXED_0,   1, 0,
     PAYLOAD,  40, 0,
     AMMM_STOP, 1, 0)
 
-DEFVALWORD3(MMEncapsulation,      
+DEFVALWORD3(MMEncapsulation,
     FIXED_1,   1, 1,
     PAYLOAD,  40, 0,
     AMMM_STOP, 1, 0)
@@ -420,7 +420,7 @@ DEFVALWORD8(NeuronConfig,
 
 /// Basically just a uint64_t with some packing and unpacking methods.
 /// Being a class doesn't add a lot to this: the member functions could
-/// just as well act on plain uint64_ts. 
+/// just as well act on plain uint64_ts.
 class BDWord {
 
  private:
@@ -429,18 +429,18 @@ class BDWord {
  public:
 
   BDWord() { val_ = 0; }
-  /// Initialize from uint64_t 
+  /// Initialize from uint64_t
   BDWord(uint64_t val) {
     val_ = static_cast<uint64_t>(val);
   };
 
-  /// static member function to create a new BDWord from field values, 
+  /// static member function to create a new BDWord from field values,
   /// Initialize BDWord val_ with a list of Field enum-value pairs.
   /// Typically used when forming words to send downstream.
   /// It's hard to write the equivalent ctor because templated ctors can only
   /// work through template deduction (which doesn't seem to work here)
   template <class T>
-  inline static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) { 
+  inline static BDWord Create(std::initializer_list<std::pair<typename T::Field, uint64_t> > fields) {
     BDWord new_word(0);
 
     // compute shifts (should be evalualable at compile-time!)
@@ -473,7 +473,7 @@ class BDWord {
   /// Get a sub-field of BDWord val_ at a given Field.
   /// Typically used when unpacking words as they're sent upstream.
   template <class T, class UINT>
-  inline UINT At(typename T::Field field_id) const { 
+  inline UINT At(typename T::Field field_id) const {
 
     unsigned int field_idx = static_cast<unsigned int>(field_id);
 
@@ -494,7 +494,7 @@ class BDWord {
   template <class T>
   inline uint64_t At(typename T::Field field_id) const { return At<T, uint64_t>(field_id); }
 
-  /// Get the underlying value. 
+  /// Get the underlying value.
   /// Useful when packing this word into another BDWord.
   template <class UINT>
   inline UINT Packed() const { return static_cast<UINT>(val_); }
@@ -524,6 +524,8 @@ enum ComponentTypeId {
   MEM,
   INPUT,
   OUTPUT,
+  FPGA_REG,
+  FPGA_CHANNEL,
 
   ComponentTypeIdCount
 };
@@ -618,21 +620,12 @@ enum DACSignalId {
 };
 
 /// Identifier for particular BD horn leaf
-enum HornLeafId {
-  NEURON_INJECT,
-  RI,
-  PROG_AMMM,
-  PROG_PAT,
-  PROG_TAT0,
-  PROG_TAT1,
-  INIT_FIFO_DCT,
-  INIT_FIFO_HT,
-  TOGGLE_PRE_FIFO_LEAF,
-  TOGGLE_POST_FIFO0_LEAF,
-  TOGGLE_POST_FIFO1_LEAF,
-  NEURON_DUMP_TOGGLE_LEAF,
-  NEURON_CONFIG,
+enum BDEndPointId {
+  ADC_LEAF,
   DAC0_LEAF,
+  DAC10_LEAF,
+  DAC11_LEAF,
+  DAC12_LEAF,
   DAC1_LEAF,
   DAC2_LEAF,
   DAC3_LEAF,
@@ -642,10 +635,6 @@ enum HornLeafId {
   DAC7_LEAF,
   DAC8_LEAF,
   DAC9_LEAF,
-  DAC10_LEAF,
-  DAC11_LEAF,
-  DAC12_LEAF,
-  ADC_LEAF,
   DELAY0_LEAF,
   DELAY1_LEAF,
   DELAY2_LEAF,
@@ -653,27 +642,52 @@ enum HornLeafId {
   DELAY4_LEAF,
   DELAY5_LEAF,
   DELAY6_LEAF,
+  INIT_FIFO_DCT,
+  INIT_FIFO_HT,
+  NEURON_CONFIG,
+  NEURON_DUMP_TOGGLE_LEAF,
+  NEURON_INJECT,
+  PROG_AMMM,
+  PROG_PAT,
+  PROG_TAT0,
+  PROG_TAT1,
+  RI,
+  TOGGLE_POST_FIFO0_LEAF,
+  TOGGLE_POST_FIFO1_LEAF,
+  TOGGLE_PRE_FIFO_LEAF,
+  DUMMY_34, DUMMY_35, DUMMY_36, DUMMY_37, DUMMY_38, DUMMY_39, DUMMY_40, DUMMY_41, DUMMY_42, DUMMY_43, DUMMY_44, DUMMY_45, DUMMY_46, DUMMY_47, DUMMY_48, DUMMY_49, DUMMY_50, DUMMY_51, DUMMY_52, DUMMY_53, DUMMY_54, DUMMY_55, DUMMY_56, DUMMY_57, DUMMY_58, DUMMY_59, DUMMY_60, DUMMY_61, DUMMY_62, DUMMY_63, DUMMY_64, DUMMY_65, DUMMY_66, DUMMY_67, DUMMY_68, DUMMY_69, DUMMY_70, DUMMY_71, DUMMY_72, DUMMY_73, DUMMY_74, DUMMY_75, DUMMY_76, DUMMY_77, DUMMY_78, DUMMY_79, DUMMY_80, DUMMY_81, DUMMY_82, DUMMY_83, DUMMY_84, DUMMY_85, DUMMY_86, DUMMY_87, DUMMY_88, DUMMY_89, DUMMY_90, DUMMY_91, DUMMY_92, DUMMY_93, DUMMY_94, DUMMY_95, DUMMY_96, DUMMY_97, DUMMY_98, DUMMY_99, DUMMY_100, DUMMY_101, DUMMY_102, DUMMY_103, DUMMY_104, DUMMY_105, DUMMY_106, DUMMY_107, DUMMY_108, DUMMY_109, DUMMY_110, DUMMY_111, DUMMY_112, DUMMY_113, DUMMY_114, DUMMY_115, DUMMY_116, DUMMY_117, DUMMY_118, DUMMY_119, DUMMY_120, DUMMY_121, DUMMY_122, DUMMY_123, DUMMY_124, DUMMY_125, DUMMY_126, DUMMY_127, 
 
-  HornLeafIdCount
+  FPGA_REG0 = 128,
+  FPGA_REG1, FPGA_REG2, FPGA_REG3, FPGA_REG4, FPGA_REG5, FPGA_REG6, FPGA_REG7, FPGA_REG8, FPGA_REG9, FPGA_REG10, FPGA_REG11, FPGA_REG12, FPGA_REG13, FPGA_REG14, FPGA_REG15, FPGA_REG16, FPGA_REG17, FPGA_REG18, FPGA_REG19, FPGA_REG20, FPGA_REG21, FPGA_REG22, FPGA_REG23, FPGA_REG24, FPGA_REG25, FPGA_REG26, FPGA_REG27, FPGA_REG28, FPGA_REG29, FPGA_REG30, FPGA_REG31, FPGA_REG32, FPGA_REG33, FPGA_REG34, FPGA_REG35, FPGA_REG36, FPGA_REG37, FPGA_REG38, FPGA_REG39, FPGA_REG40, FPGA_REG41, FPGA_REG42, FPGA_REG43, FPGA_REG44, FPGA_REG45, FPGA_REG46, FPGA_REG47, FPGA_REG48, FPGA_REG49, FPGA_REG50, FPGA_REG51, FPGA_REG52, FPGA_REG53, FPGA_REG54, FPGA_REG55, FPGA_REG56, FPGA_REG57, FPGA_REG58, FPGA_REG59, FPGA_REG60, FPGA_REG61, FPGA_REG62, FPGA_REG63,  
+
+  FPGA_CHANNEL0 = 192,
+  FPGA_CHANNEL1, FPGA_CHANNEL2, FPGA_CHANNEL3, FPGA_CHANNEL4, FPGA_CHANNEL5, FPGA_CHANNEL6, FPGA_CHANNEL7, FPGA_CHANNEL8, FPGA_CHANNEL9, FPGA_CHANNEL10, FPGA_CHANNEL11, FPGA_CHANNEL12, FPGA_CHANNEL13, FPGA_CHANNEL14, FPGA_CHANNEL15, FPGA_CHANNEL16, FPGA_CHANNEL17, FPGA_CHANNEL18, FPGA_CHANNEL19, FPGA_CHANNEL20, FPGA_CHANNEL21, FPGA_CHANNEL22, FPGA_CHANNEL23, FPGA_CHANNEL24, FPGA_CHANNEL25, FPGA_CHANNEL26, FPGA_CHANNEL27, FPGA_CHANNEL28, FPGA_CHANNEL29, FPGA_CHANNEL30, FPGA_CHANNEL31, FPGA_CHANNEL32, FPGA_CHANNEL33, FPGA_CHANNEL34, FPGA_CHANNEL35, FPGA_CHANNEL36, FPGA_CHANNEL37, FPGA_CHANNEL38, FPGA_CHANNEL39, FPGA_CHANNEL40, FPGA_CHANNEL41, FPGA_CHANNEL42, FPGA_CHANNEL43, FPGA_CHANNEL44, FPGA_CHANNEL45, FPGA_CHANNEL46, FPGA_CHANNEL47, FPGA_CHANNEL48, FPGA_CHANNEL49, FPGA_CHANNEL50, FPGA_CHANNEL51, FPGA_CHANNEL52, FPGA_CHANNEL53, FPGA_CHANNEL54, FPGA_CHANNEL55, FPGA_CHANNEL56, FPGA_CHANNEL57, FPGA_CHANNEL58, FPGA_CHANNEL59, FPGA_CHANNEL60, FPGA_CHANNEL61, FPGA_CHANNEL62, FPGA_CHANNEL63,  
+
+  BDEndPointIdCount = 256
+};
+
+enum FPGAEndpointConfig{
+  REG_OFFSET = 128,  // 64 registers: 128 - 191
+  CHANNEL_OFFSET = 192 // 64 registers: 192 - 255
 };
 
 /// Identifier for particular BD funnel leaf
-enum FunnelLeafId {
-  RO_ACC,
-  RO_TAT,
-  NRNI,
+enum BDStartPointId {
   DUMP_AM,
   DUMP_MM,
   DUMP_PAT,
-  DUMP_TAT0,
-  DUMP_TAT1,
-  DUMP_PRE_FIFO,
   DUMP_POST_FIFO0,
   DUMP_POST_FIFO1,
+  DUMP_PRE_FIFO,
+  DUMP_TAT0,
+  DUMP_TAT1,
+  NRNI,
   OVFLW0,
   OVFLW1,
+  RO_ACC,
+  RO_TAT,
 
-  FunnelLeafIdCount
+  BDStartPointIdCount
 };
 
 /// Identifier for miscellaneous BD hardware width parameters
@@ -730,21 +744,21 @@ struct LeafInfo {
 
 struct MemInfo {
   unsigned int size;
-  HornLeafId prog_leaf;
-  FunnelLeafId dump_leaf;
+  BDEndPointId prog_leaf;
+  BDStartPointId dump_leaf;
   RegId delay_reg;
 };
 
 struct RegInfo {
-  HornLeafId leaf;
+  BDEndPointId leaf;
 };
 
 struct InputInfo {
-  HornLeafId leaf;
+  BDEndPointId leaf;
 };
 
 struct OutputInfo {
-  FunnelLeafId leaf;
+  BDStartPointId leaf;
 };
 
 /// BDPars holds all the nitty-gritty information about the BD hardware's parameters.
@@ -761,66 +775,53 @@ class BDPars {
   /////////////////////////////////////
   // funnel/horn queries
 
-  /// Get the route to a given horn leaf
-  inline FHRoute HornRoute(HornLeafId leaf) const { return horn_routes_[leaf]; }
-  /// Get the route to a given horn leaf
-  inline FHRoute HornRoute(unsigned int leaf) const { return horn_routes_[leaf]; }
-  /// Get the route to a given funnel leaf
-  inline FHRoute FunnelRoute(FunnelLeafId leaf) const { return funnel_routes_[leaf]; }
-  /// Get the route to a given funnel leaf
-  inline FHRoute FunnelRoute(unsigned int leaf) const { return funnel_routes_[leaf]; }
-
   /// Horn leaf ids may be used to index tables, this performs that mapping
-  inline unsigned int HornIdx(HornLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  inline uint8_t HornIdx(BDEndPointId leaf) const { return static_cast<uint8_t>(leaf); }
   /// Funnel leaf ids may be used to index tables, this performs that mapping
-  inline unsigned int FunnelIdx(FunnelLeafId leaf) const { return static_cast<unsigned int>(leaf); }
+  inline uint8_t FunnelIdx(BDStartPointId leaf) const { return static_cast<uint8_t>(leaf); }
 
   // useful if you need to iterate through routing table, returns const ptr
-  /// return reference to Horn routing table
-  inline const std::array<FHRoute, HornLeafIdCount>* HornRoutes() const { return &horn_routes_; }
-  /// return reference to Funnel routing table
-  inline const std::array<FHRoute, FunnelLeafIdCount>* FunnelRoutes() const { return &funnel_routes_; }
 
   // look up serialization
   /// Get serialization for a given horn leaf.
   /// This many messages are concatenated at the horn leaf before being sent on.
-  inline unsigned int Serialization(HornLeafId leaf) const { return horn_.at(leaf).serialization; }
+  inline unsigned int Serialization(BDEndPointId leaf) const { return bdendpoints_[leaf].serialization; }
   /// Get serialization for a given funnel leaf
   /// The driver should concatenate this many messages from this leaf before interpreting it.
-  inline unsigned int Serialization(FunnelLeafId leaf) const { return funnel_.at(leaf).serialization; }
+  inline unsigned int Serialization(BDStartPointId leaf) const { return bdstartpoints_[leaf].serialization; }
 
   // going from a component Id to the FH leaf it's associated with
   /// Map from a memory to it's programming horn leaf
-  inline HornLeafId HornLeafIdFor(MemId object) const { return mem_.at(object).prog_leaf; }
+  inline BDEndPointId BDEndPointIdFor(MemId object) const { return mem_.at(object).prog_leaf; }
   /// Map from a register to it's horn leaf
-  inline HornLeafId HornLeafIdFor(RegId object) const { return reg_.at(object).leaf; }
+  inline BDEndPointId BDEndPointIdFor(RegId object) const { return reg_.at(object).leaf; }
   /// Map from an input to it's horn leaf
-  inline HornLeafId HornLeafIdFor(InputId object) const { return input_.at(object).leaf; }
+  inline BDEndPointId BDEndPointIdFor(InputId object) const { return input_.at(object).leaf; }
 
   /// Map from a memory to it's dump funnel leaf
-  inline FunnelLeafId FunnelLeafIdFor(MemId object) const { return mem_.at(object).dump_leaf; }
+  inline BDStartPointId BDStartPointIdFor(MemId object) const { return mem_.at(object).dump_leaf; }
   /// Map from an output to it's funnel leaf
-  inline FunnelLeafId FunnelLeafIdFor(OutputId object) const { return output_.at(object).leaf; }
+  inline BDStartPointId BDStartPointIdFor(OutputId object) const { return output_.at(object).leaf; }
 
   inline RegId DelayRegForMem(MemId object) const { return mem_.at(object).delay_reg; }
 
   /// going from a FH leaf to the value of the enum associate with the type of the component it services
-  inline ComponentTypeId ComponentTypeIdFor(HornLeafId leaf) const { return horn_.at(leaf).component_type; }
+  inline ComponentTypeId ComponentTypeIdFor(BDEndPointId leaf) const { return bdendpoints_.at(leaf).component_type; }
   /// going from a FH leaf to the value of the enum associate with the type of the component it services
-  inline ComponentTypeId ComponentTypeIdFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component_type; }
+  inline ComponentTypeId ComponentTypeIdFor(BDStartPointId leaf) const { return bdstartpoints_.at(leaf).component_type; }
 
   /// going from a FH leaf to the value of the enum associate with the component it services
-  inline unsigned int ComponentIdxFor(HornLeafId leaf) const { return horn_.at(leaf).component; }
+  inline unsigned int ComponentIdxFor(BDEndPointId leaf) const { return bdendpoints_.at(leaf).component; }
   /// going from a FH leaf to the value of the enum associate with the component it services
-  inline unsigned int ComponentIdxFor(FunnelLeafId leaf) const { return funnel_.at(leaf).component; }
+  inline unsigned int ComponentIdxFor(BDStartPointId leaf) const { return bdstartpoints_.at(leaf).component; }
 
   /////////////////////////////////////
   // field width queries
 
   /// Get data width (after deserialization) at horn leaf
-  inline unsigned int Width(HornLeafId object) const { return horn_.at(object).data_width; }
+  inline unsigned int Width(BDEndPointId object) const { return bdendpoints_.at(object).data_width; }
   /// Get data width (after deserialization) at funnel leaf
-  inline unsigned int Width(FunnelLeafId object) const { return funnel_.at(object).data_width; }
+  inline unsigned int Width(BDStartPointId object) const { return bdstartpoints_.at(object).data_width; }
   /// Get data width of some misc hardware thing
   inline unsigned int Width(MiscWidthId object) const { return misc_widths_.at(object); }
 
@@ -830,7 +831,7 @@ class BDPars {
   // Just used for testing for now:
   // (to ensure that the random test inputs aren't too big for their field)
   template <class Word>
-  unsigned int WordFieldWidth(typename Word::Field field_id) const 
+  unsigned int WordFieldWidth(typename Word::Field field_id) const
     { return Word::field_widths[static_cast<unsigned int>(field_id)]; }
 
   /////////////////////////////////////
@@ -855,18 +856,18 @@ class BDPars {
   unsigned int num_cores_;
 
   /// inputs to BD that aren't a register or memory programming word
-  /// keyed by HornLeafId
+  /// keyed by BDEndPointId
   std::array<InputInfo, InputIdCount> input_;
   /// outputs from BD that aren't a memory dump word
-  /// keyed by FunnelLeafId
+  /// keyed by BDStartPointId
   std::array<OutputInfo, OutputIdCount> output_;
 
   /// horn description
-  /// keyed by HornLeafId
-  std::array<LeafInfo, HornLeafIdCount> horn_;
+  /// keyed by BDEndPointId
+  std::array<LeafInfo, BDEndPointIdCount> bdendpoints_;
   /// funnel description
-  /// keyed by FunnelLeafId
-  std::array<LeafInfo, FunnelLeafIdCount> funnel_;
+  /// keyed by BDStartPointId
+  std::array<LeafInfo, BDStartPointIdCount> bdstartpoints_;
 
   /// memory descriptions (data field packing + misc info)
   /// keyed by MemId
@@ -875,13 +876,6 @@ class BDPars {
   /// register descriptions (data field packing + misc info)
   /// keyed by RegId
   std::array<RegInfo, RegIdCount> reg_;
-
-  /// horn route tables
-  /// keyed by HornLeafId
-  std::array<FHRoute, HornLeafIdCount> horn_routes_;
-  /// funnel route tables
-  /// keyed by FunnelLeafId
-  std::array<FHRoute, FunnelLeafIdCount> funnel_routes_;
 
   /// miscellaneous hardware widths
   /// keyed by MiscFieldId

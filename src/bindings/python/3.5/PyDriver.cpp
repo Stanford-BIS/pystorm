@@ -973,63 +973,63 @@ void bind_unknown_unknown_3(std::function< pybind11::module &(std::string const 
 
 ;
 
-	// pystorm::bddriver::bdpars::HornLeafId file: line:621
-	pybind11::enum_<pystorm::bddriver::bdpars::HornLeafId>(M("pystorm::bddriver::bdpars"), "HornLeafId", "Identifier for particular BD horn leaf")
-		.value("NEURON_INJECT", pystorm::bddriver::bdpars::HornLeafId::NEURON_INJECT)
-		.value("RI", pystorm::bddriver::bdpars::HornLeafId::RI)
-		.value("PROG_AMMM", pystorm::bddriver::bdpars::HornLeafId::PROG_AMMM)
-		.value("PROG_PAT", pystorm::bddriver::bdpars::HornLeafId::PROG_PAT)
-		.value("PROG_TAT0", pystorm::bddriver::bdpars::HornLeafId::PROG_TAT0)
-		.value("PROG_TAT1", pystorm::bddriver::bdpars::HornLeafId::PROG_TAT1)
-		.value("INIT_FIFO_DCT", pystorm::bddriver::bdpars::HornLeafId::INIT_FIFO_DCT)
-		.value("INIT_FIFO_HT", pystorm::bddriver::bdpars::HornLeafId::INIT_FIFO_HT)
-		.value("TOGGLE_PRE_FIFO_LEAF", pystorm::bddriver::bdpars::HornLeafId::TOGGLE_PRE_FIFO_LEAF)
-		.value("TOGGLE_POST_FIFO0_LEAF", pystorm::bddriver::bdpars::HornLeafId::TOGGLE_POST_FIFO0_LEAF)
-		.value("TOGGLE_POST_FIFO1_LEAF", pystorm::bddriver::bdpars::HornLeafId::TOGGLE_POST_FIFO1_LEAF)
-		.value("NEURON_DUMP_TOGGLE_LEAF", pystorm::bddriver::bdpars::HornLeafId::NEURON_DUMP_TOGGLE_LEAF)
-		.value("NEURON_CONFIG", pystorm::bddriver::bdpars::HornLeafId::NEURON_CONFIG)
-		.value("DAC0_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC0_LEAF)
-		.value("DAC1_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC1_LEAF)
-		.value("DAC2_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC2_LEAF)
-		.value("DAC3_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC3_LEAF)
-		.value("DAC4_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC4_LEAF)
-		.value("DAC5_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC5_LEAF)
-		.value("DAC6_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC6_LEAF)
-		.value("DAC7_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC7_LEAF)
-		.value("DAC8_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC8_LEAF)
-		.value("DAC9_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC9_LEAF)
-		.value("DAC10_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC10_LEAF)
-		.value("DAC11_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC11_LEAF)
-		.value("DAC12_LEAF", pystorm::bddriver::bdpars::HornLeafId::DAC12_LEAF)
-		.value("ADC_LEAF", pystorm::bddriver::bdpars::HornLeafId::ADC_LEAF)
-		.value("DELAY0_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY0_LEAF)
-		.value("DELAY1_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY1_LEAF)
-		.value("DELAY2_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY2_LEAF)
-		.value("DELAY3_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY3_LEAF)
-		.value("DELAY4_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY4_LEAF)
-		.value("DELAY5_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY5_LEAF)
-		.value("DELAY6_LEAF", pystorm::bddriver::bdpars::HornLeafId::DELAY6_LEAF)
-		.value("HornLeafIdCount", pystorm::bddriver::bdpars::HornLeafId::HornLeafIdCount)
+	// pystorm::bddriver::bdpars::BDEndPointId file: line:621
+	pybind11::enum_<pystorm::bddriver::bdpars::BDEndPointId>(M("pystorm::bddriver::bdpars"), "BDEndPointId", "Identifier for particular BD horn leaf")
+		.value("NEURON_INJECT", pystorm::bddriver::bdpars::BDEndPointId::NEURON_INJECT)
+		.value("RI", pystorm::bddriver::bdpars::BDEndPointId::RI)
+		.value("PROG_AMMM", pystorm::bddriver::bdpars::BDEndPointId::PROG_AMMM)
+		.value("PROG_PAT", pystorm::bddriver::bdpars::BDEndPointId::PROG_PAT)
+		.value("PROG_TAT0", pystorm::bddriver::bdpars::BDEndPointId::PROG_TAT0)
+		.value("PROG_TAT1", pystorm::bddriver::bdpars::BDEndPointId::PROG_TAT1)
+		.value("INIT_FIFO_DCT", pystorm::bddriver::bdpars::BDEndPointId::INIT_FIFO_DCT)
+		.value("INIT_FIFO_HT", pystorm::bddriver::bdpars::BDEndPointId::INIT_FIFO_HT)
+		.value("TOGGLE_PRE_FIFO_LEAF", pystorm::bddriver::bdpars::BDEndPointId::TOGGLE_PRE_FIFO_LEAF)
+		.value("TOGGLE_POST_FIFO0_LEAF", pystorm::bddriver::bdpars::BDEndPointId::TOGGLE_POST_FIFO0_LEAF)
+		.value("TOGGLE_POST_FIFO1_LEAF", pystorm::bddriver::bdpars::BDEndPointId::TOGGLE_POST_FIFO1_LEAF)
+		.value("NEURON_DUMP_TOGGLE_LEAF", pystorm::bddriver::bdpars::BDEndPointId::NEURON_DUMP_TOGGLE_LEAF)
+		.value("NEURON_CONFIG", pystorm::bddriver::bdpars::BDEndPointId::NEURON_CONFIG)
+		.value("DAC0_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC0_LEAF)
+		.value("DAC1_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC1_LEAF)
+		.value("DAC2_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC2_LEAF)
+		.value("DAC3_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC3_LEAF)
+		.value("DAC4_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC4_LEAF)
+		.value("DAC5_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC5_LEAF)
+		.value("DAC6_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC6_LEAF)
+		.value("DAC7_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC7_LEAF)
+		.value("DAC8_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC8_LEAF)
+		.value("DAC9_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC9_LEAF)
+		.value("DAC10_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC10_LEAF)
+		.value("DAC11_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC11_LEAF)
+		.value("DAC12_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DAC12_LEAF)
+		.value("ADC_LEAF", pystorm::bddriver::bdpars::BDEndPointId::ADC_LEAF)
+		.value("DELAY0_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY0_LEAF)
+		.value("DELAY1_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY1_LEAF)
+		.value("DELAY2_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY2_LEAF)
+		.value("DELAY3_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY3_LEAF)
+		.value("DELAY4_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY4_LEAF)
+		.value("DELAY5_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY5_LEAF)
+		.value("DELAY6_LEAF", pystorm::bddriver::bdpars::BDEndPointId::DELAY6_LEAF)
+		.value("BDEndPointIdCount", pystorm::bddriver::bdpars::BDEndPointId::BDEndPointIdCount)
 		.export_values();
 
 ;
 
-	// pystorm::bddriver::bdpars::FunnelLeafId file: line:661
-	pybind11::enum_<pystorm::bddriver::bdpars::FunnelLeafId>(M("pystorm::bddriver::bdpars"), "FunnelLeafId", "Identifier for particular BD funnel leaf")
-		.value("RO_ACC", pystorm::bddriver::bdpars::FunnelLeafId::RO_ACC)
-		.value("RO_TAT", pystorm::bddriver::bdpars::FunnelLeafId::RO_TAT)
-		.value("NRNI", pystorm::bddriver::bdpars::FunnelLeafId::NRNI)
-		.value("DUMP_AM", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_AM)
-		.value("DUMP_MM", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_MM)
-		.value("DUMP_PAT", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_PAT)
-		.value("DUMP_TAT0", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_TAT0)
-		.value("DUMP_TAT1", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_TAT1)
-		.value("DUMP_PRE_FIFO", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_PRE_FIFO)
-		.value("DUMP_POST_FIFO0", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_POST_FIFO0)
-		.value("DUMP_POST_FIFO1", pystorm::bddriver::bdpars::FunnelLeafId::DUMP_POST_FIFO1)
-		.value("OVFLW0", pystorm::bddriver::bdpars::FunnelLeafId::OVFLW0)
-		.value("OVFLW1", pystorm::bddriver::bdpars::FunnelLeafId::OVFLW1)
-		.value("FunnelLeafIdCount", pystorm::bddriver::bdpars::FunnelLeafId::FunnelLeafIdCount)
+	// pystorm::bddriver::bdpars::BDStartPointId file: line:661
+	pybind11::enum_<pystorm::bddriver::bdpars::BDStartPointId>(M("pystorm::bddriver::bdpars"), "BDStartPointId", "Identifier for particular BD funnel leaf")
+		.value("RO_ACC", pystorm::bddriver::bdpars::BDStartPointId::RO_ACC)
+		.value("RO_TAT", pystorm::bddriver::bdpars::BDStartPointId::RO_TAT)
+		.value("NRNI", pystorm::bddriver::bdpars::BDStartPointId::NRNI)
+		.value("DUMP_AM", pystorm::bddriver::bdpars::BDStartPointId::DUMP_AM)
+		.value("DUMP_MM", pystorm::bddriver::bdpars::BDStartPointId::DUMP_MM)
+		.value("DUMP_PAT", pystorm::bddriver::bdpars::BDStartPointId::DUMP_PAT)
+		.value("DUMP_TAT0", pystorm::bddriver::bdpars::BDStartPointId::DUMP_TAT0)
+		.value("DUMP_TAT1", pystorm::bddriver::bdpars::BDStartPointId::DUMP_TAT1)
+		.value("DUMP_PRE_FIFO", pystorm::bddriver::bdpars::BDStartPointId::DUMP_PRE_FIFO)
+		.value("DUMP_POST_FIFO0", pystorm::bddriver::bdpars::BDStartPointId::DUMP_POST_FIFO0)
+		.value("DUMP_POST_FIFO1", pystorm::bddriver::bdpars::BDStartPointId::DUMP_POST_FIFO1)
+		.value("OVFLW0", pystorm::bddriver::bdpars::BDStartPointId::OVFLW0)
+		.value("OVFLW1", pystorm::bddriver::bdpars::BDStartPointId::OVFLW1)
+		.value("BDStartPointIdCount", pystorm::bddriver::bdpars::BDStartPointId::BDStartPointIdCount)
 		.export_values();
 
 ;
@@ -1167,28 +1167,22 @@ void bind_unknown_unknown_3(std::function< pybind11::module &(std::string const 
 
 		cl.def(pybind11::init<>());
 
-		cl.def("HornRoute", (struct std::pair<unsigned int, unsigned int> (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::HornRoute, "Get the route to a given horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::HornRoute(pystorm::bddriver::bdpars::HornLeafId) const --> struct std::pair<unsigned int, unsigned int>", pybind11::arg("leaf"));
-		cl.def("HornRoute", (struct std::pair<unsigned int, unsigned int> (pystorm::bddriver::bdpars::BDPars::*)(unsigned int) const) &pystorm::bddriver::bdpars::BDPars::HornRoute, "Get the route to a given horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::HornRoute(unsigned int) const --> struct std::pair<unsigned int, unsigned int>", pybind11::arg("leaf"));
-		cl.def("FunnelRoute", (struct std::pair<unsigned int, unsigned int> (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::FunnelRoute, "Get the route to a given funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelRoute(pystorm::bddriver::bdpars::FunnelLeafId) const --> struct std::pair<unsigned int, unsigned int>", pybind11::arg("leaf"));
-		cl.def("FunnelRoute", (struct std::pair<unsigned int, unsigned int> (pystorm::bddriver::bdpars::BDPars::*)(unsigned int) const) &pystorm::bddriver::bdpars::BDPars::FunnelRoute, "Get the route to a given funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelRoute(unsigned int) const --> struct std::pair<unsigned int, unsigned int>", pybind11::arg("leaf"));
-		cl.def("HornIdx", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::HornIdx, "Horn leaf ids may be used to index tables, this performs that mapping\n\nC++: pystorm::bddriver::bdpars::BDPars::HornIdx(pystorm::bddriver::bdpars::HornLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("FunnelIdx", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::FunnelIdx, "Funnel leaf ids may be used to index tables, this performs that mapping\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelIdx(pystorm::bddriver::bdpars::FunnelLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("HornRoutes", (const struct std::array<struct std::pair<unsigned int, unsigned int>, 34> * (pystorm::bddriver::bdpars::BDPars::*)() const) &pystorm::bddriver::bdpars::BDPars::HornRoutes, "return reference to Horn routing table\n\nC++: pystorm::bddriver::bdpars::BDPars::HornRoutes() const --> const struct std::array<struct std::pair<unsigned int, unsigned int>, 34> *", pybind11::return_value_policy::automatic);
-		cl.def("FunnelRoutes", (const struct std::array<struct std::pair<unsigned int, unsigned int>, 13> * (pystorm::bddriver::bdpars::BDPars::*)() const) &pystorm::bddriver::bdpars::BDPars::FunnelRoutes, "return reference to Funnel routing table\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelRoutes() const --> const struct std::array<struct std::pair<unsigned int, unsigned int>, 13> *", pybind11::return_value_policy::automatic);
-		cl.def("Serialization", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::Serialization, "Get serialization for a given horn leaf.\n This many messages are concatenated at the horn leaf before being sent on.\n\nC++: pystorm::bddriver::bdpars::BDPars::Serialization(pystorm::bddriver::bdpars::HornLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("Serialization", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::Serialization, "Get serialization for a given funnel leaf\n The driver should concatenate this many messages from this leaf before interpreting it.\n\nC++: pystorm::bddriver::bdpars::BDPars::Serialization(pystorm::bddriver::bdpars::FunnelLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("HornLeafIdFor", (pystorm::bddriver::bdpars::HornLeafId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::HornLeafIdFor, "Map from a memory to it's programming horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::HornLeafIdFor(pystorm::bddriver::bdpars::MemId) const --> pystorm::bddriver::bdpars::HornLeafId", pybind11::arg("object"));
-		cl.def("HornLeafIdFor", (pystorm::bddriver::bdpars::HornLeafId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::RegId) const) &pystorm::bddriver::bdpars::BDPars::HornLeafIdFor, "Map from a register to it's horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::HornLeafIdFor(pystorm::bddriver::bdpars::RegId) const --> pystorm::bddriver::bdpars::HornLeafId", pybind11::arg("object"));
-		cl.def("HornLeafIdFor", (pystorm::bddriver::bdpars::HornLeafId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::InputId) const) &pystorm::bddriver::bdpars::BDPars::HornLeafIdFor, "Map from an input to it's horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::HornLeafIdFor(pystorm::bddriver::bdpars::InputId) const --> pystorm::bddriver::bdpars::HornLeafId", pybind11::arg("object"));
-		cl.def("FunnelLeafIdFor", (pystorm::bddriver::bdpars::FunnelLeafId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::FunnelLeafIdFor, "Map from a memory to it's dump funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelLeafIdFor(pystorm::bddriver::bdpars::MemId) const --> pystorm::bddriver::bdpars::FunnelLeafId", pybind11::arg("object"));
-		cl.def("FunnelLeafIdFor", (pystorm::bddriver::bdpars::FunnelLeafId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::OutputId) const) &pystorm::bddriver::bdpars::BDPars::FunnelLeafIdFor, "Map from an output to it's funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelLeafIdFor(pystorm::bddriver::bdpars::OutputId) const --> pystorm::bddriver::bdpars::FunnelLeafId", pybind11::arg("object"));
+		cl.def("HornIdx", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDEndPointId) const) &pystorm::bddriver::bdpars::BDPars::HornIdx, "Horn leaf ids may be used to index tables, this performs that mapping\n\nC++: pystorm::bddriver::bdpars::BDPars::HornIdx(pystorm::bddriver::bdpars::BDEndPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("FunnelIdx", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDStartPointId) const) &pystorm::bddriver::bdpars::BDPars::FunnelIdx, "Funnel leaf ids may be used to index tables, this performs that mapping\n\nC++: pystorm::bddriver::bdpars::BDPars::FunnelIdx(pystorm::bddriver::bdpars::BDStartPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("Serialization", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDEndPointId) const) &pystorm::bddriver::bdpars::BDPars::Serialization, "Get serialization for a given horn leaf.\n This many messages are concatenated at the horn leaf before being sent on.\n\nC++: pystorm::bddriver::bdpars::BDPars::Serialization(pystorm::bddriver::bdpars::BDEndPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("Serialization", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDStartPointId) const) &pystorm::bddriver::bdpars::BDPars::Serialization, "Get serialization for a given funnel leaf\n The driver should concatenate this many messages from this leaf before interpreting it.\n\nC++: pystorm::bddriver::bdpars::BDPars::Serialization(pystorm::bddriver::bdpars::BDStartPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("BDEndPointIdFor", (pystorm::bddriver::bdpars::BDEndPointId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor, "Map from a memory to it's programming horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor(pystorm::bddriver::bdpars::MemId) const --> pystorm::bddriver::bdpars::BDEndPointId", pybind11::arg("object"));
+		cl.def("BDEndPointIdFor", (pystorm::bddriver::bdpars::BDEndPointId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::RegId) const) &pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor, "Map from a register to it's horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor(pystorm::bddriver::bdpars::RegId) const --> pystorm::bddriver::bdpars::BDEndPointId", pybind11::arg("object"));
+		cl.def("BDEndPointIdFor", (pystorm::bddriver::bdpars::BDEndPointId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::InputId) const) &pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor, "Map from an input to it's horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::BDEndPointIdFor(pystorm::bddriver::bdpars::InputId) const --> pystorm::bddriver::bdpars::BDEndPointId", pybind11::arg("object"));
+		cl.def("BDStartPointIdFor", (pystorm::bddriver::bdpars::BDStartPointId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::BDStartPointIdFor, "Map from a memory to it's dump funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::BDStartPointIdFor(pystorm::bddriver::bdpars::MemId) const --> pystorm::bddriver::bdpars::BDStartPointId", pybind11::arg("object"));
+		cl.def("BDStartPointIdFor", (pystorm::bddriver::bdpars::BDStartPointId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::OutputId) const) &pystorm::bddriver::bdpars::BDPars::BDStartPointIdFor, "Map from an output to it's funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::BDStartPointIdFor(pystorm::bddriver::bdpars::OutputId) const --> pystorm::bddriver::bdpars::BDStartPointId", pybind11::arg("object"));
 		cl.def("DelayRegForMem", (pystorm::bddriver::bdpars::RegId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::DelayRegForMem, "C++: pystorm::bddriver::bdpars::BDPars::DelayRegForMem(pystorm::bddriver::bdpars::MemId) const --> pystorm::bddriver::bdpars::RegId", pybind11::arg("object"));
-		cl.def("ComponentTypeIdFor", (pystorm::bddriver::bdpars::ComponentTypeId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor, "going from a FH leaf to the value of the associate with the type of the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor(pystorm::bddriver::bdpars::HornLeafId) const --> pystorm::bddriver::bdpars::ComponentTypeId", pybind11::arg("leaf"));
-		cl.def("ComponentTypeIdFor", (pystorm::bddriver::bdpars::ComponentTypeId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor, "going from a FH leaf to the value of the associate with the type of the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor(pystorm::bddriver::bdpars::FunnelLeafId) const --> pystorm::bddriver::bdpars::ComponentTypeId", pybind11::arg("leaf"));
-		cl.def("ComponentIdxFor", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::ComponentIdxFor, "going from a FH leaf to the value of the associate with the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentIdxFor(pystorm::bddriver::bdpars::HornLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("ComponentIdxFor", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::ComponentIdxFor, "going from a FH leaf to the value of the associate with the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentIdxFor(pystorm::bddriver::bdpars::FunnelLeafId) const --> unsigned int", pybind11::arg("leaf"));
-		cl.def("Width", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::HornLeafId) const) &pystorm::bddriver::bdpars::BDPars::Width, "Get data width (after deserialization) at horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::Width(pystorm::bddriver::bdpars::HornLeafId) const --> unsigned int", pybind11::arg("object"));
-		cl.def("Width", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::FunnelLeafId) const) &pystorm::bddriver::bdpars::BDPars::Width, "Get data width (after deserialization) at funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::Width(pystorm::bddriver::bdpars::FunnelLeafId) const --> unsigned int", pybind11::arg("object"));
+		cl.def("ComponentTypeIdFor", (pystorm::bddriver::bdpars::ComponentTypeId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDEndPointId) const) &pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor, "going from a FH leaf to the value of the associate with the type of the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor(pystorm::bddriver::bdpars::BDEndPointId) const --> pystorm::bddriver::bdpars::ComponentTypeId", pybind11::arg("leaf"));
+		cl.def("ComponentTypeIdFor", (pystorm::bddriver::bdpars::ComponentTypeId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDStartPointId) const) &pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor, "going from a FH leaf to the value of the associate with the type of the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentTypeIdFor(pystorm::bddriver::bdpars::BDStartPointId) const --> pystorm::bddriver::bdpars::ComponentTypeId", pybind11::arg("leaf"));
+		cl.def("ComponentIdxFor", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDEndPointId) const) &pystorm::bddriver::bdpars::BDPars::ComponentIdxFor, "going from a FH leaf to the value of the associate with the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentIdxFor(pystorm::bddriver::bdpars::BDEndPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("ComponentIdxFor", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDStartPointId) const) &pystorm::bddriver::bdpars::BDPars::ComponentIdxFor, "going from a FH leaf to the value of the associate with the component it services\n\nC++: pystorm::bddriver::bdpars::BDPars::ComponentIdxFor(pystorm::bddriver::bdpars::BDStartPointId) const --> unsigned int", pybind11::arg("leaf"));
+		cl.def("Width", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDEndPointId) const) &pystorm::bddriver::bdpars::BDPars::Width, "Get data width (after deserialization) at horn leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::Width(pystorm::bddriver::bdpars::BDEndPointId) const --> unsigned int", pybind11::arg("object"));
+		cl.def("Width", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDStartPointId) const) &pystorm::bddriver::bdpars::BDPars::Width, "Get data width (after deserialization) at funnel leaf\n\nC++: pystorm::bddriver::bdpars::BDPars::Width(pystorm::bddriver::bdpars::BDStartPointId) const --> unsigned int", pybind11::arg("object"));
 		cl.def("Width", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::MiscWidthId) const) &pystorm::bddriver::bdpars::BDPars::Width, "Get data width of some misc hardware thing\n\nC++: pystorm::bddriver::bdpars::BDPars::Width(pystorm::bddriver::bdpars::MiscWidthId) const --> unsigned int", pybind11::arg("object"));
 		cl.def("Size", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(const pystorm::bddriver::bdpars::MemId) const) &pystorm::bddriver::bdpars::BDPars::Size, "return the capacity of a memory\n\nC++: pystorm::bddriver::bdpars::BDPars::Size(const pystorm::bddriver::bdpars::MemId) const --> unsigned int", pybind11::arg("object"));
 		cl.def("DACSignalIdToDACRegisterId", (pystorm::bddriver::bdpars::RegId (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::DACSignalId) const) &pystorm::bddriver::bdpars::BDPars::DACSignalIdToDACRegisterId, "Map from a DAC signal name to it's register id\n\nC++: pystorm::bddriver::bdpars::BDPars::DACSignalIdToDACRegisterId(pystorm::bddriver::bdpars::DACSignalId) const --> pystorm::bddriver::bdpars::RegId", pybind11::arg("id"));
@@ -1531,11 +1525,11 @@ void bind_unknown_unknown_6(std::function< pybind11::module &(std::string const 
 	// pystorm::bddriver::bdmodel::Horn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, const class pystorm::bddriver::bdpars::BDPars *) file: line:23
 	M("pystorm::bddriver::bdmodel").def("Horn", (struct std::array<class std::vector<unsigned int, class std::allocator<unsigned int> >, 34> (*)(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::Horn, "Does horn operation\n\nC++: pystorm::bddriver::bdmodel::Horn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, const class pystorm::bddriver::bdpars::BDPars *) --> struct std::array<class std::vector<unsigned int, class std::allocator<unsigned int> >, 34>", pybind11::arg("inputs"), pybind11::arg("pars"));
 
-	// pystorm::bddriver::bdmodel::DeserializeHorn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::HornLeafId, const class pystorm::bddriver::bdpars::BDPars *) file: line:27
-	M("pystorm::bddriver::bdmodel").def("DeserializeHorn", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > > (*)(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::HornLeafId, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::DeserializeHorn, "Does deserialization\n\nC++: pystorm::bddriver::bdmodel::DeserializeHorn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::HornLeafId, const class pystorm::bddriver::bdpars::BDPars *) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > >", pybind11::arg("inputs"), pybind11::arg("leaf_id"), pybind11::arg("bd_pars"));
+	// pystorm::bddriver::bdmodel::DeserializeHorn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::BDEndPointId, const class pystorm::bddriver::bdpars::BDPars *) file: line:27
+	M("pystorm::bddriver::bdmodel").def("DeserializeHorn", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > > (*)(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::BDEndPointId, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::DeserializeHorn, "Does deserialization\n\nC++: pystorm::bddriver::bdmodel::DeserializeHorn(const class std::vector<unsigned int, class std::allocator<unsigned int> > &, pystorm::bddriver::bdpars::BDEndPointId, const class pystorm::bddriver::bdpars::BDPars *) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > >", pybind11::arg("inputs"), pybind11::arg("leaf_id"), pybind11::arg("bd_pars"));
 
-	// pystorm::bddriver::bdmodel::SerializeFunnel(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::FunnelLeafId, const class pystorm::bddriver::bdpars::BDPars *) file: line:38
-	M("pystorm::bddriver::bdmodel").def("SerializeFunnel", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, unsigned int> (*)(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::FunnelLeafId, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::SerializeFunnel, "Does serialization, returns pairs of {serialized words chunks, word chunk widths}\n\nC++: pystorm::bddriver::bdmodel::SerializeFunnel(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::FunnelLeafId, const class pystorm::bddriver::bdpars::BDPars *) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, unsigned int>", pybind11::arg("inputs"), pybind11::arg("leaf_id"), pybind11::arg("bd_pars"));
+	// pystorm::bddriver::bdmodel::SerializeFunnel(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::BDStartPointId, const class pystorm::bddriver::bdpars::BDPars *) file: line:38
+	M("pystorm::bddriver::bdmodel").def("SerializeFunnel", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, unsigned int> (*)(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::BDStartPointId, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::SerializeFunnel, "Does serialization, returns pairs of {serialized words chunks, word chunk widths}\n\nC++: pystorm::bddriver::bdmodel::SerializeFunnel(const class std::vector<unsigned long, class std::allocator<unsigned long> > &, pystorm::bddriver::bdpars::BDStartPointId, const class pystorm::bddriver::bdpars::BDPars *) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, unsigned int>", pybind11::arg("inputs"), pybind11::arg("leaf_id"), pybind11::arg("bd_pars"));
 
 	// pystorm::bddriver::bdmodel::FPGAOutput(class std::vector<unsigned long, class std::allocator<unsigned long> >, const class pystorm::bddriver::bdpars::BDPars *) file: line:49
 	M("pystorm::bddriver::bdmodel").def("FPGAOutput", (class std::vector<unsigned char, class std::allocator<unsigned char> > (*)(class std::vector<unsigned long, class std::allocator<unsigned long> >, const class pystorm::bddriver::bdpars::BDPars *)) &pystorm::bddriver::bdmodel::FPGAOutput, "Unpacks byte stream, will do other stuff eventually\n\nC++: pystorm::bddriver::bdmodel::FPGAOutput(class std::vector<unsigned long, class std::allocator<unsigned long> >, const class pystorm::bddriver::bdpars::BDPars *) --> class std::vector<unsigned char, class std::allocator<unsigned char> >", pybind11::arg("inputs"), pybind11::arg("pars"));

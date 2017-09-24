@@ -78,7 +78,7 @@ std::map<bdpars::ConfigSomaID, std::vector<unsigned int>> Driver::config_soma_me
   {bdpars::ConfigSomaID::ENABLE, {121, 123, 91, 89, 126, 124, 92, 94, 62, 60, 28, 30, 57, 59, 27, 25}},
   {bdpars::ConfigSomaID::SUBTRACT_OFFSET, {96, 106, 74, 64, 103, 109, 77, 71, 39, 45, 13, 7, 32, 42, 10, 0}}
 };
-  
+
 std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>> Driver::config_synapse_mem_ = {
   {bdpars::ConfigSynapseID::SYN_DISABLE, {75, 76, 12, 11}},
   {bdpars::ConfigSynapseID::ADC_DISABLE, {67, 68, 4, 3}}
@@ -117,7 +117,7 @@ Driver::Driver() {
   enc_buf_out_ = new MutexBuffer<EncOutput>(driver_pars_->Get(driverpars::ENC_BUF_OUT_CAPACITY));
   dec_buf_in_  = new MutexBuffer<DecInput>(driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY));
 
-  for (unsigned int i = 0; i < bd_pars_->FunnelRoutes()->size(); i++) {
+  for (unsigned int i = 0; i < bdpars::BDStartPointIdCount; i++) {
     MutexBuffer<DecOutput>* buf_ptr = new MutexBuffer<DecOutput>(driver_pars_->Get(driverpars::DEC_BUF_OUT_CAPACITY));
     dec_bufs_out_.push_back(buf_ptr);
   }
@@ -200,6 +200,17 @@ void Driver::InitBD() {
 
     // XXX other stuff to do?
   }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+/// FPGA configuration
+////////////////////////////////////////////////////////////////////////////////
+void Driver::SetFPGARegisterValue(unsigned int reg_id, unsigned int value){
+  SendToHorn(0, static_cast<bdpars::BDEndPointId>(static_cast<unsigned int>(bdpars::FPGAEndpointConfig::REG_OFFSET) + reg_id), {value});
+}
+
+void Driver::SetFPGAChannelValue(unsigned int channel_id, unsigned int value){
+  SendToHorn(0, static_cast<bdpars::BDEndPointId>(static_cast<unsigned int>(bdpars::FPGAEndpointConfig::CHANNEL_OFFSET) + channel_id), {value});
 }
 
 void Driver::InitFIFO(unsigned int core_id) {
@@ -310,7 +321,7 @@ void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
 }
 
 std::vector<BDWord> Driver::GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags) {
-  bdpars::FunnelLeafId leaf_id = bd_pars_->FunnelLeafIdFor(output_id);
+  bdpars::BDStartPointId leaf_id = bd_pars_->BDStartPointIdFor(output_id);
   std::vector<BDWord> data = RecvFromFunnel(core_id, leaf_id, n_tags);
   return data;
 }
@@ -404,7 +415,7 @@ template<class U>
     bd_state_[core_id].SetNeuronConfigMem(core_id, tile_id, intra_tile_id, config_type, config_value);
 
     PauseTraffic(core_id);
-    SendToHorn(core_id, bdpars::HornLeafId::NEURON_CONFIG, config_word);
+    SendToHorn(core_id, bdpars::BDEndPointId::NEURON_CONFIG, config_word);
     ResumeTraffic(core_id);
   }
 
@@ -539,9 +550,9 @@ void Driver::SetMem(
 
   // transmit to horn
   PauseTraffic(core_id);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(mem_id), encapsulated_words);
+  SendToHorn(core_id, bd_pars_->BDEndPointIdFor(mem_id), encapsulated_words);
   if (mem_id == bdpars::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
-    RecvFromFunnel(core_id, bd_pars_->FunnelLeafIdFor(mem_id), data.size());
+    //RecvFromFunnel(core_id, bd_pars_->BDStartPointIdFor(mem_id), data.size());
   }
   ResumeTraffic(core_id);
 }
@@ -577,8 +588,8 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::MemId mem_id) 
 
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
-  bdpars::HornLeafId horn_leaf = bd_pars_->HornLeafIdFor(mem_id);
-  bdpars::FunnelLeafId funnel_leaf = bd_pars_->FunnelLeafIdFor(mem_id);
+  bdpars::BDEndPointId horn_leaf = bd_pars_->BDEndPointIdFor(mem_id);
+  bdpars::BDStartPointId funnel_leaf = bd_pars_->BDStartPointIdFor(mem_id);
   PauseTraffic(core_id);
   SendToHorn(core_id, horn_leaf, encapsulated_words);
   std::vector<BDWord> payloads = RecvFromFunnel(core_id, funnel_leaf, mem_size);
@@ -699,7 +710,7 @@ void Driver::SendSpikes(const std::vector<unsigned int>& core_ids, const std::ve
   EncInput* write_to = enc_buf_in_->LockBack(spikes.size());
 
 
-  unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_SPIKES));
+  uint8_t leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->BDEndPointIdFor(bdpars::INPUT_SPIKES));
 
   for (unsigned int i = 0; i < spikes.size(); i++) {
     // XXX throwing times on the ground for now
@@ -719,7 +730,7 @@ void Driver::SendTags(const std::vector<unsigned int>& core_ids, const std::vect
   // get reference to enc_buf_in_'s memory
   EncInput* write_to = enc_buf_in_->LockBack(tags.size());
 
-  unsigned int leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->HornLeafIdFor(bdpars::INPUT_TAGS));
+  uint8_t leaf_id_as_uint = bd_pars_->HornIdx(bd_pars_->BDEndPointIdFor(bdpars::INPUT_TAGS));
 
   for (unsigned int i = 0; i <tags.size(); i++) {
     // XXX throwing times on the ground for now
@@ -736,7 +747,7 @@ std::tuple<std::vector<unsigned int>,
 
   // XXX this circumvents RecvFromFunnel, don't want to hit the serialization code
 
-  unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(bdpars::OUTPUT_SPIKES));
+  unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->BDStartPointIdFor(bdpars::OUTPUT_SPIKES));
   unsigned int timeout = driver_pars_->Get(driverpars::RECVSPIKES_TIMEOUT_US);
 
   const DecOutput *MB_front;
@@ -767,7 +778,7 @@ std::tuple<std::vector<unsigned int>,
   std::vector<unsigned int> times;
   unsigned int num_to_recv_remaining = max_to_recv;
   for (auto& output_id : {bdpars::TAT_OUTPUT_TAGS, bdpars::ACC_OUTPUT_TAGS}) {
-    unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->FunnelLeafIdFor(output_id));
+    unsigned int buf_idx = bd_pars_->FunnelIdx(bd_pars_->BDStartPointIdFor(output_id));
     unsigned int timeout = driver_pars_->Get(driverpars::RECVTAGS_TIMEOUT_US);
 
     const DecOutput *MB_front;
@@ -787,7 +798,7 @@ std::tuple<std::vector<unsigned int>,
 }
 
 std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWordsToLeaf(
-    const std::vector<uint64_t>& inputs, bdpars::HornLeafId leaf_id) const {
+    const std::vector<uint64_t>& inputs, bdpars::BDEndPointId leaf_id) const {
   unsigned int input_width   = bd_pars_->Width(leaf_id);
   unsigned int serialization = bd_pars_->Serialization(leaf_id);
 
@@ -795,14 +806,14 @@ std::pair<std::vector<uint32_t>, unsigned int> Driver::SerializeWordsToLeaf(
 }
 
 std::pair<std::vector<uint64_t>, std::vector<uint32_t> > Driver::DeserializeWordsFromLeaf(
-    const std::vector<uint32_t>& inputs, bdpars::FunnelLeafId leaf_id) const {
+    const std::vector<uint32_t>& inputs, bdpars::BDStartPointId leaf_id) const {
   unsigned int deserialization    = bd_pars_->Serialization(leaf_id);
   unsigned int deserialized_width = bd_pars_->Width(leaf_id);
 
   return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
 }
 
-void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<BDWord>& payload) {
+void Driver::SendToHorn(unsigned int core_id, bdpars::BDEndPointId leaf_id, const std::vector<BDWord>& payload) {
   // convert to uint, should maybe just reinterpret cast
   std::vector<uint64_t> raw_payloads;
   for (auto& it : payload) {
@@ -815,7 +826,7 @@ void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const 
   std::tie(serialized_words, serialized_width) = SerializeWordsToLeaf(raw_payloads, leaf_id);
 
   // Encoder doesn't know about the enums, cast leaf_id as a uint
-  unsigned int leaf_id_as_uint = static_cast<unsigned int>(leaf_id);
+  uint8_t leaf_id_as_uint = static_cast<uint8_t>(leaf_id);
 
   // have to make sure that we don't send something bigger than the buffer
   std::vector<EncInput> enc_inputs;
@@ -833,7 +844,7 @@ void Driver::SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const 
 }
 
 
-std::vector<BDWord> Driver::RecvFromFunnel(unsigned int core_id, bdpars::FunnelLeafId leaf_id, unsigned num_to_recv) {
+std::vector<BDWord> Driver::RecvFromFunnel(unsigned int core_id, bdpars::BDStartPointId leaf_id, unsigned num_to_recv) {
   // This is a call of convenience. Often, we're interested not just in a particular
   // leaf's traffic, but also just the traffic from a particular core.
   //
@@ -891,7 +902,7 @@ std::vector<BDWord> Driver::RecvFromFunnel(unsigned int core_id, bdpars::FunnelL
 void Driver::SetRegister(unsigned int core_id, bdpars::RegId reg_id, BDWord word) {
   // form vector of values to set BDState's reg state with, in WordStructure field order
   bd_state_[core_id].SetReg(reg_id, word);
-  SendToHorn(core_id, bd_pars_->HornLeafIdFor(reg_id), {word});
+  SendToHorn(core_id, bd_pars_->BDEndPointIdFor(reg_id), {word});
 }
 
 void Driver::SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_en, bool dump_en) {

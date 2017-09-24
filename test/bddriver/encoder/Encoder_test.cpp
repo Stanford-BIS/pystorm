@@ -36,7 +36,7 @@ std::pair<std::vector<EncInput>, std::vector<EncOutput> > MakeEncInputAndOutput(
 
     // look up data width and input width
     //unsigned int BD_input_width = pars->Width(BD_input);
-    unsigned int payload_width = pars->Width(static_cast<HornLeafId>(leaf_idx));
+    unsigned int payload_width = pars->Width(static_cast<BDEndPointId>(leaf_idx));
 
     // mask payload
     payload_val = payload_val % (1 << payload_width);

@@ -26,7 +26,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   std::vector<uint32_t> BD_input_words = FPGAInput(input_stream, bd_pars_);
 
   // perform horn decoding
-  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> new_horn_words = Horn(BD_input_words, bd_pars_);
+  std::array<std::vector<uint32_t>, bdpars::BDEndPointIdCount> new_horn_words = Horn(BD_input_words, bd_pars_);
   //cout << "did horn" << endl;
   //cout << "sizes:" << endl
   //for (unsigned int i = 0; i < horn_words.size(); i++) {
@@ -34,13 +34,13 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   //}
 
   // deserialize at horn leaves where required
-  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> horn_words;
+  std::array<std::vector<uint32_t>, bdpars::BDEndPointIdCount> horn_words;
   horn_words.swap(remainders_);
   for (unsigned int i = 0 ; i < new_horn_words.size(); i++) {
     horn_words.at(i).insert(horn_words.at(i).end(), new_horn_words.at(i).begin(), new_horn_words.at(i).end());
   }
 
-  std::array<std::vector<uint64_t>, bdpars::HornLeafIdCount> des_horn_words;
+  std::array<std::vector<uint32_t>, bdpars::BDEndPointIdCount> des_horn_words;
   std::tie(des_horn_words, remainders_) = DeserializeAllHornLeaves(horn_words, bd_pars_);
 
   //cout << "did des" << endl;
@@ -56,7 +56,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
   // iterate through leaves
   for (unsigned int i = 0; i < des_horn_words.size(); i++) {
-    auto leaf_id = static_cast<bdpars::HornLeafId>(i);
+    auto leaf_id = static_cast<bdpars::BDEndPointId>(i);
 
     // cout << "processing leaf " << i << endl;
     // if (des_horn_words[i].size() > 0) cout << "  it has something" << endl;
@@ -69,7 +69,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 std::vector<uint8_t> BDModel::GenerateOutputs() {
 
   // convert to_send_ to uints XXX should be able to streamline this
-  std::array<std::vector<uint64_t>, bdpars::FunnelLeafIdCount> packed_words;
+  std::array<std::vector<uint32_t>, bdpars::BDStartPointIdCount> packed_words;
   for (unsigned int i = 0; i < to_send_.size(); i++) {
     for (auto& it : to_send_.at(i)) {
       packed_words.at(i).push_back(it.Packed());
@@ -81,7 +81,7 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
   auto serialized_chunks_and_widths = SerializeAllFunnelLeaves(packed_words, bd_pars_);
 
   // then funnel-encode them
-  std::vector<uint64_t> funnel_out_stream = Funnel(serialized_chunks_and_widths, bd_pars_);
+  std::vector<uint32_t> funnel_out_stream = Funnel(serialized_chunks_and_widths, bd_pars_);
   
   // then FPGA-byte-pack them
   std::vector<uint8_t> FPGA_output = FPGAOutput(funnel_out_stream, bd_pars_);
@@ -90,11 +90,11 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
 }
 
 
-void BDModel::ProcessReg(bdpars::RegId reg_id, uint64_t input) {
+void BDModel::ProcessReg(bdpars::RegId reg_id, uint32_t input) {
   state_->SetReg(reg_id, BDWord(input));
 }
 
-void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input) {
+void BDModel::ProcessInput(bdpars::InputId input_id, uint32_t input) {
   using namespace bdpars;
 
   switch (input_id) {
@@ -127,7 +127,7 @@ void BDModel::ProcessInput(bdpars::InputId input_id, uint64_t input) {
   }
 }
 
-void BDModel::ProcessMM(uint64_t input) {
+void BDModel::ProcessMM(uint32_t input) {
   using namespace bdpars;
 
   BDWord word(input);
@@ -137,7 +137,7 @@ void BDModel::ProcessMM(uint64_t input) {
     //cout << "SET " << MM_address_ << endl;
 
   } else if (word.At<MMWriteIncrement>(MMWriteIncrement::FIXED_1) == 1) {
-    uint64_t data = word.At<MMWriteIncrement>(MMWriteIncrement::DATA);
+    uint32_t data = word.At<MMWriteIncrement>(MMWriteIncrement::DATA);
     state_->SetMem(bdpars::MM, MM_address_, {BDWord(data)});
     //cout << "WRITE INC " << MM_address_ << " : " << data << endl;;
     MM_address_++;
@@ -153,7 +153,7 @@ void BDModel::ProcessMM(uint64_t input) {
   }
 }
 
-void BDModel::ProcessAM(uint64_t input) {
+void BDModel::ProcessAM(uint32_t input) {
   using namespace bdpars;
 
   BDWord word(input);
@@ -166,7 +166,7 @@ void BDModel::ProcessAM(uint64_t input) {
     BDWord old_data = state_->GetMem(bdpars::AM)->at(AM_address_);
     PushMem(bdpars::AM, {old_data});
 
-    uint64_t new_data = word.At<AMReadWrite>(AMReadWrite::DATA);
+    uint32_t new_data = word.At<AMReadWrite>(AMReadWrite::DATA);
     state_->SetMem(bdpars::AM, AM_address_, {BDWord(new_data)});
     //cout << "READ/WRITE AT " << AM_address_ << " : ";
     // for (auto& it : data_fields) {
@@ -183,7 +183,7 @@ void BDModel::ProcessAM(uint64_t input) {
   }
 }
 
-void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
+void BDModel::ProcessTAT(unsigned int TAT_idx, uint32_t input) {
   using namespace bdpars;
 
   BDWord word(input);
@@ -192,7 +192,7 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
     TAT_address_[TAT_idx] = word.At<TATSetAddress>(TATSetAddress::ADDRESS);
 
   } else if (word.At<TATWriteIncrement>(TATWriteIncrement::FIXED_1) == 1) {
-    uint64_t data = word.At<TATWriteIncrement>(TATWriteIncrement::DATA);
+    uint32_t data = word.At<TATWriteIncrement>(TATWriteIncrement::DATA);
     if (TAT_idx == 0) {
       state_->SetMem(bdpars::TAT0, TAT_address_[0], {BDWord(data)});
     } else {
@@ -216,14 +216,14 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
   }
 }
 
-void BDModel::ProcessPAT(const uint64_t input) {
+void BDModel::ProcessPAT(const uint32_t input) {
   using namespace bdpars;
 
   BDWord word(input);
 
   if (word.At<PATWrite>(PATWrite::FIXED_0) == 0) {
       unsigned int addr = word.At<PATWrite>(PATWrite::ADDRESS);
-      uint64_t data = word.At<PATWrite>(PATWrite::DATA);
+      uint32_t data = word.At<PATWrite>(PATWrite::DATA);
       state_->SetMem(bdpars::PAT, addr, {BDWord(data)});
 
   } else if (word.At<PATRead>(PATRead::FIXED_1) == 1) {
@@ -237,13 +237,13 @@ void BDModel::ProcessPAT(const uint64_t input) {
   }
 }
 
-void BDModel::Process(bdpars::HornLeafId leaf_id, const std::vector<uint64_t>& inputs) {
+void BDModel::Process(bdpars::BDEndPointId leaf_id, const std::vector<uint32_t>& inputs) {
   for (auto& input : inputs) {
     ProcessInput(leaf_id, input);
   }
 }
 
-void BDModel::ProcessInput(bdpars::HornLeafId leaf_id, uint64_t input) {
+void BDModel::ProcessInput(bdpars::BDEndPointId leaf_id, uint32_t input) {
   using namespace bdpars;
 
   ComponentTypeId component_type = bd_pars_->ComponentTypeIdFor(leaf_id);

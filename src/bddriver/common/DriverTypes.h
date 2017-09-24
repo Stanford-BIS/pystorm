@@ -23,7 +23,7 @@ typedef uint8_t DecInput;
 // encoder
 struct EncInput {
   unsigned int core_id;
-  unsigned int leaf_id;
+  uint8_t leaf_id;
   uint32_t payload;
   // XXX should probably have time
 };
