@@ -10,35 +10,19 @@ include(Common)
 # Enable testing
 enable_testing()
 
-############################################################################
-#
-# Entry function to build on Linux/Darwin/Windows
-# We need to make sure that the compiler is correct
-#
-############################################################################
-
-function(build_common)
-    # Build and install external dependencies into lib/ directory
-    link_directories(${PROJECT_SOURCE_DIR}/lib)
-    # External modules
-    add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
-    # Project directories
-    add_subdirectory(${PROJECT_SOURCE_DIR}/src)
-    add_subdirectory(${PROJECT_SOURCE_DIR}/test)
-endfunction()
-
-############################################################################
-#
-# Entry function to build on Linux, Mac OSX and Windows 10
-#
-############################################################################
 if(NOT BD_COMM_TYPE)
     set(BD_COMM_TYPE "MODEL" CACHE STRING
     "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"MODEL\" or \"SOFT\""
     FORCE)
 endif()
 
-build_common()
+# Build and install external dependencies into lib/ directory
+link_directories(${PROJECT_SOURCE_DIR}/lib)
+# External modules
+add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
+# Project directories
+add_subdirectory(${PROJECT_SOURCE_DIR}/src)
+add_subdirectory(${PROJECT_SOURCE_DIR}/test)
 
 set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
 message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")
