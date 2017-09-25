@@ -4,6 +4,8 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <queue>
+#include <algorithm>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -150,6 +152,9 @@ Driver::~Driver() {
   delete comm_;
 }
 
+// XXX get rid of this, it's used in some test
+void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
+
 void Driver::InitBD() {
 #if BD_COMM_TYPE_OPALKELLY
     // Initialize Opal Kelly Board
@@ -178,6 +183,7 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
 
     // XXX other stuff to do?
+    Flush();
   }
 }
 
@@ -199,7 +205,6 @@ void Driver::InitFIFO(unsigned int core_id) {
   ResumeTraffic(core_id);
 }
 
-void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
 
 void Driver::Start() {
   // start all worker threads
@@ -214,43 +219,95 @@ void Driver::Stop() {
   comm_->StopStreaming();
 }
 
+void Driver::Flush() {
+  // XXX note that the order that the user makes timed vs sequenced downstream calls is lost!
+  //
+  // If I call:
+  // SendSpikes(), SetMem(), SendSpikes(), Flush()
+  // there's no guarantee that the memory is going to be set after the first batch of spikes is sent
+  //
+  // If you really want that, do this:
+  // SendSpikes(), Flush(), 
+  // SetMem(), Flush(), 
+  // SendSpikes(), Flush()
+  //
+  // The order of sequenced calls is conserved, and, of course, the timing is correct
+  //
+  // If I call:
+  // SendSpikes(a), SetMem(x), SendSpikes(b), SetMem(y), Flush()
+  //
+  // then SetMem(x) is guaranteed to occur before SetMem(y)
+  // and the traffic of SendSpikes(a) is interleaved with SendSpikes(b) as necessary
+  
+  unsigned int num_words = 0;
+  num_words += timed_queue_.size();
+  
+  // send the timed traffic first (it's more important, I guess)
+  auto from_queue = std::make_unique<std::vector<EncInput>>();
+  from_queue->swap(timed_queue_);
+  enc_buf_in_->Push(std::move(from_queue));
+
+
+  // then send the sequenced traffic 
+  while (!sequenced_queue_.empty()) {
+    num_words += sequenced_queue_.front()->size();
+    enc_buf_in_->Push(std::move(sequenced_queue_.front()));
+    sequenced_queue_.pop();
+  }
+
+  //unsigned int words_per_frame = bd_pars_->DnWordsPerFrame;
+  //unsigned int nops_to_send = num_words % words_per_frame == 0 ? 0 : words_per_frame - num_words % words_per_frame;
+  //if (nops_to_send > 0) {
+
+  //  EncInput nop;
+  //  nop.core_id = 0;
+  //  nop.FPGA_ep_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
+  //  nop.payload = 0;
+  //  nop.time = 0;
+
+  //  auto nop_vect = std::make_unique<std::vector<EncInput>>(nops_to_send, nop);
+  //  enc_buf_in_->Push(std::move(nop_vect));
+  //}
+  
+}
+
 /// Set toggle traffic_en only, keep dump_en the same, returns previous traffic_en.
 /// If register state has not been set, dump_en -> 0
-bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en) {
+bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
   if ((en != traffic_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, en, dump_en & reg_valid);
+    SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
   }
   return traffic_en;
 }
 
 /// Set toggle dump_en only, keep traffic_en the same, returns previous dump_en.
 /// If register state has not been set, traffic_en -> 0
-bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en) {
+bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
   if ((en != dump_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, traffic_en & reg_valid, en);
+    SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
   }
   return dump_en;
 }
 
 /// Turn on tag traffic in datapath (also calls Start/KillSpikes)
-void Driver::SetTagTrafficState(unsigned int core_id, bool en) {
+void Driver::SetTagTrafficState(unsigned int core_id, bool en, bool flush) {
   for (auto& it : kTrafficRegs) {
-    SetToggleTraffic(core_id, it, en);
+    SetToggleTraffic(core_id, it, en, flush);
   }
 }
 
 /// Turn on spike outputs for all neurons
-void Driver::SetSpikeTrafficState(unsigned int core_id, bool en) {
-  SetToggleTraffic(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en);
+void Driver::SetSpikeTrafficState(unsigned int core_id, bool en, bool flush) {
+  SetToggleTraffic(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en, flush);
 }
 
 /// Turn on spike outputs for all neurons
-void Driver::SetSpikeDumpState(unsigned int core_id, bool en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en);
+void Driver::SetSpikeDumpState(unsigned int core_id, bool en, bool flush) {
+  SetToggleDump(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en, flush);
 }
 
 void Driver::PauseTraffic(unsigned int core_id) {
@@ -260,6 +317,7 @@ void Driver::PauseTraffic(unsigned int core_id) {
     bool last_state = SetToggleTraffic(core_id, reg_id, false);
     last_traffic_state_[core_id].push_back(last_state);
   }
+  Flush();
   bd_state_[core_id].WaitForTrafficOff();
 }
 
@@ -270,13 +328,14 @@ void Driver::ResumeTraffic(unsigned int core_id) {
     SetToggleTraffic(core_id, reg_id, last_traffic_state_[core_id][i]);
   }
   last_traffic_state_[core_id] = {};
+  Flush();
 }
 
 
-void Driver::SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value) {
+void Driver::SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value, bool flush) {
   BDWord word = PackWord<DelayWord>({{DelayWord::READ_DELAY, read_value},
                                            {DelayWord::WRITE_DELAY, write_value}});
-  SetBDRegister(core_id, bd_pars_->mem_info_.at(mem_id).delay_reg, word);
+  SetBDRegister(core_id, bd_pars_->mem_info_.at(mem_id).delay_reg, word, flush);
 }
 
 void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
@@ -309,22 +368,24 @@ std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int
   return {ovflw0.size(), ovflw1.size()};
 }
 
-void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value) {
-  assert(false && "not implemented");  // fix the ADC connection state thing below
+void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush) {
 
-  // look up state of connection to ADC XXX
-  bool DAC_to_ADC_conn_curr_state = false;
+  // look up state of connection to ADC
+  BDWord reg_val = bd_state_.at(core_id).GetReg(signal_id).first;
+  bool DAC_to_ADC_conn_curr_state = GetField(reg_val, DACWord::DAC_TO_ADC_CONN);
 
   BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, value}, {DACWord::DAC_TO_ADC_CONN, DAC_to_ADC_conn_curr_state}});
-  SetBDRegister(core_id, signal_id, word);
+  SetBDRegister(core_id, signal_id, word, flush);
 }
 
-void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en) {
-  assert(false && "not implemented");
-}
+void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP signal_id, bool en, bool flush) {
 
-void DisconnectDACsfromADC(unsigned int core_id) {
-  assert(false && "not implemented");
+  // look up DAC value
+  BDWord reg_val = bd_state_.at(core_id).GetReg(signal_id).first;
+  uint64_t DAC_curr_val = GetField(reg_val, DACWord::DAC_VALUE);
+
+  BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, DAC_curr_val}, {DACWord::DAC_TO_ADC_CONN, en}});
+  SetBDRegister(core_id, signal_id, word, flush);
 }
 
 /// Set large/small current scale for either ADC
@@ -512,6 +573,9 @@ void Driver::SetMem(
   PauseTraffic(core_id);
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
   SendToEP(core_id, horn_ep, encapsulated_words);
+
+  Flush();
+
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
     
@@ -565,6 +629,8 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
   PauseTraffic(core_id);
   SendToEP(core_id, horn_ep, encapsulated_words);
+
+  Flush();
 
   // XXX this might discard remainders
   std::vector<BDWord> payloads;
@@ -682,18 +748,20 @@ std::vector<BDWord> Driver::PackAMMMWord(const std::vector<BDWord>& payload_data
   return retval;
 }
 
-void Driver::SendSpikes(unsigned int core_id, const std::vector<BDWord>& spikes, const std::vector<BDTime> times) {
+void Driver::SendSpikes(unsigned int core_id, const std::vector<BDWord>& spikes, const std::vector<BDTime> times, bool flush) {
   assert(spikes.size() == times.size());
 
   // do something with times
   SendToEP(core_id, bdpars::BDHornEP::NEURON_INJECT, spikes, times);
+  if (flush) Flush();
 }
 
-void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, const std::vector<BDTime> times) {
+void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, const std::vector<BDTime> times, bool flush) {
   assert(tags.size() == times.size());
 
   // do something with times
   SendToEP(core_id, bdpars::BDHornEP::RI, tags, times);
+  if (flush) Flush();
 }
 
 
@@ -723,7 +791,9 @@ void Driver::SendToEP(unsigned int core_id,
     const std::vector<BDWord>& payload,
     const std::vector<BDTime>& times) {
 
-  std::unique_ptr<std::vector<EncInput>> serialized(new std::vector<EncInput>);
+  auto serialized = std::make_unique<std::vector<EncInput>>();
+
+  bool timed = times.size() > 0;
 
   const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
   const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
@@ -738,7 +808,7 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push[2];
-      BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
+      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
 
       // lsb first, msb second
       to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
@@ -759,7 +829,7 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push;
-      BDTime time = times.size() == 0 ? 0 : times.at(i); // time 0 goes in immediately
+      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
       
       to_push.payload = it;
       to_push.time = time;
@@ -771,7 +841,15 @@ void Driver::SendToEP(unsigned int core_id,
     }
   }
 
-  enc_buf_in_->Push(std::move(serialized));
+  if (timed) {
+    // push all the elements to the back of the vector then sort it
+    for (auto& it : *serialized) {
+      timed_queue_.push_back(it);
+    }
+    std::sort(timed_queue_.begin(), timed_queue_.end());
+  } else {
+    sequenced_queue_.push(std::move(serialized));
+  }
 }
 
 
@@ -827,16 +905,17 @@ std::pair<std::vector<BDWord>,
   return {words, times};
 }
 
-void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word) {
+void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word, bool flush) {
   // form vector of values to set BDState's reg state with, in WordStructure field order
   assert(bd_pars_->BDHornEPIsReg(reg_id));
   bd_state_[core_id].SetReg(reg_id, word);
   SendToEP(core_id, reg_id, {word});
+  if (flush) Flush();
 }
 
-void Driver::SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_en, bool dump_en) {
+void Driver::SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_en, bool dump_en, bool flush) {
   SetBDRegister(core_id, toggle_id, PackWord<ToggleWord>(
-        {{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}}));
+        {{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}}), flush);
 }
 
 } // bddriver

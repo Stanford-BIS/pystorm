@@ -90,7 +90,7 @@ enum class FPGARegEP {
   TM_PC_RESET_TIME       = 29, // reset FPGA clock
   TS_REPORT_TAGS         = 30, // forward tags to PC
   BD_RESET               = 31, // bit 0 is pReset, bit 1 is sReset
-  BD_NOP                 = 32, // sending to registers 32-63 is a NOP
+  NOP                    = 32, // sending to registers 32-63 is a NOP
   COUNT                  = 11  // XXX hardcoded, so be careful
 };
 
@@ -215,15 +215,17 @@ class BDPars {
 
  public:
 
-   // misc constants
-   const unsigned int NumCores              = 1;
-   const unsigned int DnEPFPGARegOffset     = 128;
-   const unsigned int DnEPFPGANumReg        = 64;
-   const unsigned int DnEPFPGAChannelOffset = 192;
-   const unsigned int DnEPFPGANumChan       = 2;
-   
-   const unsigned DnEPFPGABitsPerReg        = 16;
-   const unsigned DnEPFPGABitsPerChannel    = 16;
+  // misc constants
+  const unsigned int NumCores               = 1;
+  const unsigned int DnEPFPGARegOffset      = 128;
+  const unsigned int DnEPFPGANumReg         = 64;
+  const unsigned int DnEPFPGAChannelOffset  = 192;
+  const unsigned int DnEPFPGANumChan        = 2;
+  
+  const unsigned int DnEPFPGABitsPerReg     = 16;
+  const unsigned int DnEPFPGABitsPerChannel = 16;
+
+  const unsigned int DnWordsPerFrame        = 64;
 
   // downstream endpoint info
   std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;

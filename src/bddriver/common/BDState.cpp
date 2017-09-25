@@ -82,8 +82,8 @@ void BDState::SetReg(bdpars::BDHornEP reg_id, BDWord data) {
   }
 }
 
-const std::pair<const BDWord *, bool> BDState::GetReg(bdpars::BDHornEP reg_id) const {
-  return std::make_pair(&(reg_.at(reg_id)), reg_valid_.at(reg_id));
+const std::pair<const BDWord, bool> BDState::GetReg(bdpars::BDHornEP reg_id) const {
+  return std::make_pair((reg_.at(reg_id)), reg_valid_.at(reg_id));
 }
 
 void BDState::SetToggle(bdpars::BDHornEP reg_id, bool traffic_en, bool dump_en) {
@@ -169,12 +169,12 @@ bool operator==(const BDState& lhs, const BDState& rhs)
   // check registers
   bool regs_match = true;
   for (auto& it : lhs.bd_pars_->GetBDRegs()) {
-    const BDWord *lhs_vals, *rhs_vals;
+    BDWord lhs_vals, rhs_vals;
     bool lhs_valid, rhs_valid;
     std::tie(lhs_vals, lhs_valid) = lhs.GetReg(it);
     std::tie(rhs_vals, rhs_valid) = rhs.GetReg(it);
     bool valid_match = lhs_valid == rhs_valid;
-    bool vals_match  = *lhs_vals == *rhs_vals;
+    bool vals_match  = lhs_vals == rhs_vals;
     regs_match       = regs_match && valid_match && vals_match;
      if (!valid_match) {
       cout << "reg id " << int(it) << " valid failed" << endl;
