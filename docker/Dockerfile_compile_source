@@ -1,11 +1,13 @@
-# Dockerfile for JENKINS CI
-FROM ubuntu-pystorm:latest
+# Dockerfile for compiling and testing the pystorm repo
 
+# Start with the image built from Dockerfile_setup_environment
+FROM stanfordbis/ubuntu-pystorm:latest
+
+# Run from the pystorm repo base directory to copy the pystorm repo contents
 COPY . /home/git/pystorm
 
 # These are the commands that a developer would type to build and run
 # the automated tests for PyStorm
-
 RUN export HOME="/home/git" \
     && cd /home/git/pystorm \
     && mkdir build \

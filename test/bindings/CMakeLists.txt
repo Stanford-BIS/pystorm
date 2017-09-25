@@ -16,14 +16,14 @@ set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 # Install and build external dependencies 
 #-------------------
 
-find_package(PythonInterp 3.5)
+find_package(PythonInterp 3.6)
 
 #-------------------
 # Build Test
 #-------------------
 enable_testing()
 
-if(CXX_IS_MSVC)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
 endif()
 
