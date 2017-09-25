@@ -112,6 +112,7 @@ Driver::Driver() {
   enc_ = new Encoder(
       enc_buf_in_,
       enc_buf_out_,
+      bd_pars_,
       driver_pars_->Get(driverpars::ENC_TIMEOUT_US));
 
   dec_ = new Decoder(

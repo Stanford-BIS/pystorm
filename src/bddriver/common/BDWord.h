@@ -237,10 +237,16 @@ DEFWORD(FPGABYTES,
     FIELDS(B0 , B1 , B2 , B3 ) ,
     WIDTHS(8  , 8  , 8  , 8  )   )
 
+
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,
     FIELDS(LSB, MSB ) ,
     WIDTHS(24 ,  24 )   )
+
+DEFWORD(THREEFPGAREGS,
+    FIELDS(W0, W1, W2 ) ,
+    WIDTHS(16, 16, 16 )   )
+
 
 // There's no proper BDWord type anymore (there never was, really)
 // just a typedef
