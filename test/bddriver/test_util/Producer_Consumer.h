@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <memory>
 
 #include <iostream>
 
@@ -17,202 +18,69 @@ using namespace bddriver;
 using namespace std;
 
 template <class T>
-void ProduceN(bddriver::MutexBuffer<T>* buf, T* vals, unsigned int N, unsigned int M, unsigned int try_for_us)
-// push M elements N times
+void ProduceAndReport(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &vals, unsigned int report_every)
 {
-  unsigned int num_pushed = 0;
-  while (num_pushed < N) {
-    unsigned int num_to_push;
-    if (N - num_pushed > M) {
-      num_to_push = M;
-    } else {
-      num_to_push = N - num_pushed;
+  unsigned int i = 0;
+  for (auto& v : vals) {
+    if (report_every != 0) {
+      if (i % report_every == 0) cout << "Producer " << std::this_thread::get_id() << " : sent " << i << endl;
     }
-
-    // cout << "pushing: ";
-    // for (unsigned int j = 0; j < num_to_push; j++) {
-    ////  cout << data[j] << ", ";
-    //}
-    // cout << ". " << num_pushed + num_to_push << " pushed" << endl;
-
-    bool success = false;
-    while (!success) {
-      success = buf->Push(&vals[num_pushed], num_to_push, try_for_us);
-    }
-
-    num_pushed += num_to_push;
+    //cout << "prod " << i << endl;
+    // copy each vector and push
+    std::unique_ptr<std::vector<T>> un_copy = std::make_unique<std::vector<T>>(v);
+    assert(un_copy.get() != nullptr);
+    buf->Push(std::move(un_copy));
+    i++;
   }
 }
 
 template <class T>
-void ProduceLockBackN(bddriver::MutexBuffer<T>* buf, T* vals, unsigned int N, unsigned int M, unsigned int try_for_us)
-// push M elements N times
-{
-  unsigned int num_pushed = 0;
-  while (num_pushed < N) {
-    unsigned int num_to_push;
-    if (N - num_pushed > M) {
-      num_to_push = M;
-    } else {
-      num_to_push = N - num_pushed;
-    }
-
-    // cout << "pushing: ";
-    // for (unsigned int j = 0; j < num_to_push; j++) {
-    ////  cout << data[j] << ", ";
-    //}
-    // cout << ". " << num_pushed + num_to_push << " pushed" << endl;
-
-    T* write_to = nullptr;
-    while (write_to == nullptr) {
-      write_to = buf->LockBack(num_to_push, try_for_us);
-    }
-    for (unsigned int i = 0; i < num_to_push; i++) {
-      write_to[i] = vals[num_pushed + i];
-    }
-    buf->UnlockBack();
-
-    num_pushed += num_to_push;
-  }
+void Produce(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &vals) {
+  ProduceAndReport(buf, vals, 0);
 }
+
+
 template <class T>
-void ConsumeN(bddriver::MutexBuffer<T>* buf, T* vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  unsigned int N_consumed = 0;
-  while (N_consumed != N) {
-    unsigned int num_popped = buf->Pop(&vals[N_consumed], M, try_for_us);
-
-    // cout << "popping: ";
-    // for (unsigned int i = 0; i < num_popped; i++) {
-    //  //cout << data[i] << ", ";
-    //}
-    // cout << ". " << N_consumed + num_popped << " popped" << endl;
-
-    N_consumed += num_popped;
+void ConsumeAndReport(bddriver::MutexBuffer<T>* buf, std::vector<std::vector<T>> * vals, unsigned int N, unsigned int try_for_us, unsigned int report_every) {
+  vals->clear();
+  unsigned int i = 0;
+  while (i < N) {
+    if (report_every != 0) {
+      if (i % report_every == 0) cout << "Consumer " << std::this_thread::get_id() << " : got " << i << endl;
+    }
+    //cout << "before pop" << i << endl;
+    std::unique_ptr<std::vector<T>> popped = buf->Pop(try_for_us);
+    //cout << "after pop" << i << endl;
+    if (popped->size() > 0) {
+      // copy popped data
+      vals->push_back({});
+      for (auto& it : *popped) {
+        vals->back().push_back(it);
+      }
+      i++;
+    }
+    //cout << "after pop" << i << endl;
   }
 }
 
 template <class T>
-void ConsumeVectNGiveUpAfter(
-    bddriver::MutexBuffer<T>* buf,
-    vector<T>* vals,
-    unsigned int N,
-    unsigned int M,
-    unsigned int try_for_us,
-    unsigned int give_up_after_us) {
-  T* data = new T[M];
+void Consume(bddriver::MutexBuffer<T>* buf, std::vector<std::vector<T>> * vals, unsigned int N, unsigned int try_for_us) {
+  ConsumeAndReport(buf, vals, N, try_for_us, 0);
+}
 
-  bool give_up = false;
-  auto t0      = std::chrono::high_resolution_clock::now();
-
-  unsigned int N_consumed = 0;
-  while (N_consumed != N && give_up == false) {
-    // cout << "hi" << endl;
-    unsigned int max_to_read;
-    if (N - N_consumed <= M) {
-      max_to_read = N - N_consumed;
-    } else {
-      max_to_read = M;
-    }
-
-    unsigned int num_popped = buf->Pop(data, max_to_read, try_for_us);
-
-    // cout << "popping: ";
-    // for (unsigned int i = 0; i < num_popped; i++) {
-    //  //cout << data[i] << ", ";
-    //}
-    // cout << ". " << N_consumed + num_popped << " popped" << endl;
-
-    for (unsigned int j = 0; j < num_popped; j++) {
-      vals->push_back(data[j]);
-    }
-
-    N_consumed += num_popped;
-
-    auto tnow = std::chrono::high_resolution_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tnow - t0).count();
-    if (give_up_after_us != 0 && diff > give_up_after_us) {
-      give_up = true;
-    }
+template <class T>
+void ConsumeAndCheckAndReport(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &check_vals, unsigned int try_for_us, unsigned int report_every) {
+  std::vector<std::vector<T>> to_fill;
+  ConsumeAndReport(buf, &to_fill, check_vals.size(), try_for_us, report_every);
+  ASSERT_EQ(to_fill.size(), check_vals.size());
+  for (unsigned int i = 0; i < check_vals.size(); i++) {
+    ASSERT_EQ(to_fill.at(i), check_vals.at(i));
   }
 }
 
 template <class T>
-void ConsumeVectN(
-    bddriver::MutexBuffer<T>* buf, vector<T>* vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  ConsumeVectNGiveUpAfter(buf, vals, N, M, try_for_us, 0);
-}
-
-template <class T>
-void ConsumeVectLockFrontN(
-    bddriver::MutexBuffer<T>* buf, vector<T>* vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  unsigned int N_consumed = 0;
-  while (N_consumed != N) {
-    // cout << "hi" << endl;
-    const T* read_ptr;
-    unsigned int num_to_read;
-
-    std::tie(read_ptr, num_to_read) = buf->LockFront(M, try_for_us);
-    // might return (nullptr, 0), but that's ok, following code does nothing if num_to_read == 0
-
-    // cout << "popping: ";
-    // for (unsigned int i = 0; i < num_popped; i++) {
-    //  //cout << data[i] << ", ";
-    //}
-    // cout << ". " << N_consumed + num_popped << " popped" << endl;
-
-    for (unsigned int j = 0; j < num_to_read; j++) {
-      vals->push_back(read_ptr[j]);
-    }
-
-    buf->UnlockFront();
-
-    N_consumed += num_to_read;
-  }
-}
-
-template <class T>
-void ConsumeVectLockFrontSimpleN(
-    bddriver::MutexBuffer<T>* buf, vector<T>* vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  unsigned int N_consumed = 0;
-  while (N_consumed != N) {
-    // cout << "hi" << endl;
-    T* read_ptr = new T[M];
-    unsigned int num_to_read = 0;
-
-    if (buf->LockFrontSimple(try_for_us)) {
-        num_to_read = buf->PopSimple(read_ptr, M);
-        for (unsigned int j = 0; j < num_to_read; j++) {
-            vals->push_back(read_ptr[j]);
-        }
-    }
-    buf->UnlockFront(false);
-
-    N_consumed += num_to_read;
-    delete read_ptr;
-  }
-}
-
-template <class T>
-void ConsumeAndCheckN(
-    bddriver::MutexBuffer<T>* buf, T* check_vals, unsigned int N, unsigned int M, unsigned int try_for_us) {
-  T* data = new T[M];
-
-  unsigned int N_consumed = 0;
-  while (N_consumed != N) {
-    unsigned int num_popped = buf->Pop(data, M, try_for_us);
-
-    // cout << "popping: ";
-    // for (unsigned int i = 0; i < num_popped; i++) {
-    //  cout << data[i] << ", ";
-    //}
-    // cout << ". " << N_consumed + num_popped << " popped" << endl;
-
-    for (unsigned int i = 0; i < num_popped; i++) {
-      ASSERT_EQ(check_vals[N_consumed + i], data[i]);
-    }
-
-    N_consumed += num_popped;
-  }
+void ConsumeAndCheck(bddriver::MutexBuffer<T>* buf, const std::vector<std::vector<T>> &check_vals, unsigned int try_for_us) {
+  ConsumeAndCheckAndReport(buf, check_vals, try_for_us, 0);
 }
 
 #endif

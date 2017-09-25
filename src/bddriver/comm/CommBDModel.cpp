@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <thread>
+#include <memory>
 
 #include "encoder/Encoder.h"
 
@@ -30,24 +31,21 @@ CommBDModel::~CommBDModel() {
 }
 
 void CommBDModel::RunOnce() {
-  unsigned int max_to_read = driver_pars_->Get(driverpars::BDMODELCOMM_MAX_TO_READ);
+  // pop from MB
   unsigned int try_for_us = driver_pars_->Get(driverpars::BDMODELCOMM_TRY_FOR_US);
-  std::vector<COMMWord> inputs = write_buffer_->PopVect(max_to_read, try_for_us, Encoder::bytesPerOutput);
-  model_->ParseInput(inputs);
-  std::vector<COMMWord> outputs = model_->GenerateOutputs();
+  std::unique_ptr<std::vector<COMMWord>> inputs = write_buffer_->Pop(try_for_us);
 
-  // have to make sure that we don't send something bigger than the buffer
-  std::vector<COMMWord> output_chunk;
-  unsigned int i = 0;
-  while (i < outputs.size()) {
-    output_chunk.push_back(outputs.at(i));
-    i++;
-    if (i % driver_pars_->Get(driverpars::DEC_BUF_IN_CAPACITY) == 0) {
-      read_buffer_->Push(output_chunk);
-      output_chunk.clear();
-    }
-  }
-  read_buffer_->Push(output_chunk);
+  // shouldn't need a deserializer, there's no USB to break up the transmission
+
+  // parse inputs
+  model_->ParseInput(*inputs);
+
+  // get outputs
+  std::unique_ptr<std::vector<COMMWord>> outputs(new std::vector<COMMWord>);
+  *outputs = model_->GenerateOutputs();
+
+  // push to MB
+  read_buffer_->Push(std::move(outputs));
 }
 
 void CommBDModel::Run() {

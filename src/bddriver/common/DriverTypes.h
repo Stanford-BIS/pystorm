@@ -12,24 +12,23 @@ namespace bddriver {
 ////////////////////////////////////////
 // decoder/encoder
 
+typedef unsigned int BDTime;
+
 // decoder
 struct DecOutput {
-  uint32_t payload;
-  unsigned int core_id;
-  unsigned int time_epoch;
+     uint32_t     payload;
+     BDTime       time;
 };
 typedef uint8_t DecInput;
 
 // encoder
 struct EncInput {
-  unsigned int core_id;
-  unsigned int leaf_id;
-  uint32_t payload;
-  // XXX should probably have time
+     unsigned int core_id;
+     uint8_t      FPGA_ep_code;
+     uint32_t     payload;
+     BDTime       time;
 };
 typedef uint8_t EncOutput;
-
-typedef unsigned int BDTime;
 
 }  // bddriver
 }  // pystorm

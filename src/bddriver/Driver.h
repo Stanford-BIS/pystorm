@@ -7,6 +7,7 @@
 
 #include "comm/Comm.h"
 #include "common/BDPars.h"
+#include "common/BDWord.h"
 #include "common/BDState.h"
 #include "common/MutexBuffer.h"
 #include "decoder/Decoder.h"
@@ -14,10 +15,6 @@
 
 /*
  * TODO LIST: funnel/horn leaves that still need their calls finished
- *
- * horn_["NeuronConfig"]         (? needs impl (Ben))
- * horn_["DAC[*]"]               (SetDACtoADCConnectionState needs impl (Ben))
- * horn_["ADC"]                  (SetADCTrafficState/SetADCScale needs impl (Ben))
  *
  * XXX need to figure out FPGA-generated/binned spike/tag stream supported functionality/calls
  */
@@ -134,10 +131,10 @@ class Driver {
   // ADC/DAC Config
 
   /// Program DAC value
-  void SetDACValue(unsigned int core_id, bdpars::DACSignalId signal_id, unsigned int value);  // XXX not implemented
+  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value);  // XXX not implemented
   /// Make DAC-to-ADC connection for calibration for a particular DAC
   void SetDACtoADCConnectionState(
-      unsigned int core_id, bdpars::DACSignalId dac_signal_id, bool en);  // XXX not implemented
+      unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en);  // XXX not implemented
 
   /// Set large/small current scale for either ADC
   void SetADCScale(unsigned int core_id, bool adc_id, const std::string &small_or_large);  // XXX not implemented
@@ -341,13 +338,13 @@ class Driver {
   /// BDWords must be constructed as the correct word type for the mem_id
   void SetMem(
       unsigned int core_id,
-      bdpars::MemId mem_id,
+      bdpars::BDMemId mem_id,
       const std::vector<BDWord> &data,
       unsigned int start_addr);
 
   /// Dump the contents of one of the memories.
   /// BDWords must subsequently be unpacked as the correct word type for the mem_id
-  std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::MemId mem_id);
+  std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::BDMemId mem_id);
 
   /// Dump copy of traffic pre-FIFO
   void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
@@ -355,9 +352,9 @@ class Driver {
   void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
 
   /// Get pre-FIFO tags recorded during dump
-  std::vector<BDWord> GetPreFIFODump(unsigned int core_id, unsigned int n_tags);
+  std::vector<BDWord> GetPreFIFODump(unsigned int core_id);
   /// Get post-FIFO tags recorded during dump
-  std::pair<std::vector<BDWord>, std::vector<BDWord> > GetPostFIFODump(unsigned int core_id, unsigned int n_tags0, unsigned int n_tags1);
+  std::pair<std::vector<BDWord>, std::vector<BDWord> > GetPostFIFODump(unsigned int core_id);
 
   /// Get warning count
   std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(unsigned int core_id);
@@ -367,27 +364,26 @@ class Driver {
 
   /// Send a stream of spikes to neurons
   void SendSpikes(
-      const std::vector<unsigned int>& core_ids,
+      unsigned int core_id,
       const std::vector<BDWord>& spikes,
       const std::vector<BDTime> times);
 
   /// Receive a stream of spikes
-  std::tuple<std::vector<unsigned int>,
-          std::vector<BDWord>,
-          std::vector<BDTime> > RecvSpikes(unsigned int max_to_recv);
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime> > RecvSpikes(unsigned int core_id) {
+    return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI);
+  }
 
   /// Send a stream of tags
   void SendTags(
-      const std::vector<unsigned int>& core_ids,
+      unsigned int core_id,
       const std::vector<BDWord>& tags,
       const std::vector<BDTime> times);
 
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
-  /// Use TATOutputTags to unpack
-  std::tuple<std::vector<unsigned int>,
-          std::vector<BDWord>,
-          std::vector<BDTime> > RecvTags(unsigned int max_to_recv);
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime>> RecvTags(unsigned int core_id);
 
   ////////////////////////////////
   // BDState queries
@@ -399,21 +395,21 @@ class Driver {
 
   /// Get register contents by name.
   inline const std::pair<const BDWord *, bool> GetRegState(
-      unsigned int core_id, bdpars::RegId reg_id) const {
+      unsigned int core_id, bdpars::BDHornEP reg_id) const {
     return bd_state_[core_id].GetReg(reg_id);
   }
 
   /// Get software state of memory contents: this DOES NOT dump the memory.
-  inline const std::vector<BDWord> *GetMemState(bdpars::MemId mem_id, unsigned int core_id) const { return bd_state_[core_id].GetMem(mem_id); }
+  inline const std::vector<BDWord> *GetMemState(bdpars::BDMemId mem_id, unsigned int core_id) const { return bd_state_[core_id].GetMem(mem_id); }
 
  protected:
   ////////////////////////////////
   // data members
 
   /// parameters describing parameters of the software (e.g. buffer depths)
-  driverpars::DriverPars *driver_pars_;
+  const driverpars::DriverPars *driver_pars_;
   /// parameters describing BD hardware
-  bdpars::BDPars *bd_pars_;
+  const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware
   std::vector<BDState> bd_state_;
 
@@ -430,7 +426,10 @@ class Driver {
   MutexBuffer<DecInput> *dec_buf_in_;
 
   /// vector of thread-safe, MPMC buffers between decoder and breadth of upstream driver API
-  std::vector<MutexBuffer<DecOutput> *> dec_bufs_out_;
+  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> dec_bufs_out_;
+
+  /// deserializers for upstream traffic
+  std::unordered_map<uint8_t, VectorDeserializer<DecOutput>> up_ep_deserializers_;
 
   /// encodes traffic to BD
   Encoder *enc_;
@@ -442,30 +441,28 @@ class Driver {
 
   ////////////////////////////////
   // traffic helpers
-  const std::vector<bdpars::RegId> kTrafficRegs = {
-      bdpars::NEURON_DUMP_TOGGLE, bdpars::TOGGLE_PRE_FIFO, bdpars::TOGGLE_POST_FIFO0, bdpars::TOGGLE_POST_FIFO1};
+  const std::vector<bdpars::BDHornEP> kTrafficRegs = {
+      bdpars::BDHornEP::NEURON_DUMP_TOGGLE,
+      bdpars::BDHornEP::TOGGLE_PRE_FIFO,
+      bdpars::BDHornEP::TOGGLE_POST_FIFO0,
+      bdpars::BDHornEP::TOGGLE_POST_FIFO1};
 
-  std::unordered_map<unsigned int, std::vector<bool> > last_traffic_state_;
+  std::unordered_map<unsigned int, std::vector<bool>, EnumClassHash> last_traffic_state_;
 
   /// Stops traffic for a core and saves the previous state in last_traffic_state_
   void PauseTraffic(unsigned int core_id);
   void ResumeTraffic(unsigned int core_id);
 
   ////////////////////////////////
-  // helpers
-
-  std::pair<std::vector<uint32_t>, unsigned int> SerializeWordsToLeaf(
-      const std::vector<uint64_t> &inputs, bdpars::HornLeafId) const;
-  std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeWordsFromLeaf(
-      const std::vector<uint32_t> &inputs, bdpars::FunnelLeafId leaf_id) const;
+  // Main send/recv calls
 
   /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
-  ///
-  /// Determines whether payloads must be serialized based on <leaf_id>.
-  /// For payloads that don't need to be serialized, or that might need to
-  /// go to multiple cores, this isn't the most effective call.
-  /// SendSpikes(), for example, pushes directly to the encoder's input buffer.
-  void SendToHorn(unsigned int core_id, bdpars::HornLeafId leaf_id, const std::vector<BDWord> &payload);
+  void SendToEP(unsigned int core_id, uint8_t ep_code, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
+  // can call SendToEP on BDHornEP, FPGARegEP, FPGAChannelEP instead of uint8_t ep_code
+  template <class T>
+  void SendToEP(unsigned int core_id, T ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {}) {
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(ep), payload, times);
+  }
 
   /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
   /// associated with a supplied <core_id>.
@@ -474,10 +471,15 @@ class Driver {
   /// Returns vector of deserialized payloads. For payloads that don't need to be deserialized,
   /// that might come from multiple cores, or that need time_epoch information,
   /// This isn't the most effective call.
-  std::vector<BDWord> RecvFromFunnel(
-      unsigned int core_id,
-      bdpars::FunnelLeafId leaf_id,
-      unsigned int num_to_recv = 0);
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime>>
+    RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us=0);
+
+  /// Wrapper for convenience, can call with BDFunnelEP or FPGAOutputEP
+  template <class T>
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime>>
+    RecvFromEP(unsigned int core_id, T ep_enum, unsigned int timeout_us=0) { return RecvFromEP(core_id, bd_pars_->UpEPCodeFor(ep_enum), timeout_us); }
 
   ////////////////////////////////
   // memory programming helpers
@@ -504,15 +506,16 @@ class Driver {
   ////////////////////////////////
   // register programming helpers
 
-  void SetRegister(unsigned int core_id, bdpars::RegId reg_id, BDWord word);
-  void SetToggle(unsigned int core_id, bdpars::RegId toggle_id, bool traffic_enable, bool dump_enable);
-  bool SetToggleTraffic(unsigned int core_id, bdpars::RegId reg_id, bool en);
-  bool SetToggleDump(unsigned int core_id, bdpars::RegId reg_id, bool en);
+  void SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word);
+  void SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_enable, bool dump_enable);
+  bool SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en);
+  bool SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en);
 
   /// Set memory delay line value
-  void SetMemoryDelay(unsigned int core_id, bdpars::MemId mem_id, unsigned int read_value, unsigned int write_value);
+  void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value);
 
-  std::vector<BDWord> GetFIFODump(unsigned int core_id, bdpars::OutputId output_id, unsigned int n_tags);
+  ///////////////////////////////
+  // Neuron config stuff
 
   /// Config memory map
   /// Soma configuration bits for 16 Somas in a tile.

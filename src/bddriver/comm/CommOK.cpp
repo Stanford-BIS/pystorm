@@ -55,30 +55,33 @@ void CommOK::StopStreaming() {
 }
 
 int CommOK::WriteToDevice() {
-    // There is still no guarantee that m_write_buffer has at least WRITE_SIZE elements
-    // after GetCount().
-    // So, this could potentially fail, but it is unlikely.
-    // So, lock the buffer first, and do the rest.
-    int status = -1;
-    if (m_write_buffer->LockFrontSimple(DEFAULT_BUFFER_TIMEOUT)) {
-        unsigned int data_length = m_write_buffer->GetCount();
-        if (data_length >= WRITE_SIZE) {
-            m_write_buffer->PopSimple(write_buffer_, WRITE_SIZE);
-            status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, write_buffer_);
-            if (status != WRITE_SIZE) {
-                printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, status);
-            }
-        } 
+
+    // Pop one vector of COMMWords from the MutexBuffer
+    // blocks until there's something to read
+    std::unique_ptr<std::vector<COMMWORD>> popped_vect = m_write_buffer->Pop();
+
+    // use the deserializer to build up blocks of WRITE_SIZE elements
+    deserializer_.NewInput(popped_vect.get());
+
+    std::vector<COMMWORD> deserialized; // continuosly write into here
+
+    int last_status = -1;
+    deserializer_.GetOneOutput(&deserialized);
+    while (deserialized.size() > 0) {
+        deserializer_.GetOneOutput(&deserialized);
+        last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
+        if (status != WRITE_SIZE) {
+            printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
+        }
     }
-    m_write_buffer->UnlockFront(false);
-    return status;
+    return last_status;
 }
 
 int CommOK::ReadFromDevice() {
-    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, read_buffer_);
+    std::unique_ptr<std::vector<COMMWORD>> read_buffer(new std::vector<COMMWORD>(READ_SIZE, 0));
+    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, &read_buffer[0]);
     if (num_bytes > 0) {
-      // Write in blocking fashion
-      m_read_buffer->Push(read_buffer_, num_bytes, 0);
+      m_read_buffer->Push(std::move(read_buffer));
     }
     return num_bytes;
 }

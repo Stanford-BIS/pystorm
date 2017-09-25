@@ -1,7 +1,7 @@
 #include "BDModelUtil.h"
 
 #include "common/BDState.h"
-#include "common/binary_util.h"
+#include "common/vector_util.h"
 #include "encoder/Encoder.h" // for bytesPerOutput (XXX should be in BDPars??)
 #include "decoder/Decoder.h" // for bytesPerInput (XXX should be in BDPars??)
 
@@ -11,164 +11,99 @@ namespace bdmodel {
 
 std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars* pars) {
   // for now, just deserialize USB bytestream
+  // don't have to worry about remainders/deserialization
 
   assert(inputs.size() % Encoder::bytesPerOutput == 0);
 
   std::vector<uint32_t> deserialized_words;
   for (unsigned int i = 0; i < inputs.size() / Encoder::bytesPerOutput; i++) {
-    uint32_t word = PackV32(
-        {inputs[Encoder::bytesPerOutput * i + 0],
-         inputs[Encoder::bytesPerOutput * i + 1],
-         inputs[Encoder::bytesPerOutput * i + 2]},
-        {8, 8, 8});
+    uint32_t word = PackWord<FPGABYTES>(
+        {{FPGABYTES::B0, inputs[Encoder::bytesPerOutput * i + 0]},
+         {FPGABYTES::B1, inputs[Encoder::bytesPerOutput * i + 1]},
+         {FPGABYTES::B2, inputs[Encoder::bytesPerOutput * i + 2]},
+         {FPGABYTES::B3, inputs[Encoder::bytesPerOutput * i + 3]}});
     deserialized_words.push_back(word);
   }
   return deserialized_words;
 }
 
-std::vector<DecInput> FPGAOutput(std::vector<uint64_t> inputs, const bdpars::BDPars* pars) {
-
-  std::vector<unsigned int> byte_widths;
-  for (unsigned int i = 0; i < Decoder::bytesPerInput; i++) {
-    byte_widths.push_back(8);
-  }
+std::vector<DecInput> FPGAOutput(std::vector<uint32_t> inputs, const bdpars::BDPars* pars) {
 
   std::vector<DecInput> retval;
   for (auto& input : inputs) {
-    std::vector<uint8_t> bytes = UnpackV<uint64_t, uint8_t>(input, byte_widths);
-    retval.insert(retval.end(), bytes.begin(), bytes.end());
+    uint8_t b0 = GetField<FPGABYTES>(input, FPGABYTES::B0);
+    uint8_t b1 = GetField<FPGABYTES>(input, FPGABYTES::B1);
+    uint8_t b2 = GetField<FPGABYTES>(input, FPGABYTES::B2);
+    uint8_t b3 = GetField<FPGABYTES>(input, FPGABYTES::B3);
+    retval.push_back(b0);
+    retval.push_back(b1);
+    retval.push_back(b2);
+    retval.push_back(b3);
   }
 
   assert(retval.size() % Decoder::bytesPerInput == 0);
   return retval;
 }
 
-std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> Horn(const std::vector<uint32_t>& inputs, const bdpars::BDPars* pars) {
-  // this code is based on the Decoder's, but the fields are arranged differently
+std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned int D) {
 
-  // encoder word
-  // msb <- lsb
-  // [ X | payload | route ]
+  std::vector<BDWord> words;
 
-  std::vector<uint32_t> leaf_routes;
-  std::vector<uint32_t> leaf_route_masks;
-  std::vector<uint32_t> leaf_payload_masks;
-  std::vector<unsigned int> leaf_payload_shifts;
+  // read first word
+  if (D > 1) {
+    // we shouldn't have to worry about remainders with BDModel
+    // use a VectorDeserializer anyway so we can copy-paste from RecvFromEP
+    // XXX should maybe figure out a way to reuse this code better
+    assert(D == 2);
+    VectorDeserializer<uint32_t> deserializer(2);
+    deserializer.NewInput(&inputs);
 
-  // generate routing info from pars (copy-pasted from Decoder's constructor, then adapted)
-  for (const bdpars::FHRoute& it : *(pars->HornRoutes())) {
-    uint32_t one = 1;
+    std::vector<uint32_t> deserialized; // continuosly write into here
+    deserializer.GetOneOutput(&deserialized);
+    while (deserialized.size() > 0) {
+      // for now, D == 2 for all deserializers, so we can do this hack
+      // if the width of a single data object returned from the FPGA ever
+      // exceeds 64 bits, we may need to rethink this
+      assert(deserialized.size() == 2); // the only case to deal with for now
+      
+      uint32_t payload_lsb = deserialized.at(0);
+      uint32_t payload_msb = deserialized.at(1);
 
-    uint32_t route_val   = static_cast<uint32_t>(it.first);
-    uint32_t route_len   = static_cast<uint32_t>(it.second);
-    uint32_t payload_len = static_cast<uint32_t>(pars->Width(bdpars::BD_INPUT)) - route_len;
+      // concatenate lsb and msb to make output word
+      BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
+      words.push_back(payload_all);
 
-    // route mask looks like 000000001111
-    uint32_t route_mask = (one << route_len) - one;
-    leaf_route_masks.push_back(route_mask);
-
-    // payload mask looks like 111111110000
-    uint32_t payload_mask = ((one << payload_len) - one) << route_len;
-    leaf_payload_masks.push_back(payload_mask);
-
-    // route looks like 000000001011
-    leaf_routes.push_back(route_val);
-
-    leaf_payload_shifts.push_back(route_len);
-  }
-
-  // one output vector per leaf
-  std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount> outputs;
-
-  // use the routing info to decode
-  for (auto& input : inputs) {
-    // cout << "horn input: " << UintAsString<uint32_t>(input, 21) << endl;
-
-    unsigned int horn_id;
-    uint32_t payload;
-    std::tie(horn_id, payload) =
-        DecodeFH<uint32_t, uint32_t>(input, leaf_routes, leaf_route_masks, leaf_payload_masks, leaf_payload_shifts);
-
-    // put decoded outputs into the appropriate vectors
-    outputs[horn_id].push_back(payload);
-  }
-  return outputs;
-}
-
-std::vector<uint64_t> Funnel(const std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount>& inputs, const bdpars::BDPars* pars) {
-  // msb <- lsb
-  // [ route | X | payload ]
-  
-  std::vector<uint64_t> outputs;
-  
-  for (unsigned int i = 0; i < inputs.size(); i++) {
-    uint64_t route_val;
-    unsigned int route_len;
-    std::tie(route_val, route_len) = pars->FunnelRoute(i);
-    unsigned int payload_chunk_width = inputs.at(i).second;
-    unsigned int word_width = pars->Width(bdpars::BD_OUTPUT);
-    unsigned int unused_width = word_width - payload_chunk_width - route_len;
-
-    std::vector<unsigned int> field_widths = {payload_chunk_width, unused_width, route_len};
-
-    for (uint64_t input : inputs.at(i).first) {
-      std::vector<uint64_t> field_vals = {input, 0, route_val};
-      uint64_t new_word = PackV64(field_vals, field_widths);
-      outputs.push_back(new_word);
+      deserializer.GetOneOutput(&deserialized);
+    }
+  } else {
+    // have to cast
+    for (auto& it : inputs) {
+      words.push_back(it);
     }
   }
-  return outputs;
+  return words;
 }
 
-std::pair<std::vector<uint64_t>, std::vector<uint32_t> > DeserializeHorn(
-    const std::vector<uint32_t>& inputs, bdpars::HornLeafId leaf_id, const bdpars::BDPars* bd_pars) {
-  unsigned int deserialization    = bd_pars->Serialization(leaf_id);
-  unsigned int deserialized_width = bd_pars->Width(leaf_id);
+std::vector<uint32_t> SerializeEP(const std::vector<BDWord>& inputs, unsigned int D) {
 
-  return DeserializeWords<uint32_t, uint64_t>(inputs, deserialized_width, deserialization);
-}
+  std::vector<uint32_t> serialized;
 
-std::pair<std::array<std::vector<uint64_t>, bdpars::HornLeafIdCount>, 
-          std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount > > 
-    DeserializeAllHornLeaves(const std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount>& inputs, const bdpars::BDPars* bd_pars) {
-
-  std::pair<std::array<std::vector<uint64_t>, bdpars::HornLeafIdCount>, 
-            std::array<std::vector<uint32_t>, bdpars::HornLeafIdCount > > outputs;
-
-  for (unsigned int i = 0; i < inputs.size(); i++) {
-    bdpars::HornLeafId leaf_id = static_cast<bdpars::HornLeafId>(i);
-
-    std::vector<uint64_t> deserialized;
-    std::vector<uint32_t> remainder;
-    std::tie(deserialized, remainder) = DeserializeHorn(inputs[i], leaf_id, bd_pars);
-
-    outputs.first.at(i) = deserialized;
-    outputs.second.at(i) = remainder;
+  if (D > 1) {
+    // if the width of a single data object sent downstream ever
+    // exceeds 64 bits, we may need to rethink this
+    assert(D == 2); // only case to deal with for now
+    for (auto& it : inputs) {
+      // lsb first, msb second
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::LSB));
+      serialized.push_back(GetField(it, TWOFPGAPAYLOADS::MSB));
+    }
+  } else {
+    // XXX we have to cast for now. Probably should just change EncInput to have uint64_t/BDWord input
+    for (auto& it : inputs) {
+      serialized.push_back(static_cast<uint32_t>(it));
+    }
   }
-
-  return outputs;
-}
-
-std::pair<std::vector<uint64_t>, unsigned int> SerializeFunnel(
-    const std::vector<uint64_t>& inputs, bdpars::FunnelLeafId leaf_id, const bdpars::BDPars* bd_pars) {
-  unsigned int serialization = bd_pars->Serialization(leaf_id);
-  unsigned int input_width   = bd_pars->Width(leaf_id);
-
-  return SerializeWords<uint64_t, uint64_t>(inputs, input_width, serialization);
-}
-
-/// pairs are (serialized words, chunk widths)
-std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount> 
-    SerializeAllFunnelLeaves(const std::array<std::vector<uint64_t>, bdpars::FunnelLeafIdCount>& inputs, const bdpars::BDPars* bd_pars) {
-
-  std::array<std::pair<std::vector<uint64_t>, unsigned int>, bdpars::FunnelLeafIdCount> outputs;
-
-  for (unsigned int i = 0; i < inputs.size(); i++) {
-    bdpars::FunnelLeafId leaf_id = static_cast<bdpars::FunnelLeafId>(i);
-    outputs.at(i) = SerializeFunnel(inputs[i], leaf_id, bd_pars);
-  }
-
-  return outputs;
+  return serialized;
 }
 
 }  // bdmodel
