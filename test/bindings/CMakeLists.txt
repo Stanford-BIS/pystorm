@@ -16,7 +16,7 @@ set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 # Install and build external dependencies 
 #-------------------
 
-find_package(PythonInterp 3.5)
+find_package(PythonInterp 3.6)
 
 #-------------------
 # Build Test

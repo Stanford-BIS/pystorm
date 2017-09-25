@@ -10,10 +10,6 @@ include(Common)
 # Enable testing
 enable_testing()
 
-# Load packages
-find_package(PythonInterp 3.5)
-find_package(PythonLibs 3.5 REQUIRED)
-
 ############################################################################
 #
 # Entry function to build on Linux/Darwin/Windows

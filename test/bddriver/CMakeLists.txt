@@ -27,29 +27,6 @@ find_package(Threads REQUIRED)
 #
 ############################################################################
 
-# GCC compiler, mostly for linux
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
-  #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
-endif()
-
-# Clang, mostly for Mac
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    add_definitions(-Wall -ansi -Wno-deprecated -O3 -march=native -DLOG_ENABLED)
-endif()
-
-# MSVC, for windows
-if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_definitions(/Wall /Ox -DLOG_ENABLED)
-endif()
-
-############################################################################
-#
-# Entry function to build on Linux
-# We need to make sure that the compiler is correct
-#
-############################################################################
-
 set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/bddriver)
 set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include

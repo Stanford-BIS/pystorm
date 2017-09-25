@@ -24,8 +24,8 @@ include(Common)
 ############################################################################
 
 # Additional packages
-find_package(PythonLibs 3.5)
-find_package(PythonInterp 3.5)
+find_package(PythonInterp 3.6)
+find_package(PythonLibs 3.6)
 find_package(Numpy)
 
 set(HAL_LIBRARY Hal )
@@ -63,16 +63,6 @@ include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 SetupSharedLibrary()
 
 link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-
-if (CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-    add_compile_options(-flto -fvisibility=hidden)
-endif()
-if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-    add_compile_options(-flto -fvisibility=hidden)
-endif()
-if (CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
-    add_compile_options(/GL /bigobj)
-endif()
 
 ################################################################################
 # Build HAL bindings
