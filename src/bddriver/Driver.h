@@ -108,33 +108,47 @@ class Driver {
 
   void testcall(const std::string &msg);
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Start/Stop/Init
+  ////////////////////////////////////////////////////////////////////////////
+
   /// starts child workers, e.g. encoder and decoder
   void Start();
   /// stops the child workers
   void Stop();
-  /// initializes hardware state
-  void InitBD();                        // XXX partially implemented
+  /// Initializes hardware state
+  /// Calls Flush immediately
+  void InitBD();
+  /// Clears BD FIFOs
+  /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
 
-  ////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
+  ////////////////////////////////////////////////////////////////////////////
+  
+  /// Flush queued up downstream traffic
+  /// Commits queued-up messages (sends enough nops to flush the USB)
+  /// By default, many configuration calls will call Flush()
+  /// Notably, the Neuron config calls do not call Flush()
+  void Flush();
 
   /// Control tag traffic
-  void SetTagTrafficState(unsigned int core_id, bool en);
+  void SetTagTrafficState(unsigned int core_id, bool en, bool flush=true);
 
   /// Control spike traffic from neuron array to datapath
-  void SetSpikeTrafficState(unsigned int core_id, bool en);
+  void SetSpikeTrafficState(unsigned int core_id, bool en, bool flush=true);
   /// Control spike traffic from neuron array to driver
-  void SetSpikeDumpState(unsigned int core_id, bool en);
+  void SetSpikeDumpState(unsigned int core_id, bool en, bool flush=true);
 
-  ////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
   // ADC/DAC Config
+  ////////////////////////////////////////////////////////////////////////////
 
   /// Program DAC value
-  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value);  // XXX not implemented
+  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
   /// Make DAC-to-ADC connection for calibration for a particular DAC
-  void SetDACtoADCConnectionState(
-      unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en);  // XXX not implemented
+  void SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en, bool flush=true);
 
   /// Set large/small current scale for either ADC
   void SetADCScale(unsigned int core_id, bool adc_id, const std::string &small_or_large);  // XXX not implemented
@@ -331,8 +345,12 @@ class Driver {
                 std::placeholders::_2,
                 bdpars::DiffusorCutStatusId::CLOSE);
 
-  ////////////////////////////////
-  // memory programming
+  //////////////////////////////////////////////////////////////////////////
+  // Memory programming
+  //////////////////////////////////////////////////////////////////////////
+  
+  /// Set memory delay line value
+  void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value, bool flush=true);
 
   /// Program a memory.
   /// BDWords must be constructed as the correct word type for the mem_id
@@ -359,14 +377,16 @@ class Driver {
   /// Get warning count
   std::pair<unsigned int, unsigned int> GetFIFOOverflowCounts(unsigned int core_id);
 
-  ////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
   // Spike/Tag Streams
+  //////////////////////////////////////////////////////////////////////////
 
   /// Send a stream of spikes to neurons
   void SendSpikes(
       unsigned int core_id,
       const std::vector<BDWord>& spikes,
-      const std::vector<BDTime> times);
+      const std::vector<BDTime> times,
+      bool flush=true);
 
   /// Receive a stream of spikes
   std::pair<std::vector<BDWord>,
@@ -378,15 +398,17 @@ class Driver {
   void SendTags(
       unsigned int core_id,
       const std::vector<BDWord>& tags,
-      const std::vector<BDTime> times);
+      const std::vector<BDTime> times,
+      bool flush=true);
 
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>> RecvTags(unsigned int core_id);
 
-  ////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////
   // BDState queries
+  //////////////////////////////////////////////////////////////////////////
 
   // XXX note that these queries are NOT subject to timing assumptions!
   // this is the SOFTWARE state of the board
@@ -394,7 +416,7 @@ class Driver {
   // there is a separate call, e.g. for traffic registers
 
   /// Get register contents by name.
-  inline const std::pair<const BDWord *, bool> GetRegState(
+  inline const std::pair<const BDWord, bool> GetRegState(
       unsigned int core_id, bdpars::BDHornEP reg_id) const {
     return bd_state_[core_id].GetReg(reg_id);
   }
@@ -403,6 +425,7 @@ class Driver {
   inline const std::vector<BDWord> *GetMemState(bdpars::BDMemId mem_id, unsigned int core_id) const { return bd_state_[core_id].GetMem(mem_id); }
 
  protected:
+
   ////////////////////////////////
   // data members
 
@@ -414,6 +437,12 @@ class Driver {
   std::vector<BDState> bd_state_;
 
   // downstream buffers
+  
+  // queue for sequenced, but un-timed traffic
+  std::queue<std::unique_ptr<std::vector<EncInput>>> sequenced_queue_;
+ 
+  // priority queue for timed traffic
+  std::vector<EncInput> timed_queue_;
 
   /// thread-safe, MPMC buffer between breadth of downstream driver API and the encoder
   MutexBuffer<EncInput> *enc_buf_in_;
@@ -450,6 +479,7 @@ class Driver {
   std::unordered_map<unsigned int, std::vector<bool>, EnumClassHash> last_traffic_state_;
 
   /// Stops traffic for a core and saves the previous state in last_traffic_state_
+  /// Calls Flush()
   void PauseTraffic(unsigned int core_id);
   void ResumeTraffic(unsigned int core_id);
 
@@ -457,6 +487,9 @@ class Driver {
   // Main send/recv calls
 
   /// Sends a vector of payloads to a single <core_id> and <leaf_id>.
+  /// Pushes contents into one of the priority queues. A Flush() is needed to commit the traffic.
+  /// times = {} is a special code, sends to the sequenced_queue_,
+  /// otherwise, sends to timed_queue_
   void SendToEP(unsigned int core_id, uint8_t ep_code, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {});
   // can call SendToEP on BDHornEP, FPGARegEP, FPGAChannelEP instead of uint8_t ep_code
   template <class T>
@@ -506,13 +539,11 @@ class Driver {
   ////////////////////////////////
   // register programming helpers
 
-  void SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word);
-  void SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_enable, bool dump_enable);
-  bool SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en);
-  bool SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en);
+  void SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word, bool flush=true);
+  void SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_enable, bool dump_enable, bool flush=true);
+  bool SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush=true);
+  bool SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush=true);
 
-  /// Set memory delay line value
-  void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value);
 
   ///////////////////////////////
   // Neuron config stuff

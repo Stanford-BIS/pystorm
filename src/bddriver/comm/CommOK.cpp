@@ -58,19 +58,19 @@ int CommOK::WriteToDevice() {
 
     // Pop one vector of COMMWords from the MutexBuffer
     // blocks until there's something to read
-    std::unique_ptr<std::vector<COMMWORD>> popped_vect = m_write_buffer->Pop();
+    std::unique_ptr<std::vector<COMMWord>> popped_vect = m_write_buffer->Pop();
 
     // use the deserializer to build up blocks of WRITE_SIZE elements
     deserializer_.NewInput(popped_vect.get());
 
-    std::vector<COMMWORD> deserialized; // continuosly write into here
+    std::vector<COMMWord> deserialized; // continuosly write into here
 
     int last_status = -1;
     deserializer_.GetOneOutput(&deserialized);
     while (deserialized.size() > 0) {
         deserializer_.GetOneOutput(&deserialized);
         last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
-        if (status != WRITE_SIZE) {
+        if (last_status != WRITE_SIZE) {
             printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
         }
     }
@@ -78,8 +78,9 @@ int CommOK::WriteToDevice() {
 }
 
 int CommOK::ReadFromDevice() {
-    std::unique_ptr<std::vector<COMMWORD>> read_buffer(new std::vector<COMMWORD>(READ_SIZE, 0));
-    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, &read_buffer[0]);
+    std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(READ_SIZE, 0));
+    COMMWord * raw_data = &(*read_buffer)[0];
+    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, raw_data);
     if (num_bytes > 0) {
       m_read_buffer->Push(std::move(read_buffer));
     }

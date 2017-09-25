@@ -30,7 +30,7 @@ class BDState {
   inline const std::vector<BDWord> *GetMem(bdpars::BDMemId mem_id) const { return &mems_.at(mem_id); }
 
   void SetReg(bdpars::BDHornEP reg_id, BDWord data);
-  const std::pair<const BDWord *, bool> GetReg(bdpars::BDHornEP reg_id) const;
+  const std::pair<const BDWord, bool> GetReg(bdpars::BDHornEP reg_id) const;
 
 
   void SetNeuronConfigMem(unsigned int core_id,

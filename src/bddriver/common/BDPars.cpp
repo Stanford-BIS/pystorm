@@ -43,6 +43,7 @@ BDPars::BDPars() {
   Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_RESET_TIME)]       = 1;
   Dn_EP_size_[DnEPCodeFor(FPGARegEP::TS_REPORT_TAGS)]         = 1;
   Dn_EP_size_[DnEPCodeFor(FPGARegEP::BD_RESET)]               = 2;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::NOP)]                    = 1;
 
   //////////////////////////////////////////////////////
   // FPGA Channels

@@ -30,6 +30,10 @@ struct EncInput {
 };
 typedef uint8_t EncOutput;
 
+// used for the priority queue
+inline bool operator<(const EncInput & e1, const EncInput & e2) 
+    { return e1.time < e2.time; }
+
 }  // bddriver
 }  // pystorm
 

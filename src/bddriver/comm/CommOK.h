@@ -22,9 +22,7 @@ class CommOK : public Comm {
 public:
     /// Constructor
     CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
-        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) {
-        deserializer_ = VectorDeserializer(WRITE_SIZE);
-    };
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED), deserializer_(VectorDeserializer<COMMWord>(WRITE_SIZE)) {};
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
