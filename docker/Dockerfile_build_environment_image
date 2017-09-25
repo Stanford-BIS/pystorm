@@ -1,0 +1,16 @@
+# Dockerfile to build the image used for compiling and testing
+
+# Start with official ubuntu build
+FROM ubuntu:xenial
+
+# Set bash as the default entry point
+CMD /bin/bash
+
+# Install the packages necessary for compiling
+RUN apt-get update -y && apt-get install -y \
+    build-essential \
+    cmake \
+    ninja-build \
+    python3 \
+    python3-dev \
+    python3-numpy
