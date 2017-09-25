@@ -476,7 +476,7 @@ class Driver {
       bdpars::BDHornEP::TOGGLE_POST_FIFO0,
       bdpars::BDHornEP::TOGGLE_POST_FIFO1};
 
-  std::unordered_map<unsigned int, std::vector<bool> > last_traffic_state_;
+  std::unordered_map<unsigned int, std::vector<bool>, EnumClassHash> last_traffic_state_;
 
   /// Stops traffic for a core and saves the previous state in last_traffic_state_
   /// Calls Flush()

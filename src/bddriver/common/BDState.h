@@ -73,14 +73,14 @@ class BDState {
   const driverpars::DriverPars *driver_pars_;
 
   // register contents
-  std::unordered_map<bdpars::BDHornEP, BDWord> reg_;
-  std::unordered_map<bdpars::BDHornEP, bool>   reg_valid_;
+  std::unordered_map<bdpars::BDHornEP, BDWord, EnumClassHash> reg_;
+  std::unordered_map<bdpars::BDHornEP, bool, EnumClassHash>   reg_valid_;
 
   // memory contents
-  std::unordered_map<bdpars::BDMemId, std::vector<BDWord>> mems_; // conceptually, should be map of different-sized arrays
+  std::unordered_map<bdpars::BDMemId, std::vector<BDWord>, EnumClassHash> mems_; // conceptually, should be map of different-sized arrays
 
   // binary vectors denote whether memory entries have been programmed
-  std::unordered_map<bdpars::BDMemId, std::vector<bool>> mems_valid_;
+  std::unordered_map<bdpars::BDMemId, std::vector<bool>, EnumClassHash> mems_valid_;
 
   //////////////////////////////////////////////////////////////////////
   /// Neuron state
