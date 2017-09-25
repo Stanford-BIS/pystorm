@@ -256,7 +256,10 @@ void Driver::Flush() {
   }
 
   unsigned int words_per_frame = bd_pars_->DnWordsPerFrame;
-  unsigned int nops_to_send = num_words % words_per_frame == 0 ? 0 : words_per_frame - num_words % words_per_frame;
+  // XXX the Encoder inserts heartbeats, which can mess up this count
+  //unsigned int nops_to_send = num_words % words_per_frame == 0 ? 0 : words_per_frame - num_words % words_per_frame;
+  // instead, just send a frame's worth of NOPs
+  unsigned int nops_to_send = words_per_frame;
   if (nops_to_send > 0) {
 
     EncInput nop;
