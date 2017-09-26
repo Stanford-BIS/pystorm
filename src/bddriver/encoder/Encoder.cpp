@@ -72,15 +72,14 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
       time_chunk[2] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W2);
       
       // manually compute offset from this code
-      uint8_t HB_ep_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED);
+      uint8_t HB_ep_code[3];
+      HB_ep_code[0] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED0);
+      HB_ep_code[1] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED1);
+      HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
 
-      uint32_t HB_words[3];
-      HB_words[0] = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[0]}, {FPGAIO::EP_CODE, HB_ep_code + 0}});
-      HB_words[1] = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[1]}, {FPGAIO::EP_CODE, HB_ep_code + 1}});
-      HB_words[2] = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[2]}, {FPGAIO::EP_CODE, HB_ep_code + 2}});
-      PushWord(output, HB_words[0]);
-      PushWord(output, HB_words[1]);
-      PushWord(output, HB_words[2]);
+      for (unsigned int i = 0; i < 3; i++) {
+        PushWord(output, PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
+      }
     }
 
   }

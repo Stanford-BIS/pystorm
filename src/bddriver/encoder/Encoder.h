@@ -37,7 +37,7 @@ class Encoder : public Xcoder {
   MutexBuffer<EncInput>* in_buf_;
   MutexBuffer<EncOutput>* out_buf_;
   const bdpars::BDPars * bd_pars_;
-  unsigned int last_HB_sent_at_;
+  BDTime last_HB_sent_at_;
 
   void RunOnce();
   std::unique_ptr<std::vector<EncOutput>> Encode(const std::unique_ptr<std::vector<EncInput>> inputs);

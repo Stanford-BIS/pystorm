@@ -91,19 +91,40 @@ enum class BDHornEP {
 // hardcoded enum is the start reg address
 // code is 128 + FPGARegEPId
 enum class FPGARegEP {
-  SF_FILTS_USED          = 0,  // highest SpikeFilter idx in use
-  SF_INCREMENT_CONSTANT  = 1,  // SpikeFilter increment per tag
-  SF_DECAY_CONSTANT      = 3,  // SpikeFilter decay per time unit
-  SG_GENS_USED           = 5,  // highest SpikeGenerator idx in use
-  SG_GENS_EN             = 6,  // bitmap of enables for each SpikeGenerator
-  TM_UNIT_LEN            = 22, // FPGA time resolution, units of 10ns
-  TM_PC_TIME_ELAPSED     = 23, // Downstream heartbeat
-  TM_PC_SEND_HB_UP_EVERY = 26, // Upstream heartbeart reporting period
-  TM_PC_RESET_TIME       = 29, // reset FPGA clock
-  TS_REPORT_TAGS         = 30, // forward tags to PC
-  BD_RESET               = 31, // bit 0 is pReset, bit 1 is sReset
-  NOP                    = 32, // sending to registers 32-63 is a NOP
-  COUNT                  = 11  // XXX hardcoded, so be careful
+  SF_FILTS_USED,           // highest SpikeFilter idx in use
+  SF_INCREMENT_CONSTANT0,  // SpikeFilter increment per tag
+  SF_INCREMENT_CONSTANT1,  // SpikeFilter increment per tag
+  SF_DECAY_CONSTANT0,      // SpikeFilter decay per time unit
+  SF_DECAY_CONSTANT1,      // SpikeFilter decay per time unit
+  SG_GENS_USED,            // highest SpikeGenerator idx in use
+  SG_GENS_EN0,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN1,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN2,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN3,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN4,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN5,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN6,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN7,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN8,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN9,             // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN10,            // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN11,            // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN12,            // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN13,            // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN14,            // bitmap of enables for each SpikeGenerator
+  SG_GENS_EN15,            // bitmap of enables for each SpikeGenerator
+  TM_UNIT_LEN,             // FPGA time resolution, units of 10ns
+  TM_PC_TIME_ELAPSED0,     // Downstream heartbeat
+  TM_PC_TIME_ELAPSED1,     // Downstream heartbeat
+  TM_PC_TIME_ELAPSED2,     // Downstream heartbeat
+  TM_PC_SEND_HB_UP_EVERY0, // Upstream heartbeart reporting period
+  TM_PC_SEND_HB_UP_EVERY1, // Upstream heartbeart reporting period
+  TM_PC_SEND_HB_UP_EVERY2, // Upstream heartbeart reporting period
+  TM_PC_RESET_TIME,        // reset FPGA clock
+  TS_REPORT_TAGS,          // forward tags to PC
+  BD_RESET,                // bit 0 is pReset, bit 1 is sReset
+  NOP,                     // sending to registers 32-63 is a NOP
+  COUNT
 };
 
 //////////////////////////////////////////////

@@ -118,6 +118,7 @@ Driver::Driver() {
   dec_ = new Decoder(
       dec_buf_in_,
       dec_bufs_out_,
+      bd_pars_,
       driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
 
   // initialize Comm

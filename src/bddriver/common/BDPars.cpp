@@ -32,18 +32,39 @@ BDPars::BDPars() {
   //////////////////////////////////////////////////////
   // FPGA Registers
 
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_FILTS_USED)]          = 9;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_INCREMENT_CONSTANT)]  = 27;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_DECAY_CONSTANT)]      = 27;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_USED)]           = 8;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN)]             = 256;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_UNIT_LEN)]            = 16;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_TIME_ELAPSED)]     = 48;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_SEND_HB_UP_EVERY)] = 48;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_RESET_TIME)]       = 1;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TS_REPORT_TAGS)]         = 1;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::BD_RESET)]               = 2;
-  Dn_EP_size_[DnEPCodeFor(FPGARegEP::NOP)]                    = 1;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_FILTS_USED)]           = 9;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_INCREMENT_CONSTANT0)]  = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_INCREMENT_CONSTANT1)]  = 9; // 27 total
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_DECAY_CONSTANT0)]      = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SF_DECAY_CONSTANT1)]      = 9; // 27 total
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_USED)]            = 8;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN0)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN1)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN2)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN3)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN4)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN5)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN6)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN7)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN8)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN9)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN10)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN11)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN12)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN13)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN14)]            = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::SG_GENS_EN15)]            = 16; // 256 total
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_UNIT_LEN)]             = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_TIME_ELAPSED0)]     = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_TIME_ELAPSED1)]     = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_TIME_ELAPSED2)]     = 16; // 48 total
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_SEND_HB_UP_EVERY0)] = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_SEND_HB_UP_EVERY1)] = 16;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_SEND_HB_UP_EVERY2)] = 16; // 48 total
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TM_PC_RESET_TIME)]        = 1;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::TS_REPORT_TAGS)]          = 1;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::BD_RESET)]                = 2;
+  Dn_EP_size_[DnEPCodeFor(FPGARegEP::NOP)]                     = 1;
 
   //////////////////////////////////////////////////////
   // FPGA Channels

@@ -68,24 +68,50 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
 
   for (auto& it : inputs_packed) {
 
-    // XXX this is where you woudl do something with time
-    BDTime time = 0;
-
     // XXX this is where you would do something with the core id
 
     // decode EP_code
     unsigned int ep_code = GetField<FPGAIO>(it, FPGAIO::EP_CODE);
     uint32_t payload     = GetField<FPGAIO>(it, FPGAIO::PAYLOAD);
 
-    DecOutput to_push;
-    to_push.payload = payload;
-    to_push.time    = time;
+    // if it's a heartbeat, set last_HB_recvd
+    if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
 
-    if (outputs.count(ep_code) == 0) {
-      outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
+      // unpack current time MSB and LSB
+      uint64_t curr_HB_msb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::MSB);
+      uint64_t curr_HB_lsb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::MSB);
+
+      // update last_HB_recvd_ LSB
+      if (next_HB_significance_ == NextHBSignificance::LSB) {
+        last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, curr_HB_msb}, 
+             {TWOFPGAPAYLOADS::LSB, payload}});
+        next_HB_significance_ = NextHBSignificance::MSB;
+
+      // update last_HB_recvd_ MSB
+      } else if (next_HB_significance_ == NextHBSignificance::MSB) {
+        last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, payload},
+             {TWOFPGAPAYLOADS::LSB, curr_HB_lsb}});
+        next_HB_significance_ = NextHBSignificance::LSB;
+      } else {
+        assert(false && "something wrong with next_HB_significance_ enum");
+      }
+
+    // otherwise, forward to Driver
+    } else {
+
+      DecOutput to_push;
+      to_push.payload = payload;
+      to_push.time    = last_HB_recvd_;
+
+      if (outputs.count(ep_code) == 0) {
+        outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
+      }
+      outputs.at(ep_code)->push_back(to_push);
     }
-    outputs.at(ep_code)->push_back(to_push);
   }
+
   return outputs;
 }
 
