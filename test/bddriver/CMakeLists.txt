@@ -7,7 +7,6 @@ cmake_minimum_required(VERSION 3.0)
 ############################################################################
 
 set(PROJECT_NAME_STR bddriver_test)
-project(${PROJECT_NAME_STR} CXX)
 
 include(CheckRequirements)
 include(Common)
@@ -34,7 +33,7 @@ set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 )
 set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 set(INCLUDE_DIRS
-    ${PROJECT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${SRC_BASE_DIR}
     ${SRC_BASE_DIR}/comm
     ${SRC_BASE_DIR}/common
@@ -44,23 +43,23 @@ set(INCLUDE_DIRS
 )
 
 set(TEST_SRC_FILES
-    ${PROJECT_SOURCE_DIR}/test_util/DriverTypes_util.cpp
-    ${PROJECT_SOURCE_DIR}/comm/Emulator_test.cpp
-    ${PROJECT_SOURCE_DIR}/comm/CommSoft_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/MutexBuffer_test.cpp
-    ${PROJECT_SOURCE_DIR}/encoder/Encoder_test.cpp
-    ${PROJECT_SOURCE_DIR}/decoder/Decoder_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/DriverPars_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/BDState_test.cpp
-    ${PROJECT_SOURCE_DIR}/Driver_test.cpp
-    ${PROJECT_SOURCE_DIR}/include/logger_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_util/DriverTypes_util.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/comm/Emulator_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/comm/CommSoft_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/MutexBuffer_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/encoder/Encoder_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/decoder/Decoder_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/DriverPars_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/BDState_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Driver_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/logger_test.cpp
 )
 
 include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
 endif()
 
