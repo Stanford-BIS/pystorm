@@ -52,6 +52,17 @@ TEST(TESTInput, testGetNumDims) {
     delete _in;
 }
 
+TEST(TESTInput, testGetConnectionSize) {
+    std::string label = "InputN";
+    uint32_t dims = 3;
+    Input * _in = new Input(label, dims);
+
+
+    EXPECT_EQ(_in->GetConnectionSize(),dims);
+
+    delete _in;
+}
+
 
 } // namespace bdhal
 } // namespace pystorm

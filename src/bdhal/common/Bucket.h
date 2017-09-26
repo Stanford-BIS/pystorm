@@ -41,6 +41,15 @@ public:
     uint32_t GetNumDimensions() {
         return m_dims;
     }
+
+    ///
+    /// Returns size when used with a Connection
+    ///
+    /// \return Size used with a Connection
+    ///
+    uint32_t GetConnectionSize() {
+        return m_dims;
+    }
 private:
     /// Bucket name
     std::string m_label;

@@ -50,11 +50,11 @@ public:
             throw std::logic_error("Connection weights point to null pointer");
         }
 
-        if(m_src->GetNumDimensions() != m_weights->GetNumColumns()) {
+        if(m_src->GetConnectionSize() != m_weights->GetNumColumns()) {
             throw std::logic_error("Connection input dimensions != Weight columns");
         }
 
-        if (m_dest->GetNumDimensions() != m_weights->GetNumRows()) {
+        if (m_dest->GetConnectionSize() != m_weights->GetNumRows()) {
             throw std::logic_error("Connection output dimensions != Weight rows");
         }
 

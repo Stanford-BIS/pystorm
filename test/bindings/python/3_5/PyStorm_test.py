@@ -183,9 +183,60 @@ class TestConnection(unittest.TestCase):
     weights_3_3 = ps.Weights([[1,2,3],
                               [4,5,6],
                               [7,8,9]])
+
+    weights_20_3 = ps.Weights([[1,2,3],
+                              [4,5,6],
+                              [7,8,9],
+                              [10,11,12],
+                              [13,14,15],
+                              [16,17,18],
+                              [19,20,21],
+                              [22,23,24],
+                              [25,26,27],
+                              [28,29,30],
+                              [31,32,33],
+                              [34,35,36],
+                              [37,38,39],
+                              [40,41,42],
+                              [43,44,45],
+                              [46,47,48],
+                              [49,50,51],
+                              [52,53,54],
+                              [55,56,57],
+                              [58,59,60]])
+
+    weights_20_2 = ps.Weights([[1,2],
+                              [4,5],
+                              [7,8],
+                              [10,11],
+                              [13,14],
+                              [16,17],
+                              [19,20],
+                              [22,23],
+                              [25,26],
+                              [28,29],
+                              [31,32],
+                              [34,35],
+                              [37,38],
+                              [40,41],
+                              [43,44],
+                              [46,47],
+                              [49,50],
+                              [52,53],
+                              [55,56],
+                              [58,59]])
+
+    weights_3_20 = ps.Weights([[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+                              [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40],
+                              [41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60]])
+
+    weights_2_20 = ps.Weights([[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20],
+                              [21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]])
+
     weights_2_3 = ps.Weights([[1,2],
                               [4,5],
                               [7,8]])
+
     weights_3_2 = ps.Weights([[1,2,3],
                               [4,5,6]])
 
@@ -193,11 +244,11 @@ class TestConnection(unittest.TestCase):
         try:
             raised = False
             conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-                self.weights_3_3)
+                self.weights_20_3)
             conn = ps.Connection("conn", self.conn_in[0], self.pool[1], 
-                self.weights_3_2)
+                self.weights_20_3)
             conn = ps.Connection("conn", self.conn_in[1], self.pool[0],     
-                self.weights_2_3)
+                self.weights_20_2)
             conn = ps.Connection("conn", self.conn_in[0], self.pool[1])
             conn = ps.Connection("conn", self.conn_in[1], self.pool[0])
         except:
@@ -217,11 +268,11 @@ class TestConnection(unittest.TestCase):
         try:
             raised = False
             conn = ps.Connection("conn", self.pool[0], self.bucket[0], 
-                self.weights_3_3)
+                self.weights_3_20)
             conn = ps.Connection("conn", self.pool[0], self.bucket[1], 
-                self.weights_3_2)
+                self.weights_2_20)
             conn = ps.Connection("conn", self.pool[1], self.bucket[0], 
-                self.weights_2_3)
+                self.weights_3_20)
             conn = ps.Connection("conn", self.pool[0], self.bucket[1]) 
             conn = ps.Connection("conn", self.pool[1], self.bucket[0]) 
         except:
@@ -303,13 +354,13 @@ class TestConnection(unittest.TestCase):
         
     def test_get_label(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-            self.weights_3_3)
+            self.weights_20_3)
 
         self.assertEqual("conn",conn.get_label())
 
     def test_get_source(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-            self.weights_3_3)
+            self.weights_20_3)
 
         self.assertEqual(self.conn_in[0].get_label(),
             conn.get_source().get_label())
@@ -318,7 +369,7 @@ class TestConnection(unittest.TestCase):
 
     def test_get_dest(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-            self.weights_3_3)
+            self.weights_20_3)
 
         self.assertEqual(self.pool[0].get_label(),
             conn.get_dest().get_label())
@@ -329,13 +380,13 @@ class TestConnection(unittest.TestCase):
 
     def test_get_weights(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
-            self.weights_3_3)
+            self.weights_20_3)
 
         weights = conn.get_weights()
 
         for i in range(weights.get_num_rows()):
             for j in range(weights.get_num_columns()):
-                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
+                self.assertEqual(self.weights_20_3.get_element(i,j),weights.get_element(i,j))
 
     def test_set_weights(self):
         conn = ps.Connection("conn", self.conn_in[0], self.pool[0])
@@ -343,13 +394,13 @@ class TestConnection(unittest.TestCase):
 
         self.assertEqual(weights,None)
 
-        conn.set_weights(self.weights_3_3)
+        conn.set_weights(self.weights_20_3)
 
         weights = conn.get_weights()
 
         for i in range(weights.get_num_rows()):
             for j in range(weights.get_num_columns()):
-                self.assertEqual(self.weights_3_3.get_element(i,j),weights.get_element(i,j))
+                self.assertEqual(self.weights_20_3.get_element(i,j),weights.get_element(i,j))
 
 class TestNetwork(unittest.TestCase):
     num_neurons = 100

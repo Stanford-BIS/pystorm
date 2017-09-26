@@ -61,8 +61,8 @@ Connection* Network::CreateConnection( std::string name,
         sizeof(uint32_t));
 
     Weights<uint32_t>* weightMatrix = 
-        new pystorm::bdhal::Weights<uint32_t>(m, dest->GetNumDimensions(), 
-            src->GetNumDimensions());
+        new pystorm::bdhal::Weights<uint32_t>(m, dest->GetConnectionSize(), 
+            src->GetConnectionSize());
     
     Connection* newConnection = new Connection(name, src, 
         dest, weightMatrix);
