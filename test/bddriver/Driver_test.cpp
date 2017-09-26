@@ -9,7 +9,6 @@
 #include <cstdio>
 #include <fstream>
 
-#include "binary_util.h"
 #include "gtest/gtest.h"
 #include "test_util/DriverTypes_util.h"
 #include "test_util/Producer_Consumer.h"
@@ -21,9 +20,6 @@ using std::cout;
 using std::endl;
 using namespace pystorm;
 using namespace bddriver;
-
-constexpr uint64_t     TATAccWord::field_hard_values[];
-constexpr unsigned int TATAccWord::field_widths[];
 
 class DriverFixture : public testing::Test {
   public:
@@ -71,17 +67,21 @@ class DriverFixture : public testing::Test {
 
     void SendSpikes() {
       std::vector<BDWord> spikes = MakeRandomSynSpikes(M);
-      std::vector<unsigned int> core_ids(spikes.size(), 0);
-      std::vector<BDTime> times(spikes.size(), 0);
-      driver->SendSpikes(core_ids, spikes, times);
+      std::vector<BDTime> times;
+      for (unsigned int i = 0; i < spikes.size(); i++) {
+        times.push_back(i);
+      }
+      driver->SendSpikes(0, spikes, times);
       sent_spikes.insert(sent_spikes.end(), spikes.begin(), spikes.end());
     }
 
     void SendTags() {
       std::vector<BDWord> tags = MakeRandomInputTags(M);
-      std::vector<unsigned int> core_ids(tags.size(), 0);
-      std::vector<BDTime> times(tags.size(), 0);
-      driver->SendTags(core_ids, tags, times);
+      std::vector<BDTime> times;
+      for (unsigned int i = 0; i < tags.size(); i++) {
+        times.push_back(i);
+      }
+      driver->SendTags(0, tags, times);
       sent_tags.insert(sent_tags.end(), tags.begin(), tags.end());
     }
 
@@ -110,23 +110,23 @@ TEST_F(DriverFixture, TestSetPostFIFODumpStateOnOff) {
 }
 
 TEST_F(DriverFixture, TestSetPAT) {
-  driver->SetMem(kCoreId, bdpars::PAT, MakeRandomPATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::PAT, MakeRandomPATData(M), 0);
 }
 
 TEST_F(DriverFixture, TestSetTAT0) {
-  driver->SetMem(kCoreId, bdpars::TAT0, MakeRandomTATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT0, MakeRandomTATData(M), 0);
 }
 
 TEST_F(DriverFixture, TestSetTAT1) {
-  driver->SetMem(kCoreId, bdpars::TAT1, MakeRandomTATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT1, MakeRandomTATData(M), 0);
 }
 
 TEST_F(DriverFixture, TestSetAM) {
-  driver->SetMem(kCoreId, bdpars::AM, MakeRandomAMData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::AM, MakeRandomAMData(M), 0);
 }
 
 TEST_F(DriverFixture, TestSetMM) {
-  driver->SetMem(kCoreId, bdpars::MM, MakeRandomMMData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::MM, MakeRandomMMData(M), 0);
 }
 
 TEST_F(DriverFixture, TestSendSpikes) {
@@ -138,11 +138,11 @@ TEST_F(DriverFixture, TestSendTags) {
 }
 
 TEST_F(DriverFixture, TestDownStreamCalls) {
-  driver->SetMem(kCoreId, bdpars::PAT, MakeRandomPATData(M), 0);
-  driver->SetMem(kCoreId, bdpars::TAT0, MakeRandomTATData(M), 0);
-  driver->SetMem(kCoreId, bdpars::TAT1, MakeRandomTATData(M), 0);
-  driver->SetMem(kCoreId, bdpars::AM, MakeRandomAMData(M), 0);
-  driver->SetMem(kCoreId, bdpars::MM, MakeRandomMMData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::PAT, MakeRandomPATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT0, MakeRandomTATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT1, MakeRandomTATData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::AM, MakeRandomAMData(M), 0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::MM, MakeRandomMMData(M), 0);
   SendSpikes();
 }
 
@@ -151,42 +151,42 @@ TEST_F(DriverFixture, TestDownStreamCalls) {
 // for dump tests, need to program before dumping
 
 TEST_F(DriverFixture, TestDumpPAT) {
-  unsigned int size = driver->GetBDPars()->Size(bdpars::PAT);
+  unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::PAT).size;
   auto data = MakeRandomPATData(size);
-  driver->SetMem(kCoreId, bdpars::PAT, data, 0);
-  auto dumped = driver->DumpMem(kCoreId, bdpars::PAT);
+  driver->SetMem(kCoreId, bdpars::BDMemId::PAT, data, 0);
+  auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::PAT);
   ASSERT_EQ(data, dumped);
 }
 
 TEST_F(DriverFixture, TestDumpAM) {
-  unsigned int size = driver->GetBDPars()->Size(bdpars::AM);
+  unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::AM).size;
   auto data = MakeRandomAMData(size);
-  driver->SetMem(kCoreId, bdpars::AM, data, 0);
-  auto dumped = driver->DumpMem(kCoreId, bdpars::AM);
+  driver->SetMem(kCoreId, bdpars::BDMemId::AM, data, 0);
+  auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::AM);
   ASSERT_EQ(data, dumped);
 }
 
 TEST_F(DriverFixture, TestDumpMM) {
-  unsigned int size = driver->GetBDPars()->Size(bdpars::MM);
+  unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::MM).size;
   auto data = MakeRandomMMData(size);
-  driver->SetMem(kCoreId, bdpars::MM, data, 0);
-  auto dumped = driver->DumpMem(kCoreId, bdpars::MM);
+  driver->SetMem(kCoreId, bdpars::BDMemId::MM, data, 0);
+  auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::MM);
   ASSERT_EQ(data, dumped);
 }
 
 TEST_F(DriverFixture, TestDumpTAT0) {
-  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT0);
+  unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::TAT0).size;
   auto data = MakeRandomTATData(size);
-  driver->SetMem(kCoreId, bdpars::TAT0, data, 0);
-  auto dumped = driver->DumpMem(kCoreId, bdpars::TAT0);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT0, data, 0);
+  auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::TAT0);
   ASSERT_EQ(data, dumped);
 }
 
 TEST_F(DriverFixture, TestDumpTAT1) {
-  unsigned int size = driver->GetBDPars()->Size(bdpars::TAT1);
+  unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::TAT1).size;
   auto data = MakeRandomTATData(size);
-  driver->SetMem(kCoreId, bdpars::TAT1, data, 0);
-  auto dumped = driver->DumpMem(kCoreId, bdpars::TAT1);
+  driver->SetMem(kCoreId, bdpars::BDMemId::TAT1, data, 0);
+  auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::TAT1);
   ASSERT_EQ(data, dumped);
 }
 
@@ -194,26 +194,26 @@ TEST_F(DriverFixture, TestDumpTAT1) {
 
 TEST_F(DriverFixture, TestRecvSpikes) {
   auto to_send = MakeRandomNrnSpikes(M);
-  model->PushOutput(bdpars::OUTPUT_SPIKES, to_send);
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::NRNI), to_send);
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  ASSERT_EQ(std::get<1>(driver->RecvSpikes(to_send.size())), to_send);
+  ASSERT_EQ(driver->RecvSpikes(kCoreId).first, to_send);
 }
 
 TEST_F(DriverFixture, TestRecvTags) {
   auto to_send = MakeRandomInputTags(M);
-  model->PushOutput(bdpars::TAT_OUTPUT_TAGS, to_send); // XXX not testing acc, has a smaller gtag width, would have to limit gtag size
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::RO_TAT), to_send); // XXX not testing acc, has a smaller gtag width, would have to limit gtag size
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  ASSERT_EQ(std::get<1>(driver->RecvTags(to_send.size())), to_send);
+  ASSERT_EQ(driver->RecvTags(kCoreId).first, to_send);
 }
 
 TEST_F(DriverFixture, TestGetPreFIFOTags) {
   auto to_send = MakeRandomPreFIFOTags(M);
-  model->PushOutput(bdpars::PRE_FIFO_TAGS, to_send); 
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::DUMP_PRE_FIFO), to_send); 
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  ASSERT_EQ(driver->GetPreFIFODump(kCoreId, to_send.size()), to_send);
+  ASSERT_EQ(driver->GetPreFIFODump(kCoreId), to_send);
 }
 
 TEST_F(DriverFixture, TestGetPostFIFOTags) {
@@ -222,23 +222,23 @@ TEST_F(DriverFixture, TestGetPostFIFOTags) {
   to_send1 = MakeRandomPostFIFOTags(M);
 
   // try PostFIFO0
-  model->PushOutput(bdpars::POST_FIFO_TAGS0, to_send0); 
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::DUMP_POST_FIFO0), to_send0); 
 
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  ASSERT_EQ(driver->GetPostFIFODump(kCoreId, to_send0.size(), 0).first, to_send0);
+  ASSERT_EQ(driver->GetPostFIFODump(kCoreId).first, to_send0);
 
   // try PostFIFO
-  model->PushOutput(bdpars::POST_FIFO_TAGS1, to_send1); 
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::DUMP_POST_FIFO1), to_send1); 
   std::this_thread::sleep_for(std::chrono::seconds(1));
 
-  ASSERT_EQ(driver->GetPostFIFODump(kCoreId, 0, to_send1.size()).second, to_send1);
+  ASSERT_EQ(driver->GetPostFIFODump(kCoreId).second, to_send1);
 }
 
 TEST_F(DriverFixture, TestFIFOOverflow) {
   const std::pair<unsigned int, unsigned int> to_push = {10, 20};
-  model->PushOutput(bdpars::OVERFLOW_TAGS0, std::vector<BDWord>(to_push.first, BDWord(1)));
-  model->PushOutput(bdpars::OVERFLOW_TAGS1, std::vector<BDWord>(to_push.second, BDWord(1)));
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::OVFLW0), std::vector<BDWord>(to_push.first, BDWord(1)));
+  model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::OVFLW1), std::vector<BDWord>(to_push.second, BDWord(1)));
 
   std::this_thread::sleep_for(std::chrono::seconds(1));
 

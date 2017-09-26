@@ -14,11 +14,6 @@ set(TARGET_NAME "Hal")
 include(CheckRequirements)
 include(Common)
 
-if(NOT HOST_IS_VALID)
-    message(FATAL_ERROR "Build does not support host '"
-            ${CMAKE_HOST_SYSTEM_NAME} "'")
-endif()
-
 ############################################################################
 #
 # Build setup
@@ -31,7 +26,7 @@ find_package(Threads REQUIRED)
 # Project settings
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-if(CXX_IS_MSVC)
+if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 endif()
 

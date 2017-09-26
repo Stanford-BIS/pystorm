@@ -4,6 +4,7 @@
 
 #include "Comm.h"
 #include "common/MutexBuffer.h"
+#include "common/vector_util.h"
 #include <okFrontPanelDLL.h>
 
 namespace pystorm {
@@ -21,10 +22,7 @@ class CommOK : public Comm {
 public:
     /// Constructor
     CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
-        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) {
-        read_buffer_ = new unsigned char[READ_SIZE];
-        write_buffer_ = new unsigned char[WRITE_SIZE];
-    };
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED), deserializer_(VectorDeserializer<COMMWord>(WRITE_SIZE)) {};
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
@@ -34,10 +32,7 @@ public:
     /// Default move assignment
     CommOK& operator=(CommOK&&) = delete;
     /// Default destructor
-    ~CommOK() {
-        delete [] read_buffer_;
-        delete [] write_buffer_;
-    }
+    ~CommOK() { }
 
     /// Initialization
     int Init(const std::string bitfile, const std::string serial);
@@ -57,8 +52,7 @@ protected:
   MutexBuffer<COMMWord>* m_write_buffer;
   std::atomic<CommStreamState> m_state;
   std::thread m_control_thread;
-  unsigned char* read_buffer_;
-  unsigned char* write_buffer_;
+  VectorDeserializer<COMMWord> deserializer_; 
 
   void CommController();
 
