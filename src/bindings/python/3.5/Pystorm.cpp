@@ -70,7 +70,7 @@ HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
 } 
 
 
-PYBIND11_MODULE(Pystorm, m)
+PYBIND11_MODULE(PyStorm, m)
 {
 
     //////////////////////////////////////////////////////////////////////

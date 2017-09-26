@@ -1,4 +1,7 @@
 # Check the build environment
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0054 NEW)
+endif()
 
 # Check for supported host
 if(NOT CMAKE_HOST_SYSTEM_NAME)

@@ -7,6 +7,10 @@
 #   CMAKE_CONFIGURATION_TYPES
 #   PYSTORM_CXX_STANDARD
 
+if(COMMAND cmake_policy)
+  cmake_policy(SET CMP0054 NEW)
+endif()
+
 function(SetupSharedLibrary)
     # GCC compiler, mostly for linux
     if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
