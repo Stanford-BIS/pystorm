@@ -1,0 +1,30 @@
+version: "3.2"
+services:
+    shell:
+        image: centos-fpga
+        volumes: &vol_ref
+            - "./:/home/${USER}:Z"
+            - "../../:/home/dev/pystorm:rw"
+            - "./install:/home/dev/install:rw"
+            - "/opt2/quartus:/home/quartus:rw"
+            - "/etc/group:/etc/group:ro"
+            - "/etc/passwd:/etc/passwd:ro"
+            - "/etc/shadow:/etc/shadow:ro"
+            - "/etc/sudoers.d:/etc/sudoers.d:ro"
+            - "/tmp/.X11-unix:/tmp/.X11-unix:rw"
+        command: /bin/bash
+        working_dir: /home/quartus
+        environment: &env_ref
+            USER:
+            DISPLAY: 
+        stdin_open: true
+        tty: true
+
+    modelsim:
+        image: centos-fpga
+        volumes: *vol_ref
+        environment: *env_ref
+        stdin_open: true
+        tty: true
+        command: /home/quartus/intelFPGA_lite/17.0/modelsim_ase/linux/vsim
+        working_dir: /home/dev/pystorm/FPGA/test

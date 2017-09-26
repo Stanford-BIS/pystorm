@@ -38,6 +38,7 @@
 `timescale 1 ps / 1 ps
 // synopsys translate_on
 module SpikeGeneratorMem (
+	byteena_a,
 	clock,
 	data,
 	rdaddress,
@@ -46,16 +47,18 @@ module SpikeGeneratorMem (
 	wren,
 	q);
 
+	input	[5:0]  byteena_a;
 	input	  clock;
-	input	[42:0]  data;
+	input	[47:0]  data;
 	input	[7:0]  rdaddress;
 	input	  rden;
 	input	[7:0]  wraddress;
 	input	  wren;
-	output	[42:0]  q;
+	output	[47:0]  q;
 `ifndef ALTERA_RESERVED_QIS
 // synopsys translate_off
 `endif
+	tri1	[5:0]  byteena_a;
 	tri1	  clock;
 	tri1	  rden;
 	tri0	  wren;
@@ -63,12 +66,13 @@ module SpikeGeneratorMem (
 // synopsys translate_on
 `endif
 
-	wire [42:0] sub_wire0;
-	wire [42:0] q = sub_wire0[42:0];
+	wire [47:0] sub_wire0;
+	wire [47:0] q = sub_wire0[47:0];
 
 	altsyncram	altsyncram_component (
 				.address_a (wraddress),
 				.address_b (rdaddress),
+				.byteena_a (byteena_a),
 				.clock0 (clock),
 				.data_a (data),
 				.rden_b (rden),
@@ -78,14 +82,13 @@ module SpikeGeneratorMem (
 				.aclr1 (1'b0),
 				.addressstall_a (1'b0),
 				.addressstall_b (1'b0),
-				.byteena_a (1'b1),
 				.byteena_b (1'b1),
 				.clock1 (1'b1),
 				.clocken0 (1'b1),
 				.clocken1 (1'b1),
 				.clocken2 (1'b1),
 				.clocken3 (1'b1),
-				.data_b ({43{1'b1}}),
+				.data_b ({48{1'b1}}),
 				.eccstatus (),
 				.q_a (),
 				.rden_a (1'b1),
@@ -93,6 +96,7 @@ module SpikeGeneratorMem (
 	defparam
 		altsyncram_component.address_aclr_b = "NONE",
 		altsyncram_component.address_reg_b = "CLOCK0",
+		altsyncram_component.byte_size = 8,
 		altsyncram_component.clock_enable_input_a = "BYPASS",
 		altsyncram_component.clock_enable_input_b = "BYPASS",
 		altsyncram_component.clock_enable_output_b = "BYPASS",
@@ -108,9 +112,9 @@ module SpikeGeneratorMem (
 		altsyncram_component.read_during_write_mode_mixed_ports = "DONT_CARE",
 		altsyncram_component.widthad_a = 8,
 		altsyncram_component.widthad_b = 8,
-		altsyncram_component.width_a = 43,
-		altsyncram_component.width_b = 43,
-		altsyncram_component.width_byteena_a = 1;
+		altsyncram_component.width_a = 48,
+		altsyncram_component.width_b = 48,
+		altsyncram_component.width_byteena_a = 6;
 
 
 endmodule
@@ -122,7 +126,7 @@ endmodule
 // Retrieval info: PRIVATE: ADDRESSSTALL_B NUMERIC "0"
 // Retrieval info: PRIVATE: BYTEENA_ACLR_A NUMERIC "0"
 // Retrieval info: PRIVATE: BYTEENA_ACLR_B NUMERIC "0"
-// Retrieval info: PRIVATE: BYTE_ENABLE_A NUMERIC "0"
+// Retrieval info: PRIVATE: BYTE_ENABLE_A NUMERIC "1"
 // Retrieval info: PRIVATE: BYTE_ENABLE_B NUMERIC "0"
 // Retrieval info: PRIVATE: BYTE_SIZE NUMERIC "8"
 // Retrieval info: PRIVATE: BlankMemory NUMERIC "1"
@@ -148,7 +152,7 @@ endmodule
 // Retrieval info: PRIVATE: JTAG_ENABLED NUMERIC "0"
 // Retrieval info: PRIVATE: JTAG_ID STRING "NONE"
 // Retrieval info: PRIVATE: MAXIMUM_DEPTH NUMERIC "0"
-// Retrieval info: PRIVATE: MEMSIZE NUMERIC "11008"
+// Retrieval info: PRIVATE: MEMSIZE NUMERIC "12288"
 // Retrieval info: PRIVATE: MEM_IN_BITS NUMERIC "0"
 // Retrieval info: PRIVATE: MIFfilename STRING ""
 // Retrieval info: PRIVATE: OPERATION_MODE NUMERIC "2"
@@ -168,10 +172,10 @@ endmodule
 // Retrieval info: PRIVATE: USE_DIFF_CLKEN NUMERIC "0"
 // Retrieval info: PRIVATE: UseDPRAM NUMERIC "1"
 // Retrieval info: PRIVATE: VarWidth NUMERIC "0"
-// Retrieval info: PRIVATE: WIDTH_READ_A NUMERIC "43"
-// Retrieval info: PRIVATE: WIDTH_READ_B NUMERIC "43"
-// Retrieval info: PRIVATE: WIDTH_WRITE_A NUMERIC "43"
-// Retrieval info: PRIVATE: WIDTH_WRITE_B NUMERIC "43"
+// Retrieval info: PRIVATE: WIDTH_READ_A NUMERIC "48"
+// Retrieval info: PRIVATE: WIDTH_READ_B NUMERIC "48"
+// Retrieval info: PRIVATE: WIDTH_WRITE_A NUMERIC "48"
+// Retrieval info: PRIVATE: WIDTH_WRITE_B NUMERIC "48"
 // Retrieval info: PRIVATE: WRADDR_ACLR_B NUMERIC "0"
 // Retrieval info: PRIVATE: WRADDR_REG_B NUMERIC "0"
 // Retrieval info: PRIVATE: WRCTRL_ACLR_B NUMERIC "0"
@@ -180,6 +184,7 @@ endmodule
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: ADDRESS_ACLR_B STRING "NONE"
 // Retrieval info: CONSTANT: ADDRESS_REG_B STRING "CLOCK0"
+// Retrieval info: CONSTANT: BYTE_SIZE NUMERIC "8"
 // Retrieval info: CONSTANT: CLOCK_ENABLE_INPUT_A STRING "BYPASS"
 // Retrieval info: CONSTANT: CLOCK_ENABLE_INPUT_B STRING "BYPASS"
 // Retrieval info: CONSTANT: CLOCK_ENABLE_OUTPUT_B STRING "BYPASS"
@@ -195,27 +200,29 @@ endmodule
 // Retrieval info: CONSTANT: READ_DURING_WRITE_MODE_MIXED_PORTS STRING "DONT_CARE"
 // Retrieval info: CONSTANT: WIDTHAD_A NUMERIC "8"
 // Retrieval info: CONSTANT: WIDTHAD_B NUMERIC "8"
-// Retrieval info: CONSTANT: WIDTH_A NUMERIC "43"
-// Retrieval info: CONSTANT: WIDTH_B NUMERIC "43"
-// Retrieval info: CONSTANT: WIDTH_BYTEENA_A NUMERIC "1"
+// Retrieval info: CONSTANT: WIDTH_A NUMERIC "48"
+// Retrieval info: CONSTANT: WIDTH_B NUMERIC "48"
+// Retrieval info: CONSTANT: WIDTH_BYTEENA_A NUMERIC "6"
+// Retrieval info: USED_PORT: byteena_a 0 0 6 0 INPUT VCC "byteena_a[5..0]"
 // Retrieval info: USED_PORT: clock 0 0 0 0 INPUT VCC "clock"
-// Retrieval info: USED_PORT: data 0 0 43 0 INPUT NODEFVAL "data[42..0]"
-// Retrieval info: USED_PORT: q 0 0 43 0 OUTPUT NODEFVAL "q[42..0]"
+// Retrieval info: USED_PORT: data 0 0 48 0 INPUT NODEFVAL "data[47..0]"
+// Retrieval info: USED_PORT: q 0 0 48 0 OUTPUT NODEFVAL "q[47..0]"
 // Retrieval info: USED_PORT: rdaddress 0 0 8 0 INPUT NODEFVAL "rdaddress[7..0]"
 // Retrieval info: USED_PORT: rden 0 0 0 0 INPUT VCC "rden"
 // Retrieval info: USED_PORT: wraddress 0 0 8 0 INPUT NODEFVAL "wraddress[7..0]"
 // Retrieval info: USED_PORT: wren 0 0 0 0 INPUT GND "wren"
 // Retrieval info: CONNECT: @address_a 0 0 8 0 wraddress 0 0 8 0
 // Retrieval info: CONNECT: @address_b 0 0 8 0 rdaddress 0 0 8 0
+// Retrieval info: CONNECT: @byteena_a 0 0 6 0 byteena_a 0 0 6 0
 // Retrieval info: CONNECT: @clock0 0 0 0 0 clock 0 0 0 0
-// Retrieval info: CONNECT: @data_a 0 0 43 0 data 0 0 43 0
+// Retrieval info: CONNECT: @data_a 0 0 48 0 data 0 0 48 0
 // Retrieval info: CONNECT: @rden_b 0 0 0 0 rden 0 0 0 0
 // Retrieval info: CONNECT: @wren_a 0 0 0 0 wren 0 0 0 0
-// Retrieval info: CONNECT: q 0 0 43 0 @q_b 0 0 43 0
+// Retrieval info: CONNECT: q 0 0 48 0 @q_b 0 0 48 0
 // Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem.v TRUE
 // Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem.cmp FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem.bsf FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem_inst.v FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem_bb.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL SpikeGeneratorMem_bb.v FALSE
 // Retrieval info: LIB_FILE: altera_mf
