@@ -11,7 +11,7 @@ set_location_assignment PIN_AA15 -to sReset          # MC1-Bn6
 # BD output : To FPGA from Braindrop
 set_location_assignment PIN_AB17 -to BD_in_clk    # CLKOUT0-I/O
 set_location_assignment PIN_AB15 -to BD_in_ready    # MC1-Bn2
-set_location_assignment PIN_T13  -to BD_in_valid    # MC1-Bp0
+set_location_assignment PIN_T13  -to _BD_in_valid    # MC1-Bp0
 
 set_location_assignment PIN_U13  -to BD_in_data[33] # MC1-A0
 set_location_assignment PIN_R12  -to BD_in_data[32] # MC1-Bn0
@@ -117,7 +117,7 @@ set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset
 
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_clk    
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_ready    
-set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_valid    
+set_instance_assignment -name IO_STANDARD "1.8 V" -to _BD_in_valid    
 
 set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[*] 
 

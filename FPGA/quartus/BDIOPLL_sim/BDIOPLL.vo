@@ -1,5 +1,5 @@
 //IP Functional Simulation Model
-//VERSION_BEGIN 17.0 cbx_mgl 2017:07:13:10:04:39:SJ cbx_simgen 2017:07:13:08:24:32:SJ  VERSION_END
+//VERSION_BEGIN 17.0 cbx_mgl 2017:04:25:18:09:28:SJ cbx_simgen 2017:04:25:18:06:30:SJ  VERSION_END
 // synthesis VERILOG_INPUT_VERSION VERILOG_2001
 // altera message_off 10463
 
