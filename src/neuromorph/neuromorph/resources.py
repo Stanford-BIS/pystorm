@@ -1,23 +1,23 @@
 import numpy as np
-from . Core import *
-from . MemWordEnums import *
-from . MemWordPlaceholders import *
+# from . core import *
+from . memWordEnums import *
+from . memWordPlaceholders import *
 
 # make sure that a slice connection between object doesn't break any rules.
 # objects must define DI() and DO()
 def TestDimsCorrect(src_DO, tgt_DI, src_range, tgt_range):
     # range lengths must match
-    assert(len(src_range) == len(tgt_range))
+    assert len(src_range) == len(tgt_range)
 
     # indices must be valid dimensions
     for i in src_range:
-        assert(i < src_DO)
+        assert i < src_DO
     for i in tgt_range:
-        assert(i < tgt_DI)
+        assert i < tgt_DI
 
     # no multiple connection
-    assert(len(src_range) <= tgt_DI)
-    assert(len(tgt_range) <= src_DO)
+    assert len(src_range) <= tgt_DI
+    assert len(tgt_range) <= src_DO
 
 # ResourceConnection connects two resources, allows slicing
 class ResourceConnection(object):
@@ -26,19 +26,19 @@ class ResourceConnection(object):
         self.tgt = tgt
 
         # type check
-        assert(type(src) in tgt.connectable_types_in)
+        assert type(src) in tgt.connectable_types_in
 
         # sliceability check
         if src_range != None:
-            assert(src.sliceable_out)
+            assert src.sliceable_out
         if tgt_range != None:
-            assert(tgt.sliceable_in)
+            assert tgt.sliceable_in
 
         # number of connections check
         if src.max_conns_out is not None:
-            assert(len(src.conns_out) + 1 <= src.max_conns_out)
+            assert len(src.conns_out) + 1 <= src.max_conns_out
         if tgt.max_conns_in is not None:
-            assert(len(tgt.conns_in) + 1 <= tgt.max_conns_in)
+            assert len(tgt.conns_in) + 1 <= tgt.max_conns_in
 
         # range == None is full range of src/tgt objects outputs/inputs
         self.src_range = src_range
@@ -79,11 +79,11 @@ class Resource(object):
 
     # get input dimensionality
     def DI(self):
-        assert(False and "not implemented!")
+        raise NotImplementedError
 
     # get output dimensionality
     def DO(self):
-        assert(False and "not implemented!")
+        raise NotImplementedError
 
     # XXX should InTags() be a method?
 
@@ -153,7 +153,7 @@ class Neurons(Resource):
         self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
         # assert no more than one connection (only one decoder allowed)
-        assert(len(self.conns_out) == 1)
+        assert len(self.conns_out) == 1
 
     # neuron array allocation
     def Allocate(self, core):

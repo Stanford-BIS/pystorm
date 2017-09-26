@@ -1,6 +1,6 @@
 from Pystorm import *
-from . Core import *
-from . Resources import *
+from .core import Core
+from .resources import *
 from functools import singledispatch, update_wrapper
 import numpy as np
 
@@ -62,7 +62,7 @@ class NetObjNode(object):
                 weights[i][j] = pystorm_weights.GetElement(i, j)
 
         ret_value = MMWeights(weights)
-        
+
         return ret_value
 
     def connect(self, resources):
@@ -76,31 +76,31 @@ class NetObjNode(object):
         What type of Pystorm.Network object connections can we expect and
         what Resource objects (and connections) must we create given the
         Pystorm.Network objects?
-        
+
         The following information describes the Pystorm.Network objects
         followed by their associated Resources objects.
         Note that the first five connections are from one object to one
         object, however, connections 6 and 7 are from one object to multiple
         objects which require a different set of resources.
-        
+
           Conn 1: Input -> Pool
-        
+
                       Source -> TATTapPoint -> Neurons
-        
+
           Conn 2: Input -> Bucket
-        
+
               Source -> TATAcuumulator -> MMWeights -> AMBuckets
-        
+
           Conn 3: Pool -> Bucket
-        
+
              Neurons -> MMWeights -> AMBuckets
-        
+
           Conn 4: Bucket -> Bucket
-        
+
               AMBuckets -> MMWeights -> AMBuckets
-        
+
           Conn 5: Bucket -> Output
-        
+
              AMBuckets -> Sink
 
          Conn 6: Bucket -> Bucket
@@ -135,9 +135,9 @@ class NetObjNode(object):
                 adj_node_dims = adj_node_net_obj.GetNumDimensions()
 
                 source = self.resource
-                tap = TATTapPoint(np.random.randint(num_neurons, 
+                tap = TATTapPoint(np.random.randint(num_neurons,
                                   size=(matrix_dims, adj_node_dims)),
-                                  np.random.randint(1, size=(matrix_dims, 
+                                  np.random.randint(1, size=(matrix_dims,
                                                     adj_node_dims)) * 2 - 1,
                                   num_neurons)
                 neurons = adj_node_net_obj.resource
@@ -180,7 +180,7 @@ class NetObjNode(object):
 
                 am_bucket_in.Connect(weight_resource)
                 weight_resource.Connect(am_bucket_out)
-    
+
                 resources.append(weight_resource)
 
             #   Conn 5: Bucket -> Output
@@ -191,7 +191,7 @@ class NetObjNode(object):
                 am_bucket.Connect(sink)
 
         elif number_of_adj_nodes > 1:
-                
+
                 if type(self.net_obj) == Bucket:
                     am_bucket_in = self.resource
                     tat_fanout = TATFanout(self.net_obj.GetNumDimensions())
@@ -210,7 +210,7 @@ class NetObjNode(object):
                             am_bucket_out = adj_node_net_obj
 
                             resources.append(weight_resource)
-    
+
                             tat_fanout.Connect(weight_resource)
                             weight_resource.Connect(am_bucket_out)
 
@@ -220,7 +220,7 @@ class NetObjNode(object):
                             sink = adj_node_net_obj.resource
 
                             tat_fanout.Connect(sink)
-                            
+
 
 class MapController(object):
     def __init__(self):
@@ -303,7 +303,7 @@ class MapController(object):
             node.AllocateEarly(core)
         if verbose:
             print("finished AllocateEarly")
-        
+
         core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
         for node in resources:
             node.Allocate(core)

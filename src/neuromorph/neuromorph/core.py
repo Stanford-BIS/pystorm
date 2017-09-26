@@ -1,6 +1,6 @@
 import numpy as np
-from . MemWordEnums import *
-from . MemWordPlaceholders import *
+from . mem_word_enums import *
+from . mem_word_placeholders import *
 import Pystorm as ps
 
 
