@@ -112,11 +112,13 @@ Driver::Driver() {
   enc_ = new Encoder(
       enc_buf_in_,
       enc_buf_out_,
+      bd_pars_,
       driver_pars_->Get(driverpars::ENC_TIMEOUT_US));
 
   dec_ = new Decoder(
       dec_buf_in_,
       dec_bufs_out_,
+      bd_pars_,
       driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
 
   // initialize Comm

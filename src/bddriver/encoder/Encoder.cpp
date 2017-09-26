@@ -25,7 +25,18 @@ void Encoder::RunOnce() {
   }
 }
 
-std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) const {
+inline void PushWord(std::unique_ptr<std::vector<EncOutput>> & output, uint32_t word) {
+  uint8_t b0 = GetField<FPGABYTES>(word, FPGABYTES::B0);
+  uint8_t b1 = GetField<FPGABYTES>(word, FPGABYTES::B1);
+  uint8_t b2 = GetField<FPGABYTES>(word, FPGABYTES::B2);
+  uint8_t b3 = GetField<FPGABYTES>(word, FPGABYTES::B3);
+  output->push_back(b0);
+  output->push_back(b1);
+  output->push_back(b2);
+  output->push_back(b3);
+}
+
+std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
   std::unique_ptr<std::vector<EncOutput>> output (new std::vector<EncOutput>);
 
@@ -47,14 +58,30 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
     uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
     // serialize to bytes 
-    uint8_t b0 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B0);
-    uint8_t b1 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B1);
-    uint8_t b2 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B2);
-    uint8_t b3 = GetField<FPGABYTES>(FPGA_encoded, FPGABYTES::B3);
-    output->push_back(b0);
-    output->push_back(b1);
-    output->push_back(b2);
-    output->push_back(b3);
+    PushWord(output, FPGA_encoded);
+
+    // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
+    // package the event's time into a spike
+    if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {
+      last_HB_sent_at_ = time;
+
+      // need to insert two words
+      uint32_t time_chunk[3];
+      time_chunk[0] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W0);
+      time_chunk[1] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W1);
+      time_chunk[2] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W2);
+      
+      // manually compute offset from this code
+      uint8_t HB_ep_code[3];
+      HB_ep_code[0] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED0);
+      HB_ep_code[1] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED1);
+      HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
+
+      for (unsigned int i = 0; i < 3; i++) {
+        PushWord(output, PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
+      }
+    }
+
   }
 
   return output;

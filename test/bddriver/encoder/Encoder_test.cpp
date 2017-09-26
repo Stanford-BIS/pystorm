@@ -86,7 +86,7 @@ TEST(EncoderTest, MainEncoderTest) {
   std::thread consumer = std::thread(ConsumeAndCheck<EncOutput>, &buf_out, all_outputs, 0);
 
   // need nonzero timeout so we can stop ourselves
-  Encoder enc(&buf_in, &buf_out, 1000);
+  Encoder enc(&buf_in, &buf_out, &pars, 1000);
   enc.Start();
 
   producer.join();

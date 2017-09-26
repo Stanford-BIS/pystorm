@@ -40,6 +40,10 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
   std::uniform_int_distribution<uint8_t> payload_dist(0, UINT8_MAX);
   std::uniform_int_distribution<uint8_t> code_dist(0, up_eps.size()-1);
 
+  // note that initialization only occurs on the first function invocation
+  static BDTime last_time = 0;
+  static bool last_time_lsb_msb = false;
+
   for (unsigned int i = 0; i < N; i++) {
     // make random input data
     uint8_t b[4];
@@ -51,7 +55,6 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
     assert(idx < up_eps.size());
     b[3] = up_eps.at(idx);
     dec_inputs.push_back(b[3]);
-
 
     // pack
     uint32_t packed = PackWord<FPGABYTES>(
@@ -72,19 +75,39 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
     // extract code, payload
     uint8_t code = GetField(packed, FPGAIO::EP_CODE);
     uint32_t payload = GetField(packed, FPGAIO::PAYLOAD);
-    BDTime time = 0; // XXX temporary
     //cout << " code " << int(code) << endl;
     //cout << " payload " << payload << endl;
+    
+    // update time if necessary 
+    // (no guarantee that time ascends in this test, 
+    // so sequence may be unusual)
+    if (code == pars->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
+      uint64_t curr_time_msb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
+      uint64_t curr_time_lsb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
+      if (!last_time_lsb_msb) { // lsb
+        last_time = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, curr_time_msb}, 
+             {TWOFPGAPAYLOADS::LSB, payload}});
+      } else { // msb
+        last_time = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, payload},
+             {TWOFPGAPAYLOADS::LSB, curr_time_lsb}});
+      }
+      last_time_lsb_msb = !last_time_lsb_msb;
 
-    DecOutput to_push;
-    to_push.payload = payload;
-    to_push.time = time;
+    // only append output for non-time input word
+    } else {
+      DecOutput to_push;
+      to_push.payload = payload;
+      to_push.time = last_time;
 
-    if (dec_outputs.count(code) == 0) {
-      cout << int(code) << endl;
-      assert(false);
+      if (dec_outputs.count(code) == 0) {
+        cout << int(code) << endl;
+        assert(false);
+      }
+      dec_outputs.at(code).push_back(to_push);
     }
-    dec_outputs.at(code).push_back(to_push);
+
   }
 
   return make_pair(dec_inputs, dec_outputs);
@@ -109,13 +132,17 @@ TEST(DecoderTest, MainDecoderTest) {
   // this is super confusing, turn the map<vector<>> into a map<vector<vector<>>> for outputs
   std::vector<DIVect> all_inputs;
   std::unordered_map<uint8_t, std::vector<DOVect>> all_outputs;
+
   for (unsigned int i = 0; i < N; i++) {
+
     auto in_and_out = MakeDecInputAndOutputs(M, &pars);
+
     all_inputs.push_back(in_and_out.first);
     for (auto& it : in_and_out.second) {
       if (all_outputs.count(it.first) == 0)
         all_outputs.insert({it.first, {}});
-      all_outputs.at(it.first).push_back(it.second);
+      if (it.second.size() > 0) 
+        all_outputs.at(it.first).push_back(it.second);
     }
   }
   
@@ -129,11 +156,12 @@ TEST(DecoderTest, MainDecoderTest) {
     MutexBuffer<DecOutput> * buf = it.second;
     recvd_outputs.insert({ep_code, {}});
     unsigned int num_vect_to_consume = all_outputs.at(ep_code).size(); // should be N or close to it
+    //cout << "ep " << int(ep_code) << " needs to consume " << num_vect_to_consume << endl;
     consumers.push_back(std::thread(Consume<DecOutput>, buf, &recvd_outputs.at(ep_code), num_vect_to_consume, 0));
   }
   
   // need nonzero timeout so we can stop ourselves
-  Decoder dec(&buf_in, bufs_out, 1000);
+  Decoder dec(&buf_in, bufs_out, &pars, 1000);
   dec.Start();
 
   producer.join();
@@ -160,6 +188,9 @@ TEST(DecoderTest, MainDecoderTest) {
         ASSERT_EQ(
               all_outputs.at(ep_code).at(i).at(j).payload, 
             recvd_outputs.at(ep_code).at(i).at(j).payload);
+        if (
+              all_outputs.at(ep_code).at(i).at(j).time != 
+            recvd_outputs.at(ep_code).at(i).at(j).time) cout << "ep " << int(ep_code) << " i " << i << " j " << j << endl;
         ASSERT_EQ(
               all_outputs.at(ep_code).at(i).at(j).time, 
             recvd_outputs.at(ep_code).at(i).at(j).time);
