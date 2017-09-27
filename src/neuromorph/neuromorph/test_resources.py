@@ -1,4 +1,6 @@
-from Resources import *
+import numpy as np
+from resources import (
+    AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATFanout, TATTapPoint)
 
 R = []
 
@@ -9,7 +11,7 @@ def GetN1():
     W = MMWeights(np.random.rand(D, D))
     B = AMBuckets(D)
 
-    W.Connect(B)
+    W.connect(B)
 
     return [W, B]
 
@@ -22,8 +24,8 @@ def GetN2():
     W = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
 
-    N.Connect(W)
-    W.Connect(B)
+    N.connect(W)
+    W.connect(B)
 
     return [N, W, B]
 
@@ -32,7 +34,7 @@ def GetN3():
     D = 2
     K = 2
     M = 10
-    
+
     I = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
     N = Neurons(M)
@@ -40,22 +42,22 @@ def GetN3():
     B = AMBuckets(D)
     O = Sink(D)
 
-    I.Connect(TP)
-    TP.Connect(N)
-    N.Connect(W)
-    W.Connect(B)
-    B.Connect(O)
+    I.connect(TP)
+    TP.connect(N)
+    N.connect(W)
+    W.connect(B)
+    B.connect(O)
 
     return [I, TP, N, W, B, O]
 
-#         source -> TATAccumulator -> weights -> 
+#         source -> TATAccumulator -> weights ->
 # source -> TATTapPoint -> neurons -> weights -> bucket -> TATFanout -> sink
 #                                                                    -> sink
 def GetN4():
     D = 2
     K = 2
     M = 10
-    
+
     I1 = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
     N = Neurons(M)
@@ -70,18 +72,18 @@ def GetN4():
     TF = TATFanout(D)
     O2 = Sink(D)
 
-    I1.Connect(TP)
-    TP.Connect(N)
-    N.Connect(W1)
-    W1.Connect(B)
-    B.Connect(TF)
-    TF.Connect(O1)
+    I1.connect(TP)
+    TP.connect(N)
+    N.connect(W1)
+    W1.connect(B)
+    B.connect(TF)
+    TF.connect(O1)
 
-    I2.Connect(TA)
-    TA.Connect(W2)
-    W2.Connect(B)
-    
-    TF.Connect(O2)
+    I2.connect(TA)
+    TA.connect(W2)
+    W2.connect(B)
+
+    TF.connect(O2)
 
     return [I1, I2, TP, TA, TF, N, W1, W2, B, O1, O2]
 

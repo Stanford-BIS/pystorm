@@ -1,24 +1,7 @@
+"""This module defines the hardware resources available"""
 import numpy as np
-# from . core import *
-from . memWordEnums import *
-from . memWordPlaceholders import *
-
-def TestDimsCorrect(src_DO, tgt_DI, src_range, tgt_range):
-    """Make sure that a slice connection between object doesn't break any rules.
-    objects must define DI() and DO()
-    """
-    # range lengths must match
-    assert len(src_range) == len(tgt_range)
-
-    # indices must be valid dimensions
-    for i in src_range:
-        assert i < src_DO
-    for i in tgt_range:
-        assert i < tgt_DI
-
-    # no multiple connection
-    assert len(src_range) <= tgt_DI
-    assert len(tgt_range) <= src_DO
+from mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
+from mem_word_placeholders import BDWord
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -27,12 +10,12 @@ class ResourceConnection(object):
         self.tgt = tgt
 
         # type check
-        assert type(src) in tgt.connectable_types_in
+        assert isinstance(src, tuple(tgt.connectable_types_in))
 
         # sliceability check
-        if src_range != None:
+        if src_range is not None:
             assert src.sliceable_out
-        if tgt_range != None:
+        if tgt_range is not None:
             assert tgt.sliceable_in
 
         # number of connections check
@@ -44,21 +27,36 @@ class ResourceConnection(object):
         # range == None is full range of src/tgt objects outputs/inputs
         self.src_range = src_range
         self.tgt_range = tgt_range
-        if src_range == None:
-            self.src_range = range(src.DO())
-        if tgt_range == None:
-            self.tgt_range = range(tgt.DI())
+        if src_range is None:
+            self.src_range = range(src.dimensions_out)
+        if tgt_range is None:
+            self.tgt_range = range(tgt.dimensions_in)
 
         # check dimensional correctness
-        TestDimsCorrect(src.DO(), tgt.DI(), self.src_range, self.tgt_range)
+        self._test_dims_correct(src.dimensions_out, tgt.dimensions_in)
+
+    def _test_dims_correct(self, src_dimensions_out, tgt_dimensions_in):
+        """Check correctness of a slice connection between objects"""
+        # range lengths must match
+        assert len(self.src_range) == len(self.tgt_range)
+
+        # indices must be valid dimensions
+        for idx in self.src_range:
+            assert idx < src_dimensions_out
+        for idx in self.tgt_range:
+            assert idx < tgt_dimensions_in
+
+        # no multiple connection
+        assert len(self.src_range) <= tgt_dimensions_in
+        assert len(self.tgt_range) <= src_dimensions_out
 
 
 class Resource(object):
-    """Resources represent chunks of un-allocated braindrop hardware
+    """Resources represent chunks of allocateable braindrop hardware
 
-    a graph of hardware resources needed to implement the network
-    most of the functionality of the objects is in the allocation process
-    basically, Resource objects know how to map themselves to a Core object
+    A graph of hardware resources is necessary to implement the network
+    Most of the functionality of the objects is in the allocation process
+    Basically, Resource objects know how to map themselves to a Core object
 
     Inputs
     ------
@@ -71,11 +69,10 @@ class Resource(object):
     max_conns_in: maximum number of incoming connections
     max_conns_out): maximum number of outgoing connections
     """
-    def __init__(
-            self,
-            connectable_types_in, connectable_types_out,
-            sliceable_in=True, sliceable_out=True,
-            max_conns_in=None, max_conns_out=None):
+    def __init__(self,
+                 connectable_types_in, connectable_types_out,
+                 sliceable_in=True, sliceable_out=True,
+                 max_conns_in=None, max_conns_out=None):
 
         self.connectable_types_in = connectable_types_in
         self.connectable_types_out = connectable_types_out
@@ -87,52 +84,55 @@ class Resource(object):
         self.conns_in = []
         self.conns_out = []
 
-    def DI(self):
-        """get input dimensionality"""
+    @property
+    def dimensions_in(self):
+        """Get input dimensionality"""
         raise NotImplementedError
 
-    def DO(self):
-        """get output dimensionality"""
+    @property
+    def dimensions_out(self):
+        """Get output dimensionality"""
         raise NotImplementedError
 
     # XXX should InTags() be a method?
 
-    def Connect(
-            self,
-            tgt, # target Resource object
-            src_range=None, # slice indexing of this object's output range to make connections from
-            tgt_range=None): # slice indexing of tgt object's output range to make connections to
-        """Connect this Resource to another one, possibly using a slice of this object's
-        DO() range or a slice of the tgt's DI() range
-        """
+    def connect(self, tgt, src_range=None, tgt_range=None):
+        """Connect this Resource to another one
 
+        Inputs
+        ------
+        tgt: target Resource object
+        src_range: slice index of this object's output range to make connections from
+        tgt_range: slice index of tgt object's output range to make connections to
+        """
         new_conn = ResourceConnection(self, tgt, src_range, tgt_range)
         self.conns_out += [new_conn]
         tgt.conns_in += [new_conn]
 
     # The mapping process is divided into phases
 
-    def PreTranslate(self, core):
-        """Perform any bookeeping that's needed before Allocate
+    def pretranslate(self, core):
+        """Perform any bookeeping that's needed before allocate
         this could sometimes be done during construction, but we give it a separate phase
         some preprocessing also needs Core parameters, which aren't available during construction
         """
         pass
 
-    def AllocateEarly(self, core):
+    def allocate_early(self, core):
+        """Perform bookeeping before allocating the core to the resources"""
         pass
 
-    def Allocate(self, core):
-        """perform the primary operation, allocating the Core to the Resources"""
+    def allocate(self, core):
+        """Allocate the core to the resources"""
         pass
 
-    def PostTranslate(self, core):
-        """perform any bookeeping that's needed after Allocation before Assign"""
+    def posttranslate(self, core):
+        """Perform bookeeping after allocating the core to the resources"""
         pass
 
-    def Assign(self, core):
+    def assign(self, core):
         """assign the Resources' values to the Core at the allocated locations
-        should be light on logic, anything elaborate should go in PostTranslate
+        should be light on logic, anything elaborate should go in posttranslate
         """
         pass
 
@@ -146,42 +146,44 @@ class Neurons(Resource):
             sliceable_in=False, sliceable_out=False, max_conns_out=1)
         self.N = N
 
-        # PreTranslate
+        # pretranslate
         self.n_unit_pools = None
 
-        # Allocate
+        # allocate
         self.start_pool_idx = None
         self.start_nrn_idx = None
 
-        # PostTranslate
+        # posttranslate
         self.PAT_contents = None
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.N
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.N
 
-    def PreTranslate(self, core):
+    def pretranslate(self, core):
         """neuron array allocation prep"""
         self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
         # assert no more than one connection (only one decoder allowed)
         assert len(self.conns_out) == 1
 
-    def Allocate(self, core):
+    def allocate(self, core):
         """neuron array allocation"""
-        self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
+        self.start_pool_idx = core.NeuronArray.allocate(self.n_unit_pools)
         self.start_nrn_idx = self.start_pool_idx * core.NeuronArray_pool_size
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         """PAT assignment setup"""
         if len(self.conns_out) == 1:
             weights = self.conns_out[0].tgt
             buckets = self.conns_out[0].tgt.conns_out[0].tgt
             self.PAT_contents = []
-            for p in range(self.n_unit_pools):
-                in_idx = p * core.NeuronArray_pool_size
+            for n_pools in range(self.n_unit_pools):
+                in_idx = n_pools * core.NeuronArray_pool_size
                 MMAY, MMAX = weights.InDimToMMA(in_idx)
                 AMA = buckets.start_addr
 
@@ -191,17 +193,18 @@ class Neurons(Resource):
                     PATField.MM_ADDRESS_HI: MMAY})]
             self.PAT_contents = np.array(self.PAT_contents, dtype=object)
 
-    def Assign(self, core):
+    def assign(self, core):
         """PAT assignment"""
         if self.PAT_contents is not None:
             pool_slice = slice(self.start_pool_idx, self.start_pool_idx + self.n_unit_pools)
-            core.PAT.Assign(self.PAT_contents, pool_slice)
+            core.PAT.assign(self.PAT_contents, pool_slice)
 
 class MMWeights(Resource):
-    """entries in weight (main) memory
-    this is a *little* special because of weight matrix sharing
-    keeps a static class member dictionary to keep track of which MMWeights
-    used the same memory entries
+    """Represents weight entries in Main Memory
+
+    We support weight matrix sharing by keeping a static class member dictionary to track
+    which MMWeights used the same memory entries.
+
     XXX later can code this up to automate matrix caching
     """
 
@@ -226,18 +229,19 @@ class MMWeights(Resource):
         else:
             MMWeights.reverse_cache[id(W)] = [id(self)]
 
-        # PreTranslate (XXX by AMBuckets's PreTranslate!)
+        # pretranslate (XXX by AMBuckets's pretranslate!)
         self.is_dec = None
         self.programmed_W = None
         self.W_slices = []
 
-        # Allocate (by AMBuckets)
+        # allocate (by AMBuckets)
         self.slice_start_addrs = []
 
-        # PostTranslate
+        # posttranslate
         self.W_slices_contents = []
 
     def InDimToMMA(self, dim):
+        """Calculate the max x and y coordinates in main memory associated with dim"""
         slice_width = self.W_slices[0].shape[1]
         slice_idx = dim // slice_width
         slice_offset = dim % slice_width
@@ -246,27 +250,29 @@ class MMWeights(Resource):
         MMAX = MM_start_addr[1]
         return [MMAY, MMAX]
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.user_W.shape[1]
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.user_W.shape[0]
 
-    def AllocateEarly(self, core):
+    def allocate_early(self, core):
         """allocate decoders (big slices) first"""
         if self.is_dec:
             for W_slice in self.W_slices:
-                start_addr = core.MM.AllocateDec(self.DO())
+                start_addr = core.MM.AllocateDec(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
 
-    def Allocate(self, core):
+    def allocate(self, core):
         """allocate transforms (small slices) after"""
         if not self.is_dec:
             for W_slice in self.W_slices:
-                start_addr = core.MM.AllocateTrans(self.DO())
+                start_addr = core.MM.AllocateTrans(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         """convert to BDWord, even though it's just a single int"""
         for W_slice in self.W_slices:
             contents = [[
@@ -277,7 +283,7 @@ class MMWeights(Resource):
             self.W_slices_contents += [np.array(contents, dtype=object)]
 
 
-    def Assign(self, core):
+    def assign(self, core):
         for W_slice, start_addr in zip(
                 self.W_slices_contents, self.slice_start_addrs):
             if self.is_dec:
@@ -289,12 +295,15 @@ class MMWeights(Resource):
 
 
 class AMBuckets(Resource):
-    """entries in accumulator memory
-    an array of buckets, defined by their threshold values and next address targets
-    in the hardware, the last bucket has the stop bit
+    """Represents entries in accumulator memory
+
+    The accumulator memory contains an array of buckets defined by
+    their threshold values and next address targets in the hardware.
+    The last bucket has the stop bit
     """
 
-    def WeightToMem(user_W, core):
+    @staticmethod
+    def weight_to_mem(user_W, core):
         """Given the user's desired weight matrix and the core parameters,
         determine the best implementable weights and threshold values
         is a namespace fn, not a member fn
@@ -306,6 +315,7 @@ class AMBuckets(Resource):
             """
 
             def invert_bits(x, all_ones):
+                """Invert the bits in x"""
                 ones = np.ones_like(x).astype(int) * all_ones
                 return np.bitwise_xor(ones, x)
 
@@ -344,7 +354,8 @@ class AMBuckets(Resource):
         # find max_row_Ws in the user_max_weights we just computed
         # user_max_weights is descending, so we provide the sorter argument
         #sorter_idxs = np.array(range(len(thr_vals))[::-1])
-        #thr_idxs = np.searchsorted(user_max_weights_for_thr_vals, user_max_abs_W_rows, sorter=sorter_idxs) - 1
+        #thr_idxs = np.searchsorted(
+        #    user_max_weights_for_thr_vals, user_max_abs_W_rows, sorter=sorter_idxs) - 1
         thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -user_max_abs_W_rows) - 1
 
         # this is the threshold value we should use (and scale the user weights by)
@@ -357,14 +368,15 @@ class AMBuckets(Resource):
 
         return W, thr_idxs
 
-    def WeightsToMem(W_list, core):
-        """extends WeightToMem to work for multiple matrices sharing the same bucket
+    @staticmethod
+    def weights_to_mem(W_list, core):
+        """extends weight_to_mem to work for multiple matrices sharing the same bucket
         works by stacking the matrices, calling the original function, then unstacking
         is a namespace fn, not a member fn
         """
         W = np.hstack(W_list)
 
-        programmed_W, thr = AMBuckets.WeightToMem(W, core)
+        programmed_W, thr = AMBuckets.weight_to_mem(W, core)
 
         input_dims = [w.shape[1] for w in W_list]
         split_indices = np.cumsum(input_dims)
@@ -378,33 +390,35 @@ class AMBuckets(Resource):
 
     def __init__(self, D):
         super().__init__([MMWeights], [TATAccumulator, TATFanout, TATTapPoint, Sink],
-                sliceable_in=False, sliceable_out=True, max_conns_out=1)
+                         sliceable_in=False, sliceable_out=True, max_conns_out=1)
         self.D = D
 
-        # filled in PreTranslate
+        # filled in pretranslate
         self.thr = None
 
         # filled in allocation
         self.start_addr = None
 
-        # filled in PostTranslate
+        # filled in posttranslate
         self.AM_entries = None
 
     # XXX these methods modify any attached MMWeights objects!
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.D
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.D
 
-    def PreTranslate(self, core):
+    def pretranslate(self, core):
         """first, derive thresholds and weight matrix entries"""
 
         # collect all input matrices
         user_W_list = [conn.src.user_W for conn in self.conns_in]
 
-        programmed_W_list, self.thr = AMBuckets.WeightsToMem(user_W_list, core)
+        programmed_W_list, self.thr = AMBuckets.weights_to_mem(user_W_list, core)
 
         # iterate through all input MMWeights conns
         for conn, programmed_W in zip(self.conns_in, programmed_W_list):
@@ -416,7 +430,7 @@ class AMBuckets(Resource):
             # break weight matrix into per-pool (or per-dim, for transforms) slices
 
             if len(MM_weight.conns_in) > 0:
-                MM_weight.is_dec = type(MM_weight.conns_in[0].src) == Neurons
+                MM_weight.is_dec = isinstance(MM_weight.conns_in[0].src, Neurons)
             else:
                 MM_weight.is_dec = False
 
@@ -433,14 +447,14 @@ class AMBuckets(Resource):
                 MM_weight.W_slices += [W_slice]
                 n += 1
 
-    def Allocate(self, core):
-        self.start_addr = core.AM.Allocate(self.DO())
+    def allocate(self, core):
+        self.start_addr = core.AM.allocate(self.dimensions_out)
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         # we need to create the (stop, value, thresholds) and next address entries for the AM
-        stop = np.zeros((self.DO(),)).astype(int)
+        stop = np.zeros((self.dimensions_out,)).astype(int)
         stop[-1] = 1
-        val = np.zeros((self.DO(),)).astype(int)
+        val = np.zeros((self.dimensions_out,)).astype(int)
         thr = self.thr
 
         if len(self.conns_out) > 0:
@@ -457,45 +471,49 @@ class AMBuckets(Resource):
                 AMField.NEXT_ADDRESS: n})]
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
-    def Assign(self, core):
-        core.AM.Assign(self.AM_entries, self.start_addr)
+    def assign(self, core):
+        core.AM.assign(self.AM_entries, self.start_addr)
 
 
 # XXX should upgrade for sliceable_out=True
 class TATAccumulator(Resource):
+    """Represents entries in the Tag Action Table for the Accumulator"""
 
     def __init__(self, D):
         super().__init__([AMBuckets, Source, TATFanout], [MMWeights],
-                sliceable_in=True, sliceable_out=False)
+                         sliceable_in=True, sliceable_out=False)
 
         self.D = D
 
-        # PreTranslate
+        # pretranslate
         self.size = None
         self.start_offsets = None
 
-        # Allocate
+        # allocate
         self.start_addr = None
         self.in_tags = None
 
-        # PostTranslate
+        # posttranslate
         self.contents = None
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.D
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.D
 
-    def PreTranslate(self, core):
+    def pretranslate(self, core):
         self.size = self.D * len(self.conns_out)
-        self.start_offsets = np.array(range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
+        self.start_offsets = np.array(
+            range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
-    def Allocate(self, core):
-        self.start_addr = core.TAT0.Allocate(self.size)
+    def allocate(self, core):
+        self.start_addr = core.TAT0.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         self.contents = []
         for d in range(self.D):
             for t in range(len(self.conns_out)):
@@ -513,17 +531,17 @@ class TATAccumulator(Resource):
                     TATAccField.MM_ADDRESS_HI: MMAY})]
         self.contents = np.array(self.contents, dtype=object)
 
-    def Assign(self, core):
-        core.TAT0.Assign(self.contents, self.start_addr)
+    def assign(self, core):
+        core.TAT0.assign(self.contents, self.start_addr)
 
 
 class TATTapPoint(Resource):
-    """XXX not supporting fanout to multiple pools (and therefore no output slicing). Using TATFanout for that.
-    also apparently not supporting non-square taps (different K)
+    """XXX not supporting fanout to multiple pools (and therefore no output slicing).
+    Using TATFanout for that, also apparently not supporting non-square taps (different K)
     """
     def __init__(self, taps, signs, N):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
-                sliceable_in=True, sliceable_out=False, max_conns_out=1)
+                         sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         self.N = N
         self.D = taps.shape[0]
@@ -534,40 +552,46 @@ class TATTapPoint(Resource):
         assert self.K % 2 == 0 and "need even number of tap points"
         assert self.taps.all() < self.N
 
-        # PreTranslate
+        # pretranslate
+        self.nrn_per_syn = None
         self.size = None
+        self.start_offsets = None
 
-        # Allocate
+        # allocate
         self.start_addr = None
         self.in_tags = None
 
-        # PostTranslate
+        # posttranslate
+        self.mapped_taps = None
         self.contents = None
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.N
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.D
 
-    def TapMapFn(self, tap):
+    def tap_map(self, tap):
         """allow user to specify tap points at neuron granularity
         but actually there are fewer synapses than neurons
         XXX FIXME need to talk about this
         """
         return tap // self.nrn_per_syn
 
-    def PreTranslate(self, core):
+    def pretranslate(self, core):
         self.nrn_per_syn = core.NeuronArray_neurons_per_tap
         self.size = self.D * self.K // 2
-        self.start_offsets = np.array(range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
+        self.start_offsets = np.array(
+            range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
 
-    def Allocate(self, core):
-        self.start_addr = core.TAT1.Allocate(self.size)
+    def allocate(self, core):
+        self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
-    def PostTranslate(self, core):
-        self.mapped_taps = self.TapMapFn(self.conns_out[0].tgt.start_nrn_idx + self.taps)
+    def posttranslate(self, core):
+        self.mapped_taps = self.tap_map(self.conns_out[0].tgt.start_nrn_idx + self.taps)
 
         self.contents = []
         for d in range(self.D):
@@ -586,43 +610,48 @@ class TATTapPoint(Resource):
                     TATSpikeField.SYNAPSE_SIGN_1: s1})]
         self.contents = np.array(self.contents, dtype=object)
 
-    def Assign(self, core):
-        core.TAT1.Assign(self.contents, self.start_addr)
+    def assign(self, core):
+        core.TAT1.assign(self.contents, self.start_addr)
 
 
 # XXX should implement output slicing
 class TATFanout(Resource):
+    """Represents a Tag Action Table entry for fanning out tags"""
     def __init__(self, D):
-        super().__init__([AMBuckets, Source, TATFanout], [TATAccumulator, TATTapPoint, TATFanout, Sink],
-                sliceable_in=True, sliceable_out=False)
-
+        super().__init__([AMBuckets, Source, TATFanout],
+                         [TATAccumulator, TATTapPoint, TATFanout, Sink],
+                         sliceable_in=True, sliceable_out=False)
         self.D = D
 
-        # PreTranslate
+        # pretranslate
         self.size = None
+        self.start_offsets = None
 
-        # Allocate
+        # allocate
         self.start_addr = None
         self.in_tags = None
 
-        # PostTranslate
+        # posttranslate
         self.contents = None
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.D
 
-    def DO(self):
+    @property
+    def dimensions_out(self):
         return self.D
 
-    def PreTranslate(self, core):
+    def pretranslate(self, core):
         self.size = self.D * len(self.conns_out)
-        self.start_offsets = np.array(range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
+        self.start_offsets = np.array(
+            range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
-    def Allocate(self, core):
-        self.start_addr = core.TAT1.Allocate(self.size)
+    def allocate(self, core):
+        self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         self.contents = []
         for d in range(self.D):
             for t in range(len(self.conns_out)):
@@ -637,40 +666,55 @@ class TATFanout(Resource):
                     TATTagField.GLOBAL_ROUTE: global_route})]
         self.contents = np.array(self.contents, dtype=object)
 
-    def Assign(self, core):
-        core.TAT1.Assign(self.contents, self.start_addr)
+    def assign(self, core):
+        core.TAT1.assign(self.contents, self.start_addr)
 
 
 class Sink(Resource):
+    """Represents a sink"""
     def __init__(self, D):
         super().__init__([Neurons, TATFanout, AMBuckets], [],
-                sliceable_in=True, sliceable_out=False, max_conns_out=0)
+                         sliceable_in=True, sliceable_out=False, max_conns_out=0)
 
         self.num = None
         self.D = D
 
-        # Allocate
+        # allocate
         self.in_tags = None
 
-    def DI(self):
+    @property
+    def dimensions_in(self):
         return self.D
 
-    def Allocate(self, core):
-        self.in_tags = core.ExternalSinks.Allocate(self.D)
+    @property
+    def dimensions_out(self):
+        raise NameError(
+            "A Sink Resource does not have a defined dimensions_out; " +
+            "only dimensions_in is defined")
+
+    def allocate(self, core):
+        self.in_tags = core.ExternalSinks.allocate(self.D)
 
 
 class Source(Resource):
+    """Represents a source"""
     def __init__(self, D):
         super().__init__([], [TATTapPoint, TATAccumulator, TATFanout],
-                sliceable_in=False, sliceable_out=True, max_conns_in=0)
+                         sliceable_in=False, sliceable_out=True, max_conns_in=0)
         self.D = D
 
-        # PostTranslate
+        # posttranslate
         self.out_tags = None
 
-    def DO(self):
+    @property
+    def dimensions_in(self):
+        raise NameError(
+            "A Source Resource does not have a defined dimensions_in; " +
+            "only dimensions_out is defined")
+
+    @property
+    def dimensions_out(self):
         return self.D
 
-    def PostTranslate(self, core):
+    def posttranslate(self, core):
         self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
-
