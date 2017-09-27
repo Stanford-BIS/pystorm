@@ -50,7 +50,7 @@ enum class DnEPType {
 enum class BDHornEP {
   ADC,                // ADC small/large current enable, output enable
   DAC_DIFF_G,         // DIFF_G DAC bias value
-  DAC_SOMA_INH,       // SOMA_INH DAC bias value
+  DAC_SYN_INH,        // SYN_INH DAC bias value
   DAC_SYN_PU,         // SYN_PU DAC bias value
   DAC_UNUSED,         // UNUSED (ghost DAC)
   DAC_DIFF_R,         // DIFF_R DAC bias value
@@ -61,7 +61,7 @@ enum class BDHornEP {
   DAC_ADC_BIAS_2,     // ADC_BIAS_2 DAC bias value
   DAC_ADC_BIAS_1,     // ADC_BIAS_1 DAC bias value
   DAC_SOMA_REF,       // SOMA_REF DAC bias value
-  DAC_SOMA_EXC,       // SOMA_EXC DAC bias value
+  DAC_SYN_EXC,        // SYN_EXC DAC bias value
   DELAY_DCTFIFO,      // FIFO:DCT delay line config
   DELAY_PGFIFO,       // FIFO:PG delay line config
   DELAY_TAT0,         // TAT 0 delay line config
@@ -207,6 +207,13 @@ struct MemInfo {
   BDHornEP delay_reg;
 };
 
+struct DACInfo {
+  static constexpr float DAC_UNIT_CURRENT = 1e-12;
+  static constexpr unsigned int DAC_MAX_COUNT = 1024;
+  unsigned int scaling;
+  unsigned int default_count;
+};
+
 
 //////////////////////////////////////////////
 /// Neuron configuration options
@@ -269,6 +276,9 @@ class BDPars {
 
   // memory info
   std::unordered_map<BDMemId, MemInfo, EnumClassHash> mem_info_;
+  
+  // DAC info
+  std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
 
   BDPars();
 

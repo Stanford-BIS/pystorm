@@ -20,4 +20,3 @@ AlignTrailingComments:          true
 AllowShortBlocksOnASingleLine:  true
 AllowShortFunctionsOnASingleLine: All
 AlwaysBreakTemplateDeclarations: true
-...

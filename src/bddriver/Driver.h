@@ -147,6 +147,15 @@ class Driver {
 
   /// Program DAC value
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
+  // Specify any `value` < 0.0 to use default value;
+  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush=true);
+
+  unsigned int GetDACScaling(bdpars::BDHornEP signal_id);
+
+  unsigned int GetDACDefaultCount(bdpars::BDHornEP signal_id);
+
+  float GetDACUnitCurrent(bdpars::BDHornEP signal_id);
+
   /// Make DAC-to-ADC connection for calibration for a particular DAC
   void SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en, bool flush=true);
 

@@ -1,6 +1,9 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+// This undef is due to a MacOS stupidity with  termios.h`
+// https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/tcsetattr.3.html
+#undef B0
 #include <Driver.h>
 #include <model/BDModelDriver.h>
 
@@ -10,7 +13,7 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 	pybind11::enum_<pystorm::bddriver::bdpars::BDHornEP>(M("pystorm::bddriver::bdpars"), "BDHornEP", "///////////////////////////////////////////")
 		.value("ADC", pystorm::bddriver::bdpars::BDHornEP::ADC)
 		.value("DAC_DIFF_G", pystorm::bddriver::bdpars::BDHornEP::DAC_DIFF_G)
-		.value("DAC_SOMA_INH", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_INH)
+		.value("DAC_SYN_INH", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_INH)
 		.value("DAC_SYN_PU", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_PU)
 		.value("DAC_UNUSED", pystorm::bddriver::bdpars::BDHornEP::DAC_UNUSED)
 		.value("DAC_DIFF_R", pystorm::bddriver::bdpars::BDHornEP::DAC_DIFF_R)
@@ -21,7 +24,7 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 		.value("DAC_ADC_BIAS_2", pystorm::bddriver::bdpars::BDHornEP::DAC_ADC_BIAS_2)
 		.value("DAC_ADC_BIAS_1", pystorm::bddriver::bdpars::BDHornEP::DAC_ADC_BIAS_1)
 		.value("DAC_SOMA_REF", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_REF)
-		.value("DAC_SOMA_EXC", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_EXC)
+		.value("DAC_SYN_EXC", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_EXC)
 		.value("DELAY_DCTFIFO", pystorm::bddriver::bdpars::BDHornEP::DELAY_DCTFIFO)
 		.value("DELAY_PGFIFO", pystorm::bddriver::bdpars::BDHornEP::DELAY_PGFIFO)
 		.value("DELAY_TAT0", pystorm::bddriver::bdpars::BDHornEP::DELAY_TAT0)
@@ -353,6 +356,8 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 		cl.def("SetSpikeDumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, bool)) &pystorm::bddriver::Driver::SetSpikeDumpState, "Control spike traffic from neuron array to driver\n\nC++: pystorm::bddriver::Driver::SetSpikeDumpState(unsigned int, bool, bool) --> void", pybind11::arg("core_id"), pybind11::arg("en"), pybind11::arg("flush"));
 		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, unsigned int  const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"));
 		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool)) &pystorm::bddriver::Driver::SetDACValue, "Program DAC value\n\nC++: pystorm::bddriver::Driver::SetDACValue(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool) --> void", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"), pybind11::arg("flush"));
+		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, float, bool)) &pystorm::bddriver::Driver::SetDACValue, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"), pybind11::arg("flush"));
+		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, float const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"));
 		cl.def("SetDACtoADCConnectionState", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, bool  const &a2) -> void { return o.SetDACtoADCConnectionState(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("dac_signal_id"), pybind11::arg("en"));
 		cl.def("SetDACtoADCConnectionState", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool)) &pystorm::bddriver::Driver::SetDACtoADCConnectionState, "Make DAC-to-ADC connection for calibration for a particular DAC\n\nC++: pystorm::bddriver::Driver::SetDACtoADCConnectionState(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool) --> void", pybind11::arg("core_id"), pybind11::arg("dac_signal_id"), pybind11::arg("en"), pybind11::arg("flush"));
 		cl.def("SetADCScale", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, const std::string &)) &pystorm::bddriver::Driver::SetADCScale, "Set large/small current scale for either ADC\n\nC++: pystorm::bddriver::Driver::SetADCScale(unsigned int, bool, const class std::__cxx11::basic_string<char> &) --> void", pybind11::arg("core_id"), pybind11::arg("adc_id"), pybind11::arg("small_or_large"));
