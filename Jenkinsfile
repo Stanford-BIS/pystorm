@@ -15,7 +15,7 @@ pipeline {
                         script {
                             def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
                             sh "mkdir ${WORKSPACE}/artifacts"
-                            sh "docker build --file docker/Dockerfile_compile_FPGA -t ${lowercase_tag}_FPGA -v ${WORKSPACE}/artifacts:/artifacts"
+                            sh "docker build --file docker/Dockerfile_compile_FPGA -t ${lowercase_tag}_fpga -v ${WORKSPACE}/artifacts:/artifacts"
                         }
                     }
                 )
