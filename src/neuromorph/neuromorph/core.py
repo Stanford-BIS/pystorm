@@ -122,8 +122,9 @@ class MemAllocator(object):
         print(1*self.L)
 
 class StepMemAllocator(MemAllocator):
-    # the TAT is simple to allocate, there are no constraints on positioning,
-    # so we just fill it up from the bottom
+    """the TAT is simple to allocate, there are no constraints on positioning,
+    so we just fill it up from the bottom
+    """
     def __init__(self, shape):
         super(StepMemAllocator, self).__init__(shape)
         self.pos = 0
@@ -137,7 +138,7 @@ class StepMemAllocator(MemAllocator):
         return try_slice.start
 
 class MMAllocator(MemAllocator):
-    # we have to place the decoders carefully, but we have a lot of freedom with transforms
+    """we have to place the decoders carefully, but we have a lot of freedom with transforms"""
     def __init__(self, shape, NPOOL):
         super(MMAllocator, self).__init__(shape)
         self.xpos = 0
@@ -172,13 +173,13 @@ class MMAllocator(MemAllocator):
         return (try_slice[0].start, try_slice[1].start)
 
     def SwitchToTrans(self):
-        # this is lazy, wastes a little space
+        """this is lazy, wastes a little space"""
         if self.xpos != 0:
             self.ypos += self.NPOOL
         self.xpos = 0
 
     def AllocateTransRow(self, D):
-        # very similar to StepMemAllocator Allocate
+        """very similar to StepMemAllocator Allocate"""
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
@@ -213,7 +214,7 @@ class Memory(object):
 
 
 class StepMem(Memory):
-    # r_w_memory
+    """Read-Write Memory"""
     def __init__(self, shape):
         super(StepMem, self).__init__(shape)
 
