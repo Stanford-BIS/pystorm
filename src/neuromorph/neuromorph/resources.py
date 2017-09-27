@@ -50,7 +50,6 @@ class ResourceConnection(object):
         assert len(self.src_range) <= tgt_dimensions_in
         assert len(self.tgt_range) <= src_dimensions_out
 
-
 class Resource(object):
     """Resources represent chunks of allocateable braindrop hardware
 
@@ -293,7 +292,6 @@ class MMWeights(Resource):
                 # 1D slices in trans row case
                 core.MM.AssignTrans(W_slice, start_addr)
 
-
 class AMBuckets(Resource):
     """Represents entries in accumulator memory
 
@@ -474,10 +472,11 @@ class AMBuckets(Resource):
     def assign(self, core):
         core.AM.assign(self.AM_entries, self.start_addr)
 
-
-# XXX should upgrade for sliceable_out=True
 class TATAccumulator(Resource):
-    """Represents entries in the Tag Action Table for the Accumulator"""
+    """Represents entries in the Tag Action Table for the Accumulator
+
+    XXX should upgrade for sliceable_out=True
+    """
 
     def __init__(self, D):
         super().__init__([AMBuckets, Source, TATFanout], [MMWeights],
@@ -533,7 +532,6 @@ class TATAccumulator(Resource):
 
     def assign(self, core):
         core.TAT0.assign(self.contents, self.start_addr)
-
 
 class TATTapPoint(Resource):
     """XXX not supporting fanout to multiple pools (and therefore no output slicing).
@@ -613,10 +611,11 @@ class TATTapPoint(Resource):
     def assign(self, core):
         core.TAT1.assign(self.contents, self.start_addr)
 
-
-# XXX should implement output slicing
 class TATFanout(Resource):
-    """Represents a Tag Action Table entry for fanning out tags"""
+    """Represents a Tag Action Table entry for fanning out tags
+    
+    XXX should implement output slicing
+    """
     def __init__(self, D):
         super().__init__([AMBuckets, Source, TATFanout],
                          [TATAccumulator, TATTapPoint, TATFanout, Sink],
@@ -669,7 +668,6 @@ class TATFanout(Resource):
     def assign(self, core):
         core.TAT1.assign(self.contents, self.start_addr)
 
-
 class Sink(Resource):
     """Represents a sink"""
     def __init__(self, D):
@@ -694,7 +692,6 @@ class Sink(Resource):
 
     def allocate(self, core):
         self.in_tags = core.ExternalSinks.allocate(self.D)
-
 
 class Source(Resource):
     """Represents a source"""

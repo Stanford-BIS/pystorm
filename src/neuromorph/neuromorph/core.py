@@ -3,7 +3,6 @@ from . mem_word_enums import *
 from . mem_word_placeholders import *
 import Pystorm as ps
 
-
 class Core(object):
     def __init__(self, pars):
         # base parameters
@@ -212,7 +211,6 @@ class Memory(object):
         idx_slice = (slice(start[0], start[0] + mem.shape[0]), slice(start[1], start[1] + mem.shape[1]))
         self.M[idx_slice] = mem
 
-
 class StepMem(Memory):
     """Read-Write Memory"""
     def __init__(self, shape):
@@ -346,7 +344,6 @@ class PAT(object):
             f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
-
 class NeuronArray(object):
     def __init__(self, N, NPOOL):
         self.NPOOL = NPOOL
@@ -367,5 +364,3 @@ class ExternalSinks(object):
         base_idx = ExternalSinks.curr_idx
         ExternalSinks.curr_idx += D
         return np.array(range(base_idx, base_idx + D))
-    
-

@@ -23,7 +23,6 @@ def methdispatch(func):
     update_wrapper(wrapper, func)
     return wrapper
 
-
 class NetObjNode(object):
     def __init__(self, net_obj):
         """Construct the object updating the resource_map if necessary
@@ -231,7 +230,6 @@ class NetObjNode(object):
                             sink = adj_node_net_obj.resource
 
                             tat_fanout.Connect(sink)
-
 
 class MapController(object):
     def __init__(self):
