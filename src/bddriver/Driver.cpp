@@ -383,6 +383,23 @@ void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsig
   SetBDRegister(core_id, signal_id, word, flush);
 }
 
+void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush) {
+    auto _dac = bd_pars_->dac_info_.at(signal_id);
+    unsigned int dac_count;
+    if(value < 0){
+        dac_count = _dac.default_count;
+    }else{
+        dac_count = static_cast<unsigned int>(value / bdpars::DACInfo::DAC_UNIT_CURRENT * _dac.scaling);
+    }
+    SetDACValue(core_id, signal_id, dac_count, flush);
+}
+
+  unsigned int Driver::GetDACScaling(bdpars::BDHornEP signal_id){ return bd_pars_->dac_info_.at(signal_id).scaling; }
+
+  unsigned int Driver::GetDACDefaultCount(bdpars::BDHornEP signal_id){ return bd_pars_->dac_info_.at(signal_id).default_count; }
+
+  float Driver::GetDACUnitCurrent(bdpars::BDHornEP signal_id){ return bdpars::DACInfo::DAC_UNIT_CURRENT / static_cast<float>(bd_pars_->dac_info_.at(signal_id).scaling); }
+
 void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP signal_id, bool en, bool flush) {
 
   // look up DAC value
