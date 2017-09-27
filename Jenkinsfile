@@ -4,10 +4,21 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                script {
-                    def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                    sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag} ."
-                }
+                parallel(
+                    "Software" : {
+                        script {
+                            def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
+                            sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag} ."
+                        }
+                    },
+                    "FPGA" : {
+                        script {
+                            def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
+                            sh "mkdir ${WORKSPACE}/artifacts"
+                            sh "docker build --file docker/Dockerfile_compile_FPGA -t ${lowercase_tag}_FPGA -v ${WORKSPACE}/artifacts:/artifacts"
+                        }
+                    }
+                )
             }
         }
         stage('Test') {
@@ -16,6 +27,10 @@ pipeline {
                     def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
                     sh "docker/run_docker.sh ${lowercase_tag}"
                 }
+            }
+        }
+        stage('FPGA') {
+            steps {
             }
         }
     }

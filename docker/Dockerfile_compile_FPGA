@@ -1,0 +1,13 @@
+# Dockerfile for compiling FPGA source
+
+FROM centos_quartus:latest
+COPY . /home/git/pystorm
+ENV LM_LICENSE_FILE="/home/git/pystorm/FPGA/quartus/okAlteraLicense.dat"
+RUN cd /home/git/pystorm/FPGA/quartus && /bin/bash build_project.sh
+RUN mkdir /artifacts
+RUN cp output_files/OKCoreBD.rbf /artifacts/
+RUN cp output_files/setup.rpt /artifacts/
+RUN cp output_files/hold.rpt /artifacts/
+RUN cp output_files/recovery.rpt /artifacts/
+RUN cp output_files/removal.rpt /artifacts/
+VOLUME /artifacts
