@@ -7,8 +7,8 @@ ENV LM_LICENSE_FILE="/home/git/pystorm/FPGA/quartus/okAlteraLicense.dat"
 WORKDIR /home/git/pystorm/FPGA/quartus
 CMD ./build_project.sh && \
     cp output_files/OKCoreBD.rbf /artifacts/ && \
-    cp output_files/setup.rpt /artifacts/ && \
-    cp output_files/hold.rpt /artifacts/ && \
-    cp output_files/recovery.rpt /artifacts/ && \
-    cp output_files/removal.rpt /artifacts/
+    cp setup.rpt /artifacts/ && \
+    cp hold.rpt /artifacts/ && \
+    cp recovery.rpt /artifacts/ && \
+    cp removal.rpt /artifacts/
 VOLUME /artifacts
