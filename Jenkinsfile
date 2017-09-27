@@ -14,7 +14,8 @@ pipeline {
                     "FPGA" : {
                         script {
                             def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                            sh "docker build --file docker/Dockerfile_compile_FPGA -t ${lowercase_tag}_fpga -v ${WORKSPACE}/artifacts:/artifacts"
+                            sh "docker build --file docker/Dockerfile_compile_FPGA -t ${lowercase_tag}_fpga"
+                            sh "docker run --rm -v ${WORKSPACE}/artifacts:/artifacts ${lowercase_tag}_fpga"
                         }
                     }
                 )
