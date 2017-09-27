@@ -7,56 +7,80 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
                    (Channel bd_channel,
                     output reg valid, output reg [NUM_BITS-1:0] data,
                     input ready, reset, clk);
-    /*
-    input bd_channel.d  // Data read from bd_channel
-    input bd_channel.v  // Asserted if bd_channel data is valid
-    output bd_channel.a // Assert if data sent to BD
-    output data;        // Data sent to BD
-    output valid;       // Assert if data sent to BD is valid
-    input ready;        // Asserted if BD is ready to read
-    input reset;        // Global reset
-    input clk;          // Global clock
-    */
 
-    /*
-    The various states are
-      bd_channel.v  |  ready  ||  bd_channel.a  |  valid
-            0       |    x    ||       0        |    0
-            1       |    0    ||       0        |    0
-            1       |    1    ||       1        |    1
-    */
+/*
+input bd_channel.d  // Data read from bd_channel
+input bd_channel.v  // Asserted if bd_channel data is valid
+output bd_channel.a // Assert if data sent to BD
+output data;        // Data sent to BD
+output valid;       // Assert if data sent to BD is valid
+input ready;        // Asserted if BD is ready to read
+input reset;        // Global reset
+input clk;          // Global clock
+*/
 
-    typedef enum {BD_VALID = 1, BD_INVALID = 0} stateType;
-    stateType state;
-    assign state = stateType'(bd_channel.v & ready);
+/*
+The various states are
+  bd_channel.v  |  ready  ||  bd_channel.a  |  valid
+        0       |    x    ||       0        |    0
+        1       |    0    ||       0        |    0
+        1       |    1    ||       1        |    1
+*/
 
-    always_ff @(posedge clk, posedge reset)
-    begin
-        if(reset == 1)
-        begin
-            bd_channel.a   <= 0;
-            valid       <= 0;
-        end
-        else
-        begin
-            case(state)
-                BD_INVALID: begin
-                    bd_channel.a   <= 0;
-                    valid       <= 0;
-                end
-                BD_VALID: begin
-                    valid       <= 1;
-                    if(~valid)
-                    begin
-                        data         <= bd_channel.d;
-                        bd_channel.a <= 1;
-                    end
-                    else
-                        bd_channel.a <= 0;
-                end
-            endcase
-        end
+enum {READY, READY_ACK, SENDING} state, next_state;
+
+always_ff @(posedge clk, posedge rst) 
+  if (reset == 1)
+    state <= READY;
+  else
+    state <= next_state;
+ 
+// we're clocked at twice the rate of BD, so we can be a little sloppy with the
+// Channel handshake (don't have ack in same cycle as valid)
+
+// have to be a bit careful, ready can come back any time
+// only look at ready in state update and make output a function purely of state
+
+// state update
+always_comb
+  case (state)
+    READY:
+      if (bd_channel.v == 1)
+        next_state = SENDING;
+      else
+        next_state = READY;
+    READY_ACK:
+      if (bd_channel.v == 1)
+        next_state = SENDING;
+      else
+        next_state = READY;
+    SENDING:
+      if (ready == 0) // this is the only place we look at ready
+        next_state = READY_ACK;
+      else
+        next_state = SENDING;
+  endcase
+
+// output
+always_comb
+  case (state)
+    READY: begin
+      valid = 0;
+      bd_channel.a = 0;
+      data = '0;
     end
+    READY_ACK: begin
+      valid = 0;
+      bd_channel.a = 1;
+      data = '0;
+    end
+    SENDING: begin
+      valid = 1;
+      data = bd_channel.d;
+      bd_channel.a = 0;
+    end
+  endcase
+
 endmodule
 
 module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
