@@ -28,7 +28,7 @@ module OKCoreBD (
 
   output logic        BD_in_clk,
   output logic        BD_in_ready,
-  input               BD_in_valid,
+  input               _BD_in_valid,
   input [33:0]        BD_in_data,
   
   output logic        pReset,
@@ -37,6 +37,10 @@ module OKCoreBD (
   input               adc0,
   input               adc1
 	);
+
+
+logic BD_in_valid;
+assign BD_in_valid = ~_BD_in_valid;
 
 localparam NPCcode = 8;
 localparam NPCdata = 24;
@@ -60,6 +64,12 @@ Channel #(NPCinout) PC_upstream();
 Channel #(NBDin) BD_downstream();
 Channel #(NBDout) BD_upstream();
 
+// led control. Flashes for handshakes.
+logic [3:0] led_in;
+assign led_in[0] = PC_downstream.v;
+assign led_in[1] = BD_out_valid;
+assign led_in[3] = BD_in_valid;
+assign led_in[2] = PC_upstream.v;
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
@@ -71,6 +81,7 @@ ok_ifc(
 	.okUHU(okUHU),
 	.okAA(okAA),
 	.led(led),
+	.led_in(led_in),
   .okClk(okClk),
   .user_reset(user_reset),
   .PC_downstream(PC_downstream),
@@ -95,7 +106,7 @@ SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk
 
 logic pll_locked;
 logic reset_BDIO;
-assign reset_BDIO = ~pll_locked | user_reset;
+assign reset_BDIO = user_reset;
 
 // PLL generates BD_IO_clk
 BDClkGen bd_clk_gen(
@@ -106,7 +117,6 @@ BDClkGen bd_clk_gen(
   .pll_locked(pll_locked),
   .clk(sys_clk), 
   .reset(user_reset));
-
 
 // BD handshakers and FIFOs
 BDIfc BD_ifc(

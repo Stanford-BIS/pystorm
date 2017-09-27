@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
 set(PROJECT_NAME_STR bdhal_test)
-project(${PROJECT_NAME_STR} CXX)
 
 include(CheckRequirements)
 include(Common)
@@ -24,7 +23,7 @@ set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include
 set(LIB_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 
 set(INCLUDE_DIRS 
-    ${PROJECT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${SRC_BASE_DIR}
     ${SRC_BASE_DIR}/common
 )
@@ -44,18 +43,18 @@ include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS} ${INCLUDE_DIRS})
 
 set(TEST_SRC_FILES 
-    ${PROJECT_SOURCE_DIR}/common/Bucket_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Connectable_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Connection_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Input_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Network_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Output_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Pool_test.cpp
-    ${PROJECT_SOURCE_DIR}/common/Weights_test.cpp
-    ${PROJECT_SOURCE_DIR}/Hal_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Bucket_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Connectable_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Connection_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Input_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Network_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Output_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Pool_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/common/Weights_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/Hal_test.cpp
 )
 
-if(CXX_IS_MSVC)
+if(WIN32)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
 endif()
 

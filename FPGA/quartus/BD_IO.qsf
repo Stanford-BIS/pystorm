@@ -1,8 +1,14 @@
+# IO voltage setting
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5B
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5A
+set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 4A
+
 # BD reset
 set_location_assignment PIN_W12  -to pReset          # MC1-Bn1
 set_location_assignment PIN_AA15 -to sReset          # MC1-Bn6
 
-# BD output
+# BD output : To FPGA from Braindrop
 set_location_assignment PIN_AB17 -to BD_in_clk    # CLKOUT0-I/O
 set_location_assignment PIN_AB15 -to BD_in_ready    # MC1-Bn2
 set_location_assignment PIN_T13  -to BD_in_valid    # MC1-Bp0
@@ -42,7 +48,7 @@ set_location_assignment PIN_W22  -to BD_in_data[2]  # MC1-A6
 set_location_assignment PIN_W21  -to BD_in_data[1]  # MC1-A7
 set_location_assignment PIN_Y21  -to BD_in_data[0]  # MC1-Bp16
 
-# BD input
+# BD input : From FGPA to Braindrop
 set_location_assignment PIN_G18  -to BD_out_clk       # CLKOUT1-I/O
 set_location_assignment PIN_V20  -to BD_out_ready     # MC2-Bp19
 set_location_assignment PIN_V19  -to BD_out_valid     # MC2-Bn19
@@ -105,12 +111,6 @@ set_location_assignment PIN_F20  -to adc1            # MC2-Bn12
 #
 #set_location_assignment PIN_L17  -to clkin_unusedp   # CLKINp
 #set_location_assignment PIN_K17  -to clkin_unusedn   # CLKINn
-
-# IO voltage setting
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2A
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5B
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5A
-set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 4A
 
 set_instance_assignment -name IO_STANDARD "1.8 V" -to pReset         
 set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset         

@@ -1,5 +1,5 @@
 import unittest
-import Pystorm as ps
+import PyStorm as ps
 import numpy as np
 
 class TestPool(unittest.TestCase):
@@ -41,7 +41,7 @@ class TestPool(unittest.TestCase):
 
         self.assertEqual(_pool.get_width(), self.width)
 
-        _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims, 
+        _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims,
             self.width, self.height)
 
         self.assertEqual(_pool2.get_width(), self.width)
@@ -54,7 +54,7 @@ class TestPool(unittest.TestCase):
 
         self.assertEqual(_pool.get_height(), self.height)
 
-        _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims, 
+        _pool2 = ps.Pool(self.label, self.num_neurons, self.num_dims,
             self.width, self.height)
 
         self.assertEqual(_pool2.get_height(), self.height)
@@ -84,7 +84,7 @@ class TestInput(unittest.TestCase):
         self.assertRaises(Exception, ps.Input)
         self.assertRaises(Exception, ps.Input,("",self.num_dims))
         self.assertRaises(Exception, ps.Input,(self.label,0))
-    
+
     def test_get_label(self):
         _input = ps.Input(self.label, self.num_dims)
         self.assertEqual(self.label, _input.get_label())
@@ -101,7 +101,7 @@ class TestOutput(unittest.TestCase):
         self.assertRaises(Exception, ps.Output)
         self.assertRaises(Exception, ps.Output,("",self.num_dims))
         self.assertRaises(Exception, ps.Output,(self.label,0))
-    
+
     def test_get_label(self):
         _output = ps.Input(self.label, self.num_dims)
         self.assertEqual(self.label, _output.get_label())
@@ -111,7 +111,7 @@ class TestOutput(unittest.TestCase):
         self.assertEqual(self.num_dims, _output.get_num_dimensions())
 
 class TestWeights(unittest.TestCase):
-    
+
     def test_constructor(self):
         a = np.array([[1,2,3],
                       [4,5,6]])
@@ -148,9 +148,9 @@ class TestWeights(unittest.TestCase):
         self.assertRaises(Exception,w.get_element,(0,a.shape[1]))
         self.assertRaises(Exception,w.get_element,(a.shape[0],0))
 
-        for i in range(w.get_num_rows()):                                       
-            for j in range(w.get_num_columns()):                                
-                self.assertEqual(a[i,j], w.get_element(i,j))         
+        for i in range(w.get_num_rows()):
+            for j in range(w.get_num_columns()):
+                self.assertEqual(a[i,j], w.get_element(i,j))
 
     def test_set_element(self):
         a = np.array([[1,2,3],
@@ -163,40 +163,40 @@ class TestWeights(unittest.TestCase):
         self.assertRaises(Exception,w.set_element,(0,a.shape[1],0))
         self.assertRaises(Exception,w.set_element,(a.shape[0],0,0))
 
-        for i in range(w.get_num_rows()):                                       
-            for j in range(w.get_num_columns()):                                
+        for i in range(w.get_num_rows()):
+            for j in range(w.get_num_columns()):
                 new_value = a.item((i,j))+1
                 w.set_element(i,j,new_value)
 
-        for i in range(w.get_num_rows()):                                       
-            for j in range(w.get_num_columns()):                                
-                self.assertEqual(a[i,j]+1, w.get_element(i,j))         
+        for i in range(w.get_num_rows()):
+            for j in range(w.get_num_columns()):
+                self.assertEqual(a[i,j]+1, w.get_element(i,j))
 
 class TestConnection(unittest.TestCase):
     num_neurons = 20
     dims = [3, 2]
     conn_in  = [ps.Input("Input1", dims[0]), ps.Input("Input2", dims[1])]
     conn_out = [ps.Output("Output1", dims[0]), ps.Output("Output2", dims[1])]
-    pool     = [ps.Pool("Pool1", num_neurons, dims[0]), 
+    pool     = [ps.Pool("Pool1", num_neurons, dims[0]),
         ps.Pool("Pool2", num_neurons, dims[1])]
     bucket   = [ps.Bucket("Bucket1", dims[0]), ps.Bucket("Bucket2", dims[1])]
-    weights_3_3 = ps.Weights([[1,2,3],
+    weights_3_3 = ps.Weights(np.array([[1,2,3],
                               [4,5,6],
-                              [7,8,9]])
-    weights_2_3 = ps.Weights([[1,2],
+                              [7,8,9]]))
+    weights_2_3 = ps.Weights(np.array([[1,2],
                               [4,5],
-                              [7,8]])
-    weights_3_2 = ps.Weights([[1,2,3],
-                              [4,5,6]])
+                              [7,8]]))
+    weights_3_2 = ps.Weights(np.array([[1,2,3],
+                              [4,5,6]]))
 
     def test_constructor_Input_Pool(self):
         try:
             raised = False
-            conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+            conn = ps.Connection("conn", self.conn_in[0], self.pool[0],
                 self.weights_3_3)
-            conn = ps.Connection("conn", self.conn_in[0], self.pool[1], 
+            conn = ps.Connection("conn", self.conn_in[0], self.pool[1],
                 self.weights_3_2)
-            conn = ps.Connection("conn", self.conn_in[1], self.pool[0],     
+            conn = ps.Connection("conn", self.conn_in[1], self.pool[0],
                 self.weights_2_3)
             conn = ps.Connection("conn", self.conn_in[0], self.pool[1])
             conn = ps.Connection("conn", self.conn_in[1], self.pool[0])
@@ -212,18 +212,18 @@ class TestConnection(unittest.TestCase):
             (self.conn_in[0], self.pool[1], self.weights_3_2))
         self.assertRaises(Exception, ps.Connection,
             (self.conn_in[0], self.pool[1], self.weights_2_3))
-        
+
     def test_constructor_Pool_Bucket(self):
         try:
             raised = False
-            conn = ps.Connection("conn", self.pool[0], self.bucket[0], 
+            conn = ps.Connection("conn", self.pool[0], self.bucket[0],
                 self.weights_3_3)
-            conn = ps.Connection("conn", self.pool[0], self.bucket[1], 
+            conn = ps.Connection("conn", self.pool[0], self.bucket[1],
                 self.weights_3_2)
-            conn = ps.Connection("conn", self.pool[1], self.bucket[0], 
+            conn = ps.Connection("conn", self.pool[1], self.bucket[0],
                 self.weights_2_3)
-            conn = ps.Connection("conn", self.pool[0], self.bucket[1]) 
-            conn = ps.Connection("conn", self.pool[1], self.bucket[0]) 
+            conn = ps.Connection("conn", self.pool[0], self.bucket[1])
+            conn = ps.Connection("conn", self.pool[1], self.bucket[0])
         except:
             raised = True
             self.assertFalse(raised, "Exception raised with Pool-Bucket conn")
@@ -240,11 +240,11 @@ class TestConnection(unittest.TestCase):
     def test_constructor_Bucket_Output(self):
         try:
             raised = False
-            conn = ps.Connection("conn", self.bucket[0], self.conn_out[0], 
+            conn = ps.Connection("conn", self.bucket[0], self.conn_out[0],
                 self.weights_3_3)
-            conn = ps.Connection("conn", self.bucket[0], self.conn_out[1], 
+            conn = ps.Connection("conn", self.bucket[0], self.conn_out[1],
                 self.weights_3_2)
-            conn = ps.Connection("conn", self.bucket[1], self.conn_out[0], 
+            conn = ps.Connection("conn", self.bucket[1], self.conn_out[0],
                 self.weights_2_3)
             conn = ps.Connection("conn", self.bucket[0], self.conn_out[1])
             conn = ps.Connection("conn", self.bucket[1], self.conn_out[0])
@@ -264,11 +264,11 @@ class TestConnection(unittest.TestCase):
     def test_constructor_Bucket_Bucket(self):
         try:
             raised = False
-            conn = ps.Connection("conn", self.bucket[0], self.bucket[0], 
+            conn = ps.Connection("conn", self.bucket[0], self.bucket[0],
                 self.weights_3_3)
-            conn = ps.Connection("conn", self.bucket[0], self.bucket[1], 
+            conn = ps.Connection("conn", self.bucket[0], self.bucket[1],
                 self.weights_3_2)
-            conn = ps.Connection("conn", self.bucket[1], self.bucket[0], 
+            conn = ps.Connection("conn", self.bucket[1], self.bucket[0],
                 self.weights_2_3)
             conn = ps.Connection("conn", self.bucket[0], self.bucket[1])
             conn = ps.Connection("conn", self.bucket[1], self.bucket[0])
@@ -286,7 +286,7 @@ class TestConnection(unittest.TestCase):
             (self.bucket[0], self.bucket[1], self.weights_3_2))
 
     def test_constructor_Input_Output(self):
-        self.assertRaises(Exception, ps.Connection, 
+        self.assertRaises(Exception, ps.Connection,
             (self.conn_in[0], self.conn_out[0], self.weights_3_3))
 
     def test_constructor_Input_Input(self):
@@ -300,15 +300,15 @@ class TestConnection(unittest.TestCase):
     def test_constructor_Pool_Pool(self):
         self.assertRaises(Exception, ps.Connection,
             (self.pool[0], self.pool[0], self.weights_3_3))
-        
+
     def test_get_label(self):
-        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0],
             self.weights_3_3)
 
         self.assertEqual("conn",conn.get_label())
 
     def test_get_source(self):
-        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0],
             self.weights_3_3)
 
         self.assertEqual(self.conn_in[0].get_label(),
@@ -317,7 +317,7 @@ class TestConnection(unittest.TestCase):
             conn.get_source().get_num_dimensions())
 
     def test_get_dest(self):
-        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0],
             self.weights_3_3)
 
         self.assertEqual(self.pool[0].get_label(),
@@ -328,7 +328,7 @@ class TestConnection(unittest.TestCase):
             conn.get_dest().get_num_neurons())
 
     def test_get_weights(self):
-        conn = ps.Connection("conn", self.conn_in[0], self.pool[0], 
+        conn = ps.Connection("conn", self.conn_in[0], self.pool[0],
             self.weights_3_3)
 
         weights = conn.get_weights()
@@ -371,13 +371,13 @@ class TestNetwork(unittest.TestCase):
         net = ps.Network("net")
 
         self.assertEqual("net",net.get_name())
-        
+
     def test_create_pool(self):
         net = ps.Network("net")
         try:
             raised = False
             pool1 = net.create_pool("pool1", self.num_neurons, self.dims)
-            pool2 = net.create_pool("pool2", self.num_neurons, self.dims, 
+            pool2 = net.create_pool("pool2", self.num_neurons, self.dims,
                 self.pool_width, self.pool_height)
         except:
             raised = True

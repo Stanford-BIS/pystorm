@@ -44,7 +44,6 @@ set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "22:16:12  SEPTEMBER 14, 2017"
 set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
-set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreTestHarness.sv
 set_global_assignment -name VERILOG_FILE SpikeGeneratorMem.v
 set_global_assignment -name QIP_FILE SpikeGeneratorMem.qip
 set_global_assignment -name VERILOG_FILE SpikeFilterMem.v
@@ -57,6 +56,7 @@ set_global_assignment -name VERILOG_FILE okLibrary.v
 set_global_assignment -name VERILOG_FILE okHost.v
 set_global_assignment -name SYSTEMVERILOG_FILE okHost.sv
 set_global_assignment -name VERILOG_FILE okEndpoints.v
+set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreTestHarness.sv
 set_global_assignment -name SDC_FILE okHost.sdc
 set_location_assignment PIN_P9 -to okUH[0]
 set_location_assignment PIN_M10 -to okUH[1]

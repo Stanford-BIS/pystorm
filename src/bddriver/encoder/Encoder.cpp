@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "common/BDPars.h"
+#include "common/BDWord.h"
 #include "common/MutexBuffer.h"
-#include "common/binary_util.h"
 
 #include <iostream>
 using std::cout;
@@ -17,67 +17,74 @@ namespace pystorm {
 namespace bddriver {
 
 void Encoder::RunOnce() {
-  unsigned int num_popped = in_buf_->Pop(input_chunk_, input_chunk_size_, timeout_us_);
-  Encode(input_chunk_, num_popped, output_chunks_[0]);
-  bool success = false;
-  while (!success && do_run_) {  // if killed, need to stop trying
-    success = out_bufs_[0]->Push(output_chunks_[0], num_popped * bytesPerOutput, timeout_us_);
+  // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
+  std::unique_ptr<std::vector<EncInput>> popped_vect = in_buf_->Pop(timeout_us_);
+  if (popped_vect->size() > 0) {
+    std::unique_ptr<std::vector<EncOutput>> to_push_vect = Encode(std::move(popped_vect));
+    out_buf_->Push(std::move(to_push_vect)); // push can't block indefinitely
   }
 }
 
-void Encoder::Encode(const EncInput* inputs, unsigned int num_popped, EncOutput* outputs) const {
-  for (unsigned int i = 0; i < num_popped; i++) {
+inline void PushWord(std::unique_ptr<std::vector<EncOutput>> & output, uint32_t word) {
+  uint8_t b0 = GetField<FPGABYTES>(word, FPGABYTES::B0);
+  uint8_t b1 = GetField<FPGABYTES>(word, FPGABYTES::B1);
+  uint8_t b2 = GetField<FPGABYTES>(word, FPGABYTES::B2);
+  uint8_t b3 = GetField<FPGABYTES>(word, FPGABYTES::B3);
+  output->push_back(b0);
+  output->push_back(b1);
+  output->push_back(b2);
+  output->push_back(b3);
+}
+
+std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
+
+  std::unique_ptr<std::vector<EncOutput>> output (new std::vector<EncOutput>);
+
+  for (auto& it : *inputs) {
     // unpack data
-    // unsigned int core_id = inputs[i].core_id;
-    unsigned int leaf_id = inputs[i].leaf_id;
-    uint32_t payload     = inputs[i].payload;
+    unsigned int core_id      = it.core_id;
+    unsigned int FPGA_ep_code = it.FPGA_ep_code;
+    uint32_t     payload      = it.payload;
+    BDTime       time         = it.time;
 
-    // look up route for this leaf_id_
-    // XXX not doing anything with core_id
-    bdpars::FHRoute leaf_route = pars_->HornRoute(leaf_id);
+    (void)core_id; // XXX this is where you would do something with core_id
+    (void)time;    // XXX this is where you would do something with time
 
-    // XXX this is where you would do something with the core id
+    // pack into 32 bits
+    // FPGA word format:
+    //  MSB          LSB
+    //    8b      24b
+    // [ code | payload ]
+    uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
-    // encode horn
-    uint32_t horn_encoded = EncodeHorn(leaf_route, payload);
+    // serialize to bytes 
+    PushWord(output, FPGA_encoded);
 
-    // XXX this is where you would encode the FPGA
+    // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
+    // package the event's time into a spike
+    if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {
+      last_HB_sent_at_ = time;
 
-    // unpack uint32_t w/ 21 bits into 3 uint8_ts
-    uint32_t unpacked_bytes32[bytesPerOutput];
-    unsigned int byte_widths[bytesPerOutput];
-    for (unsigned int j = 0; j < bytesPerOutput; j++) {
-      byte_widths[j] = 8;
+      // need to insert two words
+      uint32_t time_chunk[3];
+      time_chunk[0] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W0);
+      time_chunk[1] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W1);
+      time_chunk[2] = GetField<THREEFPGAREGS>(time, THREEFPGAREGS::W2);
+      
+      // manually compute offset from this code
+      uint8_t HB_ep_code[3];
+      HB_ep_code[0] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED0);
+      HB_ep_code[1] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED1);
+      HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
+
+      for (unsigned int i = 0; i < 3; i++) {
+        PushWord(output, PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
+      }
     }
 
-    Unpack32(horn_encoded, byte_widths, unpacked_bytes32, bytesPerOutput);
-
-    for (unsigned int j = 0; j < bytesPerOutput; j++) {
-      assert(unpacked_bytes32[j] < (1 << 8));
-      outputs[i * bytesPerOutput + j] = static_cast<uint8_t>(unpacked_bytes32[j]);
-    }
-
-    //// XXX this is the sketchier (maybe faster) way. Have to know something about endianess
-    // const uint8_t * bytes_for_USB = reinterpret_cast<const uint8_t *>(&horn_encoded)
-    // for (unsigned int j = 0; j < bytesPerOutput; j++) {
-    //  outputs[i * bytesPerOutput + j] = bytes_for_USB[j];
-    //}
   }
-}
 
-inline uint32_t Encoder::EncodeHorn(bdpars::FHRoute route, uint32_t payload) const {
-  // msb <- lsb
-  // [ X | payload | route ]
-
-  uint32_t route_val;
-  unsigned int route_len;
-  std::tie(route_val, route_len) = route;
-
-  // NOTE: don't need to know payload size
-  // could use PackV32({route_val, payload}, {route_len, 32 - route_len})
-  // optimize here by avoiding extra function call
-  uint32_t retval = route_val | (payload << route_len);
-  return retval;
+  return output;
 }
 
 }  // bddriver

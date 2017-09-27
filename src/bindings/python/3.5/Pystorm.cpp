@@ -1,6 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl_bind.h>
-#include <numpy/arrayobject.h>
+#include <pybind11/numpy.h>
 
 #include <Pystorm.h>
 
@@ -33,39 +33,18 @@ HAL::Pool*
 
 
 template<typename T>
-HAL::Weights<T>* makeWeights(PYTHON::object& weights) {
+HAL::Weights<T>* makeWeights(PYTHON::array_t<T, PYTHON::array::c_style | PYTHON::array::forcecast> weights) {
+    auto weights_buffer = weights.request();
 
-    int num_dims_allowed = 2;
+    const int num_dims_allowed = 2;
 
-    if (false == PyArray_CheckExact(weights.ptr())) {
-        std::logic_error("Weights must be a numpy array");
-    }
-
-    PyArrayObject *arrayobj_ptr = (PyArrayObject*) PyArray_FROM_O(weights.ptr());
-
-    if (num_dims_allowed != PyArray_NDIM(arrayobj_ptr)){
+    if (num_dims_allowed != weights_buffer.ndim){
         throw std::logic_error("Matrix must have 2 dimensions");
     }
 
-    npy_intp* dims = PyArray_DIMS(arrayobj_ptr);
-
-    npy_intp num_rows = dims[0]; npy_intp num_columns = dims[1]; // copy the weight matrix
-    T* weights_ptr = (T*) std::calloc((num_rows*num_columns),sizeof(T));
-
-    //std::unique_ptr<HAL::Weights<T>> weightMatrix (new HAL::Weights<T>(weights_ptr, num_rows, num_columns));
-    HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(weights_ptr, num_rows,
+    unsigned int num_rows = weights_buffer.shape[0]; unsigned int num_columns = weights_buffer.shape[1]; // copy the weight matrix
+    HAL::Weights<T>* weightMatrix = new HAL::Weights<T>(static_cast<T*>(weights_buffer.ptr), num_rows,
         num_columns);
-
-    for (unsigned int row = 0; row < weightMatrix->GetNumRows(); row++)
-    {
-        for (unsigned int col = 0; col < weightMatrix->GetNumColumns(); col++)
-        {
-            npy_intp npy_row = static_cast<npy_intp>(row);
-            npy_intp npy_col = static_cast<npy_intp>(col);
-            T new_value = *((T*) PyArray_GETPTR2(arrayobj_ptr, npy_row, npy_col));
-            weightMatrix->SetElement(row, col, new_value);
-        }
-    }
 
     return weightMatrix;
 }
@@ -79,7 +58,7 @@ HAL::Connection*
 template<typename T>
 HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
     HAL::ConnectableInput* in_object, HAL::ConnectableOutput* out_object,
-    PYTHON::object& weights) {
+    PYTHON::array_t<T>& weights) {
 
 
     HAL::Weights<T>* weightMatrix = makeWeights<T>(weights);
@@ -90,20 +69,9 @@ HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
     return newConnection;
 } 
 
-#if PY_MAJOR_VERSION >= 3
-    int
-#else
-    void
-#endif
-init_numpy() {
-    import_array();
-}
 
-
-PYBIND11_MODULE(Pystorm, m)
+PYBIND11_MODULE(PyStorm, m)
 {
-
-    init_numpy();
 
     //////////////////////////////////////////////////////////////////////
     //
@@ -184,7 +152,7 @@ PYBIND11_MODULE(Pystorm, m)
         .def("get_element",&Weights_32::GetElement)
         .def("set_element",&Weights_32::SetElement)
     ;
-    m.def("Weights", [](PYTHON::object& weights) { return pystorm::makeWeights<uint32_t>(weights); }, PYTHON::return_value_policy::reference_internal);
+    m.def("Weights", [](PYTHON::array_t<uint32_t> weights) { return pystorm::makeWeights<uint32_t>(weights); }, PYTHON::return_value_policy::reference_internal);
 
     PYTHON::class_<HAL::Connection>
         (m, "Connection")

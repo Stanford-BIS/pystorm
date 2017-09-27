@@ -8,8 +8,8 @@
 #include <thread>
 
 #include "MutexBuffer.h"
-#include "binary_util.h"
 #include "BDPars.h"
+#include "BDWord.h"
 #include "gtest/gtest.h"
 #include "test_util/Producer_Consumer.h"
 
@@ -19,221 +19,189 @@ using namespace pystorm;
 using namespace bddriver;
 using namespace bdpars;
 
-#define BYTES_PER_WORD 5
+typedef std::vector<DecInput> DIVect;
+typedef std::vector<DecOutput> DOVect;
 
-std::pair<std::vector<DecInput>, std::vector<std::vector<DecOutput> > > MakeDecInputAndOutputs(unsigned int N, const BDPars * pars, unsigned int max_leaf_idx_to_use) {
+// construct a set of inputs and outputs
+// a simple clone of the Decoder code
+std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(unsigned int N, const BDPars * pars) {
 
   // return values
-  std::vector<DecInput> dec_inputs;
-  std::vector<std::vector<DecOutput> > dec_outputs;
-  for (unsigned int i = 0; i < static_cast<unsigned int>(FunnelLeafIdCount); i++) {
-    dec_outputs.push_back({});
+  DIVect dec_inputs;
+  std::unordered_map<uint8_t, DOVect> dec_outputs;
+  std::vector<uint8_t> up_eps = pars->GetUpEPs();
+  for (auto& it : up_eps) {
+    //cout << int(it) << endl;
+    dec_outputs.insert({it, {}});
   }
 
   // rng
-  assert(max_leaf_idx_to_use < FunnelLeafIdCount);
   std::default_random_engine generator(0);
-  std::uniform_int_distribution<unsigned int> leaf_idx_distribution(0, max_leaf_idx_to_use);
-  std::uniform_int_distribution<uint32_t> payload_distribution(0, UINT32_MAX);
+  std::uniform_int_distribution<> payload_dist(0, UINT8_MAX);
+  std::uniform_int_distribution<> code_dist(0, up_eps.size()-1);
+
+  // note that initialization only occurs on the first function invocation
+  static BDTime last_time = 0;
+  static bool last_time_lsb_msb = false;
 
   for (unsigned int i = 0; i < N; i++) {
-    // randomly determine which funnel leaf to make data from, determine payload bits
-    unsigned int leaf_idx = leaf_idx_distribution(generator);
-    uint32_t payload_val  = payload_distribution(generator);
+    // make random input data
+    uint8_t b[4];
+    for (unsigned int j = 0; j < 3; j++) {
+      b[j] = payload_dist(generator);
+      dec_inputs.push_back(b[j]);
+    }
+    uint8_t idx = code_dist(generator);
+    assert(idx < up_eps.size());
+    b[3] = up_eps.at(idx);
+    dec_inputs.push_back(b[3]);
 
-    // look up route
-    uint32_t route_val;
-    unsigned int route_len;
-    std::tie(route_val, route_len) = pars->FunnelRoute(leaf_idx); 
+    // pack
+    uint32_t packed = PackWord<FPGABYTES>(
+        {{FPGABYTES::B0, b[0]}, 
+         {FPGABYTES::B1, b[1]}, 
+         {FPGABYTES::B2, b[2]}, 
+         {FPGABYTES::B3, b[3]}});
+    //cout << " b[0] " << int(b[0]) << endl;
+    //cout << " b[1] " << int(b[1]) << endl;
+    //cout << " b[2] " << int(b[2]) << endl;
+    //cout << " b[3] " << int(b[3]) << endl;
+    //cout << "packed " << packed << endl;
+    //cout << " at0 " << GetField(packed, FPGABYTES::B0) << endl;
+    //cout << " at1 " << GetField(packed, FPGABYTES::B1) << endl;
+    //cout << " at2 " << GetField(packed, FPGABYTES::B2) << endl;
+    //cout << " at3 " << GetField(packed, FPGABYTES::B3) << endl;
+
+    // extract code, payload
+    uint8_t code = GetField(packed, FPGAIO::EP_CODE);
+    uint32_t payload = GetField(packed, FPGAIO::PAYLOAD);
+    //cout << " code " << int(code) << endl;
+    //cout << " payload " << payload << endl;
     
-    // look up data width and output width
-    unsigned int BD_output_width = pars->Width(BD_OUTPUT);
-    unsigned int payload_width = pars->Width(static_cast<FunnelLeafId>(leaf_idx));
+    // update time if necessary 
+    // (no guarantee that time ascends in this test, 
+    // so sequence may be unusual)
+    if (code == pars->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
+      uint64_t curr_time_msb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
+      uint64_t curr_time_lsb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
+      if (!last_time_lsb_msb) { // lsb
+        last_time = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, curr_time_msb}, 
+             {TWOFPGAPAYLOADS::LSB, payload}});
+      } else { // msb
+        last_time = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, payload},
+             {TWOFPGAPAYLOADS::LSB, curr_time_lsb}});
+      }
+      last_time_lsb_msb = !last_time_lsb_msb;
 
-    // mask payload value
-    payload_val = payload_val % (1 << payload_width);
+    // only append output for non-time input word
+    } else {
+      DecOutput to_push;
+      to_push.payload = payload;
+      to_push.time = last_time;
 
-    // pack dec input word
-    // msb <-- lsb
-    // [route | X | payload]
-    uint64_t dec_input_packed = PackV64(
-        {static_cast<uint64_t>(payload_val), 0, static_cast<uint64_t>(route_val)},
-        {payload_width, BD_output_width - payload_width - route_len, route_len}
-    );
-
-    //cout << "route(" << route_len << "): " << route_val << endl;
-    //cout << UintAsString(dec_input, 34) << endl;
-    
-    // now unpack input into uint8_ts
-    std::vector<unsigned int> byte_widths (BYTES_PER_WORD, 8);
-    std::vector<uint64_t> dec_input = UnpackV64(dec_input_packed, byte_widths);
-    for (auto& it : dec_input) {
-      dec_inputs.push_back(static_cast<uint8_t>(it));
+      if (dec_outputs.count(code) == 0) {
+        cout << int(code) << endl;
+        assert(false);
+      }
+      dec_outputs.at(code).push_back(to_push);
     }
 
-    // push dec output word to appropriate queue
-    // XXX ignore time epoch for now
-    DecOutput dec_output = {payload_val, 0, 0};
-    dec_outputs[leaf_idx].push_back(dec_output);
   }
 
   return make_pair(dec_inputs, dec_outputs);
 }
 
-class DecoderFixture : public testing::TestWithParam<unsigned int> {
-  public:
-    void SetUp() 
-    {
+// run the decoder against producer and consumers threads
+TEST(DecoderTest, MainDecoderTest) {
 
-      pars = new BDPars(); 
+  BDPars pars;
 
-      buf_in = new MutexBuffer<DecInput>(buf_depth);
-      for (unsigned int i = 0; i < pars->FunnelRoutes()->size(); i++) {
-        MutexBuffer<DecOutput> * buf_ptr = new MutexBuffer<DecOutput>(buf_depth);
-        bufs_out.push_back(buf_ptr);
-      }
-
-      std::tie(dec_inputs, dec_outputs) = MakeDecInputAndOutputs(N, pars, GetParam());
-
-      for (unsigned int i = 0; i < bufs_out.size(); i++) {
-        consumed_data.push_back({});
-      }
-
-    }
-
-    void TearDown() 
-    {
-      delete pars;
-      delete buf_in;
-      for (auto& buf_out : bufs_out) {
-        delete buf_out;
-      }
-    }
-
-    const unsigned int input_width = 34;
-    unsigned int N = 10e6;
-    unsigned int M = 10000;
-    unsigned int buf_depth = 100000;
-
-    // XXX set this to something meaningful later, compiler flags?
-    const double fastEnough = .2;
-
-    MutexBuffer<DecInput> * buf_in;
-    std::vector<MutexBuffer<DecOutput> *> bufs_out;
-
-    BDPars * pars;
-
-    std::vector<DecInput> dec_inputs;
-    std::vector<std::vector<DecOutput> > dec_outputs;
-
-    std::vector<std::vector<DecOutput> > consumed_data;
-};
-
-
-TEST_P(DecoderFixture, Test1xDecoder) {
-
-  Decoder dec(pars, buf_in, bufs_out, M);
-
-  // start producer/consumer threads
-  std::thread producer = std::thread(ProduceN<DecInput>, buf_in, &dec_inputs[0], N*BYTES_PER_WORD, M, 0);
-
-  // XXX this isn't quite the use-case, but it fits well with the testing structures
-  // in reality, there isn't necessarily one thread per bufs_out queue
-  std::vector<std::thread> consumers;
-
-  //cout << "dec outputs size: " << dec_outputs.size() << endl;
-  //cout << "bufs out size: " << bufs_out.size() << endl;
-  //cout << "outputs per leaf" << endl;
-  //for (unsigned int i = 0; i < bufs_out.size(); i++) {
-  //  cout << dec_outputs[i].size() << endl;
-  //}
-
-  for (unsigned int i = 0; i < bufs_out.size(); i++) {
-    // give up after 10s
-    consumers.push_back(
-        std::thread(ConsumeVectNGiveUpAfter<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000, 30e6)
-    );
-    
-    //// expect exact number
-    //consumers.push_back(
-    //    std::thread(ConsumeVectN<DecOutput>, bufs_out[i], &consumed_data[i], dec_outputs[i].size(), M, 1000)
-    //);
+  MutexBuffer<DecInput> buf_in;
+  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> bufs_out;
+  
+  std::vector<uint8_t> up_eps = pars.GetUpEPs();
+  for (auto& it : up_eps) {
+    bufs_out.insert({it, new MutexBuffer<DecOutput>()});
   }
+  
+  unsigned int M = 100;
+  unsigned int N = 100;
 
-  // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
-  auto t0 = std::chrono::high_resolution_clock::now();
+  // this is super confusing, turn the map<vector<>> into a map<vector<vector<>>> for outputs
+  std::vector<DIVect> all_inputs;
+  std::unordered_map<uint8_t, std::vector<DOVect>> all_outputs;
+
+  for (unsigned int i = 0; i < N; i++) {
+
+    auto in_and_out = MakeDecInputAndOutputs(M, &pars);
+
+    all_inputs.push_back(in_and_out.first);
+    for (auto& it : in_and_out.second) {
+      if (all_outputs.count(it.first) == 0)
+        all_outputs.insert({it.first, {}});
+      if (it.second.size() > 0) 
+        all_outputs.at(it.first).push_back(it.second);
+    }
+  }
+  
+  std::thread producer = std::thread(Produce<DecInput>, &buf_in, all_inputs);
+
+  // one consumer per output
+  std::vector<std::thread> consumers;
+  std::unordered_map<uint8_t, std::vector<DOVect>> recvd_outputs;
+  for (auto& it : bufs_out) {
+    uint8_t ep_code = it.first;
+    MutexBuffer<DecOutput> * buf = it.second;
+    recvd_outputs.insert({ep_code, {}});
+    unsigned int num_vect_to_consume = all_outputs.at(ep_code).size(); // should be N or close to it
+    //cout << "ep " << int(ep_code) << " needs to consume " << num_vect_to_consume << endl;
+    consumers.push_back(std::thread(Consume<DecOutput>, buf, &recvd_outputs.at(ep_code), num_vect_to_consume, 0));
+  }
+  
+  // need nonzero timeout so we can stop ourselves
+  Decoder dec(&buf_in, bufs_out, &pars, 1000);
   dec.Start();
 
   producer.join();
   //cout << "producer joined" << endl;
-
-  for (unsigned int i = 0; i < consumers.size(); i++) {
-    consumers[i].join();
-    //cout << "consumer[" << i << "] joined" << endl;
+  unsigned int i = 0;
+  for (auto& it : consumers) {
+    it.join();
+    //cout << "consumer " << i << " joined" << endl;
+    i++;
   }
-
-  //cout << "consumed data sizes" << endl;
-  //for (unsigned int i = 0; i < consumed_data.size(); i++) {
-  //  cout << consumed_data[i].size() << endl;
-  //}
-
-  auto tend = std::chrono::high_resolution_clock::now();
-  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-  double throughput = static_cast<double>(N) / diff; // in million entries/sec
-  cout << "throughput: " << throughput << " Mwords/s" << endl;
-
-  // eventually, decoder will time out and thread will join
-  dec.Stop();
-
-  EXPECT_GT(throughput, fastEnough);
-
-  for (unsigned int i = 0; i < consumed_data.size(); i++) {
-    ASSERT_EQ(consumed_data[i].size(), dec_outputs[i].size());
-    for (unsigned int j = 0; j < consumed_data[i].size(); j++) {
-      ASSERT_EQ(consumed_data[i][j].payload, dec_outputs[i][j].payload);
-      ASSERT_EQ(consumed_data[i][j].core_id, dec_outputs[i][j].core_id);
+  
+  // because of dumb gtest reasons, we can't just define equality for DecOutput
+  // and have ASSERT_EQ work, so we can't use ConsumeAndCheck
+  for (auto& it : all_outputs) {
+    uint8_t ep_code = it.first;
+    ASSERT_EQ(
+          all_outputs.at(ep_code).size(), 
+        recvd_outputs.at(ep_code).size());
+    for (unsigned int i = 0; i < all_outputs.at(ep_code).size(); i++) {
+      ASSERT_EQ(
+            all_outputs.at(ep_code).at(i).size(), 
+          recvd_outputs.at(ep_code).at(i).size());
+      for (unsigned int j = 0; j < all_outputs.at(ep_code).at(i).size(); j++) {
+        ASSERT_EQ(
+              all_outputs.at(ep_code).at(i).at(j).payload, 
+            recvd_outputs.at(ep_code).at(i).at(j).payload);
+        if (
+              all_outputs.at(ep_code).at(i).at(j).time != 
+            recvd_outputs.at(ep_code).at(i).at(j).time) cout << "ep " << int(ep_code) << " i " << i << " j " << j << endl;
+        ASSERT_EQ(
+              all_outputs.at(ep_code).at(i).at(j).time, 
+            recvd_outputs.at(ep_code).at(i).at(j).time);
+      }
     }
   }
 
+  dec.Stop();
+  
+  for (auto& it : up_eps) {
+    delete bufs_out.at(it);
+  }
 }
 
-INSTANTIATE_TEST_CASE_P(
-    TestDecoderDifferentNumLeaves,
-    DecoderFixture,
-    ::testing::Values(FunnelLeafIdCount-1, 1, 0));
-
-//TEST_F(DecoderFixture, Test2xDecoder)
-//{
-//  // two identical Decoders in this test
-//  Decoder dec0(pars, buf_in, bufs_out, M);
-//  Decoder dec1(pars, buf_in, bufs_out, M);
-//
-//  // start producer/consumer threads
-//  std::vector<DecOutput> consumed;
-//  producer = std::thread(ProduceN<DecInput>, buf_in, &input_vals[0], N, M, 0);
-//  consumer = std::thread(ConsumeVectN<DecOutput>, bufs_out[pars->FunnelIdx(NRNI)], &consumed, N, M, 0);
-//
-//  // start decoder, sources from producer through buf_in, sinks to consumer through buf_out
-//  auto t0 = std::chrono::high_resolution_clock::now();
-//  dec0.Start();
-//  dec1.Start();
-//  
-//  producer.join();
-//  //cout << "producer joined" << endl;
-//  consumer.join();
-//  //cout << "consumer joined" << endl;
-//
-//  auto tend = std::chrono::high_resolution_clock::now();
-//  auto diff = std::chrono::duration_cast<std::chrono::microseconds>(tend - t0).count();
-//  double throughput = static_cast<double>(N) / diff; // in million entries/sec
-//  cout << "throughput: " << throughput << " Mwords/s" << endl;
-//
-//  // eventually, decoder will time out and thread will join
-//  dec0.Stop();
-//  dec1.Stop();
-//
-//  // for now, testing speedup
-//  EXPECT_GT(throughput, 2*fastEnough);
-//
-//  // XXX should check output is correct
-//}

@@ -25,10 +25,11 @@ module OKIfc #(
 	inout  wire [31:0]  okUHU,
 	inout  wire         okAA,
 	output wire [3:0]   led,
-  output wire okClk,
-  input wire user_reset,
-  Channel PC_downstream,
-  Channel PC_upstream);
+  input wire [3:0]    led_in,
+  output wire         okClk,
+  input wire          user_reset,
+  Channel             PC_downstream,
+  Channel             PC_upstream);
 
 ////////////////////////////////////////
 // OK stuff
@@ -47,7 +48,7 @@ begin
 end
 endfunction
 
-assign led      = zem5305_led(4'b1);
+assign led      = zem5305_led(led_in);
 
 // Pipe In
 logic        pipe_in_write;

@@ -6,7 +6,7 @@ pipeline {
             steps {
                 script {
                     def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                    sh "docker build --file docker/Dockerfile_JENKINS_CI -t ${lowercase_tag} ."
+                    sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag} ."
                 }
             }
         }

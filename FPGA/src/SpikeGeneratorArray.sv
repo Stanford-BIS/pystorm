@@ -22,20 +22,24 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input reset);
 
 localparam Nmem = Nperiod * 2 + Ntag;
+localparam Nmem_bytes = 6;
+localparam Nmem_full = Nmem_bytes * 8;
 
 // stores one time unit count ("tick") per generator
 
 logic [Ngens-1:0] mem_wr_addr;
-logic [Nmem-1:0] mem_wr_data;
+logic [Nmem_full-1:0] mem_wr_data;
+logic [Nmem_bytes-1:0] mem_wr_bytemask;
 logic mem_wr_en;
 logic [Ngens-1:0] mem_rd_addr;
-logic [Nmem-1:0] mem_rd_data;
+logic [Nmem_full-1:0] mem_rd_data;
 logic mem_rd_en;
 
 SpikeGeneratorMem mem(
   .wraddress(mem_wr_addr),
   .data(mem_wr_data),
   .wren(mem_wr_en),
+  .byteena_a(mem_wr_bytemask),
   .rdaddress(mem_rd_addr),
   .q(mem_rd_data),
   .rden(mem_rd_en),
@@ -156,8 +160,7 @@ always_comb
   end
 
 // pack up writeback
-localparam Nunmasked = Nmem - (Nperiod + Ntag);
-assign mem_writeback = {wr_tick, period, tag};
+assign mem_writeback = {tag, period, wr_tick};
 
 //////////////////////////////////////////////////////
 // memory inputs
@@ -171,7 +174,8 @@ always_comb
       if (program_mem.v == 1) begin
         mem_wr_en = 1;
         mem_wr_addr = program_mem.gen_idx;
-        mem_wr_data = {program_mem.ticks, program_mem.period, program_mem.tag};
+        mem_wr_data = {program_mem.tag, program_mem.period, program_mem.ticks};
+        mem_wr_bytemask = 6'b111100; // don't actually overwrite the ticks
 
         mem_rd_en = 0;
         mem_rd_addr = 'X;
@@ -181,6 +185,7 @@ always_comb
         mem_wr_en = 0;
         mem_wr_addr = 'X;
         mem_wr_data = 'X;
+        mem_wr_bytemask = 'X;
 
         mem_rd_en = 0;
         mem_rd_addr = 'X;
@@ -192,6 +197,7 @@ always_comb
       mem_wr_en = 0;
       mem_wr_addr = 'X;
       mem_wr_data = 'X;
+      mem_wr_bytemask = 'X;
 
       mem_rd_en = 1;
       mem_rd_addr = gen_idx;
@@ -203,6 +209,7 @@ always_comb
       mem_wr_en = 0;
       mem_wr_addr = 'X;
       mem_wr_data = 'X;
+      mem_wr_bytemask = 'X;
 
       mem_rd_en = 0;
       mem_rd_addr = 'X;
@@ -213,6 +220,7 @@ always_comb
       mem_wr_en = 1;
       mem_wr_addr = gen_idx;
       mem_wr_data = mem_writeback;
+      mem_wr_bytemask = '1;
 
       mem_rd_en = 0;
       mem_rd_addr = 'X;

@@ -25,20 +25,17 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
             1       |    0    ||       0        |    0
             1       |    1    ||       1        |    1
     */
-    
+
     typedef enum {BD_VALID = 1, BD_INVALID = 0} stateType;
     stateType state;
     assign state = stateType'(bd_channel.v & ready);
 
-    // note negedge!
-    // this is the only negedge in the entire design
-    always_ff @(negedge clk, posedge reset)
+    always_ff @(posedge clk, posedge reset)
     begin
         if(reset == 1)
         begin
             bd_channel.a   <= 0;
             valid       <= 0;
-            //data        <= NUM_BITS'x;
         end
         else
         begin
@@ -48,9 +45,14 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
                     valid       <= 0;
                 end
                 BD_VALID: begin
-                    bd_channel.a   <= 1;
                     valid       <= 1;
-                    data        <= bd_channel.d;
+                    if(~valid)
+                    begin
+                        data         <= bd_channel.d;
+                        bd_channel.a <= 1;
+                    end
+                    else
+                        bd_channel.a <= 0;
                 end
             endcase
         end
@@ -79,8 +81,10 @@ module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
             0       |    0    |        1       ||        1       |    0
             1       |    0    |        x       ||        0       |    1
             0       |    1    |        x       ||        1       |    0
-            1       |    1    |        x       ||        1       |    1
+            1       |    1    |        x       ||        1       |    0
     */
+
+    reg slow_valid;
 
     typedef enum {
       BOTH_OFF = 0,
@@ -95,32 +99,39 @@ module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
     begin
         if(reset == 1)
         begin
-            bd_channel.v   <= 0;
-            ready          <= 0;
-            //data        <= NUM_BITS'x;
+            slow_valid     <= 0;
+            ready          <= 1;
         end
         else
         begin
             case(state)
-                BOTH_OFF: begin
-                    bd_channel.v   <= bd_channel.v;
-                    ready          <= ~bd_channel.v;
-                end
+                //BOTH_OFF: begin
+                //    bd_channel.v   <= bd_channel.v;
+                //    ready          <= ~bd_channel.v;
+                //end
                 FPGA_OFF: begin
-                    bd_channel.v   <= 1;
                     ready          <= 0;
-                    bd_channel.d   <= data;
+                    if(ready)
+                    begin
+                        slow_valid     <= 1;
+                        bd_channel.d   <= data;
+                    end
                 end
                 BD_OFF: begin
-                    bd_channel.v   <= 0;
+                    slow_valid     <= 0;
                     ready          <= 1;
                 end
                 BOTH_ON: begin
-                    bd_channel.v   <= 1;
-                    ready          <= 1;
-                    bd_channel.d   <= data;
+                    ready          <= 0;
+                    if(ready)
+                    begin
+                        slow_valid     <= 1;
+                        bd_channel.d   <= data;
+                    end
                 end
             endcase
         end
     end
+
+    assign bd_channel.v = (valid & ready & bd_channel.a) ? 1 : slow_valid;
 endmodule

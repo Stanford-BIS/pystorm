@@ -51,15 +51,47 @@ The following diagram illustrates the structure
 
 # Build
 
-Pystorm modules can be built issuing the following commands from the repositories
+We recommend building the Pystorm modules by executing the following commands from the repository
 base directory.
 
 ```
     mkdir build
     cd build
     cmake ..
-    make
+    cmake --build .
 ```
+
+Note that after the `cmake ..` command, you can build using your favorite tool like make, ninja, XCode, or Microsoft Visual studio.
+However, we recommend `cmake --build .` as a platform-agnostic and tool-agnostic method of invoking the build
+(i.e. you shouldn't have to worry about the platform specific methods of invoking a build).
+
+## cmake Options
+
+Beyond the default cmake options, our CMakeLists.txt files use following options:
+
+* `-DPYTHON_EXECUTABLE=<path>` tells cmake to use the Python interpreter at `<path>`
+* `-DCMAKE_BUILD_TYPE=<[Release, Debug]>` Used for single-configuration generators (e.g. GNU make and its relatives) to tell which build type to set up and build. For multi-configuration generators (e.g. Visual Studio and Xcode), use the `cmake --build`  `--config` option as described [below](#cmake-build-options). For the distinction between single and multi-configuration generators, see [here](https://stackoverflow.com/a/24470998)
+* `-DBD_COMM_TYPE=<[MODEL, OPALKELLY, SOFT, USB]>` tells which kind of communication to expect
+
+For example,
+
+`cmake -DPYTHON_EXECUTABLE=/path/to/python -DCMAKE_BUILD_TYPE=Release -DBD_COMM_TYPE=MODEL ..`
+
+tells cmake to use the python interpreter at `/path/to/python`, to make a `Release` type build, and to use the `MODEL` of braindrop as the communication type.
+
+## cmake Build Options
+
+`cmake --build .` tells cmake to run the build. We support the following options for the build command:
+
+* `--config <[Release, Debug]>` tells cmake which configuration type to build for multi-configuration generators.
+
+We can also pass native compiler options to the build after adding a `--` in the call:
+
+As an example,
+
+`cmake --build . --config Release -- -j6`
+
+tells cmake to build the project in the current directory for the `Release` configuration and pass `-j6` to the compiler, which for g++ says to use 6 threads for the build.
 
 # TEST 
 
@@ -67,28 +99,27 @@ From the build directory all module tests can be executed issuing the
 following command.
 
 ```
-    make test ARGS="-V"
+    ctest -C Debug -j6 -T test -VV --timeout 300
 ```
+
+* `-C <[Debug, Release]>` selects between debug and release configurations
+* `-j<number of threads>` parallelizes the build
+* `-T test` specifies the type of test (always `test` for us)
+* `-VV` specifies extra verbosity
+* `--timout 300` specifieds that the tests should be halted at 5 minutes if they're still running (i.e. in case the tests are hanging)
 
 # Dependencies
 
-Pystorm was built and is dependent on the following software packages:
-
-    Ubuntu 16.04 
-    CMake 3.5
-    Python 3.5 
-    GCC 5.4 (or later) (g++ component)
-    Boost 1.58 with Python3.5 component
-    Google Test
-    libusb 1.0
+Pystorm is built and tested using docker.
+Pystorm's dependencies can be found in the dockerfile `docker/Dockerfile_build_environment_image`,
+which is used to create the docker image used for building and testing.
 
 # Docker
 
 Docker can be used to build and test Pystorm. The folder `docker` has a 
-Docker file (named `Dockerfile_JENKINS_CI`) and shell script that can be 
+Docker file (named `Dockerfile_compile_source`) and shell script that can be 
 used to build an image and build/test Pystorm on it.
 
-The following is an example of how to use Docker to build and test using 
-Docker.
+The following is an example of how to use Docker to run the build build 
 
-    sudo docker build --file docker/Dockerfile_JENKINS_CI .
+    sudo docker build --file docker/Dockerfile_compile_source .
