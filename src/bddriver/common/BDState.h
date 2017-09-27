@@ -41,6 +41,8 @@ class BDState {
     soma_config_mem_[tile_id][config_type][elem_id] = config_value;
   }
 
+  std::vector<std::map<bdpars::ConfigSomaID, std::vector<unsigned int>>> GetSomaConfigMem() const { return soma_config_mem_; }
+
   void SetNeuronConfigMem(unsigned int core_id,
                           unsigned int tile_id,
                           unsigned int elem_id,
@@ -49,6 +51,8 @@ class BDState {
     synapse_config_mem_[tile_id][config_type][elem_id] = config_value;
   }
 
+  std::vector<std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>>> GetSynapseConfigMem() const { return synapse_config_mem_; }
+
   void SetNeuronConfigMem(unsigned int core_id,
                           unsigned int tile_id,
                           unsigned int elem_id,
@@ -56,6 +60,8 @@ class BDState {
                           unsigned int config_value){
     diffusor_config_mem_[tile_id][config_type][elem_id] = config_value;
   }
+
+  std::vector<std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>>> GetDiffusorConfigMem() const { return diffusor_config_mem_; }
 
   // A toggle is a special case of register
   void SetToggle(bdpars::BDHornEP reg_id, bool traffic_en, bool dump_en);

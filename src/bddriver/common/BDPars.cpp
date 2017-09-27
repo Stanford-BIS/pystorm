@@ -106,7 +106,7 @@ BDPars::BDPars() {
 
   // DAC info
   dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {25  , 1};
-  dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {25  , 1};
+  dac_info_[BDHornEP::DAC_ADC_BIAS_2]  = {25  , 1};
   // DAC output is scaled by 8/16/128.
   // Then LPF input multiplies by 2X to get 4/8/64.
   dac_info_[BDHornEP::DAC_SYN_EXC]     = {8   , (34 + 30) * 8};
