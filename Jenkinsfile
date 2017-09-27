@@ -29,9 +29,5 @@ pipeline {
                 }
             }
         }
-        stage('FPGA') {
-            steps {
-            }
-        }
     }
 }
