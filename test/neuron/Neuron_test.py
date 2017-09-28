@@ -11,18 +11,18 @@ from PyDriver.pystorm.bddriver.bdpars import DiffusorCutLocationId as DiffusorCu
 
 driver = bd.Driver()
 dac_ids = [
-  HornID.DAC_DIFF_G,         
-  HornID.DAC_SYN_INH,        
-  HornID.DAC_SYN_PU,         
-  HornID.DAC_DIFF_R,         
-  HornID.DAC_SOMA_OFFSET,    
-  HornID.DAC_SYN_LK,         
-  HornID.DAC_SYN_DC,         
-  HornID.DAC_SYN_PD,         
-  HornID.DAC_ADC_BIAS_2,     
-  HornID.DAC_ADC_BIAS_1,     
-  HornID.DAC_SOMA_REF,       
-  HornID.DAC_SYN_EXC,        
+  HornID.DAC_DIFF_G,
+  HornID.DAC_SYN_INH,
+  HornID.DAC_SYN_PU,
+  HornID.DAC_DIFF_R,
+  HornID.DAC_SOMA_OFFSET,
+  HornID.DAC_SYN_LK,
+  HornID.DAC_SYN_DC,
+  HornID.DAC_SYN_PD,
+  HornID.DAC_ADC_BIAS_2,
+  HornID.DAC_ADC_BIAS_1,
+  HornID.DAC_SOMA_REF,
+  HornID.DAC_SYN_EXC,
 ]
 
 for _dac in dac_ids:
