@@ -64,18 +64,24 @@ def ToBytes(s):
     v >>= 8
   return b[::-1]
 
-nop_up = ToBytes("01000000" + 24*"0") # this is what an upstream nop looks like. The FPGA sends these if the host requests data and the FPGA has none
-nop_down = ToBytes("10" + "111111" + 23*"0" + "1") # you can pack downstream frames with this
+nop_up_code = 64
+nop_down_code = 128 + 33
+HB_up_code = 13
 
 import sys
 
 # pretty print of a bytearray, ignores upstream nops
-def PrintBytearrayAs32b(buf_out, ignore_nop=True):
+def PrintBytearrayAs32b(buf_out, ignore_nop=True, ignore_HBs=True):
   nop_count = 0
+  HB_count = 0
   for idx in range(len(buf_out) // 4):
     this_word_flipped = buf_out[4*idx:4*(idx+1)]
     this_word = this_word_flipped[::-1]
-    if (nop_up != this_word or not ignore_nop):
+    if ((this_word[0] == nop_up_code or this_word[0] == nop_down_code) and ignore_nop):
+      nop_count += 1
+    elif (this_word[0] == HB_up_code and ignore_HBs):
+      HB_count += 1
+    else:
       for j in range(4):
         to_print = ""
         elcopy = this_word[j]
@@ -85,9 +91,8 @@ def PrintBytearrayAs32b(buf_out, ignore_nop=True):
         to_print += " "
         sys.stdout.write(str(to_print[::-1]))
       sys.stdout.write('\n')
-    else:
-      nop_count += 1
   print("plus " + str(nop_count) + " NOPs")
+  print("plus " + str(HB_count) + " HBs")
 
 
 
@@ -113,6 +118,10 @@ def SendWords(dev, codes):
     for el in outputs:
         buf.extend(el)
 
+    print("============SENDING=============")
+    PrintBytearrayAs32b(buf, ignore_HBs=False)
+    print("================================")
+
     print(dev.WriteToBlockPipeIn(ep_dn, block_size, buf))
 
 import time
@@ -136,32 +145,91 @@ if __name__ ==  "__main__":
     SendWords(dev, BD_Reset2)
     time.sleep(.5)
 
-    # gives alex a second to hit trigger on scope
-    time.sleep(5)
+    print("STARTING")
 
-    # reset DACs (should already be reset)
-    DACs = [
-        ['BDHORN', 'DAC0', '0x000'],
-        ['BDHORN', 'DAC1', '0x000'],
-        ['BDHORN', 'DAC2', '0x000'],
-        ['BDHORN', 'DAC3', '0x000'],
-        ['BDHORN', 'DAC4', '0x000'],
-        ['BDHORN', 'DAC5', '0x000'],
-        ['BDHORN', 'DAC6', '0x000'],
-        ['BDHORN', 'DAC7', '0x000'],
-        ['BDHORN', 'DAC8', '0x000'],
-        ['BDHORN', 'DAC9', '0x000'],
-        ['BDHORN', 'DAC10', '0x000'],
-        ['BDHORN', 'DAC11', '0x000']]
-    SendWords(dev, DACs)
+    ## gives alex a second to hit trigger on scope
+    time.sleep(2)
 
-    # read heartbeats
-    # XXX also get a lot of junk. I think the upstream nop has the wrong code in the FPGA
+    ## reset DACs (should already be reset)
+    #DACs = [
+    #    ['BDHORN', 'DAC0', '0x000'],
+    #    ['BDHORN', 'DAC1', '0x000'],
+    #    ['BDHORN', 'DAC2', '0x000'],
+    #    ['BDHORN', 'DAC3', '0x000'],
+    #    ['BDHORN', 'DAC4', '0x000'],
+    #    ['BDHORN', 'DAC5', '0x000'],
+    #    ['BDHORN', 'DAC6', '0x000'],
+    #    ['BDHORN', 'DAC7', '0x000'],
+    #    ['BDHORN', 'DAC8', '0x000'],
+    #    ['BDHORN', 'DAC9', '0x000'],
+    #    ['BDHORN', 'DAC10', '0x000'],
+    #    ['BDHORN', 'DAC11', '0x000']]
+    #SendWords(dev, DACs)
+
+    ## send lots of DAC words
+    ## some DACs seem to take a really long time to ack
+    #for i in range(12):
+    #  DACs = [['BDHORN', 'DAC' + str(i), '0x000']]*100
+    #  SendWords(dev, DACs)
+    #  time.sleep(5)
+
+    ## turns on the neurons!
+    #SendWords(dev, [['BDHORN', 'NEURONDUMPTOGGLE', '0x002']])
+
+    # read from PAT address 0
+    # '0 will do this
+    # has a serializer, need to send four words
+    # should get something out of DUMP_PAT
+
+    PAT_all_0 = [['BDHORN', 'PROG_PAT', '0x000']]*4
+    SendWords(dev, PAT_all_0)
+
+    #BD_leaves = [
+    #    'ADC',
+    #    'DAC0',
+    #    'DAC10',
+    #    'DAC11',
+    #    'DAC12',
+    #    'DAC1',
+    #    'DAC2',
+    #    'DAC3',
+    #    'DAC4',
+    #    'DAC5',
+    #    'DAC6',
+    #    'DAC7',
+    #    'DAC8',
+    #    'DAC9',
+    #    'DELAY0',
+    #    'DELAY1',
+    #    'DELAY2',
+    #    'DELAY3',
+    #    'DELAY4',
+    #    'DELAY5',
+    #    'DELAY6',
+    #    'INIT_FIFO_DCT',
+    #    'INIT_FIFO_HT',
+    #    'NEURONCONFIG',
+    #    'NEURONDUMPTOGGLE',
+    #    'NEURONINJECT',
+    #    'PROG_AMMM',
+    #    'PROG_PAT',
+    #    'PROG_TAT0',
+    #    'PROG_TAT1',
+    #    'RI',
+    #    'TOGGLE_POST_FIFO0',
+    #    'TOGGLE_POST_FIFO1',
+    #    'TOGGLE_PRE_FIFO']
+    #for leaf in BD_leaves:
+    #    SendWords(dev, [['BDHORN', leaf, '0x000']]*12)
+
+    # read upstream traffic
     i = 0
     while(True):
         out_buf = bytearray(block_size*4)
         dev.ReadFromPipeOut(ep_up, out_buf)
+        print("------------RECEIVED------------")
         PrintBytearrayAs32b(out_buf)
+        print("--------------------------------")
         print(i)
         i += 1
         time.sleep(.5)
