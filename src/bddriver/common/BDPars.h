@@ -280,6 +280,20 @@ class BDPars {
   // DAC info
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
 
+  ///////////////////////////////
+  // Neuron config stuff
+
+  /// Config memory map
+  /// Soma configuration bits for 16 Somas in a tile.
+  static std::unordered_map<ConfigSomaID, std::vector<unsigned int>> config_soma_mem_;
+
+  /// Synapse configuration bits for 4 Synapses in a tile.
+  static std::unordered_map<ConfigSynapseID, std::vector<unsigned int>> config_synapse_mem_;
+
+  /// Diffusor cut 'enable' memory config.
+  /// Setting 1 cuts the diffusor at the location.
+  static std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> config_diff_cut_mem_;
+
   BDPars();
 
   // functions for info derived from other pars
