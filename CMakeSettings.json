@@ -8,16 +8,16 @@
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
             "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=OPALKELLY",
             "buildCommandArgs": "-m -v:minimal",
-            "ctestCommandArgs": ""
+            "ctestCommandArgs": "-VV"
         },
         {
             "name": "x64-Release",
             "generator": "Visual Studio 15 2017 Win64",
             "configurationType": "Release",
             "buildRoot": "${env.USERPROFILE}\\CMakeBuilds\\${workspaceHash}\\build\\${name}",
-            "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=OPALKELLY",
+            "cmakeCommandArgs": "-DPYTHON_EXECUTABLE=D:\\Apps\\Anaconda3\\python.exe -DBD_COMM_TYPE=MODEL -DCMAKE_CXX_FLAGS=\"-DLOG_ENABLED\"",
             "buildCommandArgs": "-m -v:minimal",
-            "ctestCommandArgs": ""
+            "ctestCommandArgs": "-VV"
         }
     ]
 }

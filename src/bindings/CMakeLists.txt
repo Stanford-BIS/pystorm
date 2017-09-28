@@ -1,10 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
-project(PythonBindings CXX)
-
-set(TARGET1_NAME "Pystorm")
-#set(TARGET2_NAME "PyDriver")
+set(TARGET1_NAME "PyStorm")
+set(TARGET2_NAME "PyDriver")
 set(TARGET3_NAME "_PyOK")
 
 ############################################################################
@@ -22,11 +20,6 @@ include(Common)
 # Build setup
 #
 ############################################################################
-
-# Additional packages
-find_package(PythonInterp 3.6)
-find_package(PythonLibs 3.6)
-find_package(Numpy)
 
 set(HAL_LIBRARY Hal )
 set(DRIVER_LIBRARY Driver)
@@ -56,8 +49,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
-include_directories(${PYTHON_INCLUDE_DIRS})
-include_directories(${PYTHON_NUMPY_INCLUDE_DIR})
 
 # This should be before TARGET is set
 SetupSharedLibrary()
@@ -69,7 +60,6 @@ link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 ################################################################################
 pybind11_add_module(${TARGET1_NAME} MODULE ${HEADER_FILES} ${SRC_FILES})
 target_link_libraries(${TARGET1_NAME} PRIVATE
-    ${PYTHON_LIBRARIES}
     ${HAL_LIBRARY}
     ${DRIVER_LIBRARY}
 )
@@ -77,22 +67,21 @@ target_link_libraries(${TARGET1_NAME} PRIVATE
 #################################################################################
 ## Build Driver bindings
 #################################################################################
-#pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS})
-#target_link_libraries(${TARGET2_NAME} PRIVATE
-#    ${PYTHON_LIBRARIES}
-#    ${DRIVER_LIBRARY}
-#)
-#
-#set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
-#set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
-#set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY PREFIX "")
-#
-## Python expects modules to end in .so in Linux/Mac and .pyd in Windows
-#if(APPLE)
-#    set_target_properties(${TARGET1_NAME} ${TARGET2_NAME} PROPERTIES SUFFIX ".so")
-#elseif(WIN32)
-#    set_target_properties(${TARGET1_NAME} ${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
-#endif(APPLE)
+pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS})
+target_link_libraries(${TARGET2_NAME} PRIVATE
+    ${DRIVER_LIBRARY}
+)
+
+set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
+set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
+set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY PREFIX "")
+
+# Python expects modules to end in .so in Linux/Mac and .pyd in Windows
+if(APPLE)
+    set_target_properties(${TARGET1_NAME} ${TARGET2_NAME} PROPERTIES SUFFIX ".so")
+elseif(WIN32)
+    set_target_properties(${TARGET1_NAME} ${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
+endif(APPLE)
 
 ################################################################################
 # Build OpalKelly bindings

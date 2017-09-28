@@ -147,6 +147,15 @@ class Driver {
 
   /// Program DAC value
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
+  // Specify any `value` < 0.0 to use default value;
+  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush=true);
+
+  unsigned int GetDACScaling(bdpars::BDHornEP signal_id);
+
+  unsigned int GetDACDefaultCount(bdpars::BDHornEP signal_id);
+
+  float GetDACUnitCurrent(bdpars::BDHornEP signal_id);
+
   /// Make DAC-to-ADC connection for calibration for a particular DAC
   void SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en, bool flush=true);
 
@@ -160,7 +169,7 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   template<class U>
     void SetConfigMemory(unsigned int core_id, unsigned int elem_id,
-                         std::map<U, std::vector<unsigned int>> config_map,
+                         std::unordered_map<U, std::vector<unsigned int>> config_map,
                          U config_type, unsigned int config_value);
     
   ////////////////////////////////////////////////////////////////////////////
@@ -170,7 +179,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSomaID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                config_soma_mem_,
+                bd_pars_->config_soma_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -233,7 +242,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSynapseID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                config_synapse_mem_,
+                bd_pars_->config_synapse_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -302,7 +311,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::DiffusorCutLocationId>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                config_diff_cut_mem_,
+                bd_pars_->config_diff_cut_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -545,19 +554,6 @@ class Driver {
   bool SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush=true);
 
 
-  ///////////////////////////////
-  // Neuron config stuff
-
-  /// Config memory map
-  /// Soma configuration bits for 16 Somas in a tile.
-  static std::map<bdpars::ConfigSomaID, std::vector<unsigned int>> config_soma_mem_;
-
-  /// Synapse configuration bits for 4 Synapses in a tile.
-  static std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>> config_synapse_mem_;
-
-  /// Diffusor cut 'enable' memory config.
-  /// Setting 1 cuts the diffusor at the location.
-  static std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>> config_diff_cut_mem_;
 };
 
 }  // bddriver namespace

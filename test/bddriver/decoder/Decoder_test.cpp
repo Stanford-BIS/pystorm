@@ -37,8 +37,8 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
 
   // rng
   std::default_random_engine generator(0);
-  std::uniform_int_distribution<uint8_t> payload_dist(0, UINT8_MAX);
-  std::uniform_int_distribution<uint8_t> code_dist(0, up_eps.size()-1);
+  std::uniform_int_distribution<> payload_dist(0, UINT8_MAX);
+  std::uniform_int_distribution<> code_dist(0, up_eps.size()-1);
 
   // note that initialization only occurs on the first function invocation
   static BDTime last_time = 0;
