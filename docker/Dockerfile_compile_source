@@ -3,7 +3,7 @@
 # Start with the image built from Dockerfile_setup_environment
 FROM stanfordbis/ubuntu-pystorm:latest
 
-# Run from the pystorm repo base directory to copy the pystorm repo contents
+# Create mountpoint to mount Jenkin's workspace
 RUN mkdir /pystorm
 
 # These are the commands that a developer would type to build and run
@@ -13,5 +13,8 @@ CMD cd /pystorm \
     && cd build \
     && cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
     && cmake --build . --config Release
+
+# For future runs, use this directory
+WORKDIR /pystorm/build
 
 VOLUME /pystorm
