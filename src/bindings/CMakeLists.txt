@@ -64,6 +64,23 @@ target_link_libraries(${TARGET1_NAME} PRIVATE
     ${DRIVER_LIBRARY}
 )
 
+# copy or link bindings library into pystorm source tree
+if(Win32)
+    add_custom_command(
+        TARGET ${TARGET1_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_FILE:${TARGET1_NAME}>
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/
+    )
+else()
+    add_custom_command(
+        TARGET ${TARGET1_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            $<TARGET_FILE:${TARGET1_NAME}>
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/$<TARGET_FILE_NAME:${TARGET1_NAME}>
+    )
+endif()
+
 #################################################################################
 ## Build Driver bindings
 #################################################################################
@@ -82,6 +99,23 @@ if(APPLE)
 elseif(WIN32)
     set_target_properties(${TARGET1_NAME} ${TARGET2_NAME} PROPERTIES SUFFIX ".pyd")
 endif(APPLE)
+
+# copy or link bindings library into pystorm source tree
+if(Win32)
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            $<TARGET_FILE:${TARGET2_NAME}>
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/
+    )
+else()
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            $<TARGET_FILE:${TARGET2_NAME}>
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/$<TARGET_FILE_NAME:${TARGET2_NAME}>
+    )
+endif()
 
 ################################################################################
 # Build OpalKelly bindings
