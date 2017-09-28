@@ -1,5 +1,6 @@
 `include "Interfaces.svh"
 `include "Channel.svh"
+`include "ChannelUtil.svh"
 
 module PCParser #(
   parameter NPCin = 32,
@@ -17,13 +18,23 @@ module PCParser #(
   UnencodedBDWordChannel BD_data_out,
   
   // input, from PC
-  Channel PC_in,
+  Channel PC_in_ext,
 
   // reset values for the conf registers
   // set in PCMapper (because PCMapper assigns the regs meaning)
   input [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals,
 
+  // input from TM
+  input stall,
+
   input clk, reset);
+
+/////////////////////////////////////////////////
+// stall input when running ahead
+
+Channel #(NPCin) PC_in();
+ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
+
 
 /////////////////////////////////////////////////
 //
@@ -83,6 +94,7 @@ module PCParser #(
 //  bigger channels are made by deserializing multiple transmissions
 //  smaller channels just waste bits
 // the LSBs contain (up to) 16 bits of channel data
+
 
 localparam NBDbiggest_data = 20;
 localparam Narray_id_max_bits = NPCin - 2 - Nconf;

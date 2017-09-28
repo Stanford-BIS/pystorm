@@ -76,36 +76,36 @@ localparam FIFOdepth = 4;
 //
 // Arrows for Channels, lines for plain registers.
 // 
-//                   +----------+                                                              
-//          ||||||   |          |                                          BDTagMerge_out
-// PC_in ---|FIFO|-->| PCParser |     PCParser_BD_data_out      +-----------+  v   +-----------+     +--------------+ 
-//  32b     ||||||   |          |-------------------------------|           |  v   |           |     |              |  ||||||    
-//                   +----------+                     ||||||    |BDTagMerge |------| BDEncoder |-----|ChannelStaller|--|FIFO|--> BD_out
-//                       | | conf_regs,          +----|FIFO|--->|           |      |           |  ^  |              |  ||||||   22b 
-//                       | | conf_channels       |    ||||||    +-----------+      +-----------+  ^  +--------------+              
-//                       | |                     |                                           BDEncoder_out  |    
-//                       | V                     | < < SG_tags_out                                          |    
-//                   +----------+          +----------+                                                     |    
-//                   |          |          |          |                                                     |    
-//                   | PCMapper |--------->| SpikeGen.| (contains a memory)                                 |    
-//                   |          |----------|          |                                                     |    
-//                   +----------+ SG_conf, +----------+                                                     |    
-//                       | | |    SG_program_mem |                                                          |    
-//                       | | |                   |                                                          |    
-//                       | | |                   |                                                          |    
-//                       | | +-------------------|-------------------------------------------+              |    
-//                       | |                     |                                           |              |    
-//                       | | TM_conf             | time_unit_pulse                           |              |    
-//                       | |   +-----------+     |                                           |              |    
-//                       | |   |           |-----+                                           |              |   
-//                       | +---|  TimeMgr  |     |                                           |              |
-//                       |     |           |-----|-------------------------------------------|--------------+    
-//                       |     +-----------+     |                                           |       stall_dn
+//                   +----------+                                                       
+//          ||||||   |          |                                                           BDTagMerge_out
+// PC_in ---|FIFO|-->| PCParser |          PCParser_BD_data_out                  +-----------+  v   +-----------+     
+//  32b     ||||||   |          |------------------------------------------------|           |  v   |           |     ||||||    
+//                   +----------+                                  ||||||        |BDTagMerge |------| BDEncoder |-----|FIFO|--> BD_out
+//                     | | |                                  +----|FIFO|------->|           |      |           |     ||||||   22b 
+//                +----+ | | conf_channel                     |    ||||||        +-----------+      +-----------+                 
+//                |      | | conf_regs,                       |                                                                   
+//                |      | V          +-----------------------|---------------------------------------------------------------> pReset, sReset
+//                |  +----------+     |                       |                                   BD_conf       
+//                |  |          |-----+    +----------+       |                                                               
+//                |  | PCMapper |--------->|          |-------+                                             
+//                |  |          |----------| SpikeGen.|    SG_tags_out                                                     
+//                |  +----------+    ^     |          |                                                          
+//       stall_dn |      | | |    SG_conf, +----------+                                                                   
+//                |      | | |    SG_program_mem |                                                               
+//                |      | | |                   |                                                               
+//                |      | | +-------------------|-------------------------------------------+                   
+//                |      | |                     |                                           |                   
+//                |      | | TM_conf             |                                           |                   
+//                |      | |   +-----------+     |                                           |                   
+//                |      | +---|           |     |                                           |                  
+//                |      |     |  TimeMgr  |-----+  time_unit_pulse                          |               
+//                +------|-----|           |     |                                           |                   
+//                       |     +-----------+     |                                           |               
 //                       |          |            |                                           |           
 //                       |          |            |                                           |       
 //               SF_conf |          |      +----------+                                      |       
 //                       |          |      |          |                                      |       
-//                       +----------|------|SpikeFilt.| (contains a memory)                  |       
+//                       +----------|------|SpikeFilt.|                                      |       
 //                                  | +----|          |                              TS_conf |       
 //                                  | |    +----------+                                      |       
 //                send_HB_pulse_up, | | SF_tags_ ^                                           |       
@@ -114,7 +114,7 @@ localparam FIFOdepth = 4;
 //                             +----------+      |                                           |             
 //                             |          |      |                                           |             
 //                             | FPGASer. |      |                                           |             
-//                             |          |      |                                           |             
+//                             |          |      |                                           |                          X <------ ADC
 //                             +----------+      |                                           |             
 //               FPGASerializer_out |            |                                           |                    
 //                                  |            |                                           |    BDDecoder_out
@@ -164,7 +164,6 @@ UnencodedBDWordChannel PCParser_BD_data_out();
 TagCtChannel #(Ntag, Nct) SG_tags_out();
 TagCtChannel #(Ntag, Nct) SG_tags_out_post_FIFO();
 UnencodedBDWordChannel BDTagMerge_out();
-Channel #(NBDdata_out) BDEncoder_out();
 
 // data channels: BD -> PC
 DecodedBDWordChannel BDDecoder_out();
@@ -201,6 +200,7 @@ PC_parser(
   PCParser_BD_data_out,
   PC_in_post_FIFO,
   conf_reg_reset_vals,
+  stall_dn,
   clk, reset);
 
 // PCMapper
@@ -278,14 +278,8 @@ BDTagMerge tag_merge(
 
 // BDEncoder
 BDEncoder BD_encoder(
-  BDEncoder_out,
-  BDTagMerge_out);
-
-// BD_out staller
-ChannelStaller BD_out_stall(
   BD_out_pre_FIFO,
-  BDEncoder_out,
-  stall_dn);
+  BDTagMerge_out);
 
 /////////////////////////////////////////////
 // BD -> PC datapath
