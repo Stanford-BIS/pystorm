@@ -1,5 +1,5 @@
 import unittest
-import PyStorm as ps
+import _PyStorm as ps
 import numpy as np
 
 class TestPool(unittest.TestCase):

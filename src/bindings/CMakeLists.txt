@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
-set(TARGET1_NAME "PyStorm")
+set(TARGET1_NAME "_PyStorm")
 set(TARGET2_NAME "PyDriver")
 set(TARGET3_NAME "_PyOK")
 

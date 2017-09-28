@@ -1,4 +1,4 @@
-from PyStorm import *
+from _PyStorm import *
 from .core import Core
 from .resources import *
 from functools import singledispatch, update_wrapper
