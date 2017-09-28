@@ -1,6 +1,7 @@
 `define SIMULATION 
 
 `include "../src/OKCoreBD.sv"
+`include "BDSrcSink.sv"
 
 `timescale 1ns / 1ps
 `default_nettype none
@@ -151,25 +152,30 @@ initial begin
 	FrontPanelReset;                      // Start routine with FrontPanelReset;
   user_reset <= 0;
 
-  SendToBD(0, 3'b101); // ADC 
-  SendToBD(1, 11'b10101010101); // DAC0
-  SetReg(31, 0); // turn off resets
+  // send pat word
+  SendToBD({2'b00, 6'd27}, 24'd0);
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  #(1000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+  //SendToBD(0, 3'b101); // ADC 
+  //SendToBD(1, 11'b10101010101); // DAC0
+  //SetReg(31, 0); // turn off resets
+  //FlushAndSendPipeIn(); // send the stuff we queued up
 
-  #(1000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+  //#(1000)
+  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
 
-  // send a bunch of BD words
-  // do it a few times in case pipeInSize < number of horn leaves (34)
-  SendToAllBD(0*pipeInSize, pipeInSize); 
-  FlushAndSendPipeIn();
-  SendToAllBD(1*pipeInSize, pipeInSize);
-  FlushAndSendPipeIn();
-  SendToAllBD(2*pipeInSize, pipeInSize);
-  FlushAndSendPipeIn();
+  //#(1000)
+  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+  //// send a bunch of BD words
+  //// do it a few times in case pipeInSize < number of horn leaves (34)
+
+  //SendToAllBD(0*pipeInSize, pipeInSize); 
+  //FlushAndSendPipeIn();
+  //SendToAllBD(1*pipeInSize, pipeInSize);
+  //FlushAndSendPipeIn();
+  //SendToAllBD(2*pipeInSize, pipeInSize);
+  //FlushAndSendPipeIn();
 
   forever begin
     #(1000)

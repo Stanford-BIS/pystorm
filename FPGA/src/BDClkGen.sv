@@ -9,7 +9,7 @@ module BDClkGen (
   output wire pll_locked,
   input clk, reset);
 
-wire skewed_clk; // unskewed 10MHz clock to use in handshaker
+wire skewed_clk; // unskewed 20MHz clock to use in handshaker
 wire base_clk;   // skewed 10MHz clock to use for BD IO
 
 BDIOPLL BC_pll(

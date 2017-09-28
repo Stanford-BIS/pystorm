@@ -9,7 +9,7 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
                     input ready, reset, clk);
 
 /*
-input bd_channel.d  // Data read from bd_channel
+input bd_channel.d  // Data read from bd_channel (from the FPGA core)
 input bd_channel.v  // Asserted if bd_channel data is valid
 output bd_channel.a // Assert if data sent to BD
 output data;        // Data sent to BD
@@ -19,46 +19,48 @@ input reset;        // Global reset
 input clk;          // Global clock
 */
 
-/*
-The various states are
-  bd_channel.v  |  ready  ||  bd_channel.a  |  valid
-        0       |    x    ||       0        |    0
-        1       |    0    ||       0        |    0
-        1       |    1    ||       1        |    1
-*/
+enum {READY, SENDING_ACK_IN, SENDING} state, next_state;
 
-enum {READY, READY_ACK, SENDING} state, next_state;
+logic [NUM_BITS-1:0] next_data;
 
-always_ff @(posedge clk, posedge rst) 
-  if (reset == 1)
+always_ff @(posedge clk, posedge reset) 
+  if (reset == 1) begin
     state <= READY;
-  else
+    data <= '0;
+  end
+  else begin
     state <= next_state;
- 
-// we're clocked at twice the rate of BD, so we can be a little sloppy with the
-// Channel handshake (don't have ack in same cycle as valid)
-
-// have to be a bit careful, ready can come back any time
-// only look at ready in state update and make output a function purely of state
+    data <= next_data;
+  end
 
 // state update
+// have to be a bit careful, ready can come back any time
+// this is the only place we look at ready
 always_comb
   case (state)
     READY:
-      if (bd_channel.v == 1)
-        next_state = SENDING;
-      else
+      if (bd_channel.v == 1 && ready == 1) begin
+        next_state = SENDING_ACK_IN;
+        next_data = bd_channel.d;
+      end
+      else begin
         next_state = READY;
-    READY_ACK:
-      if (bd_channel.v == 1)
-        next_state = SENDING;
-      else
+        next_data = data;
+      end
+    SENDING_ACK_IN: begin
+      next_data = data;
+      if (ready == 0) 
         next_state = READY;
-    SENDING:
-      if (ready == 0) // this is the only place we look at ready
-        next_state = READY_ACK;
       else
         next_state = SENDING;
+    end
+    SENDING: begin
+      next_data = data;
+      if (ready == 0) 
+        next_state = READY;
+      else
+        next_state = SENDING;
+    end
   endcase
 
 // output
@@ -67,21 +69,19 @@ always_comb
     READY: begin
       valid = 0;
       bd_channel.a = 0;
-      data = '0;
     end
-    READY_ACK: begin
-      valid = 0;
+    SENDING_ACK_IN: begin
+      valid = 1;
       bd_channel.a = 1;
-      data = '0;
     end
     SENDING: begin
       valid = 1;
-      data = bd_channel.d;
       bd_channel.a = 0;
     end
   endcase
 
 endmodule
+
 
 module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
                    (Channel bd_channel,

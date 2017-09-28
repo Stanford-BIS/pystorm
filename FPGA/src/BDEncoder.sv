@@ -138,15 +138,17 @@ const logic [0:Nhorn-1][0:Nlongest_route-1] routes_reversed = '{
   'b10001011,
   'b10001001};
 
-// since we filled in zeros, this will have the right route
-const logic [0:Nhorn-1][Nlongest_route-1:0] routes = routes_reversed; // this should do what we want since routes_reversed is packed ascending
+logic [0:Nhorn-1][Nlongest_route-1:0] routes;
 
-//genvar i;
-//generate
-//for (i = 0; i < Nhorn; i++) begin : routes_generate
-//  assign routes[i] = {<<{routes_reversed[i]}}; // that's the stream operator
-//end
-//endgenerate
+genvar i;
+genvar j;
+generate
+for (i = 0; i < Nhorn; i++) begin : routes_generate_outer
+  for (j = 0; j < Nlongest_route; j++) begin : routes_generate_inner
+    assign routes[i][j] = routes_reversed[i][j];
+  end
+end
+endgenerate
 
 const logic [Nhorn-1:0][Ncode-1:0] route_lens = '{
   4,
