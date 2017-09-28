@@ -10,6 +10,7 @@ pipeline {
                 script {
                     HOSTIP = "${sh returnStdout: true, script: 'ip route show | awk \'/default/ {print \$3}\''}".trim()
                     JENKINS_HOST_PATH = "${sh returnStdout: true, script: 'echo ${WORKSPACE} | sed -e \'s/^\\/var/\\/home\\/jenkins/g\''}".trim()
+                    sh script: "git clean -xfd"
                 }
             }
         }
