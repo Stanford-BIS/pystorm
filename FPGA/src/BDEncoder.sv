@@ -101,54 +101,42 @@ typedef enum {
 // XXX not used
 //leaf_enum leaf;
 
-// copied from above, with extra zeros filled in
-const logic [0:Nhorn-1][0:Nlongest_route-1] routes_reversed = '{
-  'b10100000,
-  'b10110000,
-  'b10111010,
-  'b10111100,
-  'b10111110,
-  'b10110001,
-  'b10110010,
-  'b10110011,
-  'b10110100,
-  'b10110101,
-  'b10110110,
-  'b10110111,
-  'b10111000,
-  'b10111001,
-  'b10000000,
-  'b10000100,
-  'b10001110,
-  'b10001111,
-  'b10010000,
-  'b10011000,
-  'b10011010,
-  'b10001100,
-  'b10001000,
-  'b11000000,
-  'b11110000,
-  'b11100000,
-  'b10011100,
-  'b10010100,
-  'b10000010,
-  'b10000110,
+// copied from above, with extra zeros filled in, then flipped (wiki table is backwards)
+const logic [0:Nhorn-1][Nlongest_route-1:0] routes = '{
+  'b00000101,
+  'b00001101,
+  'b01011101,
+  'b00111101,
+  'b01111101,
+  'b10001101,
+  'b01001101,
+  'b11001101,
+  'b00101101,
+  'b10101101,
+  'b01101101,
+  'b11101101,
+  'b00011101,
+  'b10011101,
+  'b00000001,
+  'b00100001,
+  'b01110001,
+  'b11110001,
+  'b00001001,
+  'b00011001,
+  'b01011001,
+  'b00110001,
+  'b00010001,
+  'b00000011,
+  'b00001111,
+  'b00000111,
+  'b00111001,
+  'b00101001,
+  'b01000001,
+  'b01100001,
   'b00000000,
-  'b10001010,
-  'b10001011,
-  'b10001001};
-
-logic [0:Nhorn-1][Nlongest_route-1:0] routes;
-
-genvar i;
-genvar j;
-generate
-for (i = 0; i < Nhorn; i++) begin : routes_generate_outer
-  for (j = 0; j < Nlongest_route; j++) begin : routes_generate_inner
-    assign routes[i][j] = routes_reversed[i][j];
-  end
-end
-endgenerate
+  'b01010001,
+  'b11010001,
+  'b10010001};
 
 const logic [Nhorn-1:0][Ncode-1:0] route_lens = '{
   4,
