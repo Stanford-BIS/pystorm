@@ -1,4 +1,4 @@
-# Dockerfile for compiling and testing the pystorm repo
+# Dockerfile for compiling and testing the pystorm repo in debug mode
 
 # Start with the image built from Dockerfile_setup_environment
 FROM stanfordbis/ubuntu-pystorm:latest
@@ -12,7 +12,7 @@ RUN export HOME="/home/git" \
     && cd /home/git/pystorm \
     && mkdir build \
     && cd build \
-    && cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
-    && cmake --build . --config Release
+    && cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Debug ..  \
+    && cmake --build . --config Debug
 
 WORKDIR /home/git/pystorm/build/
