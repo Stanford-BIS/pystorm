@@ -19,7 +19,6 @@ namespace pystorm
 namespace HAL = pystorm::bdhal;
 namespace PYTHON = pybind11;
 
-
 HAL::Pool* 
     (HAL::Network::*CreatePool_1) (
     std::string label, uint32_t n_neurons, uint32_t n_dims, uint32_t width,
@@ -30,7 +29,6 @@ HAL::Pool*
     (HAL::Network::*CreatePool_2) (
     std::string label, uint32_t n_neurons, uint32_t n_dims) = 
         &HAL::Network::CreatePool;
-
 
 template<typename T>
 HAL::Weights<T>* makeWeights(PYTHON::array_t<T, PYTHON::array::c_style | PYTHON::array::forcecast> weights) {
@@ -69,10 +67,8 @@ HAL::Connection* makeConnectionWithWeights (HAL::Network& net, std::string name,
     return newConnection;
 } 
 
-
 PYBIND11_MODULE(_PyStorm, m)
 {
-
     //////////////////////////////////////////////////////////////////////
     //
     // Common network objects
