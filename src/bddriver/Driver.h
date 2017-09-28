@@ -169,7 +169,7 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   template<class U>
     void SetConfigMemory(unsigned int core_id, unsigned int elem_id,
-                         std::unordered_map<U, std::vector<unsigned int>> config_map,
+                         std::unordered_map<U, std::vector<unsigned int>, EnumClassHash> config_map,
                          U config_type, unsigned int config_value);
     
   ////////////////////////////////////////////////////////////////////////////
