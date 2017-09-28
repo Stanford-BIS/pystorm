@@ -7,8 +7,8 @@ pipeline {
                 script {
                     def lowercase_tag_release = "${BUILD_TAG.toLowerCase()}_release"
                     def lowercase_tag_debug = "${BUILD_TAG.toLowerCase()}_debug"
-                    sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag_release} ."
-                    sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag_debug} ."
+                    sh "docker build --file docker/Dockerfile_compile_source_release -t ${lowercase_tag_release} ."
+                    sh "docker build --file docker/Dockerfile_compile_source_debug -t ${lowercase_tag_debug} ."
                 }
             }
         }
