@@ -16,6 +16,7 @@ pipeline {
                             def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
                             sh "docker build --file docker/Dockerfile_compile_FPGA -t quartus_fpga_build ."
                             sh "docker/build_fpga.sh ${WORKSPACE} quartus_fpga_build"
+                            archiveArtifacts 'artifacts/OKCoreBD.rbf,artifacts/setup.rpt,artifacts/hold.rpt,artifacts/recovery.rpt,artifacts/removal.rpt'
                         }
                     }
                 )
