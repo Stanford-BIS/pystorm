@@ -6,15 +6,12 @@ FROM stanfordbis/ubuntu-pystorm:latest
 # Create mountpoint to mount Jenkin's workspace
 RUN mkdir /pystorm
 
-# These are the commands that a developer would type to build and run
-# the automated tests for PyStorm
-CMD cd /pystorm \
-    && mkdir -p build \
-    && cd build \
-    && cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
-    && cmake --build . --config Release
-
 # For future runs, use this directory
 WORKDIR /pystorm/build
+
+# These are the commands that a developer would type to build and run
+# the automated tests for PyStorm
+CMD cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
+    && cmake --build . --config Release
 
 VOLUME /pystorm
