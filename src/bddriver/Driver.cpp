@@ -412,7 +412,7 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 /// In-tile ID: 2 bits  => 0 - 3
 template<class U>
     void Driver::SetConfigMemory(unsigned int core_id, unsigned int elem_id,
-                       std::unordered_map<U, std::vector<unsigned int>, EnumClassHash> config_map,
+                       std::unordered_map<U, std::vector<unsigned int>> config_map,
                        U config_type,
                        unsigned int config_value) {
     unsigned int num_per_tile = config_map[config_type].size();
