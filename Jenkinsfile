@@ -1,21 +1,31 @@
+def HOSTIP = 'NONE'
+def JENKINS_HOST_PATH = 'NONE'
+
 pipeline {
     agent any
 
     stages {
+        stage('Initialize') {
+            steps {
+                script {
+                    HOSTIP = "${sh returnStdout: true, script: 'ip route show | awk \'/default/ {print \$3}\''}".trim()
+                    JENKINS_HOST_PATH = "${sh returnStdout: true, script: 'echo ${WORKSPACE} | sed -e \'s/^\\/var/\\/home\\/jenkins/g\''}".trim()
+                }
+            }
+        }
         stage('Build') {
             steps {
                 parallel(
                     "Software" : {
                         script {
-                            def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                            sh "docker build --file docker/Dockerfile_compile_source -t ${lowercase_tag} ."
+                            sh script: "ssh ${HOSTIP} 'docker build -t pystorm_build --file=${JENKINS_HOST_PATH}/docker/Dockerfile_compile_source ${JENKINS_HOST_PATH}/docker'"
+                            sh script: "ssh ${HOSTIP} 'docker run --rm -i -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build'"
                         }
                     },
                     "FPGA" : {
                         script {
-                            def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                            sh "docker build --file docker/Dockerfile_compile_FPGA -t quartus_fpga_build ."
-                            sh "docker/build_fpga.sh ${WORKSPACE} quartus_fpga_build"
+                            sh script: "ssh ${HOSTIP} 'docker build -t quartus_fpga_build --file=${JENKINS_HOST_PATH}/docker/Dockerfile_compile_FPGA ${JENKINS_HOST_PATH}/docker'"
+                            sh script: "ssh ${HOSTIP} 'docker run --rm -i -v /home/quartus:/home/quartus -v ${JENKINS_HOST_PATH}:/pystorm quartus_fpga_build'"
                             archiveArtifacts 'artifacts/OKCoreBD.rbf,artifacts/setup.rpt,artifacts/hold.rpt,artifacts/recovery.rpt,artifacts/removal.rpt'
                         }
                     }
@@ -25,8 +35,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    def lowercase_tag = "${BUILD_TAG.toLowerCase()}"
-                    sh "docker/run_docker.sh ${lowercase_tag}"
+                    sh script: "ssh ${HOSTIP} 'docker run --rm -i -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build ctest -C Debug -j6 -T test -VV --timeout 300'"
                 }
             }
         }

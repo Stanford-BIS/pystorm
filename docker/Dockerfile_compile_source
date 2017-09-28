@@ -4,15 +4,14 @@
 FROM stanfordbis/ubuntu-pystorm:latest
 
 # Run from the pystorm repo base directory to copy the pystorm repo contents
-COPY . /home/git/pystorm
+RUN mkdir /pystorm
 
 # These are the commands that a developer would type to build and run
 # the automated tests for PyStorm
-RUN export HOME="/home/git" \
-    && cd /home/git/pystorm \
+CMD cd /pystorm \
     && mkdir build \
     && cd build \
     && cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
     && cmake --build . --config Release
 
-WORKDIR /home/git/pystorm/build/
+VOLUME /pystorm
