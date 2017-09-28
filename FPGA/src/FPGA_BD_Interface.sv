@@ -19,13 +19,16 @@ input reset;        // Global reset
 input clk;          // Global clock
 */
 
-enum {READY, SENDING_ACK_IN, SENDING} state, next_state;
-
+enum {WAITING_FOR_INPUT, VALID_LOW, VALID_HIGH} state, next_state;
 logic [NUM_BITS-1:0] next_data;
 
+// data can be sampled at any time while valid is high, 
+// so we want to make sure that it can't glitch
+// we guard the initial transition by not asserting
+// valid until a clock cycle later
 always_ff @(posedge clk, posedge reset) 
   if (reset == 1) begin
-    state <= READY;
+    state <= WAITING_FOR_INPUT;
     data <= '0;
   end
   else begin
@@ -33,50 +36,66 @@ always_ff @(posedge clk, posedge reset)
     data <= next_data;
   end
 
-// state update
+// state update/data update
 // have to be a bit careful, ready can come back any time
-// this is the only place we look at ready
+// this is the only place we can look at ready
 always_comb
   case (state)
-    READY:
-      if (bd_channel.v == 1 && ready == 1) begin
-        next_state = SENDING_ACK_IN;
-        next_data = bd_channel.d;
+    WAITING_FOR_INPUT: begin
+      if (bd_channel.v == 1) begin
+        next_data = bd_channel.d; // set up new data
+        next_state = VALID_LOW;
       end
       else begin
-        next_state = READY;
-        next_data = data;
+        next_data = 'X;
+        next_state = WAITING_FOR_INPUT;
       end
-    SENDING_ACK_IN: begin
-      next_data = data;
-      if (ready == 0) 
-        next_state = READY;
-      else
-        next_state = SENDING;
     end
-    SENDING: begin
-      next_data = data;
-      if (ready == 0) 
-        next_state = READY;
+    VALID_LOW: begin
+      next_data = data; // hold data
+      if (ready == 1)
+        next_state = VALID_HIGH;
       else
-        next_state = SENDING;
+        next_state = VALID_LOW;
+    end
+    VALID_HIGH: begin
+      if (ready == 0) begin
+        if (bd_channel.v == 1) begin
+          next_data = bd_channel.d; // set up new data
+          next_state = VALID_LOW;
+        end
+        else begin
+          next_data = 'X;
+          next_state = WAITING_FOR_INPUT;
+        end
+      end
+      else begin
+        next_data = data; // hold data
+        next_state = VALID_HIGH;
+      end
     end
   endcase
 
 // output
 always_comb
   case (state)
-    READY: begin
+    WAITING_FOR_INPUT: begin
+      valid = 0;
+      if (bd_channel.v == 1)
+        bd_channel.a = 1;
+      else
+        bd_channel.a = 0;
+    end
+    VALID_LOW: begin
       valid = 0;
       bd_channel.a = 0;
     end
-    SENDING_ACK_IN: begin
+    VALID_HIGH: begin
       valid = 1;
-      bd_channel.a = 1;
-    end
-    SENDING: begin
-      valid = 1;
-      bd_channel.a = 0;
+      if (bd_channel.v == 1)
+        bd_channel.a = 1;
+      else
+        bd_channel.a = 0;
     end
   endcase
 
