@@ -10,7 +10,7 @@ namespace bdpars {
 
 // clang-format off
 
-  std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {
+  std::unordered_map<ConfigSomaID, std::vector<unsigned int>, EnumClassHash> BDPars::config_soma_mem_ = {
     {bdpars::ConfigSomaID::GAIN_0          , {112 , 114 , 82 , 80 , 119 , 117 , 85 , 87 , 55 , 53 , 21 , 23 , 48 , 50 , 18 , 16}} ,
     {bdpars::ConfigSomaID::GAIN_1          , {104 , 97  , 65 , 72 , 111 , 102 , 70 , 79 , 47 , 38 , 6  , 15 , 40 , 33 , 1  , 8}}  ,
     {bdpars::ConfigSomaID::OFFSET_0        , {113 , 115 , 83 , 81 , 118 , 116 , 84 , 86 , 54 , 52 , 20 , 22 , 49 , 51 , 19 , 17}} ,
@@ -19,12 +19,12 @@ namespace bdpars {
     {bdpars::ConfigSomaID::SUBTRACT_OFFSET , {96  , 106 , 74 , 64 , 103 , 109 , 77 , 71 , 39 , 45 , 13 , 7  , 32 , 42 , 10 , 0}}
   };
     
-  std::unordered_map<ConfigSynapseID, std::vector<unsigned int>> BDPars::config_synapse_mem_ = {
+  std::unordered_map<ConfigSynapseID, std::vector<unsigned int>, EnumClassHash> BDPars::config_synapse_mem_ = {
     {bdpars::ConfigSynapseID::SYN_DISABLE , {75 , 76 , 12 , 11}} ,
     {bdpars::ConfigSynapseID::ADC_DISABLE , {67 , 68 , 4  , 3}}
   };
 
-  std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> BDPars::config_diff_cut_mem_ = {
+  std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>, EnumClassHash> BDPars::config_diff_cut_mem_ = {
     {bdpars::DiffusorCutLocationId::NORTH_LEFT  , {99}}  ,
     {bdpars::DiffusorCutLocationId::NORTH_RIGHT , {100}} ,
     {bdpars::DiffusorCutLocationId::WEST_TOP    , {107}} ,
