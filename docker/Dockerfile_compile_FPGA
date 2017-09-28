@@ -1,8 +1,6 @@
 # Dockerfile for compiling FPGA source
 FROM centos_quartus:latest
 
-USER jenkins
-
 RUN mkdir /pystorm
 
 ENV LM_LICENSE_FILE="/pystorm/FPGA/quartus/okAlteraLicense.dat"

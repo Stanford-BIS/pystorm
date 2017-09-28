@@ -20,13 +20,13 @@ pipeline {
                     "Software" : {
                         script {
                             sh script: "ssh ${HOSTIP} 'docker build -t pystorm_build --file=${JENKINS_HOST_PATH}/docker/Dockerfile_compile_source ${JENKINS_HOST_PATH}/docker'"
-                            sh script: "ssh ${HOSTIP} 'docker run --rm -i -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build'"
+                            sh script: "ssh ${HOSTIP} 'docker run --rm -i --user=\$(id -u jenkins) -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build'"
                         }
                     },
                     "FPGA" : {
                         script {
                             sh script: "ssh ${HOSTIP} 'docker build -t quartus_fpga_build --file=${JENKINS_HOST_PATH}/docker/Dockerfile_compile_FPGA ${JENKINS_HOST_PATH}/docker'"
-                            sh script: "ssh ${HOSTIP} 'docker run --rm -i -v /home/quartus:/home/quartus -v ${JENKINS_HOST_PATH}:/pystorm quartus_fpga_build'"
+                            sh script: "ssh ${HOSTIP} 'docker run --rm -i --user=\$(id -u jenkins) -v /home/quartus:/home/quartus -v ${JENKINS_HOST_PATH}:/pystorm quartus_fpga_build'"
                             archiveArtifacts 'artifacts/OKCoreBD.rbf,artifacts/setup.rpt,artifacts/hold.rpt,artifacts/recovery.rpt,artifacts/removal.rpt'
                         }
                     }
@@ -36,7 +36,7 @@ pipeline {
         stage('Test') {
             steps {
                 script {
-                    sh script: "ssh ${HOSTIP} 'docker run --rm -i -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build ctest -C Debug -j6 -T test -VV --timeout 300'"
+                    sh script: "ssh ${HOSTIP} 'docker run --rm -i --user=\$(id -u jenkins) -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build ctest -C Debug -j6 -T test -VV --timeout 300'"
                 }
             }
         }

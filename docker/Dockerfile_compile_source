@@ -3,8 +3,6 @@
 # Start with the image built from Dockerfile_setup_environment
 FROM stanfordbis/ubuntu-pystorm:latest
 
-USER jenkins
-
 # Create mountpoint to mount Jenkin's workspace
 RUN mkdir /pystorm
 
