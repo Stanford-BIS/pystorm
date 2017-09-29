@@ -156,8 +156,8 @@ endmodule
 /////////////////////////////////////////////////////////////
 
 module BDHornDeserializer (
-  DecodedBDWordChannel words_in,
   DecodedBDWordChannel words_out,
+  DecodedBDWordChannel words_in,
   input clk, reset);
 
 localparam Nbiggest_payload = 38;
