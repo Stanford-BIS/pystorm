@@ -1,6 +1,11 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
+#include <pybind11/functional.h>
+
+// This undef is due to a MacOS stupidity with  termios.h`
+// https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/tcsetattr.3.html
+#undef B0
 #include <Driver.h>
 #include <model/BDModelDriver.h>
 
@@ -10,7 +15,7 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 	pybind11::enum_<pystorm::bddriver::bdpars::BDHornEP>(M("pystorm::bddriver::bdpars"), "BDHornEP", "///////////////////////////////////////////")
 		.value("ADC", pystorm::bddriver::bdpars::BDHornEP::ADC)
 		.value("DAC_DIFF_G", pystorm::bddriver::bdpars::BDHornEP::DAC_DIFF_G)
-		.value("DAC_SOMA_INH", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_INH)
+		.value("DAC_SYN_INH", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_INH)
 		.value("DAC_SYN_PU", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_PU)
 		.value("DAC_UNUSED", pystorm::bddriver::bdpars::BDHornEP::DAC_UNUSED)
 		.value("DAC_DIFF_R", pystorm::bddriver::bdpars::BDHornEP::DAC_DIFF_R)
@@ -21,7 +26,7 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 		.value("DAC_ADC_BIAS_2", pystorm::bddriver::bdpars::BDHornEP::DAC_ADC_BIAS_2)
 		.value("DAC_ADC_BIAS_1", pystorm::bddriver::bdpars::BDHornEP::DAC_ADC_BIAS_1)
 		.value("DAC_SOMA_REF", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_REF)
-		.value("DAC_SOMA_EXC", pystorm::bddriver::bdpars::BDHornEP::DAC_SOMA_EXC)
+		.value("DAC_SYN_EXC", pystorm::bddriver::bdpars::BDHornEP::DAC_SYN_EXC)
 		.value("DELAY_DCTFIFO", pystorm::bddriver::bdpars::BDHornEP::DELAY_DCTFIFO)
 		.value("DELAY_PGFIFO", pystorm::bddriver::bdpars::BDHornEP::DELAY_PGFIFO)
 		.value("DELAY_TAT0", pystorm::bddriver::bdpars::BDHornEP::DELAY_TAT0)
@@ -208,8 +213,6 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 
 	{ // pystorm::bddriver::bdpars::BDPars file: line:247
 		pybind11::class_<pystorm::bddriver::bdpars::BDPars> cl(M("pystorm::bddriver::bdpars"), "BDPars", "BDPars holds all the nitty-gritty information about the BD hardware's parameters.\n\n BDPars contains several array data members containing structs, keyed by enums.\n The enums refer to particular hardware elements or concepts, such as the name of a memory,\n register, or a particular type of programming word.\n BDPars is fully public, but Driver only has a const reference.");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<>());
 
 		cl.def(pybind11::init<const class pystorm::bddriver::bdpars::BDPars &>(), pybind11::arg(""));
@@ -282,8 +285,6 @@ void bind_unknown_unknown_1(std::function< pybind11::module &(std::string const 
 
 	{ // pystorm::bddriver::driverpars::DriverPars file: line:52
 		pybind11::class_<pystorm::bddriver::driverpars::DriverPars> cl(M("pystorm::bddriver::driverpars"), "DriverPars", "Stores parameters that modify driver object parameters/functions");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<>());
 
 		cl.def("Get", (unsigned int (pystorm::bddriver::driverpars::DriverPars::*)(pystorm::bddriver::driverpars::DriverParId) const) &pystorm::bddriver::driverpars::DriverPars::Get, "C++: pystorm::bddriver::driverpars::DriverPars::Get(pystorm::bddriver::driverpars::DriverParId) const --> unsigned int", pybind11::arg("par_id"));
@@ -295,8 +296,6 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 {
 	{ // pystorm::bddriver::BDState file: line:24
 		pybind11::class_<pystorm::bddriver::BDState> cl(M("pystorm::bddriver"), "BDState", "Keeps track of currently set register values, toggle states, memory values, etc.\n\n Also encodes timing assumptions: e.g. as soon as the traffic toggles are turned\n off in software, it is not necessarily safe to start programming memories:\n there is some amount of time that we must wait for the traffic to drain completely.\n the length of this delay is kept in DriverPars, and is used by BDState to implement\n an interface that the driver can use to block until it is safe.");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<const class pystorm::bddriver::bdpars::BDPars *, const class pystorm::bddriver::driverpars::DriverPars *>(), pybind11::arg("bd_pars"), pybind11::arg("driver_pars"));
 
 		cl.def(pybind11::init<const class pystorm::bddriver::BDState &>(), pybind11::arg(""));
@@ -308,6 +307,9 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 		cl.def("SetNeuronConfigMem", (void (pystorm::bddriver::BDState::*)(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::ConfigSomaID, unsigned int)) &pystorm::bddriver::BDState::SetNeuronConfigMem, "C++: pystorm::bddriver::BDState::SetNeuronConfigMem(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::ConfigSomaID, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("tile_id"), pybind11::arg("elem_id"), pybind11::arg("config_type"), pybind11::arg("config_value"));
 		cl.def("SetNeuronConfigMem", (void (pystorm::bddriver::BDState::*)(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::ConfigSynapseID, unsigned int)) &pystorm::bddriver::BDState::SetNeuronConfigMem, "C++: pystorm::bddriver::BDState::SetNeuronConfigMem(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::ConfigSynapseID, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("tile_id"), pybind11::arg("elem_id"), pybind11::arg("config_type"), pybind11::arg("config_value"));
 		cl.def("SetNeuronConfigMem", (void (pystorm::bddriver::BDState::*)(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::DiffusorCutLocationId, unsigned int)) &pystorm::bddriver::BDState::SetNeuronConfigMem, "C++: pystorm::bddriver::BDState::SetNeuronConfigMem(unsigned int, unsigned int, unsigned int, pystorm::bddriver::bdpars::DiffusorCutLocationId, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("tile_id"), pybind11::arg("elem_id"), pybind11::arg("config_type"), pybind11::arg("config_value"));
+        cl.def("GetSomaConfigMem", &pystorm::bddriver::BDState::GetSomaConfigMem);
+        cl.def("GetSynapseConfigMem", &pystorm::bddriver::BDState::GetSynapseConfigMem);
+        cl.def("GetDiffusorConfigMem", &pystorm::bddriver::BDState::GetDiffusorConfigMem);
 		cl.def("SetToggle", (void (pystorm::bddriver::BDState::*)(pystorm::bddriver::bdpars::BDHornEP, bool, bool)) &pystorm::bddriver::BDState::SetToggle, "C++: pystorm::bddriver::BDState::SetToggle(pystorm::bddriver::bdpars::BDHornEP, bool, bool) --> void", pybind11::arg("reg_id"), pybind11::arg("traffic_en"), pybind11::arg("dump_en"));
 		cl.def("GetToggle", (class std::tuple<bool, bool, bool> (pystorm::bddriver::BDState::*)(pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::BDState::GetToggle, "C++: pystorm::bddriver::BDState::GetToggle(pystorm::bddriver::bdpars::BDHornEP) const --> class std::tuple<bool, bool, bool>", pybind11::arg("reg_id"));
 		cl.def("AreTrafficRegsOff", (bool (pystorm::bddriver::BDState::*)() const) &pystorm::bddriver::BDState::AreTrafficRegsOff, "C++: pystorm::bddriver::BDState::AreTrafficRegsOff() const --> bool");
@@ -316,7 +318,6 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 	}
 	{ // pystorm::bddriver::Driver file:Driver.h line:96
 		pybind11::class_<pystorm::bddriver::Driver> cl(M("pystorm::bddriver"), "Driver", "Driver provides low-level, but not dead-stupid, control over the BD hardware.\n Driver tries to provide a complete but not needlessly tedious interface to BD.\n It also tries to prevent the user to do anything that would crash the chip.\n\n Driver looks like this:\n\n                              (user/HAL)\n\n  ---[fns]--[fns]--[fns]----------------------[fns]-----------------------[fns]----  API\n       |      |      |            |             A                           A\n       V      V      V            |             |                           |\n  [private fns, e.g. PackWords]   |        [XXXX private fns, e.g. UnpackWords XXXX]\n          |        |              |             A                           A\n          V        V           [BDState]        |                           |\n   [MutexBuffer:enc_buf_in_]      |      [M.B.:dec_buf_out_[0]]    [M.B.:dec_buf_out_[0]] ...\n              |                   |                   A                   A\n              |                   |                   |                   |\n   ----------------------------[BDPars]------------------------------------------- funnel/horn payloads,\n              |                   |                   |                   |           organized by leaf\n              V                   |                   |                   |\n      [Encoder:encoder_]          |        [XXXXXXXXXXXX Decoder:decoder_ XXXXXXXXXX]\n              |                   |                        A\n              V                   |                        |\n   [MutexBuffer:enc_buf_out_]     |           [MutexBuffer:dec_buf_in_]\n              |                   |                      A\n              |                   |                      |\n  --------------------------------------------------------------------------------- raw data\n              |                                          |\n              V                                          |\n         [XXXXXXXXXXXXXXXXXXXX Comm:comm_ XXXXXXXXXXXXXXXXXXXX]\n                               |      A\n                               V      |\n  --------------------------------------------------------------------------------- USB\n\n                              (Braindrop)\n\n At the heart of driver are a few primary components:\n\n - Encoder\n     Inputs: raw payloads (already serialized, if necessary) and BD horn ids to send them to\n     Outputs: inputs suitable to send to BD, packed into char stream\n     Spawns its own thread.\n\n - Decoder\n     Inputs: char stream of outputs from BD\n     Outputs: one stream per horn leaf of raw payloads from that leaf\n     Spawns its own thread.\n\n - Comm\n     Communicates with BD using libUSB, taking inputs from/giving outputs to\n     the Encoder/Decoder. Spawns its own thread.\n\n - MutexBuffers\n     Provide thread-safe communication and buffering for the inputs and outputs of Encoder\n     and decoder. Note that there are many decoder output buffers, one per funnel leaf.\n\n - BDPars\n     Holds all the nitty-gritty hardware information. The rest of the driver doesn't know\n     anything about word field orders or sizes, for example.\n\n - BDState\n     Software model of the hardware state. Keep track of all the memory words that have\n     been programmed, registers that have been set, etc.\n     Also keeps track of timing assumptions, e.g. whether the traffic has drained after\n     turning off all of the toggles that stop it.");
-		pybind11::handle cl_type = cl;
 
 		cl.def(pybind11::init<>());
 
@@ -333,9 +334,6 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 		cl.def_readwrite("CloseDiffusorCut", &pystorm::bddriver::Driver::CloseDiffusorCut);
 		cl.def_readwrite("OpenDiffusorAllCuts", &pystorm::bddriver::Driver::OpenDiffusorAllCuts);
 		cl.def_readwrite("CloseDiffusorAllCuts", &pystorm::bddriver::Driver::CloseDiffusorAllCuts);
-		cl.def("SetConfigMemory", (void (pystorm::bddriver::Driver::*)(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::ConfigSomaID, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::ConfigSomaID>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::ConfigSomaID, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::ConfigSomaID, unsigned int)) &pystorm::bddriver::Driver::SetConfigMemory<pystorm::bddriver::bdpars::ConfigSomaID>, "C++: pystorm::bddriver::Driver::SetConfigMemory(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::ConfigSomaID, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::ConfigSomaID>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::ConfigSomaID, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::ConfigSomaID, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("elem_id"), pybind11::arg("config_map"), pybind11::arg("config_type"), pybind11::arg("config_value"));
-		cl.def("SetConfigMemory", (void (pystorm::bddriver::Driver::*)(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::ConfigSynapseID, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::ConfigSynapseID>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::ConfigSynapseID, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::ConfigSynapseID, unsigned int)) &pystorm::bddriver::Driver::SetConfigMemory<pystorm::bddriver::bdpars::ConfigSynapseID>, "C++: pystorm::bddriver::Driver::SetConfigMemory(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::ConfigSynapseID, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::ConfigSynapseID>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::ConfigSynapseID, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::ConfigSynapseID, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("elem_id"), pybind11::arg("config_map"), pybind11::arg("config_type"), pybind11::arg("config_value"));
-		cl.def("SetConfigMemory", (void (pystorm::bddriver::Driver::*)(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::DiffusorCutLocationId, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::DiffusorCutLocationId>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::DiffusorCutLocationId, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::DiffusorCutLocationId, unsigned int)) &pystorm::bddriver::Driver::SetConfigMemory<pystorm::bddriver::bdpars::DiffusorCutLocationId>, "C++: pystorm::bddriver::Driver::SetConfigMemory(unsigned int, unsigned int, class std::map<pystorm::bddriver::bdpars::DiffusorCutLocationId, class std::vector<unsigned int, class std::allocator<unsigned int> >, struct std::less<pystorm::bddriver::bdpars::DiffusorCutLocationId>, class std::allocator<struct std::pair<const pystorm::bddriver::bdpars::DiffusorCutLocationId, class std::vector<unsigned int, class std::allocator<unsigned int> > > > >, pystorm::bddriver::bdpars::DiffusorCutLocationId, unsigned int) --> void", pybind11::arg("core_id"), pybind11::arg("elem_id"), pybind11::arg("config_map"), pybind11::arg("config_type"), pybind11::arg("config_value"));
 		cl.def("GetBDPars", (const class pystorm::bddriver::bdpars::BDPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetBDPars, "C++: pystorm::bddriver::Driver::GetBDPars() --> const class pystorm::bddriver::bdpars::BDPars *", pybind11::return_value_policy::reference_internal);
 		cl.def("GetDriverPars", (const class pystorm::bddriver::driverpars::DriverPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetDriverPars, "C++: pystorm::bddriver::Driver::GetDriverPars() --> const class pystorm::bddriver::driverpars::DriverPars *", pybind11::return_value_policy::automatic);
 		cl.def("GetState", (const class pystorm::bddriver::BDState * (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetState, "C++: pystorm::bddriver::Driver::GetState(unsigned int) --> const class pystorm::bddriver::BDState *", pybind11::return_value_policy::automatic, pybind11::arg("core_id"));
@@ -353,8 +351,13 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 		cl.def("SetSpikeDumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, bool)) &pystorm::bddriver::Driver::SetSpikeDumpState, "Control spike traffic from neuron array to driver\n\nC++: pystorm::bddriver::Driver::SetSpikeDumpState(unsigned int, bool, bool) --> void", pybind11::arg("core_id"), pybind11::arg("en"), pybind11::arg("flush"));
 		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, unsigned int  const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"));
 		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool)) &pystorm::bddriver::Driver::SetDACValue, "Program DAC value\n\nC++: pystorm::bddriver::Driver::SetDACValue(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool) --> void", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"), pybind11::arg("flush"));
+		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, float, bool)) &pystorm::bddriver::Driver::SetDACValue, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"), pybind11::arg("flush"));
+		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, float const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("signal_id"), pybind11::arg("value"));
 		cl.def("SetDACtoADCConnectionState", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, bool  const &a2) -> void { return o.SetDACtoADCConnectionState(a0, a1, a2); }, "", pybind11::arg("core_id"), pybind11::arg("dac_signal_id"), pybind11::arg("en"));
 		cl.def("SetDACtoADCConnectionState", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool)) &pystorm::bddriver::Driver::SetDACtoADCConnectionState, "Make DAC-to-ADC connection for calibration for a particular DAC\n\nC++: pystorm::bddriver::Driver::SetDACtoADCConnectionState(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool) --> void", pybind11::arg("core_id"), pybind11::arg("dac_signal_id"), pybind11::arg("en"), pybind11::arg("flush"));
+        cl.def("GetDACScaling", &pystorm::bddriver::Driver::GetDACScaling, "", pybind11::arg("dac_signal_id"));
+        cl.def("GetDACUnitCurrent", &pystorm::bddriver::Driver::GetDACUnitCurrent, "", pybind11::arg("dac_signal_id"));
+        cl.def("GetDACDefaultCount", &pystorm::bddriver::Driver::GetDACDefaultCount, "", pybind11::arg("dac_signal_id"));
 		cl.def("SetADCScale", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, const std::string &)) &pystorm::bddriver::Driver::SetADCScale, "Set large/small current scale for either ADC\n\nC++: pystorm::bddriver::Driver::SetADCScale(unsigned int, bool, const class std::__cxx11::basic_string<char> &) --> void", pybind11::arg("core_id"), pybind11::arg("adc_id"), pybind11::arg("small_or_large"));
 		cl.def("SetADCTrafficState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool)) &pystorm::bddriver::Driver::SetADCTrafficState, "Turn ADC output on\n\nC++: pystorm::bddriver::Driver::SetADCTrafficState(unsigned int, bool) --> void", pybind11::arg("core_id"), pybind11::arg("en"));
 		cl.def("SetSomaEnableStatus", (void (pystorm::bddriver::Driver::*)(unsigned int, unsigned int, pystorm::bddriver::bdpars::SomaStatusId)) &pystorm::bddriver::Driver::SetSomaEnableStatus, "Enable/Disable Soma\n Map between memory and status\n     _KILL       Status\n       0         DISABLED\n       1         ENABLED\n\nC++: pystorm::bddriver::Driver::SetSomaEnableStatus(unsigned int, unsigned int, pystorm::bddriver::bdpars::SomaStatusId) --> void", pybind11::arg("core_id"), pybind11::arg("soma_id"), pybind11::arg("status"));
@@ -389,8 +392,6 @@ void bind_unknown_unknown_3(std::function< pybind11::module &(std::string const 
 {
 	{ // pystorm::bddriver::bdmodel::BDModel file: line:21
 		pybind11::class_<pystorm::bddriver::bdmodel::BDModel> cl(M("pystorm::bddriver::bdmodel"), "BDModel", "BDModel pretends to be the BD hardware.\n Public ifc is threadsafe.");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<const class pystorm::bddriver::bdpars::BDPars *, const class pystorm::bddriver::driverpars::DriverPars *>(), pybind11::arg("bd_pars"), pybind11::arg("driver_pars"));
 
 		cl.def("ParseInput", (void (pystorm::bddriver::bdmodel::BDModel::*)(const class std::vector<unsigned char, class std::allocator<unsigned char> > &)) &pystorm::bddriver::bdmodel::BDModel::ParseInput, "parse input stream to update internal BDState object and other state\n\nC++: pystorm::bddriver::bdmodel::BDModel::ParseInput(const class std::vector<unsigned char, class std::allocator<unsigned char> > &) --> void", pybind11::arg("input_stream"));
@@ -407,8 +408,6 @@ void bind_MemInfo(std::function< pybind11::module &(std::string const &namespace
 {
 	{ // pystorm::bddriver::bdpars::MemInfo file: line:203
 		pybind11::class_<pystorm::bddriver::bdpars::MemInfo, std::shared_ptr<pystorm::bddriver::bdpars::MemInfo>> cl(M("pystorm::bddriver::bdpars"), "MemInfo", "");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<>());
 		cl.def(pybind11::init<const struct pystorm::bddriver::bdpars::MemInfo &>(), pybind11::arg(""));
 
@@ -423,8 +422,6 @@ void bind_model_BDModelDriver(std::function< pybind11::module &(std::string cons
 {
 	{ // pystorm::bddriver::BDModelDriver file:model/BDModelDriver.h line:15
 		pybind11::class_<pystorm::bddriver::BDModelDriver, pystorm::bddriver::Driver> cl(M("pystorm::bddriver"), "BDModelDriver", "Specialization of Driver that uses BDModelComm.\n I could have made Driver depend on BDModel, and have an optional constructor\n argument. I opted to subclass instead to contain the dependency to this \n particular (testing-only) use case.");
-		pybind11::handle cl_type = cl;
-
 		cl.def(pybind11::init<>());
 
 		cl.def("GetBDModel", (class pystorm::bddriver::bdmodel::BDModel * (pystorm::bddriver::BDModelDriver::*)()) &pystorm::bddriver::BDModelDriver::GetBDModel, "C++: pystorm::bddriver::BDModelDriver::GetBDModel() --> class pystorm::bddriver::bdmodel::BDModel *", pybind11::return_value_policy::reference_internal);
@@ -440,7 +437,7 @@ void bind_unknown_unknown_3(std::function< pybind11::module &(std::string const 
 void bind_model_BDModelDriver(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
-PYBIND11_PLUGIN(PyDriver) {
+PYBIND11_PLUGIN(_PyDriver) {
 	std::map <std::string, std::shared_ptr<pybind11::module> > modules;
 	ModuleGetter M = [&](std::string const &namespace_) -> pybind11::module & {
 		auto it = modules.find(namespace_);

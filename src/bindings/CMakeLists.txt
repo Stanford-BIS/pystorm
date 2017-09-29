@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
 
 set(TARGET1_NAME "_PyStorm")
-set(TARGET2_NAME "PyDriver")
+set(TARGET2_NAME "_PyDriver")
 set(TARGET3_NAME "_PyOK")
 
 ############################################################################
@@ -37,7 +37,7 @@ set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES "")
 set(SRC_FILES "")
 
-set(DRIVER_BINDINGS ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver.cpp)
+set(DRIVER_BINDINGS ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/PyDriver.cpp)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
@@ -88,6 +88,32 @@ pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS})
 target_link_libraries(${TARGET2_NAME} PRIVATE
     ${DRIVER_LIBRARY}
 )
+
+if(WIN32)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
+
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyDriver/__init__.py
+    )
+else()
+    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
+    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver/__init__.py
+                )
+endif()
 
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)

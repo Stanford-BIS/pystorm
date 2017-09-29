@@ -10,6 +10,27 @@ namespace bdpars {
 
 // clang-format off
 
+  std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {
+    {bdpars::ConfigSomaID::GAIN_0          , {112 , 114 , 82 , 80 , 119 , 117 , 85 , 87 , 55 , 53 , 21 , 23 , 48 , 50 , 18 , 16}} ,
+    {bdpars::ConfigSomaID::GAIN_1          , {104 , 97  , 65 , 72 , 111 , 102 , 70 , 79 , 47 , 38 , 6  , 15 , 40 , 33 , 1  , 8}}  ,
+    {bdpars::ConfigSomaID::OFFSET_0        , {113 , 115 , 83 , 81 , 118 , 116 , 84 , 86 , 54 , 52 , 20 , 22 , 49 , 51 , 19 , 17}} ,
+    {bdpars::ConfigSomaID::OFFSET_1        , {120 , 122 , 90 , 88 , 127 , 125 , 93 , 95 , 63 , 61 , 29 , 31 , 56 , 58 , 26 , 24}} ,
+    {bdpars::ConfigSomaID::ENABLE          , {121 , 123 , 91 , 89 , 126 , 124 , 92 , 94 , 62 , 60 , 28 , 30 , 57 , 59 , 27 , 25}} ,
+    {bdpars::ConfigSomaID::SUBTRACT_OFFSET , {96  , 106 , 74 , 64 , 103 , 109 , 77 , 71 , 39 , 45 , 13 , 7  , 32 , 42 , 10 , 0}}
+  };
+    
+  std::unordered_map<ConfigSynapseID, std::vector<unsigned int>> BDPars::config_synapse_mem_ = {
+    {bdpars::ConfigSynapseID::SYN_DISABLE , {75 , 76 , 12 , 11}} ,
+    {bdpars::ConfigSynapseID::ADC_DISABLE , {67 , 68 , 4  , 3}}
+  };
+
+  std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> BDPars::config_diff_cut_mem_ = {
+    {bdpars::DiffusorCutLocationId::NORTH_LEFT  , {99}}  ,
+    {bdpars::DiffusorCutLocationId::NORTH_RIGHT , {100}} ,
+    {bdpars::DiffusorCutLocationId::WEST_TOP    , {107}} ,
+    {bdpars::DiffusorCutLocationId::WEST_BOTTOM , {43}}  ,
+  };
+
 BDPars::BDPars() {
 
   //////////////////////////////////////////////////////
@@ -103,6 +124,24 @@ BDPars::BDPars() {
   mem_info_[BDMemId::PAT]      = {64,      BDHornEP::PROG_PAT,  BDFunnelEP::DUMP_PAT,  BDHornEP::DELAY_PAT};
   mem_info_[BDMemId::FIFO_DCT] = {2048,    BDHornEP::COUNT,     BDFunnelEP::COUNT,     BDHornEP::DELAY_DCTFIFO};
   mem_info_[BDMemId::FIFO_PG]  = {2048,    BDHornEP::COUNT,     BDFunnelEP::COUNT,     BDHornEP::DELAY_PGFIFO};
+
+  // DAC info
+  dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {25  , 1};
+  dac_info_[BDHornEP::DAC_ADC_BIAS_2]  = {25  , 1};
+  // DAC output is scaled by 8/16/128.
+  // Then LPF input multiplies by 2X to get 4/8/64.
+  dac_info_[BDHornEP::DAC_SYN_EXC]     = {8   , (34 + 30) * 8};
+  dac_info_[BDHornEP::DAC_SYN_DC]      = {16  , 34 * 16};
+  dac_info_[BDHornEP::DAC_SYN_INH]     = {128 , (34 - 30) * 128};
+  dac_info_[BDHornEP::DAC_SYN_PU]      = {1   , 1024};
+  dac_info_[BDHornEP::DAC_SYN_PD]      = {1   , 22};
+  // DAC output is scaled by 160.
+  // Then LPF leak multiplies by 8X to get 20.
+  dac_info_[BDHornEP::DAC_SYN_LK]      = {160 , 10};
+  dac_info_[BDHornEP::DAC_DIFF_G]      = {1   , 1024};
+  dac_info_[BDHornEP::DAC_DIFF_R]      = {1   , 512};
+  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4   , 1};
+  dac_info_[BDHornEP::DAC_SOMA_REF]    = {1   , 10};
 }
 
 } // bdpars

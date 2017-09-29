@@ -36,29 +36,6 @@ namespace bddriver {
 static const std::string OK_BITFILE = "OK_BITFILE.bit";
 static const std::string OK_SERIAL = "";
 
-std::map<bdpars::ConfigSomaID, std::vector<unsigned int>> Driver::config_soma_mem_ = {
-  {bdpars::ConfigSomaID::GAIN_0          , {112 , 114 , 82 , 80 , 119 , 117 , 85 , 87 , 55 , 53 , 21 , 23 , 48 , 50 , 18 , 16}} ,
-  {bdpars::ConfigSomaID::GAIN_1          , {104 , 97  , 65 , 72 , 111 , 102 , 70 , 79 , 47 , 38 , 6  , 15 , 40 , 33 , 1  , 8}}  ,
-  {bdpars::ConfigSomaID::OFFSET_0        , {113 , 115 , 83 , 81 , 118 , 116 , 84 , 86 , 54 , 52 , 20 , 22 , 49 , 51 , 19 , 17}} ,
-  {bdpars::ConfigSomaID::OFFSET_1        , {120 , 122 , 90 , 88 , 127 , 125 , 93 , 95 , 63 , 61 , 29 , 31 , 56 , 58 , 26 , 24}} ,
-  {bdpars::ConfigSomaID::ENABLE          , {121 , 123 , 91 , 89 , 126 , 124 , 92 , 94 , 62 , 60 , 28 , 30 , 57 , 59 , 27 , 25}} ,
-  {bdpars::ConfigSomaID::SUBTRACT_OFFSET , {96  , 106 , 74 , 64 , 103 , 109 , 77 , 71 , 39 , 45 , 13 , 7  , 32 , 42 , 10 , 0}}
-};
-  
-std::map<bdpars::ConfigSynapseID, std::vector<unsigned int>> Driver::config_synapse_mem_ = {
-  {bdpars::ConfigSynapseID::SYN_DISABLE , {75 , 76 , 12 , 11}} ,
-  {bdpars::ConfigSynapseID::ADC_DISABLE , {67 , 68 , 4  , 3}}
-};
-
-std::map<bdpars::DiffusorCutLocationId, std::vector<unsigned int>> Driver::config_diff_cut_mem_ = {
-  {bdpars::DiffusorCutLocationId::NORTH_LEFT  , {99}}  ,
-  {bdpars::DiffusorCutLocationId::NORTH_RIGHT , {100}} ,
-  {bdpars::DiffusorCutLocationId::WEST_TOP    , {107}} ,
-  {bdpars::DiffusorCutLocationId::WEST_BOTTOM , {43}}  ,
-};
-// XXX END "this should REALLY be in BDPars"
-
-
 // Driver * Driver::GetInstance()
 //{
 //    // In C++11, if control from two threads occurs concurrently, execution
@@ -383,6 +360,23 @@ void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsig
   SetBDRegister(core_id, signal_id, word, flush);
 }
 
+void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush) {
+    auto _dac = bd_pars_->dac_info_.at(signal_id);
+    unsigned int dac_count;
+    if(value < 0){
+        dac_count = _dac.default_count;
+    }else{
+        dac_count = static_cast<unsigned int>(value / bdpars::DACInfo::DAC_UNIT_CURRENT * _dac.scaling);
+    }
+    SetDACValue(core_id, signal_id, dac_count, flush);
+}
+
+  unsigned int Driver::GetDACScaling(bdpars::BDHornEP signal_id){ return bd_pars_->dac_info_.at(signal_id).scaling; }
+
+  unsigned int Driver::GetDACDefaultCount(bdpars::BDHornEP signal_id){ return bd_pars_->dac_info_.at(signal_id).default_count; }
+
+  float Driver::GetDACUnitCurrent(bdpars::BDHornEP signal_id){ return bdpars::DACInfo::DAC_UNIT_CURRENT / static_cast<float>(bd_pars_->dac_info_.at(signal_id).scaling); }
+
 void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP signal_id, bool en, bool flush) {
 
   // look up DAC value
@@ -418,7 +412,7 @@ void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
 /// In-tile ID: 2 bits  => 0 - 3
 template<class U>
     void Driver::SetConfigMemory(unsigned int core_id, unsigned int elem_id,
-                       std::map<U, std::vector<unsigned int>> config_map,
+                       std::unordered_map<U, std::vector<unsigned int>> config_map,
                        U config_type,
                        unsigned int config_value) {
     unsigned int num_per_tile = config_map[config_type].size();

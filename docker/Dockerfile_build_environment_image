@@ -1,7 +1,7 @@
 # Dockerfile to build the image used for compiling and testing
 
 # Start with official ubuntu build
-FROM ubuntu:xenial
+FROM ubuntu:zesty
 
 # Set bash as the default entry point
 CMD /bin/bash
