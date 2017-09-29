@@ -3,7 +3,7 @@ from functools import singledispatch, update_wrapper
 import numpy as np
 import pystorm._PyStorm as ps
 from .core import Core
-from .resources import (
+from .hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
 
 def instance_method_singledispatch(func):
@@ -25,104 +25,107 @@ def instance_method_singledispatch(func):
     return wrapper
 
 class PyStormObjectMapper(object):
-    """Maps _PyStorm objects to resources
+    """Maps _PyStorm objects to hardware resources
 
-    This class requests allocations of hardware resources to implement
-    the _PyStorm objects on hardware
+    Requests allocations of hardware resources to implement
+    a _PyStorm object and its connections on hardware
 
     Parameters
     ----------
-    ps_net_obj: A _PyStorm object (i.e. Input, Pool, Bucket, or Output)
+    ps_obj: A _PyStorm object (i.e. Input, Pool, Bucket, or Output)
+
+    Attributes
+    ----------
+    ps_obj: The _PyStorm object
+    hardware_resource: The hardware resource associated with the _PyStorm object
     """
     @staticmethod
     @singledispatch
     def create_resources(pystorm_obj):
-        """Creates the resources (e.g Source for ps.Input) for the pystorm object"""
+        """Creates the hardware resources for the _PyStorm object
+
+        For example, for a _PyStorm Input, creates a hardware resource Source
+        """
         raise TypeError("This type isn't supported: {}".format(type(pystorm_obj)))
 
     @staticmethod
     @create_resources.register(ps.Input)
-    def _create_resources_ps_input(inp):
+    def _create_resources_ps_input(ps_input):
         """create_resources for _PyStorm.Input"""
-        return Source(inp.GetNumDimensions())
+        return Source(ps_input.GetNumDimensions())
 
     @staticmethod
     @create_resources.register(ps.Output)
-    def _create_resources_ps_output(output):
+    def _create_resources_ps_output(ps_output):
         """create_resources for _PyStorm.Output"""
-        return Sink(output.GetNumDimensions())
+        return Sink(ps_output.GetNumDimensions())
 
     @staticmethod
     @create_resources.register(ps.Pool)
-    def _create_resources_ps_pool(pool):
+    def _create_resources_ps_pool(ps_pool):
         """create_resources for _PyStorm.Pool"""
-        return Neurons(pool.GetNumNeurons())
+        return Neurons(ps_pool.GetNumNeurons())
 
     @staticmethod
     @create_resources.register(ps.Bucket)
-    def _create_resources_ps_bucket(bucket):
+    def _create_resources_ps_bucket(ps_bucket):
         """create_resources for _PyStorm.Bucket"""
-        return AMBuckets(bucket.GetNumDimensions())
+        return AMBuckets(ps_bucket.GetNumDimensions())
 
     @staticmethod
-    def create_mm_weights(pystorm_weights):
+    def create_mm_weights(ps_weights):
         """Create a representation of the main memory weights"""
-        weights = np.array(pystorm_weights.GetNumRows(),
-                           pystorm_weights.GetNumColumns())
-        for i in range(pystorm_weights.GetNumRows()):
-            for j in range(pystorm_weights.GetNumColumns()):
-                weights[i][j] = pystorm_weights.GetElement(i, j)
+        weights = np.array(ps_weights.GetNumRows(),
+                           ps_weights.GetNumColumns())
+        for i in range(ps_weights.GetNumRows()):
+            for j in range(ps_weights.GetNumColumns()):
+                weights[i][j] = ps_weights.GetElement(i, j)
         ret_value = MMWeights(weights)
         return ret_value
 
-    def __init__(self, ps_net_obj):
-        self.ps_net_obj = ps_net_obj
-        self.resource = self.create_resources(ps_net_obj)
-        self.adjacent_net_obj = []
+    def __init__(self, ps_obj):
+        self.ps_obj = ps_obj
+        self.hardware_resource = self.create_resources(ps_obj)
+        self.dest_obj_mapper = []
 
-    def add_adjacent_node(self, node, weight=None):
-        self.adjacent_net_obj.append((weight, node))
+    def connect_mapper(self, mapper, weight=None):
+        """Set this source PyStormObjectMapper to connect to a destination PyStormObjectMapper"""
+        self.dest_obj_mapper.append((weight, mapper))
 
-    def get_ps_net_obj(self):
-        return self.ps_net_obj
-
-    def get_resource(self):
-        return self.resource
-
-    def connect(self, resources):
+    def connect(self, hardware_resources):
         """Connect the PyStormObjectMapper's _PyStorm object to it's adjacent nodes
 
         Update the resources list parameter, if necessary.
 
         The following describes the map between
             _PyStorm object connections and
-            resources object connections
+            hardware_resources object connections
 
         Conn 1:
-            _Pystorm:  Input ─> Pool
-            resources: Source ─> TATTapPoint ─> Neurons
+                      _Pystorm: Input ─> Pool
+            hardware_resources: Source ─> TATTapPoint ─> Neurons
         Conn 2:
-            _Pystorm:  Input ─> Bucket
-            resources: Source ─> TATAcuumulator ─> MMWeights ─> AMBuckets
+                      _Pystorm: Input ─> Bucket
+            hardware_resources: Source ─> TATAcuumulator ─> MMWeights ─> AMBuckets
         Conn 3:
-            _PyStorm:  Pool ─> Bucket
-            resources: Neurons ─> MMWeights ─> AMBuckets
+                      _PyStorm: Pool ─> Bucket
+            hardware_resources: Neurons ─> MMWeights ─> AMBuckets
         Conn 4:
-            _PyStorm:  Bucket ─> Bucket
-            resources: AMBuckets ─> MMWeights ─> AMBuckets
+                      _PyStorm: Bucket ─> Bucket
+            hardware_resources: AMBuckets ─> MMWeights ─> AMBuckets
         Conn 5:
-            _PyStorm:  Bucket ─> Output
-            resources: AMBuckets ─> Sink
+                      _PyStorm: Bucket ─> Output
+            hardware_resources: AMBuckets ─> Sink
          Conn 6:
-            _PyStorm:  Bucket ─┬─> Bucket
-                               └─> Bucket
-            resources: AMBuckets ─> TATFanout ─┬─> MMWeights ─> AMBuckets
-                                               └─> MMWeights ─> AMBuckets
+                      _PyStorm: Bucket ─┬─> Bucket
+                                        └─> Bucket
+            hardware_resources: AMBuckets ─> TATFanout ─┬─> MMWeights ─> AMBuckets
+                                                        └─> MMWeights ─> AMBuckets
          Conn 7:
-            _PyStorm:  Bucket ─┬─> Output
-                               └─> Output
-            resources: AMBuckets ─> TATFanout  ─┬─> Sink
-                                                └─> Sink
+                      _PyStorm: Bucket ─┬─> Output
+                                        └─> Output
+            hardware_resources: AMBuckets ─> TATFanout  ─┬─> Sink
+                                                         └─> Sink
 
         Note that the first five connections are from one object to one
         object, however, connections 6 and 7 are from one object to multiple
@@ -130,21 +133,21 @@ class PyStormObjectMapper(object):
 
         Parameters
         ----------
-        resources: A list of Resource instances
+        hardware_resources: A list of hardware_resources instances
         """
-        number_of_adj_nodes = len(self.adjacent_net_obj)
+        number_of_adj_nodes = len(self.dest_obj_mapper)
 
         if number_of_adj_nodes == 0:
             return
 
         elif number_of_adj_nodes == 1:
-            adj_node = self.adjacent_net_obj[0]
+            adj_node = self.dest_obj_mapper[0]
             adj_node_net_obj = adj_node.second
             adj_node_weights = adj_node.first
 
             # Conn 1: Input -> Pool
-            if isinstance(self.ps_net_obj, ps.Input) and isinstance(adj_node_net_obj, ps.Pool):
-                num_neurons = self.ps_net_obj.GetNumNeurons()
+            if isinstance(self.ps_obj, ps.Input) and isinstance(adj_node_net_obj, ps.Pool):
+                num_neurons = self.ps_obj.GetNumNeurons()
                 matrix_dims = 2
                 adj_node_dims = adj_node_net_obj.GetNumDimensions()
 
@@ -161,9 +164,9 @@ class PyStormObjectMapper(object):
                 resources.append(tap)
 
             #   Conn 2: Input -> Bucket
-            if isinstance(self.ps_net_obj, ps.Input) and isinstance(adj_node_net_obj, ps.Bucket):
+            if isinstance(self.ps_obj, ps.Input) and isinstance(adj_node_net_obj, ps.Bucket):
                 source = self.resource
-                tat_acc_resource = TATAccumulator(self.ps_net_obj.GetNumDimensions())
+                tat_acc_resource = TATAccumulator(self.ps_obj.GetNumDimensions())
                 weight_resource = self.create_mm_weights(adj_node_weights)
                 am_bucket = adj_node_net_obj.resource
 
@@ -175,7 +178,7 @@ class PyStormObjectMapper(object):
                 resources.append(weight_resource)
 
             #   Conn 3: Pool -> Bucket
-            if isinstance(self.ps_net_obj, ps.Pool) and isinstance(adj_node_net_obj, ps.Bucket):
+            if isinstance(self.ps_obj, ps.Pool) and isinstance(adj_node_net_obj, ps.Bucket):
                 neurons = self.resource
                 weight_resource = self.create_mm_weights(adj_node_weights)
                 am_bucket = adj_node_net_obj.resource
@@ -186,7 +189,7 @@ class PyStormObjectMapper(object):
                 resources.append(weight_resource)
 
             #   Conn 4: Bucket -> Bucket
-            if isinstance(self.ps_net_obj, ps.Bucket) and isinstance(adj_node_net_obj, ps.Bucket):
+            if isinstance(self.ps_obj, ps.Bucket) and isinstance(adj_node_net_obj, ps.Bucket):
                 am_bucket_in = self.resource
                 weight_resource = self.create_mm_weights(adj_node_weights)
                 am_bucket_out = adj_node_net_obj.resource
@@ -197,22 +200,22 @@ class PyStormObjectMapper(object):
                 resources.append(weight_resource)
 
             #   Conn 5: Bucket -> Output
-            if isinstance(self.ps_net_obj, ps.Bucket) and isinstance(adj_node_net_obj, ps.Output):
+            if isinstance(self.ps_obj, ps.Bucket) and isinstance(adj_node_net_obj, ps.Output):
                 am_bucket = self.resource
                 sink = adj_node_net_obj.resource
 
                 am_bucket.connect(sink)
 
         elif number_of_adj_nodes > 1:
-            if isinstance(self.ps_net_obj, ps.Bucket):
+            if isinstance(self.ps_obj, ps.Bucket):
                 am_bucket_in = self.resource
-                tat_fanout = TATFanout(self.ps_net_obj.GetNumDimensions())
+                tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
 
                 am_bucket_in.connect(tat_fanout)
 
                 resources.append(tat_fanout)
 
-                for adj_node in self.adjacent_net_obj:
+                for adj_node in self.dest_obj_mapper:
                     adj_node_net_obj = adj_node.second
                     adj_node_weight = adj_node.first
             #   Conn 6: Bucket -> Bucket
@@ -232,25 +235,25 @@ class PyStormObjectMapper(object):
                     sink = adj_node_net_obj.resource
                     tat_fanout.connect(sink)
 
-def create_resources(pystorm_network):
-    """Create the required resources for a  Pystorm network
+def create_network_resources(pystorm_network):
+    """Create the required resources for a  _PyStorm network
 
     Parameters
     ----------
-    pystorm_network: A Pystorm.Network object
-        The objects in the Pystorm network may not form a graph.
-        If a Pystorm network object is connected to another Pystorm
+    pystorm_network: A _Pystorm.Network object
+        The objects in the _PyStorm network may not form a graph.
+        If a _PyStorm object is connected to another _PyStorm
         network object, the corresponding Resource objects should
         be connected as well.
 
     Returns
     -------
-    resources: A list of Resource objects
+    resources: A list of hardware_resources.Resource objects
     """
 
     resources = []
     # A map from _PyStorm objects to PyStormObjectMappers
-    # The map forms a graph of Pystorm.Network/Resource objects
+    # The map forms a graph of _PyStorm.Network/Resource objects
     network_obj_map = dict()
 
     # Populate the PyStormObjectMappers in the graph
@@ -287,17 +290,17 @@ def create_resources(pystorm_network):
 def create_pystorm_mem_objects(core):
     """
     instead of WriteMemsToFile, create a set of structures
-    supplied by Pystorm that represent what you are mapping
+    supplied by _PyStorm that represent what you are mapping
     the original network to.
     """
     pass
 
 def map_resources_to_core(resources, core, verbose=False):
-    """Annotate a Core object with resources objects
+    """Annotate a Core object with hardware_resources.Resource objects
 
     Parameters
     ----------
-    resources: A list of resources objects
+    resources: A list of hardware_resources.Resource objects
     core: A Core object
     verbose: A bool
 
@@ -350,7 +353,7 @@ def map_network(pystorm_network, verbose=False):
 
     core = Core(pars)
 
-    resources = create_resources(pystorm_network)
+    resources = create_network_resources(pystorm_network)
 
     core = map_resources_to_core(resources, core, verbose)
 

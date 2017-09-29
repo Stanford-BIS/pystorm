@@ -1,4 +1,4 @@
-"""This module defines the hardware resources available"""
+"""This module defines the hardware resources of braindrop/brainstorm"""
 import numpy as np
 from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
 from .mem_word_placeholders import BDWord
