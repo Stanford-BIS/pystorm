@@ -96,7 +96,7 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 // the LSBs contain (up to) 16 bits of channel data
 
 
-localparam NBDbiggest_data = 20;
+localparam NBDbiggest_data = 24;
 localparam Narray_id_max_bits = NPCin - 2 - Nconf;
 
 // unpack PC_in.d for FPGA-bound word 

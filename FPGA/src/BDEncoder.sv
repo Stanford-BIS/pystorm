@@ -1,105 +1,287 @@
 `include "Channel.svh"
+`include "ChannelUtil.svh"
 `include "Interfaces.svh"
 
-module BDEncoder (
-  Channel BD_out,
-  UnencodedBDWordChannel enc_in);
-
-// this table is wrong! routes have reversed bit-order
+// this table is from the wiki and is wrong! routes have reversed bit-order
 /*
-leaf name           |depth  |route          |data   |serial-|chunk  |purpose
-                    |       |(bin)          |width  |ization|width  |
-====================|=======|===============|=======|=======|=======|===============================================
-ADC                 |4      |1010           |3      |1      |3      |small(0)/large(1)currenttoggleforADC
-DAC[0]              |8      |10110000       |11     |1      |11     |DIFF_GDACbiasvalue
-DAC[10]             |7      |1011101        |11     |1      |11     |SOMA_INHDACbiasvalue
-DAC[11]             |7      |1011110        |11     |1      |11     |SYN_PUDACbiasvalue
-DAC[12]             |7      |1011111        |11     |1      |11     |UNUSED("ghostDAC")
-DAC[1]              |8      |10110001       |11     |1      |11     |DIFF_RDACbiasvalue
-DAC[2]              |8      |10110010       |11     |1      |11     |SOMA_OFFSETDACbiasvalue
-DAC[3]              |8      |10110011       |11     |1      |11     |SYN_LKDACbiasvalue
-DAC[4]              |8      |10110100       |11     |1      |11     |SYN_DCDACbiasvalue
-DAC[5]              |8      |10110101       |11     |1      |11     |SYN_PDDACbiasvalue
-DAC[6]              |8      |10110110       |11     |1      |11     |ADC_BIAS_2DACbiasvalue
-DAC[7]              |8      |10110111       |11     |1      |11     |ADC_BIAS_1DACbiasvalue
-DAC[8]              |8      |10111000       |11     |1      |11     |SOMA_REFDACbiasvalue
-DAC[9]              |8      |10111001       |11     |1      |11     |SOMA_EXCDACbiasvalue
-DELAY[0]            |7      |1000000        |8      |1      |8      |FIFO:DCTdelaylineconfig
-DELAY[1]            |7      |1000010        |8      |1      |8      |FIFO:PGdelaylineconfig
-DELAY[2]            |8      |10001110       |8      |1      |8      |TAT0delaylineconfig
-DELAY[3]            |8      |10001111       |8      |1      |8      |TAT1delaylineconfig
-DELAY[4]            |6      |100100         |8      |1      |8      |PATdelaylineconfig
-DELAY[5]            |7      |1001100        |8      |1      |8      |MMdelaylineconfig
-DELAY[6]            |7      |1001101        |8      |1      |8      |AMdelaylineconfig
-INIT_FIFO_DCT       |7      |1000110        |11     |1      |11     |insertsatagintotheDCTsideoftheFIFOwithct=1
-INIT_FIFO_HT        |8      |10001000       |1      |1      |1      |triggersetsFIFOhead/tailregistertoemptystate
-NeuronConfig        |3      |110            |18     |1      |18     |programminginputforneuronarraytileSRAM
-NeuronDumpToggle    |4      |1111           |2      |1      |2      |togglesdata/dumptrafficforneuronarrayoutput
-NeuronInject        |4      |1110           |11     |1      |11     |directspikeinjectiontoneuronarray
-PROG_AMMM           |6      |100111         |42     |4      |11     |AM/MMprogramming/diagnosticport
-PROG_PAT            |6      |100101         |27     |4      |7      |PATprogramming/diagnosticport
-PROG_TAT[0]         |7      |1000001        |31     |4      |8      |TAT0programming/diagnosticport
-PROG_TAT[1]         |7      |1000011        |31     |4      |8      |TAT1programming/diagnosticport
-RI                  |1      |0              |20     |1      |20     |maintaginputtoFIFO
-TOGGLE_POST_FIFO[0] |8      |10001010       |2      |1      |2      |togglesdata/dumptrafficforFIFOtagclass0output
-TOGGLE_POST_FIFO[1] |8      |10001011       |2      |1      |2      |togglesdata/dumptrafficforFIFOtagclass1output
-TOGGLE_PRE_FIFO     |8      |10001001       |2      |1      |2      |togglesdata/dumptrafficforFIFOinput
+order    |leaf name           |depth  |route          |data   |serial-|chunk  |purpose
+(BDHornEP|                    |       |(bin)          |width  |ization|width  |
+ code)   |                    |       |               |       |       |       |
+=========|====================|=======|===============|=======|=======|=======|===============================================
+0        |ADC                 |4      |1010           |3      |1      |3      |small(0)/large(1)currenttoggleforADC
+1        |DAC[0]              |8      |10110000       |11     |1      |11     |DIFF_GDACbiasvalue
+2        |DAC[10]             |7      |1011101        |11     |1      |11     |SOMA_INHDACbiasvalue
+3        |DAC[11]             |7      |1011110        |11     |1      |11     |SYN_PUDACbiasvalue
+4        |DAC[12]             |7      |1011111        |11     |1      |11     |UNUSED("ghostDAC")
+5        |DAC[1]              |8      |10110001       |11     |1      |11     |DIFF_RDACbiasvalue
+6        |DAC[2]              |8      |10110010       |11     |1      |11     |SOMA_OFFSETDACbiasvalue
+7        |DAC[3]              |8      |10110011       |11     |1      |11     |SYN_LKDACbiasvalue
+8        |DAC[4]              |8      |10110100       |11     |1      |11     |SYN_DCDACbiasvalue
+9        |DAC[5]              |8      |10110101       |11     |1      |11     |SYN_PDDACbiasvalue
+10       |DAC[6]              |8      |10110110       |11     |1      |11     |ADC_BIAS_2DACbiasvalue
+11       |DAC[7]              |8      |10110111       |11     |1      |11     |ADC_BIAS_1DACbiasvalue
+12       |DAC[8]              |8      |10111000       |11     |1      |11     |SOMA_REFDACbiasvalue
+13       |DAC[9]              |8      |10111001       |11     |1      |11     |SOMA_EXCDACbiasvalue
+14       |DELAY[0]            |7      |1000000        |8      |1      |8      |FIFO:DCTdelaylineconfig
+15       |DELAY[1]            |7      |1000010        |8      |1      |8      |FIFO:PGdelaylineconfig
+16       |DELAY[2]            |8      |10001110       |8      |1      |8      |TAT0delaylineconfig
+17       |DELAY[3]            |8      |10001111       |8      |1      |8      |TAT1delaylineconfig
+18       |DELAY[4]            |6      |100100         |8      |1      |8      |PATdelaylineconfig
+19       |DELAY[5]            |7      |1001100        |8      |1      |8      |MMdelaylineconfig
+20       |DELAY[6]            |7      |1001101        |8      |1      |8      |AMdelaylineconfig
+21       |INIT_FIFO_DCT       |7      |1000110        |11     |1      |11     |insertsatagintotheDCTsideoftheFIFOwithct=1
+22       |INIT_FIFO_HT        |8      |10001000       |1      |1      |1      |triggersetsFIFOhead/tailregistertoemptystate
+23       |NeuronConfig        |3      |110            |18     |1      |18     |programminginputforneuronarraytileSRAM
+24       |NeuronDumpToggle    |4      |1111           |2      |1      |2      |togglesdata/dumptrafficforneuronarrayoutput
+25       |NeuronInject        |4      |1110           |11     |1      |11     |directspikeinjectiontoneuronarray
+26       |PROG_AMMM           |6      |100111         |42     |4      |11     |AM/MMprogramming/diagnosticport
+27       |PROG_PAT            |6      |100101         |27     |4      |7      |PATprogramming/diagnosticport
+28       |PROG_TAT[0]         |7      |1000001        |31     |4      |8      |TAT0programming/diagnosticport
+29       |PROG_TAT[1]         |7      |1000011        |31     |4      |8      |TAT1programming/diagnosticport
+30       |RI                  |1      |0              |20     |1      |20     |maintaginputtoFIFO
+31       |TOGGLE_POST_FIFO[0] |8      |10001010       |2      |1      |2      |togglesdata/dumptrafficforFIFOtagclass0output
+32       |TOGGLE_POST_FIFO[1] |8      |10001011       |2      |1      |2      |togglesdata/dumptrafficforFIFOtagclass1output
+33       |TOGGLE_PRE_FIFO     |8      |10001001       |2      |1      |2      |togglesdata/dumptrafficforFIFOinput
 */
 
-// note that we ignore the BD serialization/full data width. That's dealt with
-// in software
+
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+// does BD 1-to-4 serialization for PROG_* leaves, as per the wiki
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+module BDSerializer (
+  UnencodedBDWordChannel words_out,
+  UnencodedBDWordChannel words_in,
+  input clk, reset);
+
+localparam unsigned NBDdata = 21;
+localparam unsigned Nbiggest_payload = 24;
+localparam unsigned Nhorn = 34;
+localparam unsigned Ncode = 6;
+localparam unsigned Nlongest_route = 8;
+
+// these words are all serialized 1-to-2 by the PC
+// we first deserialize 2-to-1, then serialize the result 1-to-4
+typedef enum {AMMM=0, PAT=1, TAT0=2, TAT1=3} prog_type;
+const logic [3:0][Ncode-1:0] PROG_codes = {26, 27, 28, 29};
+
+///////////////////////////////////////////
+// bools to use for the split logic
+
+logic[3:0] PROG_test;
+generate
+genvar i;
+for (int i = 0; i < 4; i++) : generate_PROG_test
+  assign PROG_test[i] = words_in.code == PROG_codes[i] ? 1 : 0;
+endgenerate
+
+logic other_test;
+assign other_test = ~(|PROG_test);
+
+///////////////////////////////////////////
+// split out PROG codes and other traffic
+
+// XXX FIXME stopped work here: start turning these into generates
+// so I can keep my Channel arrays
+
+// prog words
+Channel #(Nbiggest_payload) PROG_split[3:0]();
+always_comb
+  for (int i = 0; i < 4; i++) begin
+    if (words_in.v == 1 && PROG_test[i] == 1) begin
+      PROG_split[i].v = 1;
+      PROG_split[i].d = words_in.payload;
+    end
+    else begin
+      PROG_split[i].v = 0;
+      PROG_split[i].d = 'X;
+    end
+  end
+
+// other words (need to keep the code)
+// this bypasses the next couple stages
+UnencodedBDWordChannel other_split();
+always_comb
+  if (words_in.v == 1 && other_test == 1) begin
+    other_split.v = 1;
+    other_split.payload = words_in.payload;
+    other_split.code    = words_in.code;
+  end
+  else begin
+    other_split.v = 0;
+    other_split.payload = 'X;
+    other_split.code    = 'X;
+  end
+
+///////////////////////////////////////////
+// deserialize 2-to-1
+
+Channel #(2*Nbiggest_payload) PROG_deser[3:0]();
+Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[3:0](PROG_deser, PROG_split, clk, reset);
+
+
+///////////////////////////////////////////
+// rearrange in preparation for serizlization 
+// this works a little differently for each word
+// all we have to do is rearrange the bits with some padded zeros
+// and feed to a deserializer
+// first, rearrange words
+
+// AMMM :  BD does : 11 - 21 - 42
+//         we do   : 44 - 22 - 11
+//
+//                 42
+//             21       21
+//          11   11   11   11
+//   44 = [xbbb|bbbb|xbbb|bbbb] (what we put into deser)
+//   sent later <----- earlier
+
+localparam AMMM_N = 11;
+Channel #(4*AMMM_N) AMMM_rearr();
+assign AMMM_rearr.d = {
+  1'b0, PROG_deser[AMMM].d[3*AMMM_N-1 +: AMMM_N-1], // 0 inserted!
+        PROG_deser[AMMM].d[2*AMMM_N-1 +: AMMM_N  ],
+  1'b0, PROG_deser[AMMM].d[1*AMMM_N   +: AMMM_N-1], // 0 inserted!
+        PROG_deser[AMMM].d[0*AMMM_N   +: AMMM_N  ]};
+assign AMMM_rearr.v = PROG_deser[AMMM].v;
+assign PROG_deser[AMMM].a = AMMM_rearr.a;
+
+
+// PAT  :  BD does :  7 - 14 - 27
+//         we do   : 28 - 14 -  7
+//
+//                 27 
+//            14        14
+//          7    7    7    7
+//   28 = [xbbb|bbbb|bbbb|bbbb]
+
+localparam PAT_N = 7;
+Channel #(4*PAT_N) PAT_rearr();
+assign PAT_rearr.d = {
+  1'b0, PROG_deser[PAT].d[3*PAT_N +: PAT_N-1], // 0 inserted!
+        PROG_deser[PAT].d[2*PAT_N +: PAT_N  ],
+        PROG_deser[PAT].d[1*PAT_N +: PAT_N  ], 
+        PROG_deser[PAT].d[0*PAT_N +: PAT_N  ]};
+assign PAT_rearr.v = PROG_deser[PAT].v;
+assign PROG_deser[PAT].a = PAT_rearr.a;
+
+
+// TAT* :  BD does :  8 - 16 - 31
+//         we do   : 32 - 16 -  8
+//
+//                 31 
+//            16        16
+//          8    8    8    8
+//   32 = [xbbb|bbbb|bbbb|bbbb]
+
+localparam TAT0_N = 8;
+Channel #(4*TAT0_N) TAT0_rearr();
+assign TAT0_rearr.d = {
+  1'b0, PROG_deser[TAT0].d[3*TAT0_N-1 +: TAT0_N-1], // 0 inserted!
+        PROG_deser[TAT0].d[2*TAT0_N-1 +: TAT0_N  ],
+  1'b0, PROG_deser[TAT0].d[1*TAT0_N   +: TAT0_N-1], // 0 inserted!
+        PROG_deser[TAT0].d[0*TAT0_N   +: TAT0_N  ]};
+
+localparam TAT1_N = 8;
+Channel #(4*TAT1_N) TAT1_rearr();
+assign TAT1_rearr.d = {
+  1'b0, PROG_deser[TAT1].d[3*TAT1_N-1 +: TAT1_N-1], // 0 inserted!
+        PROG_deser[TAT1].d[2*TAT1_N-1 +: TAT1_N  ],
+  1'b0, PROG_deser[TAT1].d[1*TAT1_N   +: TAT1_N-1], // 0 inserted!
+        PROG_deser[TAT1].d[0*TAT1_N   +: TAT1_N  ]};
+
+
+///////////////////////////////////////////
+// serialize rearranged words 1-to-4
+
+Channel #(Nbiggest_payload) PROG_ser[3:0](); // ser should just zero-extend narrower outputs
+Serializer #(.Nin(4*AMMM_N), .Nout(AMMM_N)) AMMM_ser(PROG_ser[AMMM], AMMM_rearr, clk, reset);
+Serializer #(.Nin(4* PAT_N), .Nout( PAT_N))  PAT_ser(PROG_ser[PAT ],  PAT_rearr, clk, reset);
+Serializer #(.Nin(4*TAT0_N), .Nout(TAT0_N)) TAT0_ser(PROG_ser[TAT0], TAT0_rearr, clk, reset);
+Serializer #(.Nin(4*TAT1_N), .Nout(TAT1_N)) TAT1_ser(PROG_ser[TAT1], TAT1_rearr, clk, reset);
+
+// turn into UnencodedBDWordChannel
+UnencodedBDWordChannel PROG_ser_coded[3:0]();
+always_comb
+  for (int i = 0; i < 4; i++) begin
+    PROG_ser_coded[i].leaf_code = PROG_codes[i];
+    PROG_ser_coded[i].payload   = PROG_ser[i];
+  end
+
+///////////////////////////////////////////
+// merge serialized streams
+
+// pack merge_in[]
+Channel #(Nbiggest_payload + Ncode) merge_in[4:0]();
+
+always_comb
+  for(int i = 0; i < 4; i++) begin
+    merge_in[i].d       = {PROG_ser_coded[i].leaf_code, PROG_ser_coded[i].payload};
+    merge_in[i].v       = PROG_ser_coded[i].v;
+    PROG_ser_coded[i].a = merge_in[i].a;
+  end
+
+always_comb begin
+  merge_in[4].d    = {PROG_ser_coded.leaf_code, PROG_ser_coded.payload};
+  merge_in[4].v    = PROG_ser_coded.v;
+  PROG_ser_coded.a = merge_in[4].a;
+end
+
+// do merge
+//
+//  0                        
+// ---|\  01                 
+//  1 | |--+                 
+// ---|/   |                 
+//         +--|\  0123       
+//            | |-----|\  top
+//  2      +--|/      | |----
+// ---|\   |       +--|/     
+//  3 | |--+       |         
+// ---|/  23       |         
+//                 |         
+//  4              |         
+// ----------------+         
+//
+
+Channel #(Nbiggest_payload + Ncode) merge_01_out();
+Channel #(Nbiggest_payload + Ncode) merge_23_out();
+Channel #(Nbiggest_payload + Ncode) merge_0123_out();
+Channel #(Nbiggest_payload + Ncode) merge_out();
+ChannelMerge merge_01(merge_01_out, PROG_ser_coded[0], PROG_ser_coded[1], clk, reset);
+ChannelMerge merge_23(merge_23_out, PROG_ser_coded[2], PROG_ser_coded[3], clk, reset);
+ChannelMerge merge_0123(merge_0123_out, merge_01_out, merge_23_out, clk, reset);
+ChannelMerge merge_top(merge_out, merge_01_out, merge_23_out, clk, reset);
+
+// unpack merge_out
+
+always_comb
+  for(int i = 0; i < 4; i++) begin
+    {words_out[i].leaf_code, words_out[i].payload} = merge_out[i].d;
+    words_out[i].v                                 = merge_out[i].v;
+    merge_out[i].a                                 = words_out[i].a;
+  end
+
+endmodule
+
+
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+// BDFunnelEncoder does software BDHornEP codes -> BD horn encoding, as per the wiki
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+module BDFunnelEncoder (
+  Channel BD_data_out,
+  UnencodedBDWordChannel words_in);
 
 // BD input word format:
 // [ X | payload | route ]
 
 localparam unsigned NBDdata = 21;
-localparam unsigned Nbiggest_payload = 20;
 localparam unsigned Nhorn = 34;
 localparam unsigned Ncode = 6;
 localparam unsigned Nlongest_route = 8;
-
-///////////////////////////////////////////
-// reinterpretation of table data
-
-typedef enum {
-  ADC              ,  
-  DAC0             ,
-  DAC10            ,  
-  DAC11            ,  
-  DAC12            ,  
-  DAC1             ,
-  DAC2             ,
-  DAC3             ,
-  DAC4             ,
-  DAC5             ,
-  DAC6             ,
-  DAC7             ,
-  DAC8             ,
-  DAC9             ,
-  DELAY0           ,
-  DELAY1           ,
-  DELAY2           ,
-  DELAY3           ,
-  DELAY4           ,
-  DELAY5           ,
-  DELAY6           ,
-  INIT_FIFO_DCT    ,  
-  INIT_FIFO_HT     ,  
-  NEURONCONFIG     ,  
-  NEURONDUMPTOGGLE ,  
-  NEURONINJECT     ,  
-  PROG_AMMM        ,  
-  PROG_PAT         ,  
-  PROG_TAT0        ,
-  PROG_TAT1        ,
-  RI               ,  
-  TOGGLE_POST_FIFO0,
-  TOGGLE_POST_FIFO1,
-  TOGGLE_PRE_FIFO  ,
-  INVALID} leaf_enum;
-
-// XXX not used
-//leaf_enum leaf;
 
 // copied from above, with extra zeros filled in, then flipped (wiki table is backwards)
 const logic [0:Nhorn-1][Nlongest_route-1:0] routes = '{
@@ -183,52 +365,68 @@ logic [NBDdata-1:0] data_shifted4;
 logic [NBDdata-1:0] data_shifted6;
 logic [NBDdata-1:0] data_shifted7;
 logic [NBDdata-1:0] data_shifted8;
-assign data_shifted1 = enc_in.payload << 1;
-assign data_shifted3 = enc_in.payload << 3;
-assign data_shifted4 = enc_in.payload << 4;
-assign data_shifted6 = enc_in.payload << 6;
-assign data_shifted7 = enc_in.payload << 7;
-assign data_shifted8 = enc_in.payload << 8;
+assign data_shifted1 = words_in.payload << 1;
+assign data_shifted3 = words_in.payload << 3;
+assign data_shifted4 = words_in.payload << 4;
+assign data_shifted6 = words_in.payload << 6;
+assign data_shifted7 = words_in.payload << 7;
+assign data_shifted8 = words_in.payload << 8;
 
 logic [NBDdata-1:0] route_sel;
-assign route_sel = routes[enc_in.leaf_code];
+assign route_sel = routes[words_in.leaf_code];
 
 logic [Ncode-1:0] route_len;
-assign route_len = route_lens[enc_in.leaf_code];
+assign route_len = route_lens[words_in.leaf_code];
 
 always_comb
-  if (enc_in.leaf_code < Nhorn) begin
-    BD_out.v = enc_in.v;
+  if (words_in.leaf_code < Nhorn) begin
+    BD_data_out.v = words_in.v;
     case (route_len)
       1: 
-        BD_out.d = data_shifted1 | route_sel;
+        BD_data_out.d = data_shifted1 | route_sel;
       3:
-        BD_out.d = data_shifted3 | route_sel;
+        BD_data_out.d = data_shifted3 | route_sel;
       4:
-        BD_out.d = data_shifted4 | route_sel;
+        BD_data_out.d = data_shifted4 | route_sel;
       6:
-        BD_out.d = data_shifted6 | route_sel;
+        BD_data_out.d = data_shifted6 | route_sel;
       7:
-        BD_out.d = data_shifted7 | route_sel;
+        BD_data_out.d = data_shifted7 | route_sel;
       8:
-        BD_out.d = data_shifted8 | route_sel;
+        BD_data_out.d = data_shifted8 | route_sel;
       default:
-        BD_out.d = data_shifted1 | route_sel;
+        BD_data_out.d = data_shifted1 | route_sel;
     endcase
   end
   else begin
-    BD_out.v = 0;
-    BD_out.d = 'X;
+    BD_data_out.v = 0;
+    BD_data_out.d = 'X;
   end
 
 // handshake bad inputs
 always_comb
-  if (enc_in.leaf_code < Nhorn)
-    enc_in.a = BD_out.a;
+  if (words_in.leaf_code < Nhorn)
+    words_in.a = BD_data_out.a;
   else
-    if (enc_in.v == 1)
-      enc_in.a = 1;
+    if (words_in.v == 1)
+      words_in.a = 1;
     else
-      enc_in.a = 0;
+      words_in.a = 0;
+
+endmodule
+
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+// BDEncoder combines BDSerializer and BDFunnelEncoder
+///////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////
+module BDEncoder (
+  Channel BD_data_out,
+  UnencodedBDWordChannel words_in, 
+  input clk, reset);
+
+UnencodedBDWordChannel ser_out();
+BDSerializer serializer(ser_out, words_in, clk, reset);
+BDFunnelEncoder funnel_enc(BD_data_out, ser_out);
 
 endmodule

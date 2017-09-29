@@ -2,10 +2,10 @@
 `include "../src/BDEncoder.sv"
 `include "ChannelSrcSink.sv"
 
-module BDEncoder_tb;
+module BDFunnelEncoder_tb;
 
-Channel #(21) BD_out();
-UnencodedBDWordChannel enc_in();
+Channel #(21) BD_data_out();
+UnencodedBDWordChannel words_in();
 
 // clock
 logic clk;
@@ -21,14 +21,49 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
-Channel #(26) enc_in_packed();
-assign {enc_in.leaf_code, enc_in.payload} = enc_in_packed.d;
-assign enc_in.v = enc_in_packed.v;
-assign enc_in_packed.a = enc_in.a;
-RandomChannelSrc #(.N(26)) enc_in_src(enc_in_packed, clk, reset);
+Channel #(30) words_in_packed();
+assign {words_in.leaf_code, words_in.payload} = words_in_packed.d;
+assign words_in.v = words_in_packed.v;
+assign words_in_packed.a = words_in.a;
+RandomChannelSrc #(.N(30)) words_in_src(words_in_packed, clk, reset);
 
-ChannelSink out_sink(BD_out, clk, reset);
+ChannelSink out_sink(BD_data_out, clk, reset);
 
-BDEncoder dut(.*);
+BDFunnelEncoder dut(.*);
+
+endmodule
+
+module BDSerializer_tb;
+
+UnencodedBDWordChannel words_in();
+UnencodedBDWordChannel words_out();
+
+// clock
+logic clk;
+parameter Tclk = 10;
+always #(Tclk/2) clk = ~clk;
+initial clk = 0;
+
+// reset
+logic reset;
+initial begin
+  reset <= 0;
+  @(posedge clk) reset <= 1;
+  @(posedge clk) reset <= 0;
+end
+
+Channel #(30) words_in_packed();
+assign {words_in.leaf_code, words_in.payload} = words_in_packed.d;
+assign words_in.v = words_in_packed.v;
+assign words_in_packed.a = words_in.a;
+RandomChannelSrc #(.N(30)) words_in_src(words_in_packed, clk, reset);
+
+Channel #(30) words_out_packed();
+assign words_out_packed.d = {words_out.leaf_code, words_out.payload}
+assign words_out_packed.v = words_out.v;
+assign words_out.a = words_out_packed.a;
+ChannelSink out_sink(words_out_packed, clk, reset);
+
+BDFunnelEncoder dut(.*);
 
 endmodule

@@ -108,6 +108,7 @@ endinterface
 
 // bundles several channels. There are some syntactic issues with
 // arrays of Channels in modules ports.
+// N is width, M is number of channels
 interface ChannelArray #(parameter N = -1, parameter M = -1);
   logic [M-1:0][N-1:0] d;
   logic [M-1:0] v;
