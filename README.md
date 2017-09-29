@@ -13,11 +13,11 @@ the software stack known as pystorm.
 
 The following diagram illustrates the structure
 
-	└── pystorm
+    └── pystorm
         │
-	    ├── CMakeLists.txt
+        ├── CMakeLists.txt
         │
-	    ├── Jenkinsfile
+        ├── Jenkinsfile
         │
         ├── docker
         │   └── Dockerfile_JENKINS_CI
