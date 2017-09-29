@@ -75,8 +75,8 @@ Driver::Driver() {
   for (auto& ep : up_eps) {
     const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
     const unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
-    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
-        ep_data_size / FPGA_payload_width 
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
+        ep_data_size / FPGA_payload_width
       : ep_data_size / FPGA_payload_width + 1;
 
     // only create a deserializer when needed
@@ -161,6 +161,48 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::MM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size   , 0) , 0);
     SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
 
+    // Initialize neurons
+    // List of DACs
+    std::array<bdpars::BDHornEP, 12> dac_list {
+      bdpars::BDHornEP::DAC_ADC_BIAS_1,
+      bdpars::BDHornEP::DAC_ADC_BIAS_2,
+      bdpars::BDHornEP::DAC_DIFF_G,
+      bdpars::BDHornEP::DAC_DIFF_R,
+      bdpars::BDHornEP::DAC_SOMA_OFFSET,
+      bdpars::BDHornEP::DAC_SOMA_REF,
+      bdpars::BDHornEP::DAC_SYN_EXC,
+      bdpars::BDHornEP::DAC_SYN_DC,
+      bdpars::BDHornEP::DAC_SYN_INH,
+      bdpars::BDHornEP::DAC_SYN_LK,
+      bdpars::BDHornEP::DAC_SYN_PD,
+      bdpars::BDHornEP::DAC_SYN_PU
+    };
+
+    // Set them to default values defined in BDPars
+    for(auto& dac_id: dac_list){
+      unsigned int dac_count = GetDACDefaultCount(dac_id);
+      SetDACValue(i, dac_id, dac_count);
+    }
+
+    // Disable all Somas
+    for(unsigned int idx = 0; idx < 4096; ++idx){
+      DisableSoma(i, idx);
+      SetSomaGain(i, idx, bdpars::SomaGainId::ONE);
+      SetSomaOffsetSign(i, idx, bdpars::SomaOffsetSignId::POSITIVE);
+      SetSomaOffsetMultiplier(i, idx, bdpars::SomaOffsetMultiplierId::ZERO);
+    }
+
+    // Disable all Synapses
+    for(unsigned int idx = 0; idx < 1024; ++idx){
+      DisableSynapse(i, idx);
+      DisableSynapseADC(i, idx);
+    }
+
+    // Open all Diffusor cuts
+    for(unsigned int idx = 0; idx < 256; ++idx){
+      OpenDiffusorAllCuts(i, idx);
+    }
+
     // XXX other stuff to do?
     Flush();
   }
@@ -206,8 +248,8 @@ void Driver::Flush() {
   // there's no guarantee that the memory is going to be set after the first batch of spikes is sent
   //
   // If you really want that, do this:
-  // SendSpikes(), Flush(), 
-  // SetMem(), Flush(), 
+  // SendSpikes(), Flush(),
+  // SetMem(), Flush(),
   // SendSpikes(), Flush()
   //
   // The order of sequenced calls is conserved, and, of course, the timing is correct
@@ -217,17 +259,17 @@ void Driver::Flush() {
   //
   // then SetMem(x) is guaranteed to occur before SetMem(y)
   // and the traffic of SendSpikes(a) is interleaved with SendSpikes(b) as necessary
-  
+
   unsigned int num_words = 0;
   num_words += timed_queue_.size();
-  
+
   // send the timed traffic first (it's more important, I guess)
   auto from_queue = std::make_unique<std::vector<EncInput>>();
   from_queue->swap(timed_queue_);
   enc_buf_in_->Push(std::move(from_queue));
 
 
-  // then send the sequenced traffic 
+  // then send the sequenced traffic
   while (!sequenced_queue_.empty()) {
     num_words += sequenced_queue_.front()->size();
     enc_buf_in_->Push(std::move(sequenced_queue_.front()));
@@ -250,7 +292,7 @@ void Driver::Flush() {
     auto nop_vect = std::make_unique<std::vector<EncInput>>(nops_to_send, nop);
     enc_buf_in_->Push(std::move(nop_vect));
   }
-  
+
 }
 
 /// Set toggle traffic_en only, keep dump_en the same, returns previous traffic_en.
@@ -577,7 +619,7 @@ void Driver::SetMem(
 
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
-    
+
     unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
 
     // XXX this might discard remainders
@@ -769,7 +811,7 @@ std::pair<std::vector<BDWord>,
 
   typedef std::pair<std::vector<BDWord>, std::vector<BDTime>> RetType;
 
-  RetType tat_tags; 
+  RetType tat_tags;
   RetType acc_tags;
 
   // XXX need to have a timeout, otherwise we can hang even when we have something to send
@@ -796,8 +838,8 @@ void Driver::SendToEP(unsigned int core_id,
 
   const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
   const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
-  const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
-      ep_data_size / FPGA_payload_width 
+  const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
+      ep_data_size / FPGA_payload_width
     : ep_data_size / FPGA_payload_width + 1;
 
   if (D > 1) {
@@ -829,7 +871,7 @@ void Driver::SendToEP(unsigned int core_id,
     for (auto& it : payload) {
       EncInput to_push;
       BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
-      
+
       to_push.payload = it;
       to_push.time = time;
       to_push.core_id = core_id;
@@ -877,7 +919,7 @@ std::pair<std::vector<BDWord>,
       // if the width of a single data object returned from the FPGA ever
       // exceeds 64 bits, we may need to rethink this
       assert(deserialized.size() == 2); // the only case to deal with for now
-      
+
       uint32_t payload_lsb = deserialized.at(0).payload;
       uint32_t payload_msb = deserialized.at(1).payload;
       BDTime   time        = deserialized.at(1).time; // take time on second word
