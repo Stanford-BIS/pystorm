@@ -1,7 +1,7 @@
 """This module defines the hardware resources available"""
 import numpy as np
-from mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
-from mem_word_placeholders import BDWord
+from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
+from .mem_word_placeholders import BDWord
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""

@@ -1,7 +1,7 @@
 import numpy as np
-from . mem_word_enums import *
-from . mem_word_placeholders import *
-import Pystorm as ps
+from .mem_word_enums import *
+from .mem_word_placeholders import *
+import pystorm._PyStorm as ps
 
 class Core(object):
     def __init__(self, pars):

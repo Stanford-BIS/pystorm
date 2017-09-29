@@ -1,4 +1,4 @@
-from mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
+from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
 
 # XXX this isn't permanent implementation
 # just meant to behave like the actual boost object would
