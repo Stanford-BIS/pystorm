@@ -279,13 +279,17 @@ BDTagMerge tag_merge(
 // BDEncoder
 BDEncoder BD_encoder(
   BD_out_pre_FIFO,
-  BDTagMerge_out);
+  BDTagMerge_out,
+  clk, reset);
 
 /////////////////////////////////////////////
 // BD -> PC datapath
 
 // BDDecoder
-BDDecoder BD_decoder(BDDecoder_out, BD_in_post_FIFO);
+BDDecoder BD_decoder(
+  BDDecoder_out, 
+  BD_in_post_FIFO,
+  clk, reset);
 
 // BDTagSplit
 BDTagSplit #(
