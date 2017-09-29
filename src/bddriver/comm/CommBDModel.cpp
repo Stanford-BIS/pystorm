@@ -51,8 +51,8 @@ void CommBDModel::RunOnce() {
 void CommBDModel::Run() {
   while (GetStreamState() == CommStreamState::STARTED) {
     RunOnce();
-    unsigned int sleep_for_us = driver_pars_->Get(driverpars::BDMODELCOMM_SLEEP_FOR_US);
-    std::this_thread::sleep_for(std::chrono::microseconds(sleep_for_us));
+    //unsigned int sleep_for_us = driver_pars_->Get(driverpars::BDMODELCOMM_SLEEP_FOR_US);
+    //std::this_thread::sleep_for(std::chrono::microseconds(sleep_for_us));
   }
 }
 

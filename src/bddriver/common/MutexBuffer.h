@@ -26,7 +26,7 @@ class MutexBuffer {
   std::condition_variable just_pushed_;
 
   // single lock to modify vals_
-  // note that the producers and consumers can simultaneously read/write the 
+  // note that the producers and consumers can simultaneously read/write the
   // CONTENTS of the vectors Pop()ed/Push()ed
   std::mutex lock_;
 
@@ -78,6 +78,37 @@ class MutexBuffer {
     vals_.pop();
 
     return front_vect;
+  }
+
+  /// PopAll() works similar to Pop(), except it pops everything available
+  std::vector<std::unique_ptr<std::vector<T>>> PopAll(unsigned int try_for_us=1) {
+    // gain lock, release it when we fall out of scope or go to sleep
+    std::unique_lock<std::mutex> ulock(lock_);
+
+    // Returned data
+    std::vector<std::unique_ptr<std::vector<T>>> buf_out;
+
+    // if empty, go to sleep until notified
+    if (vals_.empty()) {
+      if (try_for_us == 0) { // sleep indefinitely
+        just_pushed_.wait(ulock, [this] { return !vals_.empty(); });
+      } else { // else, time out after try_for_us microseconds
+        auto timeout = std::chrono::duration<unsigned int, std::micro>(try_for_us);
+        bool success = just_pushed_.wait_for(ulock, timeout, [this] { return !vals_.empty(); });
+        if (!success) {
+          // return empty container if we timed out
+          return buf_out;
+        }
+      }
+    }
+
+    while (!vals_.empty())
+    {
+        buf_out.emplace_back(std::move(vals_.front()));
+        vals_.pop();
+    }
+
+    return buf_out;
   }
 
 };
