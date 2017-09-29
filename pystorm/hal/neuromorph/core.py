@@ -4,29 +4,36 @@ from .mem_word_placeholders import *
 import pystorm._PyStorm as ps
 
 class Core(object):
-    def __init__(self, pars):
-        # base parameters
+    """Represents a braindrop/brainstorm core
 
+    Contains the neuron array, digital datapath, and memories.
+
+    Parameters
+    ----------
+    ps_pars: _PyStorm CorePars instance
+    """
+    def __init__(self, ps_pars):
         pars_idx = ps.CoreParsIndex
 
-        self.MM_height = pars[pars_idx.MM_height]
-        self.MM_width = pars[pars_idx.MM_width]
+        self.MM_height = ps_pars[pars_idx.MM_height]
+        self.MM_width = ps_pars[pars_idx.MM_width]
 
-        self.AM_size = pars[pars_idx.AM_size]
+        self.AM_size = ps_pars[pars_idx.AM_size]
 
-        self.TAT_size = pars[pars_idx.TAT_size]
+        self.TAT_size = ps_pars[pars_idx.TAT_size]
 
-        self.NeuronArray_height = pars[pars_idx.NeuronArray_height]
-        self.NeuronArray_width  = pars[pars_idx.NeuronArray_width]
-        self.NeuronArray_pool_size = pars[pars_idx.NeuronArray_pool_size] # number of neurons that share each PAT entry
-        self.NeuronArray_neurons_per_tap = pars[pars_idx.NeuronArray_neurons_per_tap]
+        self.NeuronArray_height = ps_pars[pars_idx.NeuronArray_height]
+        self.NeuronArray_width  = ps_pars[pars_idx.NeuronArray_width]
+        self.NeuronArray_pool_size = ps_pars[
+            pars_idx.NeuronArray_pool_size] # number of neurons that share each PAT entry
+        self.NeuronArray_neurons_per_tap = ps_pars[pars_idx.NeuronArray_neurons_per_tap]
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
         self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
 
-        self.num_threshold_levels = pars[pars_idx.num_threshold_levels]
-        self.min_threshold_value = pars[pars_idx.min_threshold_value]
-        self.max_weight_value = pars[pars_idx.max_weight_value]
+        self.num_threshold_levels = ps_pars[pars_idx.num_threshold_levels]
+        self.min_threshold_value = ps_pars[pars_idx.min_threshold_value]
+        self.max_weight_value = ps_pars[pars_idx.max_weight_value]
 
         # set up allocable objects (Resource containers)
 
