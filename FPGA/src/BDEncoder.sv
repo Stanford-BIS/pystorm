@@ -50,7 +50,7 @@ order    |leaf name           |depth  |route          |data   |serial-|chunk  |p
 // does BD 1-to-4 serialization for PROG_* leaves, as per the wiki
 ///////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////
-module BDSerializer (
+module BDFunnelSerializer (
   UnencodedBDWordChannel words_out,
   UnencodedBDWordChannel words_in,
   input clk, reset);
@@ -61,19 +61,21 @@ localparam unsigned Nhorn = 34;
 localparam unsigned Ncode = 6;
 localparam unsigned Nlongest_route = 8;
 
+genvar i;
+
 // these words are all serialized 1-to-2 by the PC
 // we first deserialize 2-to-1, then serialize the result 1-to-4
 typedef enum {AMMM=0, PAT=1, TAT0=2, TAT1=3} prog_type;
-const logic [3:0][Ncode-1:0] PROG_codes = {26, 27, 28, 29};
+const logic [3:0][Ncode-1:0] PROG_codes = '{26, 27, 28, 29};
 
 ///////////////////////////////////////////
 // bools to use for the split logic
 
 logic[3:0] PROG_test;
 generate
-genvar i;
-for (int i = 0; i < 4; i++) : generate_PROG_test
-  assign PROG_test[i] = words_in.code == PROG_codes[i] ? 1 : 0;
+  for (i = 0; i < 4; i++) begin : generate_PROG_test
+    assign PROG_test[i] = words_in.leaf_code == PROG_codes[i] ? 1 : 0;
+  end
 endgenerate
 
 logic other_test;
@@ -82,44 +84,30 @@ assign other_test = ~(|PROG_test);
 ///////////////////////////////////////////
 // split out PROG codes and other traffic
 
-// XXX FIXME stopped work here: start turning these into generates
-// so I can keep my Channel arrays
-
 // prog words
 Channel #(Nbiggest_payload) PROG_split[3:0]();
-always_comb
-  for (int i = 0; i < 4; i++) begin
-    if (words_in.v == 1 && PROG_test[i] == 1) begin
-      PROG_split[i].v = 1;
-      PROG_split[i].d = words_in.payload;
-    end
-    else begin
-      PROG_split[i].v = 0;
-      PROG_split[i].d = 'X;
-    end
+generate 
+  for (i = 0; i < 4; i++) begin : generate_PROG_split
+    assign PROG_split[i].v = (words_in.v == 1 && PROG_test[i] == 1) ? 1 : 0;
+    assign PROG_split[i].d = (words_in.v == 1 && PROG_test[i] == 1) ? words_in.payload : 'X;
   end
+endgenerate
 
 // other words (need to keep the code)
 // this bypasses the next couple stages
 UnencodedBDWordChannel other_split();
-always_comb
-  if (words_in.v == 1 && other_test == 1) begin
-    other_split.v = 1;
-    other_split.payload = words_in.payload;
-    other_split.code    = words_in.code;
-  end
-  else begin
-    other_split.v = 0;
-    other_split.payload = 'X;
-    other_split.code    = 'X;
-  end
+assign other_split.v         = (words_in.v == 1 && other_test == 1) ?                  1 : 0;
+assign other_split.payload   = (words_in.v == 1 && other_test == 1) ?   words_in.payload : 'X;
+assign other_split.leaf_code = (words_in.v == 1 && other_test == 1) ? words_in.leaf_code : 'X;
+
+// handshake
+assign words_in.a = PROG_split[AMMM].a | PROG_split[PAT].a | PROG_split[TAT0].a | PROG_split[TAT1].a | other_split.a;
 
 ///////////////////////////////////////////
 // deserialize 2-to-1
 
 Channel #(2*Nbiggest_payload) PROG_deser[3:0]();
 Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[3:0](PROG_deser, PROG_split, clk, reset);
-
 
 ///////////////////////////////////////////
 // rearrange in preparation for serizlization 
@@ -182,6 +170,8 @@ assign TAT0_rearr.d = {
         PROG_deser[TAT0].d[2*TAT0_N-1 +: TAT0_N  ],
   1'b0, PROG_deser[TAT0].d[1*TAT0_N   +: TAT0_N-1], // 0 inserted!
         PROG_deser[TAT0].d[0*TAT0_N   +: TAT0_N  ]};
+assign TAT0_rearr.v = PROG_deser[TAT0].v;
+assign PROG_deser[TAT0].a = TAT0_rearr.a;
 
 localparam TAT1_N = 8;
 Channel #(4*TAT1_N) TAT1_rearr();
@@ -190,6 +180,8 @@ assign TAT1_rearr.d = {
         PROG_deser[TAT1].d[2*TAT1_N-1 +: TAT1_N  ],
   1'b0, PROG_deser[TAT1].d[1*TAT1_N   +: TAT1_N-1], // 0 inserted!
         PROG_deser[TAT1].d[0*TAT1_N   +: TAT1_N  ]};
+assign TAT1_rearr.v = PROG_deser[TAT1].v;
+assign PROG_deser[TAT1].a = TAT1_rearr.a;
 
 
 ///////////////////////////////////////////
@@ -203,11 +195,14 @@ Serializer #(.Nin(4*TAT1_N), .Nout(TAT1_N)) TAT1_ser(PROG_ser[TAT1], TAT1_rearr,
 
 // turn into UnencodedBDWordChannel
 UnencodedBDWordChannel PROG_ser_coded[3:0]();
-always_comb
-  for (int i = 0; i < 4; i++) begin
-    PROG_ser_coded[i].leaf_code = PROG_codes[i];
-    PROG_ser_coded[i].payload   = PROG_ser[i];
+generate
+  for (i = 0; i < 4; i++) begin : generate_PROG_ser_coded
+    assign PROG_ser_coded[i].leaf_code = PROG_codes[i];
+    assign PROG_ser_coded[i].payload   = PROG_ser[i].d;
+    assign PROG_ser_coded[i].v         = PROG_ser[i].v;
+    assign PROG_ser[i].a               = PROG_ser_coded[i].a;
   end
+endgenerate
 
 ///////////////////////////////////////////
 // merge serialized streams
@@ -215,18 +210,17 @@ always_comb
 // pack merge_in[]
 Channel #(Nbiggest_payload + Ncode) merge_in[4:0]();
 
-always_comb
-  for(int i = 0; i < 4; i++) begin
-    merge_in[i].d       = {PROG_ser_coded[i].leaf_code, PROG_ser_coded[i].payload};
-    merge_in[i].v       = PROG_ser_coded[i].v;
-    PROG_ser_coded[i].a = merge_in[i].a;
+generate
+  for(i = 0; i < 4; i++) begin : generate_merge_in
+    assign merge_in[i].d       = {PROG_ser_coded[i].leaf_code, PROG_ser_coded[i].payload};
+    assign merge_in[i].v       = PROG_ser_coded[i].v;
+    assign PROG_ser_coded[i].a = merge_in[i].a;
   end
+endgenerate
 
-always_comb begin
-  merge_in[4].d    = {PROG_ser_coded.leaf_code, PROG_ser_coded.payload};
-  merge_in[4].v    = PROG_ser_coded.v;
-  PROG_ser_coded.a = merge_in[4].a;
-end
+assign merge_in[4].d = {other_split.leaf_code, other_split.payload};
+assign merge_in[4].v = other_split.v;
+assign other_split.a = merge_in[4].a;
 
 // do merge
 //
@@ -249,19 +243,15 @@ Channel #(Nbiggest_payload + Ncode) merge_01_out();
 Channel #(Nbiggest_payload + Ncode) merge_23_out();
 Channel #(Nbiggest_payload + Ncode) merge_0123_out();
 Channel #(Nbiggest_payload + Ncode) merge_out();
-ChannelMerge merge_01(merge_01_out, PROG_ser_coded[0], PROG_ser_coded[1], clk, reset);
-ChannelMerge merge_23(merge_23_out, PROG_ser_coded[2], PROG_ser_coded[3], clk, reset);
+ChannelMerge merge_01(merge_01_out, merge_in[0], merge_in[1], clk, reset);
+ChannelMerge merge_23(merge_23_out, merge_in[2], merge_in[3], clk, reset);
 ChannelMerge merge_0123(merge_0123_out, merge_01_out, merge_23_out, clk, reset);
-ChannelMerge merge_top(merge_out, merge_01_out, merge_23_out, clk, reset);
+ChannelMerge merge_top(merge_out, merge_0123_out, merge_in[4], clk, reset);
 
 // unpack merge_out
-
-always_comb
-  for(int i = 0; i < 4; i++) begin
-    {words_out[i].leaf_code, words_out[i].payload} = merge_out[i].d;
-    words_out[i].v                                 = merge_out[i].v;
-    merge_out[i].a                                 = words_out[i].a;
-  end
+assign {words_out.leaf_code, words_out.payload} = merge_out.d;
+assign words_out.v                              = merge_out.v;
+assign merge_out.a                              = words_out.a;
 
 endmodule
 
@@ -426,7 +416,7 @@ module BDEncoder (
   input clk, reset);
 
 UnencodedBDWordChannel ser_out();
-BDSerializer serializer(ser_out, words_in, clk, reset);
+BDFunnelSerializer serializer(ser_out, words_in, clk, reset);
 BDFunnelEncoder funnel_enc(BD_data_out, ser_out);
 
 endmodule
