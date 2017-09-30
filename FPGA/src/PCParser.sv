@@ -109,11 +109,10 @@ logic [Nconf-1:0] conf_data;
 assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
 
 // unpack PC_in.d for BD-bound word
-logic [1:0] BD_unused_hi;
+logic [1:0] BD_unused;
 logic [5:0] leaf_code;
-logic [3:0] BD_unused_lo;
 logic [NBDbiggest_data-1:0] BD_data;
-assign {BD_unused_hi, leaf_code, BD_unused_lo, BD_data} = PC_in.d;
+assign {BD_unused, leaf_code, BD_data} = PC_in.d;
 
 // determine word type, for convenience
 enum {BD_WORD, REG_WORD, CHANNEL_WORD} word_type;

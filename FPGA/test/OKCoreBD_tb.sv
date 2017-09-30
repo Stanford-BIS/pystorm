@@ -109,8 +109,8 @@ task SetChan(logic [4:0] chan_id, logic[15:0] data);
   i = i + 1;
 endtask
 
-task SendToBD(logic[5:0] code, logic[19:0] payload);
-  pipeInFlat[i] = {2'b00, code, 4'b0, payload};
+task SendToBD(logic[5:0] code, logic[23:0] payload);
+  pipeInFlat[i] = {2'b00, code, payload};
   assert(i < pipeInSize);
   i = i + 1;
 endtask
@@ -140,7 +140,7 @@ task SendToAllBD(int start, int num_words);
   localparam NumHornLeaves = 34;
   for (int i = 0; i < num_words; i++) begin
     automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
-    automatic logic [19:0] payload = $urandom_range(0, 2**20-1);
+    automatic logic [23:0] payload = $urandom_range(0, 2**23-1);
     SendToBD({2'b00, leaf}, payload);
   end
 endtask
@@ -152,14 +152,19 @@ initial begin
 	FrontPanelReset;                      // Start routine with FrontPanelReset;
   user_reset <= 0;
 
-  // send pat word
-  SendToBD({2'b00, 6'd27}, 24'd0);
+  // turn off resets
+  // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
+  SetReg(31, 0); 
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // send am word
+  SendToBD({2'b00, 6'd26}, {24{1'b1}});
+  SendToBD({2'b00, 6'd26}, {24{1'b0}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   //SendToBD(0, 3'b101); // ADC 
   //SendToBD(1, 11'b10101010101); // DAC0
-  //SetReg(31, 0); // turn off resets
-  //FlushAndSendPipeIn(); // send the stuff we queued up
+
 
   //#(1000)
   //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc

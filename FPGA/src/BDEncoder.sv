@@ -67,12 +67,13 @@ genvar i;
 // these words are all serialized 1-to-2 by the PC
 // we first deserialize 2-to-1, then serialize the result 1-to-4
 typedef enum {AMMM=0, PAT=1, TAT0=2, TAT1=3} prog_type;
-const logic [3:0][Ncode-1:0] PROG_codes = '{26, 27, 28, 29};
+// note ascending indices! table order
+const logic [0:3][Ncode-1:0] PROG_codes = '{26, 27, 28, 29};
 
 ///////////////////////////////////////////
 // bools to use for the split logic
 
-logic[3:0] PROG_test;
+logic[0:3] PROG_test;
 generate
   for (i = 0; i < 4; i++) begin : generate_PROG_test
     assign PROG_test[i] = words_in.leaf_code == PROG_codes[i] ? 1 : 0;
@@ -86,7 +87,7 @@ assign other_test = ~(|PROG_test);
 // split out PROG codes and other traffic
 
 // prog words
-Channel #(Nbiggest_payload) PROG_split[3:0]();
+Channel #(Nbiggest_payload) PROG_split[0:3]();
 generate 
   for (i = 0; i < 4; i++) begin : generate_PROG_split
     assign PROG_split[i].v = (words_in.v == 1 && PROG_test[i] == 1) ? 1 : 0;
@@ -107,8 +108,8 @@ assign words_in.a = PROG_split[AMMM].a | PROG_split[PAT].a | PROG_split[TAT0].a 
 ///////////////////////////////////////////
 // deserialize 2-to-1
 
-Channel #(2*Nbiggest_payload) PROG_deser[3:0]();
-Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[3:0](PROG_deser, PROG_split, clk, reset);
+Channel #(2*Nbiggest_payload) PROG_deser[0:3]();
+Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[0:3](PROG_deser, PROG_split, clk, reset);
 
 ///////////////////////////////////////////
 // rearrange in preparation for serizlization 
@@ -188,14 +189,14 @@ assign PROG_deser[TAT1].a = TAT1_rearr.a;
 ///////////////////////////////////////////
 // serialize rearranged words 1-to-4
 
-Channel #(Nbiggest_payload) PROG_ser[3:0](); // ser should just zero-extend narrower outputs
+Channel #(Nbiggest_payload) PROG_ser[0:3](); // ser should just zero-extend narrower outputs
 Serializer #(.Nin(4*AMMM_N), .Nout(AMMM_N)) AMMM_ser(PROG_ser[AMMM], AMMM_rearr, clk, reset);
 Serializer #(.Nin(4* PAT_N), .Nout( PAT_N))  PAT_ser(PROG_ser[PAT ],  PAT_rearr, clk, reset);
 Serializer #(.Nin(4*TAT0_N), .Nout(TAT0_N)) TAT0_ser(PROG_ser[TAT0], TAT0_rearr, clk, reset);
 Serializer #(.Nin(4*TAT1_N), .Nout(TAT1_N)) TAT1_ser(PROG_ser[TAT1], TAT1_rearr, clk, reset);
 
 // turn into UnencodedBDWordChannel
-UnencodedBDWordChannel PROG_ser_coded[3:0]();
+UnencodedBDWordChannel PROG_ser_coded[0:3]();
 generate
   for (i = 0; i < 4; i++) begin : generate_PROG_ser_coded
     assign PROG_ser_coded[i].leaf_code = PROG_codes[i];
@@ -274,6 +275,7 @@ localparam unsigned Nhorn = 34;
 localparam unsigned Ncode = 6;
 localparam unsigned Nlongest_route = 8;
 
+// note ascending outer indices! table order
 // copied from above, with extra zeros filled in, then flipped (wiki table is backwards)
 const logic [0:Nhorn-1][Nlongest_route-1:0] routes = '{
   'b00000101,
@@ -311,7 +313,7 @@ const logic [0:Nhorn-1][Nlongest_route-1:0] routes = '{
   'b11010001,
   'b10010001};
 
-const logic [Nhorn-1:0][Ncode-1:0] route_lens = '{
+const logic [0:Nhorn-1][Ncode-1:0] route_lens = '{
   4,
   8,
   7,
