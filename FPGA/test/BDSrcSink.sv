@@ -231,7 +231,8 @@ module BD_Source #(
     end
     else
       if (sync_ine == 1) begin
-        sync_DI = sync_DI + 1;
+        automatic logic [63:0] big_rand = {$urandom_range(0,2**32-1), $urandom_range(0,2**32-1)};
+        sync_DI = big_rand[NUM_BITS-1:0];
         $display("[T=%g]: data=%h (BD_Source)", $time, data);
         delay = $urandom_range(DelayMax, DelayMin);
         for (int i = 0; i < delay + 1; i++) begin

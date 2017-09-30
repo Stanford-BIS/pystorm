@@ -37,7 +37,7 @@ module BDHornDecoder (
 
 // this module isn't really parametrized, it only works for this width
 localparam NBDdata = 34;
-localparam Nbiggest_payload = 32;
+localparam Nbiggest_single_payload = 32;
 localparam Nfunnel = 13;
 localparam Ncode = 4;
 
@@ -139,8 +139,8 @@ always_comb
     leaf = INVALID;
 
 logic [NBDdata-1:0] masked_payload;
-assign masked_payload = BD_in.d & payload_masks[leaf];
-assign dec_out.payload = masked_payload[Nbiggest_payload-1:0];
+assign masked_payload = BD_in.d & payload_masks[leaf]; // will not discard any extra "high" bits!
+assign dec_out.payload = masked_payload[Nbiggest_single_payload-1:0]; // will 0-extend
 
 assign dec_out.leaf_code = leaf; // enum -> int
 
@@ -179,7 +179,7 @@ assign words_in.a = words_in_packed.a;
 
 Channel #(N) DUMP_AM_words();
 Channel #(N) other_words();
-ChannelSplit #(.N(N), .Mask({4'b1111, 32'd0}), .Code0(DUMP_AM_code))
+ChannelSplit #(.N(N), .Mask({{Ncode{1'b1}}, {Nbiggest_payload{1'd0}}}), .Code0({DUMP_AM_code, {Nbiggest_payload{1'd0}}}))
   split(DUMP_AM_words, other_words, words_in_packed);
  
 

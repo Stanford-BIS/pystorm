@@ -11,7 +11,7 @@ module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
 // BDHornEP 6  : DUMP_TAT0 : 29 bits
 // BDHornEP 7  : DUMP_TAT1 : 29 bits
 // BDHornEP 11 : RO_ACC    : 28 bits
-// BDHornEP 12 :RO_TAT     : 32 bits
+// BDHornEP 12 : RO_TAT     : 32 bits
 
 localparam NBDpayload = 38; // width of DecodedBDWordChannel.payload (longest "data width")
 localparam Nfunnel = 13; // number of funnel leaves
