@@ -3,6 +3,7 @@
 #include <cassert>
 #include <iostream>
 #include <unordered_map>
+#include <array>
 #include <vector>
 #include <queue>
 #include <algorithm>

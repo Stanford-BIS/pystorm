@@ -35,7 +35,7 @@ pipeline {
         }
         stage('Test') {
             steps {
-                sh script: "ssh ${HOSTIP} 'docker run --rm -i --user=\$(id -u jenkins) -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build ctest -C Debug -T test -VV --timeout 600'"
+                sh script: "ssh ${HOSTIP} 'docker run --rm -i --user=\$(id -u jenkins) -v ${JENKINS_HOST_PATH}:/pystorm pystorm_build ctest -C Debug -T test -VV --timeout 300'"
             }
         }
     }
