@@ -63,6 +63,8 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
 std::vector<uint8_t> BDModel::GenerateOutputs() {
 
+  std::unique_lock<std::mutex>(mutex_);
+
   // serialize words like FPGA
   std::unordered_map<uint8_t, std::vector<uint32_t>> ser_ep_words;
   for (auto& it : to_send_) {
