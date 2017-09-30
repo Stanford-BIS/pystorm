@@ -1,28 +1,20 @@
 import pprint
-import PyDriver.pystorm.bddriver as bd
-from PyDriver.pystorm.bddriver.bdpars import BDHornEP as HornID
-from PyDriver.pystorm.bddriver.bdpars import SomaStatusId as SomaStatusID
-from PyDriver.pystorm.bddriver.bdpars import SomaGainId as SomaGainID
-from PyDriver.pystorm.bddriver.bdpars import SomaOffsetSignId as SomaOffsetSignID
-from PyDriver.pystorm.bddriver.bdpars import SomaOffsetMultiplierId as SomaOffsetMultiplierID
-from PyDriver.pystorm.bddriver.bdpars import SynapseStatusId as SynapseStatusID
-from PyDriver.pystorm.bddriver.bdpars import DiffusorCutStatusId as DiffusorCutStatusID
-from PyDriver.pystorm.bddriver.bdpars import DiffusorCutLocationId as DiffusorCutLocationID
+import PyDriver as bd
 
 driver = bd.Driver()
 dac_ids = [
-  HornID.DAC_DIFF_G,         
-  HornID.DAC_SYN_INH,        
-  HornID.DAC_SYN_PU,         
-  HornID.DAC_DIFF_R,         
-  HornID.DAC_SOMA_OFFSET,    
-  HornID.DAC_SYN_LK,         
-  HornID.DAC_SYN_DC,         
-  HornID.DAC_SYN_PD,         
-  HornID.DAC_ADC_BIAS_2,     
-  HornID.DAC_ADC_BIAS_1,     
-  HornID.DAC_SOMA_REF,       
-  HornID.DAC_SYN_EXC,        
+  bd.BDHornEP.DAC_DIFF_G,
+  bd.BDHornEP.DAC_SYN_INH,
+  bd.BDHornEP.DAC_SYN_PU,
+  bd.BDHornEP.DAC_DIFF_R,
+  bd.BDHornEP.DAC_SOMA_OFFSET,
+  bd.BDHornEP.DAC_SYN_LK,
+  bd.BDHornEP.DAC_SYN_DC,
+  bd.BDHornEP.DAC_SYN_PD,
+  bd.BDHornEP.DAC_ADC_BIAS_2,
+  bd.BDHornEP.DAC_ADC_BIAS_1,
+  bd.BDHornEP.DAC_SOMA_REF,
+  bd.BDHornEP.DAC_SYN_EXC,
 ]
 
 for _dac in dac_ids:
@@ -33,9 +25,9 @@ for _dac in dac_ids:
 # 4096 Somas
 for _idx in range(4096):
     driver.DisableSoma(0, _idx)
-    driver.SetSomaGain(0, _idx, SomaGainID.ONE)
-    driver.SetSomaOffsetSign(0, _idx, SomaOffsetSignID.POSITIVE)
-    driver.SetSomaOffsetMultiplier(0, _idx, SomaOffsetMultiplierID.ZERO)
+    driver.SetSomaGain(0, _idx, bd.SomaGainId.ONE)
+    driver.SetSomaOffsetSign(0, _idx, bd.SomaOffsetSignId.POSITIVE)
+    driver.SetSomaOffsetMultiplier(0, _idx, bd.SomaOffsetMultiplierId.ZERO)
 
 # Enable just one
 driver.EnableSoma(0, 1023)

@@ -437,7 +437,7 @@ void bind_unknown_unknown_3(std::function< pybind11::module &(std::string const 
 void bind_model_BDModelDriver(std::function< pybind11::module &(std::string const &namespace_) > &M);
 
 
-PYBIND11_PLUGIN(PyDriver) {
+PYBIND11_PLUGIN(_PyDriver) {
 	std::map <std::string, std::shared_ptr<pybind11::module> > modules;
 	ModuleGetter M = [&](std::string const &namespace_) -> pybind11::module & {
 		auto it = modules.find(namespace_);

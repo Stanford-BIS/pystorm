@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.0)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
-
 set(TARGET_NAME "Hal")
 
 ############################################################################
@@ -8,10 +6,17 @@ set(TARGET_NAME "Hal")
 # Common setup and sanity checks
 #
 ############################################################################
+set(PRJ_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+set(BD_LIBRARY_OUTPUT_PATH ${PRJ_ROOT_DIR}/lib)
+list(APPEND CMAKE_MODULE_PATH ${PRJ_ROOT_DIR}/cmake)
 
 # This has to be done after 'project' is set
 include(CheckRequirements)
 include(Common)
+
+# This should be before TARGET is set
+SetupCompilerOptions()
+SetupBuildPaths()
 
 ############################################################################
 #
@@ -22,24 +27,14 @@ include(Common)
 # Additional packages
 find_package(Threads REQUIRED)
 
-# Project settings
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-endif()
-
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Hal.h)
 set(SRC_FILES ${CMAKE_CURRENT_SOURCE_DIR}/Hal.cpp)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/common)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+include_directories(${PRJ_ROOT_DIR}/include)
 include_directories(${INCLUDE_DIRS})
-
-# This should be before TARGET is set
-SetupSharedLibrary()
 
 # Define the library being built
 add_library(${TARGET_NAME} SHARED

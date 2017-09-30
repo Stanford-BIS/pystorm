@@ -1,6 +1,6 @@
-import PyDriver.pystorm.bddriver as bd
+import PyDriver as bd
 
-driver = bd.BDModelDriver()
+driver = bd.pystorm.bddriver.BDModelDriver()
 model = driver.GetBDModel()
 
 # Calling driver.Start() results in segfault when exiting Python
