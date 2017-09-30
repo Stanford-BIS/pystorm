@@ -1,11 +1,14 @@
 cmake_minimum_required(VERSION 3.0)
 project(PyStorm CXX)
 
-
 # tell cmake it can find modules in ./cmake/ directory
+set(PRJ_ROOT_DIR ${PROJECT_SOURCE_DIR})
+set(BD_LIBRARY_OUTPUT_PATH ${PRJ_ROOT_DIR}/lib)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(CheckRequirements)
 include(Common)
+SetupCompilerOptions()
+SetupBuildPaths()
 
 # Enable testing
 enable_testing()

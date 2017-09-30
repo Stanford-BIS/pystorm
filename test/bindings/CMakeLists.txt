@@ -5,7 +5,7 @@ set(PRJ_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 include(CheckRequirements)
 include(Common)
 
-set(PYSTORM_BASE_LIB_DIR ${PRJ_ROOT_DIR}/lib)
+set(PYSTORM_BASE_LIB_DIR ${PRJ_ROOT_DIR}/lib/$<CONFIG>)
 
 #-------------------
 # Set global variables
@@ -22,10 +22,6 @@ find_package(PythonInterp 3.6)
 # Build Test
 #-------------------
 enable_testing()
-
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
-endif()
 
 add_test(NAME PyStorm_test
          COMMAND ${PYTHON_EXECUTABLE} -m unittest PyStorm_test
@@ -55,17 +51,17 @@ if(WIN32)
 else()
     set_property(TEST PyStorm_test PROPERTY
     ENVIRONMENT
-        "PYTHONPATH=${PYSTORM_BASE_LIB_DIR}"
+    "PYTHONPATH=${PYSTORM_BASE_LIB_DIR}"
     )
     set_property(TEST PyStorm_test APPEND PROPERTY
     ENVIRONMENT
-        "LD_LIBRARY_PATH=${PYSTORM_BASE_LIB_DIR}")
+    "LD_LIBRARY_PATH=${PYSTORM_BASE_LIB_DIR}")
     set_property(TEST PyDriver_test PROPERTY
     ENVIRONMENT
-        "PYTHONPATH=${PYSTORM_BASE_LIB_DIR}"
+    "PYTHONPATH=${PYSTORM_BASE_LIB_DIR}"
     )
     set_property(TEST PyDriver_test APPEND PROPERTY
     ENVIRONMENT
-        "LD_LIBRARY_PATH=${PYSTORM_BASE_LIB_DIR}"
+    "LD_LIBRARY_PATH=${PYSTORM_BASE_LIB_DIR}"
     )
 endif()
