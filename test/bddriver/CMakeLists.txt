@@ -26,7 +26,7 @@ find_package(Threads REQUIRED)
 #
 ############################################################################
 
-set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+set(PYSTORM_BASE_LIB_DIR ${PRJ_ROOT_DIR}/lib/$<CONFIG>)
 set(SRC_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../src/bddriver)
 set(INC_BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/../../include
                  ${CMAKE_CURRENT_SOURCE_DIR}/../../include/bddriver
@@ -58,10 +58,6 @@ set(TEST_SRC_FILES
 include_directories(${INC_BASE_DIRS})
 include_directories(${GTEST_INCLUDE_DIRS})
 include_directories(${INCLUDE_DIRS})
-
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
-endif()
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 

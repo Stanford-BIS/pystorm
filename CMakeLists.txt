@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
 project(PyStorm CXX)
 
-
 # tell cmake it can find modules in ./cmake/ directory
+set(PRJ_ROOT_DIR ${PROJECT_SOURCE_DIR})
+set(BD_LIBRARY_OUTPUT_PATH ${PRJ_ROOT_DIR}/lib)
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 include(CheckRequirements)
 include(Common)
+SetupCompilerOptions()
+SetupBuildPaths()
+set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
 
 # Enable testing
 enable_testing()
@@ -24,6 +28,5 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext)
 add_subdirectory(${PROJECT_SOURCE_DIR}/src)
 add_subdirectory(${PROJECT_SOURCE_DIR}/test)
 
-set(CMAKE_CXX_STANDARD ${PYSTORM_CXX_STANDARD} CACHE STRING "" FORCE)
 message("Generated with config types: ${CMAKE_CONFIGURATION_TYPES}")
 message("Selected configuration: ${CMAKE_BUILD_TYPE}")

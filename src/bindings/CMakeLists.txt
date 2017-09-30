@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.0)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
-
 set(TARGET1_NAME "PyStorm")
 set(TARGET2_NAME "_PyDriver")
 set(TARGET3_NAME "_PyOK")
@@ -10,10 +8,16 @@ set(TARGET3_NAME "_PyOK")
 # Common setup and sanity checks
 #
 ############################################################################
-
+set(PRJ_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+set(BD_LIBRARY_OUTPUT_PATH ${PRJ_ROOT_DIR}/lib)
+list(APPEND CMAKE_MODULE_PATH ${PRJ_ROOT_DIR}/cmake)
 # This has to be done after 'project' is set
 include(CheckRequirements)
 include(Common)
+
+# This should be before TARGET is set
+SetupCompilerOptions()
+SetupBuildPaths()
 
 ############################################################################
 #
@@ -21,17 +25,16 @@ include(Common)
 #
 ############################################################################
 
+if($<CONFIG> STREQUAL "Release")
+    set(PYSTORM_BASE_LIB_DIR ${BD_LIBRARY_OUTPUT_PATH}/Release)
+elseif($<CONFIG> STREQUAL "Debug")
+    set(PYSTORM_BASE_LIB_DIR ${BD_LIBRARY_OUTPUT_PATH}/Debug)
+endif()
+
 set(HAL_LIBRARY Hal )
 set(DRIVER_LIBRARY Driver)
-find_library(HAL_LIBRARY Hal HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-find_library(DRIVER_LIBRARY Driver HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-
-# Project settings
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-endif()
+find_library(HAL_LIBRARY Hal HINTS ${BD_LIBRARY_OUTPUT_PATH}/$<CONFIG>)
+find_library(DRIVER_LIBRARY Driver HINTS ${BD_LIBRARY_OUTPUT_PATH}/$<CONFIG>)
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
 set(HEADER_FILES "")
@@ -39,21 +42,18 @@ set(SRC_FILES "")
 
 set(DRIVER_BINDINGS ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/PyDriver.cpp)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
+add_subdirectory(${PRJ_ROOT_DIR}/ext/pybind11 ${CMAKE_BINARY_DIR}/pybind11)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+include_directories(${PRJ_ROOT_DIR}/include)
 include_directories(${INCLUDE_DIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../ext/pybind11/include)
+include_directories(${PRJ_ROOT_DIR}/ext/pybind11/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/python/3.5)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bdhal)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../bddriver)
 
-# This should be before TARGET is set
-SetupSharedLibrary()
-
-link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+link_directories(${PYSTORM_BASE_LIB_DIR})
 
 ################################################################################
 # Build HAL bindings
@@ -72,31 +72,19 @@ target_link_libraries(${TARGET2_NAME} PRIVATE
     ${DRIVER_LIBRARY}
 )
 
-if(WIN32)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyDriver)
+set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyDriver)
 
-    add_custom_command(
-        TARGET ${TARGET2_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-        ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
-        ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyDriver/__init__.py
-    )
-else()
-    set_property(TARGET ${TARGET2_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
-    set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver)
-    add_custom_command(
-        TARGET ${TARGET2_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
-                ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyDriver/__init__.py
-                )
-endif()
+add_custom_command(
+    TARGET ${TARGET2_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+    ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
+    ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyDriver/__init__.py
+)
 
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
@@ -112,39 +100,28 @@ endif(APPLE)
 ################################################################################
 # Build OpalKelly bindings
 ################################################################################
-if(BD_COMM_TYPE MATCHES "OPALKELLY")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/include)
-    find_library(OK_LIBRARY okFrontPanel HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/lib)
+if(BD_COMM_TYPE STREQUAL "OPALKELLY")
+    include_directories(${PRJ_ROOT_DIR}/FPGA/ext/opalkelly/include)
+    find_library(OK_LIBRARY okFrontPanel HINTS ${PRJ_ROOT_DIR}/FPGA/ext/opalkelly/lib)
     pybind11_add_module(${TARGET3_NAME} MODULE ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/PyOK.cpp)
     target_link_libraries(${TARGET3_NAME} PRIVATE
         ${OK_LIBRARY}
     )
 
-    if(WIN32)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Debug/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/Release/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyOK)
+    set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyOK)
 
-        add_custom_command(
-            TARGET ${TARGET3_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-            ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyOK/__init__.py
-        )
-    else()
-        set_property(TARGET ${TARGET3_NAME} PROPERTY ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
-        set_property(TARGET ${TARGET3_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK)
-        add_custom_command(
-            TARGET ${TARGET3_NAME} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy
-                    ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
-                    ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/PyOK/__init__.py
-                    )
-    endif()
+    add_custom_command(
+        TARGET ${TARGET3_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
+        ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyOK/__init__.py
+    )
+
     set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
     set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
     set_property(TARGET ${TARGET3_NAME} PROPERTY PREFIX "")
