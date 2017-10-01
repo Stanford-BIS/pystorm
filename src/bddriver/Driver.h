@@ -126,7 +126,7 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
   ////////////////////////////////////////////////////////////////////////////
-  
+
   /// Flush queued up downstream traffic
   /// Commits queued-up messages (sends enough nops to flush the USB)
   /// By default, many configuration calls will call Flush()
@@ -146,6 +146,7 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
 
   /// Program DAC value
+  /// DAC value is from 1 to 1024
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
   // Specify any `value` < 0.0 to use default value;
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush=true);
@@ -170,12 +171,12 @@ class Driver {
   template<class U>
     void SetConfigMemory(unsigned int core_id, unsigned int elem_id,
                          std::unordered_map<U, std::vector<unsigned int>> config_map,
-                         U config_type, unsigned int config_value);
-    
+                         U config_type, bool config_value);
+
   ////////////////////////////////////////////////////////////////////////////
   // Soma controls
   ////////////////////////////////////////////////////////////////////////////
-  std::function<void(unsigned int, unsigned int, bdpars::ConfigSomaID, unsigned int)> SetSomaConfigMemory =
+  std::function<void(unsigned int, unsigned int, bdpars::ConfigSomaID, bool)> SetSomaConfigMemory =
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSomaID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
@@ -238,7 +239,7 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   // Synapse controls
   ////////////////////////////////////////////////////////////////////////////
-  std::function<void(unsigned int, unsigned int, bdpars::ConfigSynapseID, unsigned int)> SetSynapseConfigMemory =
+  std::function<void(unsigned int, unsigned int, bdpars::ConfigSynapseID, bool)> SetSynapseConfigMemory =
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSynapseID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
@@ -307,7 +308,7 @@ class Driver {
   ///     DIFF_CUT   Status
   ///       0         CLOSE
   ///       1         OPEN
-  std::function<void(unsigned int, unsigned int, bdpars::DiffusorCutLocationId, unsigned int)> SetDiffusorConfigMemory =
+  std::function<void(unsigned int, unsigned int, bdpars::DiffusorCutLocationId, bool)> SetDiffusorConfigMemory =
     std::bind(&Driver::SetConfigMemory<bdpars::DiffusorCutLocationId>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
@@ -357,7 +358,7 @@ class Driver {
   //////////////////////////////////////////////////////////////////////////
   // Memory programming
   //////////////////////////////////////////////////////////////////////////
-  
+
   /// Set memory delay line value
   void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value, bool flush=true);
 
@@ -400,7 +401,8 @@ class Driver {
   /// Receive a stream of spikes
   std::pair<std::vector<BDWord>,
             std::vector<BDTime> > RecvSpikes(unsigned int core_id) {
-    return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI);
+    // Timeout of 1us
+    return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
 
   /// Send a stream of tags
@@ -446,10 +448,10 @@ class Driver {
   std::vector<BDState> bd_state_;
 
   // downstream buffers
-  
+
   // queue for sequenced, but un-timed traffic
   std::queue<std::unique_ptr<std::vector<EncInput>>> sequenced_queue_;
- 
+
   // priority queue for timed traffic
   std::vector<EncInput> timed_queue_;
 
