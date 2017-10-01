@@ -119,19 +119,17 @@ class PyStormHWMapper(object):
                       _PyStorm: Bucket ─> Output
             hardware_resources: AMBuckets ─> Sink
          Conn 6:
-                      _PyStorm: Bucket ─┬─> Bucket
-                                        └─> Bucket
-            hardware_resources: AMBuckets ─> TATFanout ─┬─> MMWeights ─> AMBuckets
-                                                        └─> MMWeights ─> AMBuckets
-         Conn 7:
-                      _PyStorm: Bucket ─┬─> Output
-                                        └─> Output
-            hardware_resources: AMBuckets ─> TATFanout  ─┬─> Sink
-                                                         └─> Sink
-
+                      _PyStorm: Bucket ─┬─> Bucket / Output
+                                        └─> Bucket / Output
+                                        ⋮
+                                        └─> Bucket / Output
+            hardware_resources: AMBuckets ─> TATFanout ─┬─> (MMWeights ─> AMBuckets) / Sink
+                                                        └─> (MMWeights ─> AMBuckets) / Sink
+                                                        ⋮
+                                                        └─> (MMWeights ─> AMBuckets) / Sink
         Note:
-        The first five connection types are from one object to one object. 
-        Connections 6 and 7 are from one object to multiple objects;
+        The first five connection types are from one object to one object.
+        Connections 6 is from one object to multiple objects;
             this requires additional hardware_resources.
 
         Parameters
@@ -140,10 +138,7 @@ class PyStormHWMapper(object):
         """
         n_tgt_nodes = len(self.dest_mappers)
 
-        if n_tgt_nodes == 0:
-            return
-
-        elif n_tgt_nodes == 1:
+        if n_tgt_nodes == 1:
             dest_node = self.dest_mappers[0]
             dest_node_ps_obj = dest_node.second
             dest_node_weights = dest_node.first
@@ -167,7 +162,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(tap)
 
             #   Conn 2: Input -> Bucket
-            if isinstance(self.ps_obj, ps.Input) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, ps.Input) and isinstance(dest_node_ps_obj, ps.Bucket):
                 source = self.hardware_resource
                 tat_acc_resource = TATAccumulator(self.ps_obj.GetNumDimensions())
                 weight_resource = create_mm_weights(dest_node_weights)
@@ -181,7 +176,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 3: Pool -> Bucket
-            if isinstance(self.ps_obj, ps.Pool) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, ps.Pool) and isinstance(dest_node_ps_obj, ps.Bucket):
                 neurons = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket = dest_node_ps_obj.hardware_resource
@@ -192,7 +187,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 4: Bucket -> Bucket
-            if isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Bucket):
                 am_bucket_in = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket_out = dest_node_ps_obj.hardware_resource
@@ -203,26 +198,31 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 5: Bucket -> Output
-            if isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Output):
+            elif isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Output):
                 am_bucket = self.hardware_resource
                 sink = dest_node_ps_obj.hardware_resource
 
                 am_bucket.connect(sink)
+            else:
+                raise TypeError("connections between %s and %s are not currently supported"%(
+                    str(self.ps_obj), str(dest_node_ps_obj)))
 
+        #   Conn 6: Bucket ─┬─> Bucket / Output
+        #                   └─> Bucket / Output
+        #                   ⋮
+        #                   └─> Bucket / Output
         elif n_tgt_nodes > 1:
-            if isinstance(self.ps_obj, ps.Bucket):
-                am_bucket_in = self.hardware_resource
-                tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
+            assert isinstance(self.ps_obj, ps.Bucket)
+            am_bucket_in = self.hardware_resource
+            tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
 
-                am_bucket_in.connect(tat_fanout)
+            am_bucket_in.connect(tat_fanout)
 
-                hardware_resources.append(tat_fanout)
+            hardware_resources.append(tat_fanout)
 
-                for dest_node in self.dest_mappers:
-                    dest_node_ps_obj = dest_node.second
-                    adj_node_weight = dest_node.first
-            #   Conn 6: Bucket -> Bucket
-            #                  -> Bucket
+            for dest_node in self.dest_mappers:
+                dest_node_ps_obj = dest_node.second
+                adj_node_weight = dest_node.first
                 if isinstance(dest_node_ps_obj, ps.Bucket):
                     weight_resource = create_mm_weights(adj_node_weight)
                     am_bucket_out = dest_node_ps_obj
@@ -231,12 +231,13 @@ class PyStormHWMapper(object):
 
                     tat_fanout.connect(weight_resource)
                     weight_resource.connect(am_bucket_out)
-
-            #   Conn 7: Bucket -> Output
-            #                  -> Output
-                if isinstance(dest_node_ps_obj, ps.Output):
+                elif isinstance(dest_node_ps_obj, ps.Output):
                     sink = dest_node_ps_obj.hardware_resource
                     tat_fanout.connect(sink)
+                else:
+                    raise TypeError(
+                        "fanout connections between %s and %s are not currently supported"%(
+                            str(self.ps_obj), str(dest_node_ps_obj)))
 
 def create_network_resources(pystorm_network):
     """Create the required hardware resources for a  _PyStorm network
@@ -290,12 +291,12 @@ def create_network_resources(pystorm_network):
 
     return hardware_resources
 
-def map_resources_to_core(resources, core, verbose=False):
+def map_resources_to_core(hardware_resources, core, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
 
     Parameters
     ----------
-    resources: A list of hardware_resources.Resource objects
+    hardware_resources: A list of hardware_resources.Resource objects
     core: A Core object
     verbose: A bool
 
@@ -303,28 +304,28 @@ def map_resources_to_core(resources, core, verbose=False):
     -------
     core: The modified Core object
     """
-    for node in resources:
+    for node in hardware_resources:
         node.PreTranslate(core)
     if verbose:
         print("finished PreTranslate")
 
-    for node in resources:
+    for node in hardware_resources:
         node.AllocateEarly(core)
     if verbose:
         print("finished AllocateEarly")
 
     core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
-    for node in resources:
+    for node in hardware_resources:
         node.Allocate(core)
     if verbose:
         print("finished Allocate")
 
-    for node in resources:
+    for node in hardware_resources:
         node.PostTranslate(core)
     if verbose:
         print("finished PostTranslate")
 
-    for node in resources:
+    for node in hardware_resources:
         node.Assign(core)
     if verbose:
         print("finished Assign")
