@@ -18,33 +18,33 @@
 // Policies                     //
 //////////////////////////////////
 
-/// 
+///
 /// InfoLogPolicy is a functor that is passed as a template
 /// parameter to Logger allowing the Logger to structure
 /// messages that provide generic information.
-/// 
+///
 struct InfoLogPolicy {
     static void log(const std::string& msg) {
         std::cout << "INFO: " << msg << std::endl;
     }
 };
 
-/// 
+///
 /// WarningLogPolicy is a functor that is passed as a template
 /// parameter to Logger allowing the Logger to structure
 /// messages that provide generic warnings.
-/// 
+///
 struct WarningLogPolicy {
     static void log(const std::string& msg) {
         std::cout << "WARNING: " << msg << std::endl;
     }
 };
 
-/// 
+///
 /// ErrorLogPolicy is a functor that is passed as a template
 /// parameter to Logger allowing the Logger to structure
 /// messages that tells the user an error has occurred.
-/// 
+///
 struct ErrorLogPolicy {
     static void log(const std::string& msg) {
         std::cout << "ERROR: " << msg << std::endl;
@@ -56,22 +56,24 @@ struct ErrorLogPolicy {
 //////////////////////////////////
 
 ///
-/// Logger is a generic class used to stream information to 
+/// Logger is a generic class used to stream information to
 /// standard output.
-/// 
+///
 /// The class is provided an object implementing the log function
 /// calling the log function in it's own log method.
-/// The class is meant to be used in conjuction of the LogPolicy 
+/// The class is meant to be used in conjuction of the LogPolicy
 /// types that follow (e.g. InfoLogPolicy and WarningLogPolicy).
 /// In addition, there are two helper functions implementing
 /// operators that allow a developer to use a Logger instance
 /// in a "stream"-style (e.g. aLogger << "A Message").
 /// The operators also have the added advantage that if the
-/// variable LOG_ENABLED is not defined, the body of the 
+/// variable LOG_ENABLED is not defined, the body of the
 /// operators will be empty and the compiler can optimize
-/// the function calls out of the binary. The binary will not 
+/// the function calls out of the binary. The binary will not
 /// make the function calls.
 ///
+/// HACK: For now, we don't care about disabling the `<<`-style operators
+/// So, disabling the #ifdefs
 template< typename LogPolicy >
 class Logger : public LogPolicy {
 public:
@@ -103,14 +105,14 @@ typedef Logger<ErrorLogPolicy>   ErrorLogger;
 // Loggable Interface           //
 //////////////////////////////////
 
-/// 
+///
 /// LoggableIfc is an interface whose functions
 /// allow a class to use the operator<< functions directly.
 /// For example, an object whose type is a class implementing
 /// LoggableIf could use the function operator<< as follows:
 ///
 ///   anInfoLogger << objectOfTypeLoggerIfc;
-/// 
+///
 struct LoggableIfc {
     virtual std::string toString() const = 0;
 };
@@ -120,13 +122,13 @@ struct LoggableIfc {
 //////////////////////////////////
 
 //
-// When compiling, not defining the variable LOG_ENABLED 
-// will declare the following operator<< functions with 
+// When compiling, not defining the variable LOG_ENABLED
+// will declare the following operator<< functions with
 // empty bodies. Empty bodied functions can be optimized out
 // during compilation, therefore, adding logging messages will
 // not affect performance of released code.
 //
-#ifdef LOG_ENABLED
+//#ifdef LOG_ENABLED
 
 ///
 /// The overloaded function takes a Logger and a string
@@ -165,6 +167,6 @@ template< typename Logger >
 void operator<<(Logger& log, const LoggableIfc& object) {
 }
 
-#endif // if LOG_ENABLED
+//#endif // if LOG_ENABLED
 
 #endif // ifdef LOGGER_H

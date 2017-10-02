@@ -4,7 +4,7 @@ set(PROJECT_NAME_STR bdhal_test)
 include(CheckRequirements)
 include(Common)
 
-set(PYSTORM_BASE_LIB_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
+set(PYSTORM_BASE_LIB_DIR ${PRJ_ROOT_DIR}/lib/$<CONFIG>)
 
 find_package(Threads REQUIRED)
 
@@ -48,10 +48,6 @@ set(TEST_SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/Weights_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Hal_test.cpp
 )
-
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PYSTORM_BASE_LIB_DIR})
-endif()
 
 add_executable(${PROJECT_NAME_STR} ${TEST_SRC_FILES})
 

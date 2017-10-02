@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.0)
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../cmake)
-
 set(TARGET_NAME "Driver")
 
 ############################################################################
@@ -8,10 +6,17 @@ set(TARGET_NAME "Driver")
 # Common setup and sanity checks
 #
 ############################################################################
+set(PRJ_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
+set(BD_LIBRARY_OUTPUT_PATH ${PRJ_ROOT_DIR}/lib)
+list(APPEND CMAKE_MODULE_PATH ${PRJ_ROOT_DIR}/cmake)
 
 # This has to be done after 'project' is set
 include(CheckRequirements)
 include(Common)
+
+# This should be before TARGET is set
+SetupCompilerOptions()
+SetupBuildPaths()
 
 ############################################################################
 #
@@ -29,33 +34,26 @@ find_package(Threads REQUIRED)
 #
 ############################################################################
 if(NOT BD_COMM_TYPE)
-    set(BD_COMM_TYPE "MODEL" CACHE STRING
+    set(BD_COMM_TYPE "OPALKELLY" CACHE STRING
     "Choose the type of build, options are : \"OPALKELLY\", \"USB\", \"SOFT\" or \"MODEL\""
     FORCE)
 endif()
 
 # Opal-Kelly support
-if(BD_COMM_TYPE MATCHES "OPALKELLY")
-    include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/include)
-    find_library(OK_LIBRARY okFrontPanel HINTS ${CMAKE_CURRENT_SOURCE_DIR}/../../FPGA/ext/opalkelly/lib)
+if(BD_COMM_TYPE STREQUAL "OPALKELLY")
+    include_directories(${PRJ_ROOT_DIR}/FPGA/ext/opalkelly/include)
+    find_library(OK_LIBRARY okFrontPanel HINTS ${PRJ_ROOT_DIR}/FPGA/ext/opalkelly/lib)
     add_definitions(-DBD_COMM_TYPE_OPALKELLY)
     message(STATUS "COMM is Opal Kelly: " ${OK_LIBRARY})
-elseif(BD_COMM_TYPE MATCHES "USB")
+elseif(BD_COMM_TYPE STREQUAL "USB")
     message(STATUS "COMM is USB")
     add_definitions(-DBD_COMM_TYPE_USB)
-elseif(BD_COMM_TYPE MATCHES "SOFT")
+elseif(BD_COMM_TYPE STREQUAL "SOFT")
     message(STATUS "COMM is SOFT")
     add_definitions(-DBD_COMM_TYPE_SOFT)
-elseif(BD_COMM_TYPE MATCHES "MODEL")
+elseif(BD_COMM_TYPE STREQUAL "MODEL")
     message(STATUS "COMM is MODEL")
     add_definitions(-DBD_COMM_TYPE_MODEL)
-endif()
-
-# Project settings
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
-if(WIN32)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../../lib)
 endif()
 
 set(INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
@@ -68,11 +66,8 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/decoder)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/encoder)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/model)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../include)
+include_directories(${PRJ_ROOT_DIR}/include)
 include_directories(${INCLUDE_DIRS})
-
-# This should be before TARGET is set
-SetupSharedLibrary()
 
 # Define the library being built
 add_library(${TARGET_NAME} SHARED

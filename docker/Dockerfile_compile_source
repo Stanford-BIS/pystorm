@@ -7,11 +7,10 @@ FROM stanfordbis/ubuntu-pystorm:latest
 RUN mkdir /pystorm
 
 # For future runs, use this directory
-WORKDIR /pystorm/build
+WORKDIR /pystorm
 
 # These are the commands that a developer would type to build and run
 # the automated tests for PyStorm
-CMD cmake -G Ninja -DBD_COMM_TYPE=MODEL -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_FLAGS="-DLOG_ENABLED" ..  \
-    && cmake --build . --config Release
+CMD /bin/bash
 
 VOLUME /pystorm
