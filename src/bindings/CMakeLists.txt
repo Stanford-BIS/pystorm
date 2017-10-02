@@ -121,15 +121,15 @@ if(Win32)
     add_custom_command(
         TARGET ${TARGET2_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-            $<TARGET_FILE:${TARGET2_NAME}>
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyDriver
+        ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/
     )
 else()
     add_custom_command(
         TARGET ${TARGET2_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E create_symlink
-            $<TARGET_FILE:${TARGET2_NAME}>
-            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/$<TARGET_FILE_NAME:${TARGET2_NAME}>
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyDriver
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/PyDriver
     )
 endif()
 
