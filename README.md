@@ -1,58 +1,67 @@
 [![Build Status](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/badge/icon)](https://ng-hippocampus.stanford.edu/jenkins/job/Pystorm/job/master/)
 
-Pystorm is a set of software modules allowing Nengo and Nengo_GUI to 
-communicate with Braindrop providing an API that abstracts hardware 
-specific data structures.
+pystorm is a set of software modules allowing Nengo and Nengo_GUI to
+communicate with Braindrop and Brainstorm by providing an API that abstracts
+away hardware-specific details. pystorm provides shared headers, libraries,
+and a python interface.
 
 # Product structure
 
-The Pystorm repository is structured to enable the development of three 
-sub-projects, bddriver, bdhal and neuromorph. The three subprojects form
-the software stack known as PyStorm.
+The Pystorm repository is structured to enable the development of two
+sub-projects, bddriver, and bdhal. These subprojects form
+the software stack known as pystorm.
 
 The following diagram illustrates the structure
 
-	└── pystorm
-        │                                                                           
-	    ├── CMakeLists.txt                                                          
-        │                                                                           
-	    ├── Jenkinsfile
-        │                                                                           
-        ├── docker                                                              
-        │   └── Dockerfile_JENKINS_CI 
-        │                                                                           
+    └── pystorm
+        │
+        ├── CMakeLists.txt
+        │
+        ├── Jenkinsfile
+        │
+        ├── docker
+        │   └── Dockerfile_JENKINS_CI
+        │
         ├── ext                         (externally sourced libraries)
-        │   ├── yaml-cpp                                                                 
+        │   ├── yaml-cpp
         │   └── gtest
-        │                                                                           
+        │
         ├── include                     (public shared headers)
-        │                                                                           
+        │
         ├── lib                         (public shared libs)
-        │                                                                           
-        ├── src                                                                
-        │   ├── bddriver                                                      
-        │   ├── bdhal                                                      
-        │   │   └── neuromorph 
-        │   │  
-        │   └── bindings                                                                   
-        │       └── python 
+        │
+        ├── pystorm                     (python package source)
+        │   └── bdhal
+        │
+        ├── src                         (c++ source)
+        │   ├── bddriver
+        │   ├── bdhal
+        │   └── bindings
+        │       └── python
         │           └── 3.5
-        │                                                                           
-        └── test                                                                
+        │
+        └── test
             ├── bddriver
             ├── bdhal
-            │   └── neuromorph 
-            │  
-            └── bindings                                                                   
-                └── python 
+            └── bindings
+                └── python
                     └── 3.5
- 
 
+
+Python code lives in the pystorm directory tree, C++ code lives in the src directory tree.
+
+# Python package setup
+
+To set up the python interface for Pystorm, first run the [Build](#build). Next, run
+
+`python setup.py develop`
+
+from the repository base directory so that you may import pystorm as a Python package.
 
 # Build
 
-We recommend building the Pystorm modules by executing the following commands from the repository
-base directory.
+We recommend building the pystorm C++ modules by executing the following commands from the
+repository base directory.
 
 ```
     mkdir build
@@ -93,9 +102,9 @@ As an example,
 
 tells cmake to build the project in the current directory for the `Release` configuration and pass `-j6` to the compiler, which for g++ says to use 6 threads for the build.
 
-# TEST 
+# TEST
 
-From the build directory all module tests can be executed issuing the 
+From the build directory all module tests can be executed issuing the
 following command.
 
 ```
@@ -116,10 +125,10 @@ which is used to create the docker image used for building and testing.
 
 # Docker
 
-Docker can be used to build and test Pystorm. The folder `docker` has a 
-Docker file (named `Dockerfile_compile_source`) and shell script that can be 
+Docker can be used to build and test Pystorm. The folder `docker` has a
+Docker file (named `Dockerfile_compile_source`) and shell script that can be
 used to build an image and build/test Pystorm on it.
 
-The following is an example of how to use Docker to run the build build 
+The following is an example of how to use Docker to run the build build
 
     sudo docker build --file docker/Dockerfile_compile_source .
