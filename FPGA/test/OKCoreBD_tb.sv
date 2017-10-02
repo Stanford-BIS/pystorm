@@ -157,9 +157,24 @@ initial begin
   SetReg(31, 0); 
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send am word
+  // send AM word
   SendToBD({2'b00, 6'd26}, {24{1'b1}});
   SendToBD({2'b00, 6'd26}, {24{1'b0}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // send PAT word
+  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // send TAT0 word
+  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // send TAT1 word
+  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   //SendToBD(0, 3'b101); // ADC 

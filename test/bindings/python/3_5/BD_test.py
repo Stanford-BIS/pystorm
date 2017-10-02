@@ -49,6 +49,7 @@ class OP():
         _op1 = getattr(OP, opcode)
         _op2 = None
         _val = "{0:024b}".format(int(payload, 0))
+        #print(_val)
         if opcode == 'BDHORN':
             _op2 = "{0:06b}".format(OP.BD_LEAF[subcode].value)
         else:
@@ -97,7 +98,7 @@ def PrintBytearrayAs32b(buf_out, ignore_nop=True, ignore_HBs=True):
 
 
 bitfile = "OKCoreBD.rbf"
-block_size = 128
+block_size = 32
 
 ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
@@ -122,7 +123,8 @@ def SendWords(dev, codes):
     PrintBytearrayAs32b(buf, ignore_HBs=False)
     print("================================")
 
-    print(dev.WriteToBlockPipeIn(ep_dn, block_size, buf))
+    written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
+    assert(written == block_size*4)
 
 import time
 
@@ -176,13 +178,22 @@ if __name__ ==  "__main__":
     ## turns on the neurons!
     #SendWords(dev, [['BDHORN', 'NEURONDUMPTOGGLE', '0x002']])
 
+    #SendWords(dev, [['BDHORN', 'DELAY4', '0x33']])
+
     # read from PAT address 0
     # '0 will do this
     # has a serializer, need to send four words
     # should get something out of DUMP_PAT
 
-    PAT_all_0 = [['BDHORN', 'PROG_PAT', '0x000']]*4
-    SendWords(dev, PAT_all_0)
+    ## this should write some 1s and 0s
+    #PAT_write_to_0 = [
+    #        ['BDHORN', 'PROG_PAT', '0xf0f0c0'], 
+    #        ['BDHORN', 'PROG_PAT', '0xf0f0f0']]
+    #SendWords(dev, PAT_write_to_0)
+
+
+    #PAT_read_from_0 = [['BDHORN', 'PROG_PAT', '0x000']]*2
+    #SendWords(dev, PAT_read_from_0)
 
     #BD_leaves = [
     #    'ADC',
@@ -223,15 +234,97 @@ if __name__ ==  "__main__":
     #    SendWords(dev, [['BDHORN', leaf, '0x000']]*12)
 
     # read upstream traffic
+    #PAT_write_to_0 = [
+    #        ['BDHORN', 'PROG_PAT', '0xf0f0c0'], 
+    #        ['BDHORN', 'PROG_PAT', '0xf0f0f0']]
+    PAT_write_to_0 = [
+            ['BDHORN', 'PROG_PAT', '0xffffc0'], 
+            ['BDHORN', 'PROG_PAT', '0xffffff']]
+    PAT_read_from_0 = [['BDHORN', 'PROG_PAT', '0x000']]*2
+
+    TAT_addr0 = [
+            ['BDHORN', 'PROG_TAT0', '0x000000'],
+            ['BDHORN', 'PROG_TAT0', '0x000000']]
+    TAT_WI = [
+            ['BDHORN', 'PROG_TAT0', '0xfffffd'],
+            ['BDHORN', 'PROG_TAT0', '0xffffff']]
+    TAT_RI = [
+            ['BDHORN', 'PROG_TAT0', '0x000002'],
+            ['BDHORN', 'PROG_TAT0', '0x000000']]
+
+    MM_addr0 = [
+            ['BDHORN', 'PROG_AMMM', '0x000001'],
+            ['BDHORN', 'PROG_AMMM', '0x0f0000']]
+
+    MM_WI = [
+            ['BDHORN', 'PROG_AMMM', '0x000013'],
+            ['BDHORN', 'PROG_AMMM', '0x000000']]
+
+    MM_RI = [
+            ['BDHORN', 'PROG_AMMM', '0x000005'],
+            ['BDHORN', 'PROG_AMMM', '0x000000']]
+
+    AM_addr0 = [
+            ['BDHORN', 'PROG_AMMM', '0x000000'],
+            ['BDHORN', 'PROG_AMMM', '0x000000']]
+
+    MM_RW = [
+            ['BDHORN', 'PROG_AMMM', '0x000002'],
+            ['BDHORN', 'PROG_AMMM', '0x000000']]
+
+    time.sleep(5)
+
+    def WriteToTATBitI(i):
+        addr_word = [
+            ['BDHORN', 'PROG_TAT0', '0x000000'],
+            ['BDHORN', 'PROG_TAT0', '0x000000']]
+        write_word = [
+            ['BDHORN', 'PROG_TAT0', hex(2**i * 4 + 1)],
+            ['BDHORN', 'PROG_TAT0', hex(0)]]
+        read_word =  [
+            ['BDHORN', 'PROG_TAT0', '0x000002'],
+            ['BDHORN', 'PROG_TAT0', '0x000000']]
+        SendWords(dev, addr_word + write_word + addr_word + read_word)
+
     i = 0
     while(True):
-        out_buf = bytearray(block_size*4)
-        dev.ReadFromPipeOut(ep_up, out_buf)
-        print("------------RECEIVED------------")
-        PrintBytearrayAs32b(out_buf)
-        print("--------------------------------")
-        print(i)
+
+        ## program first 4 TAT entries
+        #SendWords(dev, TAT_addr0)
+        #SendWords(dev, TAT_WI*4)
+
+        ## read the same
+        #SendWords(dev, TAT_addr0)
+        #SendWords(dev, TAT_RI*4)
+
+        ## program first 4 MM entries
+        #SendWords(dev, MM_addr0)
+        #SendWords(dev, MM_WI*4)
+
+        ## read the same
+        #SendWords(dev, MM_addr0)
+        #SendWords(dev, MM_RI*4)
+
+        #SendWords(dev, AM_addr0 + MM_RW)
+        
+        #SendWords(dev, PAT_write_to_0)
+        #SendWords(dev, PAT_read_from_0)
+
+        WriteToTATBitI(i)
+
+        key = 'n'
+        while(key is not 'y'):
+            out_buf = bytearray(block_size*4)
+            dev.ReadFromPipeOut(ep_up, out_buf)
+            print("------------RECEIVED------------")
+            PrintBytearrayAs32b(out_buf)
+            print("--------------------------------")
+            print(i)
+            print("sleeping")
+            time.sleep(1.5)
+            key = input('press y to continue')
+
         i += 1
-        time.sleep(.5)
+
 
 
