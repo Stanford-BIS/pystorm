@@ -59,7 +59,7 @@ class HAL(object):
     def get_outputs(self):
         """Returns all pending output values gathered since this was last called.
 
-        Data format: a 2D numpy array: [(timestamp, bucket_id, value), ...]
+        Data format: a numpy array of : [(output, dim, counts, time), ...]
         Timestamps are in microseconds
         """
         tagdata = self.driver.RecvTags(core_id)
@@ -68,18 +68,24 @@ class HAL(object):
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
 
-        Data format: a 2D numpy array: [(timestamp, neuron_index), ...]
+        Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
         Timestamps are in microseconds
         """
         spkdata = self.driver.RecvSpikes(core_id)
         return spkdata
 
-    def send_spikes(self, target, spikes, times):
-        """Send pregenerated spikes to the given target"""
-        self.driver.SendSpikes(core_id, spikes, times)
+    # def send_spikes(self, target, spikes, times):
+    #     """Send pregenerated spikes to the given target"""
+    #     self.driver.SendSpikes(core_id, spikes, times)
 
-    def send_tags(self, target, tags, times):
-        """sends pregenerated tags to the given target"""
+    def send_inputs(self, inp, dim, counts, times):
+        """Sends pregenerated tags to the given target
+        
+        input: Input object
+        dim : which dim
+        counts: list of number of spikes for each time
+        times: list of times
+        """
         self.driver.SendTags(core_id, tags, times)
 
 
@@ -98,5 +104,5 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
-        return map_network(network)
+        mapped_network, core = map_network(network)
 

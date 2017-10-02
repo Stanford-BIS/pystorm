@@ -346,6 +346,7 @@ def map_network(network, verbose=False):
     Returns
     -------
     network: a mapped neuromorph graph Network
+    core: a representation of the hardware core
     """
     pars = _PyStorm.GetCorePars()
 
@@ -357,4 +358,4 @@ def map_network(network, verbose=False):
 
     mapped_network = network
 
-    return mapped_network
+    return mapped_network, core
