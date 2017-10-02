@@ -1,6 +1,6 @@
 import numpy as np
-from .mem_word_enums import *
-from .mem_word_placeholders import *
+from .mem_word_enums import (AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField)
+from .mem_word_placeholders import BDWord
 import pystorm._PyStorm as ps
 
 class Core(object):
@@ -109,7 +109,7 @@ class MemAllocator(object):
                     return False
                 if idx_slice.stop > self.L.size:
                     return False
-        
+
         # otherwise, the slice is compeletely in-bounds, check all entries
         if len(self.shape) == 2 and isinstance(idx_slice, slice): # using flat indexing on 2D
             if np.sum(1*self.L.flat[idx_slice]) == 0:
@@ -230,14 +230,14 @@ class PATMem(Memory):
 class MM(object):
     def __init__(self, shape, NPOOL):
         self.mem = StepMem(shape)
-        self.alloc = MMAllocator(shape, NPOOL) 
+        self.alloc = MMAllocator(shape, NPOOL)
 
     def AllocateDec(self, D):
         return self.alloc.AllocatePoolDec(D)
 
     def AllocateTrans(self, D):
         return self.alloc.AllocateTransRow(D)
-    
+
     def AssignDec(self, data, start):
         self.mem.Assign2DBlock(data, start)
 
@@ -268,7 +268,7 @@ class AM(object):
 
     def Allocate(self, size):
         return self.alloc.Allocate(size)
-    
+
     def Assign(self, data, start):
         self.mem.Assign1DBlock(data, start)
 
@@ -291,7 +291,7 @@ class TAT(object):
 
     def Allocate(self, size):
         return self.alloc.Allocate(size)
-    
+
     def Assign(self, data, start):
         self.mem.Assign1DBlock(data, start)
 

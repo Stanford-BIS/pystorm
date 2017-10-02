@@ -1,4 +1,5 @@
 """This module defines the hardware resources of braindrop/brainstorm"""
+from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
 from .mem_word_placeholders import BDWord
@@ -33,9 +34,9 @@ class ResourceConnection(object):
             self.tgt_range = range(tgt.dimensions_in)
 
         # check dimensional correctness
-        self._test_dims_correct(src.dimensions_out, tgt.dimensions_in)
+        self._check_dims(src.dimensions_out, tgt.dimensions_in)
 
-    def _test_dims_correct(self, src_dimensions_out, tgt_dimensions_in):
+    def _check_dims(self, src_dimensions_out, tgt_dimensions_in):
         """Check correctness of a slice connection between objects"""
         # range lengths must match
         assert len(self.src_range) == len(self.tgt_range)
@@ -50,7 +51,7 @@ class ResourceConnection(object):
         assert len(self.src_range) <= tgt_dimensions_in
         assert len(self.tgt_range) <= src_dimensions_out
 
-class Resource(object):
+class Resource(ABC):
     """Resources represent chunks of allocateable braindrop hardware
 
     A graph of hardware resources is necessary to implement the network
@@ -83,12 +84,12 @@ class Resource(object):
         self.conns_in = []
         self.conns_out = []
 
-    @property
+    @abstractproperty
     def dimensions_in(self):
         """Get input dimensionality"""
         raise NotImplementedError
 
-    @property
+    @abstractproperty
     def dimensions_out(self):
         """Get output dimensionality"""
         raise NotImplementedError
@@ -111,9 +112,10 @@ class Resource(object):
     # The mapping process is divided into phases
 
     def pretranslate(self, core):
-        """Perform any bookeeping that's needed before allocate
-        this could sometimes be done during construction, but we give it a separate phase
-        some preprocessing also needs Core parameters, which aren't available during construction
+        """Perform any bookeeping that's needed before allocation
+
+        Some preprocessing needs Core parameters,
+        which aren't available during construction
         """
         pass
 
@@ -121,6 +123,7 @@ class Resource(object):
         """Perform bookeeping before allocating the core to the resources"""
         pass
 
+    @abstractmethod
     def allocate(self, core):
         """Allocate the core to the resources"""
         pass
@@ -142,7 +145,8 @@ class Neurons(Resource):
     def __init__(self, N):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
-            sliceable_in=False, sliceable_out=False, max_conns_out=1)
+            sliceable_in=False, sliceable_out=False,
+            max_conns_out=1)
         self.N = N
 
         # pretranslate

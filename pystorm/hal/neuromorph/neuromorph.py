@@ -261,24 +261,24 @@ def create_network_resources(network):
     hardware_resources = []
     # A map from neuromorph graph objects to GraphHWMappers
     # The map forms a graph of neuromorph graph.Network/Resource objects
-    ps_hw_map = dict()
+    ng_obj_hw_map = dict()
 
     # Populate the GraphHWMappers in the graph
     for inp in network.GetInputs():
-        ps_hw_map[inp] = GraphHWMapper(inp)
-        hardware_resources.append(ps_hw_map[inp].get_resource())
+        ng_obj_hw_map[inp] = GraphHWMapper(inp)
+        hardware_resources.append(ng_obj_hw_map[inp].get_resource())
 
     for out in network.GetOutputs():
-        ps_hw_map[out] = GraphHWMapper(out)
-        hardware_resources.append(ps_hw_map[out].get_resource())
+        ng_obj_hw_map[out] = GraphHWMapper(out)
+        hardware_resources.append(ng_obj_hw_map[out].get_resource())
 
     for pool in network.GetPools():
-        ps_hw_map[pool] = GraphHWMapper(pool)
-        hardware_resources.append(ps_hw_map[pool].get_resource())
+        ng_obj_hw_map[pool] = GraphHWMapper(pool)
+        hardware_resources.append(ng_obj_hw_map[pool].get_resource())
 
     for bucket in network.GetBuckets():
-        ps_hw_map[bucket] = GraphHWMapper(bucket)
-        hardware_resources.append(ps_hw_map[bucket].get_resource())
+        ng_obj_hw_map[bucket] = GraphHWMapper(bucket)
+        hardware_resources.append(ng_obj_hw_map[bucket].get_resource())
 
     # Connect source GraphHWMappers to their destination GraphHWMappers
     connections = network.GetConnections()
@@ -286,13 +286,13 @@ def create_network_resources(network):
         source = conn.GetSource()
         dest = conn.GetDest()
         weights = conn.GetWeights()  # weights is either of type Weights or None
-        ps_hw_map[source].connect_src_to_dest_mapper(ps_hw_map[dest], weights)
+        ng_obj_hw_map[source].connect_src_to_dest_mapper(ng_obj_hw_map[dest], weights)
 
     # Connect the adjacent nodes creating Resources relevant to each connection
-    for _, ps_hw_mapper in ps_hw_map.items():
-        ps_hw_mapper.connect(hardware_resources)
+    for _, ng_obj_hw_mapper in ng_obj_hw_map.items():
+        ng_obj_hw_mapper.connect(hardware_resources)
 
-    return hardware_resources
+    return ng_obj_hw_map, hardware_resources
 
 def map_resources_to_core(hardware_resources, core, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
@@ -307,31 +307,31 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     -------
     core: The modified Core object
     """
-    for node in hardware_resources:
-        node.PreTranslate(core)
+    for resource in hardware_resources:
+        resource.pretranslate(core)
     if verbose:
-        print("finished PreTranslate")
+        print("finished pretranslate")
 
-    for node in hardware_resources:
-        node.AllocateEarly(core)
+    for resource in hardware_resources:
+        resource.allocate_early(core)
     if verbose:
-        print("finished AllocateEarly")
+        print("finished allocate_early")
 
     core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
-    for node in hardware_resources:
-        node.Allocate(core)
+    for resource in hardware_resources:
+        resource.allocate(core)
     if verbose:
-        print("finished Allocate")
+        print("finished allocate")
 
-    for node in hardware_resources:
-        node.PostTranslate(core)
+    for resource in hardware_resources:
+        resource.posttranslate(core)
     if verbose:
-        print("finished PostTranslate")
+        print("finished posttranslate")
 
-    for node in hardware_resources:
-        node.Assign(core)
+    for resource in hardware_resources:
+        resource.assign(core)
     if verbose:
-        print("finished Assign")
+        print("finished assign")
 
     return core
 
@@ -342,20 +342,20 @@ def map_network(network, verbose=False):
     ----------
     network: An object of type neuromorph graph Network
 
-
     Returns
     -------
-    network: a mapped neuromorph graph Network
+    ng_obj_to_hw: dictionary
+        keys: neuromorph graph objects in the input network
+        values: hardware resources used to implement neuromorph graph object
+    hardware_resources: list of total hardware resources allocated for the input network
     core: a representation of the hardware core
     """
     pars = _PyStorm.GetCorePars()
 
     core = Core(pars)
 
-    hardware_resources = create_network_resources(network)
+    ng_obj_to_hw, hardware_resources = create_network_resources(network)
 
     core = map_resources_to_core(hardware_resources, core, verbose)
 
-    mapped_network = network
-
-    return mapped_network, core
+    return ng_obj_to_hw, hardware_resources, core
