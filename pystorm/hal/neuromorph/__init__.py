@@ -1,1 +1,1 @@
-from .neuromorph import map
+from .neuromorph import map_network

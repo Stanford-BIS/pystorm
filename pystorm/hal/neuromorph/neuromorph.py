@@ -1,7 +1,8 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-import pystorm._PyStorm as ps
+import pystorm._PyStorm as _PyStorm
+from pystorm.hal.neuromorph.graph import (Bucket, Input, Output, Pool)
 from .core import Core
 from .hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
@@ -27,30 +28,27 @@ def instance_method_singledispatch(func):
 
 @singledispatch
 def create_resources(pystorm_obj):
-    """Creates the hardware resources for the _PyStorm object
-
-    For example, for a _PyStorm Input, creates a hardware resource Source
-    """
+    """Creates the hardware resources for a neuromorph graph object"""
     raise TypeError("This type isn't supported: {}".format(type(pystorm_obj)))
 
-@create_resources.register(ps.Input)
+@create_resources.register(Input)
 def _create_resources_ps_input(ps_input):
-    """create_resources for _PyStorm.Input"""
+    """create_resources for a neuromorph graph Input"""
     return Source(ps_input.GetNumDimensions())
 
-@create_resources.register(ps.Output)
+@create_resources.register(Output)
 def _create_resources_ps_output(ps_output):
-    """create_resources for _PyStorm.Output"""
+    """create_resources for neuromorph graph Output"""
     return Sink(ps_output.GetNumDimensions())
 
-@create_resources.register(ps.Pool)
+@create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
-    """create_resources for _PyStorm.Pool"""
+    """create_resources for neuromorph graph Pool"""
     return Neurons(ps_pool.GetNumNeurons())
 
-@create_resources.register(ps.Bucket)
+@create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):
-    """create_resources for _PyStorm.Bucket"""
+    """create_resources for neuromorph graph Bucket"""
     return AMBuckets(ps_bucket.GetNumDimensions())
 
 def create_mm_weights(ps_weights):
@@ -63,27 +61,27 @@ def create_mm_weights(ps_weights):
     ret_value = MMWeights(weights)
     return ret_value
 
-class PyStormHWMapper(object):
-    """Maps a _PyStorm object to hardware resources
+class GraphHWMapper(object):
+    """Maps a neuromorph graph object to hardware resources
 
     Instances of this class form the nodes of a directed graph
-    based on the objects in a _PyStorm network.
+    based on the objects in a neuromorph graph network.
 
     Hardware resources are allocated as each instance is created.
 
-    Hardware resources for connections are not one-to-one with the _PyStorm connections,
+    Hardware resources for connections are not one-to-one with the neuromorph graph connections,
     so we delay allocating resources for link in the graph until all links are added.
         Connections might share hardware (e.g. when weights are the same) or
-        require extra hardware (e.g. when a _PyStorm object fans out to multiple objects).
+        require extra hardware (e.g. when a neuromorph graph object fans out to multiple objects).
 
     Parameters
     ----------
-    ps_obj: A _PyStorm object (i.e. Input, Pool, Bucket, or Output)
+    ps_obj: A neuromorph graph object (i.e. Input, Pool, Bucket, or Output)
 
     Attributes
     ----------
-    ps_obj: The _PyStorm object
-    hardware_resource: The hardware resource associated with the _PyStorm object
+    ps_obj: The neuromorph graph object
+    hardware_resource: The hardware resource associated with the neuromorph graph object
     dest_mappers: List of (weights, PystormObjectMappers) this instance connects to
     """
     def __init__(self, ps_obj):
@@ -92,7 +90,13 @@ class PyStormHWMapper(object):
         self.dest_mappers = []
 
     def connect_src_to_dest_mapper(self, mapper, weight=None):
-        """Set this source PyStormHWMapper to connect to a destination PyStormHWMapper"""
+        """Connect this GraphHWMapper to another GraphHWMapper
+        
+        Parameters
+        ----------
+        mapper: Another GraphHWMapper instance
+            The self instance is the source, and mapper is the destination
+        """
         self.dest_mappers.append((weight, mapper))
 
     def connect(self, hardware_resources):
@@ -101,25 +105,25 @@ class PyStormHWMapper(object):
         Update the hardware_resources list parameter if necessary.
 
         The following describes the map between
-            _PyStorm object connections and hardware_resources connections
+            neuromorph graph object connections and hardware_resources connections
 
         Conn 1:
-                      _Pystorm: Input ─> Pool
+              neuromorph graph: Input ─> Pool
             hardware_resources: Source ─> TATTapPoint ─> Neurons
         Conn 2:
-                      _Pystorm: Input ─> Bucket
+              neuromorph graph: Input ─> Bucket
             hardware_resources: Source ─> TATAcuumulator ─> MMWeights ─> AMBuckets
         Conn 3:
-                      _PyStorm: Pool ─> Bucket
+              neuromorph graph: Pool ─> Bucket
             hardware_resources: Neurons ─> MMWeights ─> AMBuckets
         Conn 4:
-                      _PyStorm: Bucket ─> Bucket
+              neuromorph graph: Bucket ─> Bucket
             hardware_resources: AMBuckets ─> MMWeights ─> AMBuckets
         Conn 5:
-                      _PyStorm: Bucket ─> Output
+              neuromorph graph: Bucket ─> Output
             hardware_resources: AMBuckets ─> Sink
          Conn 6:
-                      _PyStorm: Bucket ─┬─> Bucket / Output
+              neuromorph graph: Bucket ─┬─> Bucket / Output
                                         └─> Bucket / Output
                                         ⋮
                                         └─> Bucket / Output
@@ -144,7 +148,7 @@ class PyStormHWMapper(object):
             dest_node_weights = dest_node.first
 
             # Conn 1: Input -> Pool
-            if isinstance(self.ps_obj, ps.Input) and isinstance(dest_node_ps_obj, ps.Pool):
+            if isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Pool):
                 num_neurons = self.ps_obj.GetNumNeurons()
                 matrix_dims = 2
                 adj_node_dims = dest_node_ps_obj.GetNumDimensions()
@@ -162,7 +166,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(tap)
 
             #   Conn 2: Input -> Bucket
-            elif isinstance(self.ps_obj, ps.Input) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Bucket):
                 source = self.hardware_resource
                 tat_acc_resource = TATAccumulator(self.ps_obj.GetNumDimensions())
                 weight_resource = create_mm_weights(dest_node_weights)
@@ -176,7 +180,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 3: Pool -> Bucket
-            elif isinstance(self.ps_obj, ps.Pool) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, Pool) and isinstance(dest_node_ps_obj, Bucket):
                 neurons = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket = dest_node_ps_obj.hardware_resource
@@ -187,7 +191,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 4: Bucket -> Bucket
-            elif isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Bucket):
+            elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Bucket):
                 am_bucket_in = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket_out = dest_node_ps_obj.hardware_resource
@@ -198,7 +202,7 @@ class PyStormHWMapper(object):
                 hardware_resources.append(weight_resource)
 
             #   Conn 5: Bucket -> Output
-            elif isinstance(self.ps_obj, ps.Bucket) and isinstance(dest_node_ps_obj, ps.Output):
+            elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Output):
                 am_bucket = self.hardware_resource
                 sink = dest_node_ps_obj.hardware_resource
 
@@ -212,7 +216,7 @@ class PyStormHWMapper(object):
         #                   ⋮
         #                   └─> Bucket / Output
         elif n_tgt_nodes > 1:
-            assert isinstance(self.ps_obj, ps.Bucket)
+            assert isinstance(self.ps_obj, Bucket)
             am_bucket_in = self.hardware_resource
             tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
 
@@ -223,7 +227,7 @@ class PyStormHWMapper(object):
             for dest_node in self.dest_mappers:
                 dest_node_ps_obj = dest_node.second
                 adj_node_weight = dest_node.first
-                if isinstance(dest_node_ps_obj, ps.Bucket):
+                if isinstance(dest_node_ps_obj, Bucket):
                     weight_resource = create_mm_weights(adj_node_weight)
                     am_bucket_out = dest_node_ps_obj
 
@@ -231,7 +235,7 @@ class PyStormHWMapper(object):
 
                     tat_fanout.connect(weight_resource)
                     weight_resource.connect(am_bucket_out)
-                elif isinstance(dest_node_ps_obj, ps.Output):
+                elif isinstance(dest_node_ps_obj, Output):
                     sink = dest_node_ps_obj.hardware_resource
                     tat_fanout.connect(sink)
                 else:
@@ -239,16 +243,15 @@ class PyStormHWMapper(object):
                         "fanout connections between %s and %s are not currently supported"%(
                             str(self.ps_obj), str(dest_node_ps_obj)))
 
-def create_network_resources(pystorm_network):
-    """Create the required hardware resources for a  _PyStorm network
+def create_network_resources(network):
+    """Create the required hardware resources for a  neuromorph graph network
 
     Parameters
     ----------
-    pystorm_network: A _Pystorm.Network object
-        The objects in the _PyStorm network may not form a graph.
-        If a _PyStorm object is connected to another _PyStorm
-        network object, the corresponding Resource objects should
-        be connected as well.
+    network: A neuromorph graph Network object
+        The objects in the neuromorph graph Network may not form a graph.
+        If a neuromorph graph object is connected to another neuromorph graph
+        object, the corresponding Resource objects should be connected as well.
 
     Returns
     -------
@@ -256,29 +259,29 @@ def create_network_resources(pystorm_network):
     """
 
     hardware_resources = []
-    # A map from _PyStorm objects to PyStormHWMappers
-    # The map forms a graph of _PyStorm.Network/Resource objects
+    # A map from neuromorph graph objects to GraphHWMappers
+    # The map forms a graph of neuromorph graph.Network/Resource objects
     ps_hw_map = dict()
 
-    # Populate the PyStormHWMappers in the graph
-    for inp in pystorm_network.GetInputs():
-        ps_hw_map[inp] = PyStormHWMapper(inp)
+    # Populate the GraphHWMappers in the graph
+    for inp in network.GetInputs():
+        ps_hw_map[inp] = GraphHWMapper(inp)
         hardware_resources.append(ps_hw_map[inp].get_resource())
 
-    for out in pystorm_network.GetOutputs():
-        ps_hw_map[out] = PyStormHWMapper(out)
+    for out in network.GetOutputs():
+        ps_hw_map[out] = GraphHWMapper(out)
         hardware_resources.append(ps_hw_map[out].get_resource())
 
-    for pool in pystorm_network.GetPools():
-        ps_hw_map[pool] = PyStormHWMapper(pool)
+    for pool in network.GetPools():
+        ps_hw_map[pool] = GraphHWMapper(pool)
         hardware_resources.append(ps_hw_map[pool].get_resource())
 
-    for bucket in pystorm_network.GetBuckets():
-        ps_hw_map[bucket] = PyStormHWMapper(bucket)
+    for bucket in network.GetBuckets():
+        ps_hw_map[bucket] = GraphHWMapper(bucket)
         hardware_resources.append(ps_hw_map[bucket].get_resource())
 
-    # Connect source PyStormHWMappers to their destination PyStormHWMappers
-    connections = pystorm_network.GetConnections()
+    # Connect source GraphHWMappers to their destination GraphHWMappers
+    connections = network.GetConnections()
     for conn in connections:
         source = conn.GetSource()
         dest = conn.GetDest()
@@ -332,26 +335,26 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
 
     return core
 
-def map_network(pystorm_network, verbose=False):
-    """Create a MappedNetwork object given a pystorm._PyStorm.Network object
+def map_network(network, verbose=False):
+    """Create a MappedNetwork object given a neuromorphg graph Network object
 
     Parameters
     ----------
-    pystorm_network: An object of type pystorm._PyStorm.Network
+    network: An object of type neuromorph graph Network
 
 
     Returns
     -------
-    pystorm_network: a mapped pystorm._PyStorm.Network
+    network: a mapped neuromorph graph Network
     """
-    pars = ps.GetCorePars()
+    pars = _PyStorm.GetCorePars()
 
     core = Core(pars)
 
-    hardware_resources = create_network_resources(pystorm_network)
+    hardware_resources = create_network_resources(network)
 
     core = map_resources_to_core(hardware_resources, core, verbose)
 
-    mapped_network = pystorm_network
+    mapped_network = network
 
     return mapped_network

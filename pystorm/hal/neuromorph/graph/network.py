@@ -56,3 +56,6 @@ class Network(object):
         o = output.Output(label, dimensions)
         self.outputs.append(o)
         return o
+
+def create_network(label):
+    return Network(label)
