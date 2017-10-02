@@ -1,14 +1,6 @@
-`include "Channel.svh"
-`include "Core.sv"
-`include "OKIfc.sv"
-`include "BDIfc.sv"
-`include "BDClkGen.sv"
-// for quartus, we add external IP to the project
-`ifdef SIMULATION
-  `include "../quartus/SysClkBuf.v"
-`endif
+`include "OKCoreBD.sv" // should have everything we need
 
-module OKCoreBD (
+module OKBD (
   // OK ifc
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,
@@ -87,25 +79,95 @@ ok_ifc(
   .PC_downstream(PC_downstream),
   .PC_upstream(PC_upstream));
 
-// core design
-Core core(
-  .PC_out(PC_upstream),
-  .PC_in(PC_downstream),
-  .BD_out(BD_downstream),
-  .BD_in(BD_upstream),
-  .pReset(pReset),
-  .sReset(sReset),
-  .adc0(adc0),
-  .adc1(adc1),
-  .clk(okClk),
-  .reset(user_reset));
-
 // get single-ended clock
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
 
 logic pll_locked;
 logic reset_BDIO;
 assign reset_BDIO = user_reset;
+
+/////////////////////////////////
+// OK -> BD logic
+// we implement a nop, register for resets, register to hold data, othewise forward traffic
+// msb is nop bit
+
+logic nop_bit;
+logic data_bit;
+logic pReset_reg_bit;
+logic sReset_reg_bit;
+logic hold_reg_on_bit;
+logic hold_reg_off_bit;
+
+localparam Nctrl = 6;
+logic [Nctrl-1:0] ctrl_bits;
+assign {nop_bit, data_bit, pReset_reg_bit, sReset_reg_bit, hold_reg_on_bit, hold_reg_off_bit} = ctrl_bits;
+
+logic [NPCinout - NBDin - Nctrl-1:0] unused_bits;
+logic [NBDin-1:0] BD_data_bits_down;
+assign {ctrl_bits, unused_bits, BD_data_bits_down} = PC_downstream.d;
+
+// registers for resets and hold data value
+logic next_pReset, next_sReset;
+logic hold_reg_on, next_hold_reg_on;
+logic [NBDin-1:0] hold_reg_val;
+logic [NBDin-1:0] next_hold_reg_val;
+
+// register updates
+always_ff @(posedge okClk, posedge user_reset)
+  if (user_reset == 1) begin
+    hold_reg_on <= 0;
+    sReset <= 1;
+    pReset <= 1;
+    hold_reg_val <= 0;
+  end
+  else begin
+    hold_reg_on <= next_hold_reg_on;
+    sReset <= next_sReset;
+    pReset <= next_pReset;
+    hold_reg_val <= next_hold_reg_val;
+  end
+
+always_comb begin
+  next_pReset = pReset;
+  next_sReset = sReset;
+  next_hold_reg_on = hold_reg_on;
+  next_hold_reg_val = hold_reg_val;
+  if (PC_downstream.v == 1) begin
+    if (pReset_reg_bit == 1) begin
+      next_pReset = PC_downstream.d[0];
+    end
+    else if (sReset_reg_bit == 1) begin
+      next_sReset = PC_downstream.d[0];
+    end
+    else if (hold_reg_on_bit == 1) begin
+      next_hold_reg_on = 1;
+      next_hold_reg_val = PC_downstream.d[NBDin-1:0];
+    end
+    else if (hold_reg_off_bit == 1) begin
+      next_hold_reg_on = 0;
+    end
+  end
+end
+
+// pass down data for data_bit == 1
+assign BD_downstream.d = data_bit == 1 ? PC_downstream.d[NBDin-1:0] : 'X;
+assign BD_downstream.v = PC_downstream.v & data_bit;
+
+// auto-ack for non-data
+assign PC_downstream.a = data_bit & BD_downstream.a | nop_bit | pReset_reg_bit | sReset_reg_bit | hold_reg_on_bit | hold_reg_off_bit;
+
+// can still try to send data with data held (you need to, to actually send the held word)
+// data lines will stay at held value, but handshake will occur for each downstream word
+// this implements the data hold
+logic [NBDin-1:0] BD_out_data_from_HSer;
+assign BD_out_data = hold_reg_on == 1 ? hold_reg_val : BD_out_data_from_HSer;
+
+
+/////////////////////////////////
+// BD -> OK logic
+// just a serializer
+Serializer #(.Nin(NBDout), .Nout(NPCinout)) serializer(PC_upstream, BD_upstream, okClk, user_reset);
+
 
 // PLL generates BD_IO_clk
 BDClkGen bd_clk_gen(
@@ -123,7 +185,7 @@ BDIfc BD_ifc(
   .core_dn(BD_downstream),
   .BD_out_ready(BD_out_ready),
   .BD_out_valid(BD_out_valid),
-  .BD_out_data(BD_out_data),
+  .BD_out_data(BD_out_data_from_HSer),
   .BD_in_ready(BD_in_ready),
   .BD_in_valid(BD_in_valid),
   .BD_in_data(BD_in_data),
