@@ -176,7 +176,7 @@ class Neurons(Resource):
 
     def allocate(self, core):
         """neuron array allocation"""
-        self.start_pool_idx = core.NeuronArray.allocate(self.n_unit_pools)
+        self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
         self.start_nrn_idx = self.start_pool_idx * core.NeuronArray_pool_size
 
     def posttranslate(self, core):
@@ -200,7 +200,7 @@ class Neurons(Resource):
         """PAT assignment"""
         if self.PAT_contents is not None:
             pool_slice = slice(self.start_pool_idx, self.start_pool_idx + self.n_unit_pools)
-            core.PAT.assign(self.PAT_contents, pool_slice)
+            core.PAT.Assign(self.PAT_contents, pool_slice)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -450,7 +450,7 @@ class AMBuckets(Resource):
                 n += 1
 
     def allocate(self, core):
-        self.start_addr = core.AM.allocate(self.dimensions_out)
+        self.start_addr = core.AM.Allocate(self.dimensions_out)
 
     def posttranslate(self, core):
         # we need to create the (stop, value, thresholds) and next address entries for the AM
@@ -474,7 +474,7 @@ class AMBuckets(Resource):
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
-        core.AM.assign(self.AM_entries, self.start_addr)
+        core.AM.Assign(self.AM_entries, self.start_addr)
 
 class TATAccumulator(Resource):
     """Represents entries in the Tag Action Table for the Accumulator
@@ -589,7 +589,7 @@ class TATTapPoint(Resource):
             range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.allocate(self.size)
+        self.start_addr = core.TAT1.Allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
@@ -613,7 +613,7 @@ class TATTapPoint(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.assign(self.contents, self.start_addr)
+        core.TAT1.Assign(self.contents, self.start_addr)
 
 class TATFanout(Resource):
     """Represents a Tag Action Table entry for fanning out tags
@@ -670,7 +670,7 @@ class TATFanout(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.assign(self.contents, self.start_addr)
+        core.TAT1.Assign(self.contents, self.start_addr)
 
 class Sink(Resource):
     """Represents a sink"""
@@ -695,7 +695,7 @@ class Sink(Resource):
             "only dimensions_in is defined")
 
     def allocate(self, core):
-        self.in_tags = core.ExternalSinks.allocate(self.D)
+        self.in_tags = core.ExternalSinks.Allocate(self.D)
 
 class Source(Resource):
     """Represents a source"""
