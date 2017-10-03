@@ -546,8 +546,8 @@ class TATTapPoint(Resource):
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         self.N = N
-        self.D = taps.shape[0]
-        self.K = taps.shape[1]
+        self.D = taps.shape[1]
+        self.K = taps.shape[0]
         self.taps = taps
         self.signs = signs
 

@@ -155,8 +155,8 @@ class GraphHWMapper(object):
                 tap = TATTapPoint(
                     # TODO: This should not be random! 
                     # Put in the H-Tree algorithm here!
-                    np.random.randint(num_neurons, size=(adj_node_dims, matrix_dims)),
-                    np.random.randint(2, size=(adj_node_dims, matrix_dims))*2 - 1,
+                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
                     num_neurons)
                 neurons = dest_node[1].hardware_resource
 
