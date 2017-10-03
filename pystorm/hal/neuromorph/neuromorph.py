@@ -1,7 +1,7 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-import pystorm._PyStorm as _PyStorm
+from . import core_pars
 from pystorm.hal.neuromorph.graph import (Bucket, Input, Output, Pool)
 from .core import Core
 from .hardware_resources import (
@@ -350,7 +350,7 @@ def map_network(network, verbose=False):
     hardware_resources: list of total hardware resources allocated for the input network
     core: a representation of the hardware core
     """
-    pars = _PyStorm.get_core_pars()
+    pars = core_pars.get_core_pars()
 
     core = Core(pars)
 

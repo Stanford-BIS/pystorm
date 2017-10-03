@@ -13,27 +13,25 @@ class Core(object):
     ps_pars: _PyStorm CorePars instance
     """
     def __init__(self, ps_pars):
-        pars_idx = ps.CoreParsIndex
+        self.MM_height = ps_pars['MM_height']
+        self.MM_width = ps_pars['MM_width']
 
-        self.MM_height = ps_pars[pars_idx.MM_height]
-        self.MM_width = ps_pars[pars_idx.MM_width]
+        self.AM_size = ps_pars['AM_size']
 
-        self.AM_size = ps_pars[pars_idx.AM_size]
+        self.TAT_size = ps_pars['TAT_size']
 
-        self.TAT_size = ps_pars[pars_idx.TAT_size]
-
-        self.NeuronArray_height = ps_pars[pars_idx.NeuronArray_height]
-        self.NeuronArray_width  = ps_pars[pars_idx.NeuronArray_width]
+        self.NeuronArray_height = ps_pars['NeuronArray_height']
+        self.NeuronArray_width  = ps_pars['NeuronArray_width']
         self.NeuronArray_pool_size = ps_pars[
-            pars_idx.NeuronArray_pool_size] # number of neurons that share each PAT entry
-        self.NeuronArray_neurons_per_tap = ps_pars[pars_idx.NeuronArray_neurons_per_tap]
+            'NeuronArray_pool_size'] # number of neurons that share each PAT entry
+        self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
         self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
 
-        self.num_threshold_levels = ps_pars[pars_idx.num_threshold_levels]
-        self.min_threshold_value = ps_pars[pars_idx.min_threshold_value]
-        self.max_weight_value = ps_pars[pars_idx.max_weight_value]
+        self.num_threshold_levels = ps_pars['num_threshold_levels']
+        self.min_threshold_value = ps_pars['min_threshold_value']
+        self.max_weight_value = ps_pars['max_weight_value']
 
         # set up allocable objects (Resource containers)
 
