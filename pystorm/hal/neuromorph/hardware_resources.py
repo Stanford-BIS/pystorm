@@ -719,3 +719,7 @@ class Source(Resource):
 
     def posttranslate(self, core):
         self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
+
+    def allocate(self, core):
+        # TODO: is this correct?  Should we do something here?
+        pass

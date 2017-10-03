@@ -34,31 +34,26 @@ def create_resources(pystorm_obj):
 @create_resources.register(Input)
 def _create_resources_ps_input(ps_input):
     """create_resources for a neuromorph graph Input"""
-    return Source(ps_input.GetNumDimensions())
+    return Source(ps_input.get_num_dimensions())
 
 @create_resources.register(Output)
 def _create_resources_ps_output(ps_output):
     """create_resources for neuromorph graph Output"""
-    return Sink(ps_output.GetNumDimensions())
+    return Sink(ps_output.get_num_dimensions())
 
 @create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
     """create_resources for neuromorph graph Pool"""
-    return Neurons(ps_pool.GetNumNeurons())
+    return Neurons(ps_pool.get_num_neurons())
 
 @create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):
     """create_resources for neuromorph graph Bucket"""
-    return AMBuckets(ps_bucket.GetNumDimensions())
+    return AMBuckets(ps_bucket.get_num_dimensions())
 
 def create_mm_weights(ps_weights):
     """Create a representation of the main memory weights"""
-    weights = np.array(ps_weights.GetNumRows(),
-                       ps_weights.GetNumColumns())
-    for i in range(ps_weights.GetNumRows()):
-        for j in range(ps_weights.GetNumColumns()):
-            weights[i][j] = ps_weights.GetElement(i, j)
-    ret_value = MMWeights(weights)
+    ret_value = MMWeights(ps_weights)
     return ret_value
 
 class GraphHWMapper(object):
@@ -88,6 +83,9 @@ class GraphHWMapper(object):
         self.ps_obj = ps_obj
         self.hardware_resource = create_resources(ps_obj)
         self.dest_mappers = []
+
+    def get_resource(self):
+        return self.hardware_resource
 
     def connect_src_to_dest_mapper(self, mapper, weight=None):
         """Connect this GraphHWMapper to another GraphHWMapper
@@ -144,21 +142,23 @@ class GraphHWMapper(object):
 
         if n_tgt_nodes == 1:
             dest_node = self.dest_mappers[0]
-            dest_node_ps_obj = dest_node.second
-            dest_node_weights = dest_node.first
+            dest_node_ps_obj = dest_node[1].ps_obj
+            dest_node_weights = dest_node[0]
 
             # Conn 1: Input -> Pool
             if isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Pool):
-                num_neurons = self.ps_obj.GetNumNeurons()
+                num_neurons = dest_node_ps_obj.get_num_neurons()
                 matrix_dims = 2
-                adj_node_dims = dest_node_ps_obj.GetNumDimensions()
+                adj_node_dims = self.ps_obj.get_num_dimensions()
 
                 source = self.hardware_resource
                 tap = TATTapPoint(
-                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
-                    np.random.randint(1, size=(matrix_dims, adj_node_dims))*2 - 1,
+                    # TODO: This should not be random! 
+                    # Put in the H-Tree algorithm here!
+                    np.random.randint(num_neurons, size=(adj_node_dims, matrix_dims)),
+                    np.random.randint(2, size=(adj_node_dims, matrix_dims))*2 - 1,
                     num_neurons)
-                neurons = dest_node_ps_obj.hardware_resource
+                neurons = dest_node[1].hardware_resource
 
                 source.connect(tap)
                 tap.connect(neurons)
@@ -168,7 +168,7 @@ class GraphHWMapper(object):
             #   Conn 2: Input -> Bucket
             elif isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Bucket):
                 source = self.hardware_resource
-                tat_acc_resource = TATAccumulator(self.ps_obj.GetNumDimensions())
+                tat_acc_resource = TATAccumulator(self.ps_obj.get_num_dimensions())
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket = dest_node_ps_obj.hardware_resource
 
@@ -183,7 +183,7 @@ class GraphHWMapper(object):
             elif isinstance(self.ps_obj, Pool) and isinstance(dest_node_ps_obj, Bucket):
                 neurons = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
-                am_bucket = dest_node_ps_obj.hardware_resource
+                am_bucket = dest_node[1].hardware_resource
 
                 neurons.connect(weight_resource)
                 weight_resource.connect(am_bucket)
@@ -194,7 +194,7 @@ class GraphHWMapper(object):
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Bucket):
                 am_bucket_in = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
-                am_bucket_out = dest_node_ps_obj.hardware_resource
+                am_bucket_out = dest_node[1].hardware_resource
 
                 am_bucket_in.connect(weight_resource)
                 weight_resource.connect(am_bucket_out)
@@ -204,7 +204,7 @@ class GraphHWMapper(object):
             #   Conn 5: Bucket -> Output
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Output):
                 am_bucket = self.hardware_resource
-                sink = dest_node_ps_obj.hardware_resource
+                sink = dest_node[1].hardware_resource
 
                 am_bucket.connect(sink)
             else:
@@ -264,28 +264,28 @@ def create_network_resources(network):
     ng_obj_hw_map = dict()
 
     # Populate the GraphHWMappers in the graph
-    for inp in network.GetInputs():
+    for inp in network.get_inputs():
         ng_obj_hw_map[inp] = GraphHWMapper(inp)
         hardware_resources.append(ng_obj_hw_map[inp].get_resource())
 
-    for out in network.GetOutputs():
+    for out in network.get_outputs():
         ng_obj_hw_map[out] = GraphHWMapper(out)
         hardware_resources.append(ng_obj_hw_map[out].get_resource())
 
-    for pool in network.GetPools():
+    for pool in network.get_pools():
         ng_obj_hw_map[pool] = GraphHWMapper(pool)
         hardware_resources.append(ng_obj_hw_map[pool].get_resource())
 
-    for bucket in network.GetBuckets():
+    for bucket in network.get_buckets():
         ng_obj_hw_map[bucket] = GraphHWMapper(bucket)
         hardware_resources.append(ng_obj_hw_map[bucket].get_resource())
 
     # Connect source GraphHWMappers to their destination GraphHWMappers
-    connections = network.GetConnections()
+    connections = network.get_connections()
     for conn in connections:
-        source = conn.GetSource()
-        dest = conn.GetDest()
-        weights = conn.GetWeights()  # weights is either of type Weights or None
+        source = conn.get_source()
+        dest = conn.get_dest()
+        weights = conn.get_weights()  # weights is either of type Weights or None
         ng_obj_hw_map[source].connect_src_to_dest_mapper(ng_obj_hw_map[dest], weights)
 
     # Connect the adjacent nodes creating Resources relevant to each connection
@@ -350,7 +350,7 @@ def map_network(network, verbose=False):
     hardware_resources: list of total hardware resources allocated for the input network
     core: a representation of the hardware core
     """
-    pars = _PyStorm.GetCorePars()
+    pars = _PyStorm.get_core_pars()
 
     core = Core(pars)
 
