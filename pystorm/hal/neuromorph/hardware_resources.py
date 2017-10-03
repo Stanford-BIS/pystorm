@@ -651,7 +651,7 @@ class TATFanout(Resource):
             range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.allocate(self.size)
+        self.start_addr = core.TAT1.Allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):

@@ -238,18 +238,18 @@ class GraphHWMapper(object):
         #                   └─> Bucket / Output
         #                   ⋮
         #                   └─> Bucket / Output
-        elif n_tgt_nodes > 1:
+        elif (n_tgt_nodes > 1):
             assert isinstance(self.ps_obj, Bucket)
             am_bucket_in = self.hardware_resource
-            tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
+            tat_fanout = TATFanout(self.ps_obj.get_num_dimensions())
 
             am_bucket_in.connect(tat_fanout)
 
             hardware_resources.append(tat_fanout)
 
             for dest_node in self.dest_mappers:
-                dest_node_ps_obj = dest_node.second
-                adj_node_weight = dest_node.first
+                dest_node_ps_obj = dest_node[1].ps_obj
+                dest_node_weights = dest_node[0]
                 if isinstance(dest_node_ps_obj, Bucket):
                     weight_resource = create_mm_weights(adj_node_weight)
                     am_bucket_out = dest_node_ps_obj
@@ -259,7 +259,7 @@ class GraphHWMapper(object):
                     tat_fanout.connect(weight_resource)
                     weight_resource.connect(am_bucket_out)
                 elif isinstance(dest_node_ps_obj, Output):
-                    sink = dest_node_ps_obj.hardware_resource
+                    sink = dest_node[1].hardware_resource
                     tat_fanout.connect(sink)
                 elif isinstance(dest_node_ps_obj, Pool):
 
