@@ -172,7 +172,7 @@ class Neurons(Resource):
         self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
         # assert no more than one connection (only one decoder allowed)
-        assert len(self.conns_out) == 1
+        assert len(self.conns_out) <= 1
 
     def allocate(self, core):
         """neuron array allocation"""
