@@ -24,6 +24,7 @@ ErrorNames = dict({
     -20 : 'InvalidParameter'
 })
 
+
 def InitOK(fpga_bitcode):
     """
     Initialize OpalKelly board and return a handler to the FrontPanel
