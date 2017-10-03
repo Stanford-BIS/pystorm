@@ -114,24 +114,27 @@ class GraphHWMapper(object):
         Conn 3:
               neuromorph graph: Pool ─> Bucket
             hardware_resources: Neurons ─> MMWeights ─> AMBuckets
-        Conn 4:
+        Conn 4a:
               neuromorph graph: Bucket ─> Bucket
             hardware_resources: AMBuckets ─> MMWeights ─> AMBuckets
-        Conn 5:
+        Conn 4b:
               neuromorph graph: Bucket ─> Output
             hardware_resources: AMBuckets ─> Sink
-         Conn 6:
-              neuromorph graph: Bucket ─┬─> Bucket / Output
-                                        └─> Bucket / Output
+        Conn 4c:
+              neuromorph graph: Bucket ─> Pool
+            hardware_resources: AMBuckets ─> TATTapPoint -> Neurons
+         Conn 5:
+              neuromorph graph: Bucket ─┬─> Bucket / Output / Pool
+                                        └─> Bucket / Output / Pool
                                         ⋮
-                                        └─> Bucket / Output
-            hardware_resources: AMBuckets ─> TATFanout ─┬─> (MMWeights ─> AMBuckets) / Sink
-                                                        └─> (MMWeights ─> AMBuckets) / Sink
+                                        └─> Bucket / Output / Pool
+            hardware_resources: AMBuckets ─> TATFanout ─┬─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
+                                                        └─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
                                                         ⋮
-                                                        └─> (MMWeights ─> AMBuckets) / Sink
+                                                        └─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
         Note:
-        The first five connection types are from one object to one object.
-        Connections 6 is from one object to multiple objects;
+        The first four connection types are from one object to one object.
+        Connections 5 is from one object to multiple objects;
             this requires additional hardware_resources.
 
         Parameters
@@ -190,7 +193,7 @@ class GraphHWMapper(object):
 
                 hardware_resources.append(weight_resource)
 
-            #   Conn 4: Bucket -> Bucket
+            #   Conn 4a: Bucket -> Bucket
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Bucket):
                 am_bucket_in = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
@@ -201,12 +204,32 @@ class GraphHWMapper(object):
 
                 hardware_resources.append(weight_resource)
 
-            #   Conn 5: Bucket -> Output
+            #   Conn 4b: Bucket -> Output
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Output):
                 am_bucket = self.hardware_resource
                 sink = dest_node[1].hardware_resource
 
                 am_bucket.connect(sink)
+            elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Pool):
+                am_bucket = self.hardware_resource
+
+                num_neurons = dest_node_ps_obj.get_num_neurons()
+                matrix_dims = 2
+                adj_node_dims = self.ps_obj.get_num_dimensions()
+
+                tap = TATTapPoint(
+                    # TODO: This should not be random! 
+                    # Put in the H-Tree algorithm here!
+                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
+                    num_neurons)
+                neurons = dest_node[1].hardware_resource
+
+                am_bucket.connect(tap)
+                tap.connect(neurons)
+
+                hardware_resources.append(tap)
+
             else:
                 raise TypeError("connections between %s and %s are not currently supported"%(
                     str(self.ps_obj), str(dest_node_ps_obj)))
@@ -238,6 +261,25 @@ class GraphHWMapper(object):
                 elif isinstance(dest_node_ps_obj, Output):
                     sink = dest_node_ps_obj.hardware_resource
                     tat_fanout.connect(sink)
+                elif isinstance(dest_node_ps_obj, Pool):
+
+                    num_neurons = dest_node_ps_obj.get_num_neurons()
+                    matrix_dims = 2
+                    adj_node_dims = self.ps_obj.get_num_dimensions()
+
+                    tap = TATTapPoint(
+                        # TODO: This should not be random! 
+                        # Put in the H-Tree algorithm here!
+                        np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                        np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
+                        num_neurons)
+                    neurons = dest_node[1].hardware_resource
+
+                    tat_fanout.connect(tap)
+                    tap.connect(neurons)
+
+                    hardware_resources.append(tap)
+
                 else:
                     raise TypeError(
                         "fanout connections between %s and %s are not currently supported"%(
