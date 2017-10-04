@@ -34,7 +34,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
   for (auto& it : BD_input_words) {
     uint8_t code = GetField<FPGAIO>(it, FPGAIO::EP_CODE);
     uint32_t payload = GetField<FPGAIO>(it, FPGAIO::PAYLOAD);
-    if (ep_words.count(code) == 0) 
+    if (ep_words.count(code) == 0)
       ep_words.insert({code, {}});
     ep_words.at(code).push_back(payload);
   }
@@ -45,8 +45,8 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
     uint8_t ep = it.first;
     const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
     const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep);
-    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
-        ep_data_size / FPGA_payload_width 
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
+        ep_data_size / FPGA_payload_width
       : ep_data_size / FPGA_payload_width + 1;
 
     des_ep_words.insert({ep, DeserializeEP(it.second, D)});
@@ -63,14 +63,16 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
 std::vector<uint8_t> BDModel::GenerateOutputs() {
 
+  std::unique_lock<std::mutex>(mutex_);
+
   // serialize words like FPGA
   std::unordered_map<uint8_t, std::vector<uint32_t>> ser_ep_words;
   for (auto& it : to_send_) {
     uint8_t ep = it.first;
     const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
     const unsigned int ep_data_size = bd_pars_->Up_EP_size_.at(ep);
-    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ? 
-        ep_data_size / FPGA_payload_width 
+    const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
+        ep_data_size / FPGA_payload_width
       : ep_data_size / FPGA_payload_width + 1;
 
     ser_ep_words.insert({ep, SerializeEP(it.second, D)});
@@ -84,7 +86,7 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
       FPGA_words.push_back(PackWord<FPGAIO>({{FPGAIO::EP_CODE, code}, {FPGAIO::PAYLOAD, payload}}));
     }
   }
-  
+
   // then FPGA-byte-pack them
   std::vector<uint8_t> FPGA_output = FPGAOutput(FPGA_words, bd_pars_);
 
@@ -125,7 +127,7 @@ void BDModel::ProcessBDInputStream(bdpars::BDHornEP input_id, uint64_t input) {
       break;
     }
     case BDHornEP::NEURON_CONFIG: {
-      assert(false && "not implemented");
+      //assert(false && "not implemented");
       break;
     }
     default: {
@@ -156,7 +158,7 @@ void BDModel::ProcessMM(uint64_t input) {
     //cout << "READ INC " << MM_address_ << " : " << data.Packed() << endl;;
     MM_address_++;
 
-  } else { 
+  } else {
     assert(false);
   }
 }
@@ -186,7 +188,7 @@ void BDModel::ProcessAM(uint64_t input) {
       AM_address_++;
       //cout << "INC " << AM_address_ << endl;
 
-  } else { 
+  } else {
     assert(false);
   }
 }
@@ -219,7 +221,7 @@ void BDModel::ProcessTAT(unsigned int TAT_idx, uint64_t input) {
     }
     TAT_address_[TAT_idx]++;
 
-  } else { 
+  } else {
     assert(false);
   }
 }
@@ -274,7 +276,7 @@ void BDModel::ProcessBDHorn(bdpars::BDHornEP ep, uint64_t input) {
           ProcessAM(GetField<AMEncapsulation>(word, AMEncapsulation::PAYLOAD));
         } else if (GetField<MMEncapsulation>(word, MMEncapsulation::FIXED_1) == 1) {
           ProcessMM(GetField<MMEncapsulation>(word, MMEncapsulation::PAYLOAD));
-        } else { 
+        } else {
           assert(false);
         }
         break;

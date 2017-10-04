@@ -56,7 +56,7 @@ class DriverFixture : public testing::Test {
       delete driver;
     }
 
-    const unsigned int kSleepS = 1;
+    const unsigned int kSleepS = 2;
     const unsigned int M = 64; // be careful, keep it smaller than the memories, the PAT has 64 entries
     const unsigned kCoreId = 0;
     BDModelDriver * driver;

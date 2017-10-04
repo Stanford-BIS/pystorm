@@ -33,12 +33,14 @@ CommBDModel::~CommBDModel() {
 void CommBDModel::RunOnce() {
   // pop from MB
   unsigned int try_for_us = driver_pars_->Get(driverpars::BDMODELCOMM_TRY_FOR_US);
-  std::unique_ptr<std::vector<COMMWord>> inputs = write_buffer_->Pop(try_for_us);
+  std::vector<std::unique_ptr<std::vector<COMMWord>>> inputs = write_buffer_->PopAll(try_for_us);
 
   // shouldn't need a deserializer, there's no USB to break up the transmission
 
   // parse inputs
-  model_->ParseInput(*inputs);
+  for (auto& input : inputs) {
+    model_->ParseInput(*input);
+  }
 
   // get outputs
   std::unique_ptr<std::vector<COMMWord>> outputs(new std::vector<COMMWord>);

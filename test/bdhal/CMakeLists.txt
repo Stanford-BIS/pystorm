@@ -8,11 +8,6 @@ set(PYSTORM_BASE_LIB_DIR ${PRJ_ROOT_DIR}/lib/$<CONFIG>)
 
 find_package(Threads REQUIRED)
 
-if(CMAKE_COMPILER_IS_GNUCXX)
-  add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -O3 -march=native -DLOG_ENABLED)
-  #add_definitions(-Wall -ansi -Wno-deprecated -pthread -fmax-errors=3 -ggdb)
-endif()
-
 #-------------------
 # Set global variables
 #-------------------
