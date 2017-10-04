@@ -54,7 +54,9 @@ class Driver(ConfigMemory):
         if self.__dbg__:
             print(ByteUtils.PrettyPrintBytearray(out_bytes, grouping=4, downstream=True))
         else:
-            self.dev.WriteToBlockPipeIn(self.EP_DN, self.BLOCK_SIZE, out_bytes)
+            ret_code = self.dev.WriteToBlockPipeIn(self.EP_DN, self.BLOCK_SIZE, out_bytes)
+            if ret_code < 0:
+                print("*ERROR*: OK Write Failure - '%s'" % ok.ErrorNames[ret_code])
 
     def SendBDWords(self, horn_id, payload_list):
         bd_data = [self.__create_bd_word__(HORN.CreateInputWord(horn_id, _buf)) for _buf in payload_list]
