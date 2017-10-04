@@ -73,21 +73,20 @@ class RO_TAT():
 
 
 IDS = dict({
-DUMP_AM         : (6, "101000" , 40, 38, 2, 19, "AM diagnostic read output"),
-DUMP_MM         : (6, "101001" , 41, 8 , 1, 8 , "MM diagnostic read output"),
-DUMP_PAT        : (5, "10101"  , 21, 20, 1, 20, "PAT diagnostic read output"),
-DUMP_POST_FIFO0 : (6, "101110" , 46, 19, 1, 19, "copy of tag class 0 traffic exiting FIFO"),
-DUMP_POST_FIFO1 : (6, "101111" , 47, 19, 1, 19, "copy of tag class 1 traffic exiting FIFO"),
-DUMP_PRE_FIFO   : (6, "101101" , 45, 20, 1, 20, "copy of traffic entering FIFO"),
-DUMP_TAT0       : (4, "1000"   , 8 , 29, 1, 29, "TAT 0 diagnostic read output"),
-DUMP_TAT1       : (4, "1001"   , 9 , 29, 1, 29, "TAT 1 diagnostic read output"),
-NRNI            : (2, "11"     , 3 , 12, 1, 12, "copy of traffic exiting neuron array"),
-OVFLW0          : (7, "1011000", 88, 1 , 1, 1 , "class 0 FIFO overflow warning"),
-OVFLW1          : (7, "1011001", 89, 1 , 1, 1 , "class 1 FIFO overflow warning"),
-RO_ACC          : (2, "01"     , 1 , 28, 1, 28, "tag output from accumulator"),
-RO_TAT          : (2, "00"     , 0 , 32, 1, 32, "tag output from TAT"),
+DUMP_AM         : (6, "100100000000000", 40, 38, 2, 19, "AM diagnostic read output"),
+DUMP_MM         : (6, "100100000000001", 41, 8 , 1, 8 , "MM diagnostic read output"),
+DUMP_PAT        : (5, "10010000000001" , 21, 20, 1, 20, "PAT diagnostic read output"),
+DUMP_POST_FIFO0 : (6, "100100000001100", 46, 19, 1, 19, "copy of tag class 0 traffic exiting FIFO"),
+DUMP_POST_FIFO1 : (6, "100100000001101", 47, 19, 1, 19, "copy of tag class 1 traffic exiting FIFO"),
+DUMP_PRE_FIFO   : (6, "10010000000101" , 45, 20, 1, 20, "copy of traffic entering FIFO"),
+DUMP_TAT0       : (4, "10000"          , 8 , 29, 1, 29, "TAT 0 diagnostic read output"),
+DUMP_TAT1       : (4, "10001"          , 9 , 29, 1, 29, "TAT 1 diagnostic read output"),
+NRNI            : (2, "101"            , 3 , 12, 1, 12, "copy of traffic exiting neuron array"),
+OVFLW0          : (7, "100100000001000", 88, 1 , 1, 1 , "class 0 FIFO overflow warning"),
+OVFLW1          : (7, "100100000001001", 89, 1 , 1, 1 , "class 1 FIFO overflow warning"),
+RO_ACC          : (2, "01"             , 1 , 28, 1, 28, "tag output from accumulator"),
+RO_TAT          : (2, "00"             , 0 , 32, 1, 32, "tag output from TAT"),
 })
-
 
 def GetOutputWord(data):
     """
@@ -105,14 +104,14 @@ def GetOutputWord(data):
 
     _route = None
     for key, value in IDS.items():
-        _froute = value[1]
+        _froute = value
         _rlen = len(_froute)
         if _froute == data[:_rlen]:
             _route = key
             break
 
     _rfield = IDS[_route]
-    _payload_len = _rfield[3]
+    _payload_len = CORE_TO_PIN_WORD_LENGTH - _rlen
     _payload = _data[-_payload_len:]
 
     return ({

@@ -7,7 +7,9 @@ def PrintBytearrayAs32b(buf_out):
     for idx in range(len(buf_out) // 4):
         this_word_flipped = buf_out[4 * idx:4 * (idx + 1)]
         this_word = this_word_flipped[::-1]
-        if (this_word[0] == 64 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0):
+        if (this_word[0] == 64 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0): # upstream NOP
+            nop_count += 1
+        elif (this_word[0] == 128 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0): # downstream NOP
             nop_count += 1
         else:
             for j in range(4):
