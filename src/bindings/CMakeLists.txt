@@ -168,4 +168,21 @@ if(BD_COMM_TYPE STREQUAL "OPALKELLY")
     elseif(WIN32)
         set_target_properties(${TARGET3_NAME} PROPERTIES SUFFIX ".pyd")
     endif(APPLE)
+
+    # copy or link bindings library into pystorm source tree
+    if(Win32)
+        add_custom_command(
+            TARGET ${TARGET3_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyOK
+            ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/
+        )
+    else()
+        add_custom_command(
+            TARGET ${TARGET3_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E create_symlink
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../lib/$<CONFIG>/PyOK
+                ${CMAKE_CURRENT_SOURCE_DIR}/../../pystorm/PyOK
+        )
+    endif()
 endif()

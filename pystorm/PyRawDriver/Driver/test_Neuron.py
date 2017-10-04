@@ -1,6 +1,6 @@
 import sys
 import time
-import PyRawDriver as bd
+import pystorm.PyRawDriver as bd
 
 
 def PrintBytearrayAs32b(buf_out):

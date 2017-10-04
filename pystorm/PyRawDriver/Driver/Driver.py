@@ -2,7 +2,7 @@
 Python version of BDDriver
 """
 import time
-import PyOK as ok
+import pystorm.PyOK as ok
 from . import HORN
 #import FUNNEL
 
