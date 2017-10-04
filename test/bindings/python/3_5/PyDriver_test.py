@@ -4,7 +4,7 @@ driver = bd.pystorm.bddriver.BDModelDriver()
 model = driver.GetBDModel()
 
 # Calling driver.Start() results in segfault when exiting Python
-#driver.Start()
+driver.Start()
 #driver.InitBD()
 
 #kCoreId = 0

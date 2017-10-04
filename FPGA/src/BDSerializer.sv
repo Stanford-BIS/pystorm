@@ -6,31 +6,19 @@ module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
   DecodedBDWordChannel dec_in,
   input clk, reset);
 
-// BD funnel routing table (from the wiki)
-/*
-|leaf name         |depth |route   |route(int) |data width |serialization |chunk width |
-|==================|======|========|===========|===========|==============|============|===========================
-|DUMP_AM           |6     |101000  |40         |38         |2             |19          |AM diagnostic read output
-|DUMP_MM           |6     |101001  |41         |8          |1             |8           |MM diagnostic read output
-|DUMP_PAT          |5     |10101   |21         |20         |1             |20          |PAT diagnostic read output
-|DUMP_POST_FIFO[0] |6     |101110  |46         |19         |1             |19          |copy of tag class 0 traffic exiting FIFO
-|DUMP_POST_FIFO[1] |6     |101111  |47         |19         |1             |19          |copy of tag class 1 traffic exiting FIFO
-|DUMP_PRE_FIFO     |6     |101101  |45         |20         |1             |20          |copy of traffic entering FIFO
-|DUMP_TAT[0]       |4     |1000    |8          |29         |1             |29          |TAT 0 diagnostic read output
-|DUMP_TAT[1]       |4     |1001    |9          |29         |1             |29          |TAT 1 diagnostic read output
-|NRNI              |2     |11      |3          |12         |1             |12          |copy of traffic exiting neuron array
-|OVFLW[0]          |7     |1011000 |88         |1          |1             |1           |class 0 FIFO overflow warning
-|OVFLW[1]          |7     |1011001 |89         |1          |1             |1           |class 1 FIFO overflow warning
-|RO_ACC            |2     |01      |1          |28         |1             |28          |tag output from accumulator
-|RO_TAT            |2     |00      |0          |32         |1             |32          |tag output from TAT
-*/
+// some BD words won't fit in a 24-bit FPGA payload
+// BDHornEP 0  : DUMP_AM   : 38 bits (after BDFunnelDeserializer)
+// BDHornEP 6  : DUMP_TAT0 : 29 bits
+// BDHornEP 7  : DUMP_TAT1 : 29 bits
+// BDHornEP 11 : RO_ACC    : 28 bits
+// BDHornEP 12 : RO_TAT     : 32 bits
 
-localparam NBDpayload = 32; // width of DecodedBDWordChannel.payload (longest "data width")
+localparam NBDpayload = 38; // width of DecodedBDWordChannel.payload (longest "data width")
 localparam Nfunnel = 13; // number of funnel leaves
 
 // actually serialization - 1
 localparam logic serialization[0:Nfunnel-1] = '{
-  0,
+  1,
   0,
   0,
   0,

@@ -7,57 +7,100 @@ module FPGA_TO_BD #(parameter NUM_BITS = `NUM_BITS_PIN2CORE)
                    (Channel bd_channel,
                     output reg valid, output reg [NUM_BITS-1:0] data,
                     input ready, reset, clk);
-    /*
-    input bd_channel.d  // Data read from bd_channel
-    input bd_channel.v  // Asserted if bd_channel data is valid
-    output bd_channel.a // Assert if data sent to BD
-    output data;        // Data sent to BD
-    output valid;       // Assert if data sent to BD is valid
-    input ready;        // Asserted if BD is ready to read
-    input reset;        // Global reset
-    input clk;          // Global clock
-    */
 
-    /*
-    The various states are
-      bd_channel.v  |  ready  ||  bd_channel.a  |  valid
-            0       |    x    ||       0        |    0
-            1       |    0    ||       0        |    0
-            1       |    1    ||       1        |    1
-    */
+/*
+input bd_channel.d  // Data read from bd_channel (from the FPGA core)
+input bd_channel.v  // Asserted if bd_channel data is valid
+output bd_channel.a // Assert if data sent to BD
+output data;        // Data sent to BD
+output valid;       // Assert if data sent to BD is valid
+input ready;        // Asserted if BD is ready to read
+input reset;        // Global reset
+input clk;          // Global clock
+*/
 
-    typedef enum {BD_VALID = 1, BD_INVALID = 0} stateType;
-    stateType state;
-    assign state = stateType'(bd_channel.v & ready);
+enum {WAITING_FOR_INPUT, VALID_LOW, VALID_HIGH} state, next_state;
+logic [NUM_BITS-1:0] next_data;
 
-    always_ff @(posedge clk, posedge reset)
-    begin
-        if(reset == 1)
-        begin
-            bd_channel.a   <= 0;
-            valid       <= 0;
-        end
-        else
-        begin
-            case(state)
-                BD_INVALID: begin
-                    bd_channel.a   <= 0;
-                    valid       <= 0;
-                end
-                BD_VALID: begin
-                    valid       <= 1;
-                    if(~valid)
-                    begin
-                        data         <= bd_channel.d;
-                        bd_channel.a <= 1;
-                    end
-                    else
-                        bd_channel.a <= 0;
-                end
-            endcase
-        end
+// data can be sampled at any time while valid is high, 
+// so we want to make sure that it can't glitch
+// we guard the initial transition by not asserting
+// valid until a clock cycle later
+always_ff @(posedge clk, posedge reset) 
+  if (reset == 1) begin
+    state <= WAITING_FOR_INPUT;
+    data <= '0;
+  end
+  else begin
+    state <= next_state;
+    data <= next_data;
+  end
+
+// state update/data update
+// have to be a bit careful, ready can come back any time
+// this is the only place we can look at ready
+always_comb
+  case (state)
+    WAITING_FOR_INPUT: begin
+      if (bd_channel.v == 1) begin
+        next_data = bd_channel.d; // set up new data
+        next_state = VALID_LOW;
+      end
+      else begin
+        next_data = 'X;
+        next_state = WAITING_FOR_INPUT;
+      end
     end
+    VALID_LOW: begin
+      next_data = data; // hold data
+      if (ready == 1)
+        next_state = VALID_HIGH;
+      else
+        next_state = VALID_LOW;
+    end
+    VALID_HIGH: begin
+      if (ready == 0) begin
+        if (bd_channel.v == 1) begin
+          next_data = bd_channel.d; // set up new data
+          next_state = VALID_LOW;
+        end
+        else begin
+          next_data = 'X;
+          next_state = WAITING_FOR_INPUT;
+        end
+      end
+      else begin
+        next_data = data; // hold data
+        next_state = VALID_HIGH;
+      end
+    end
+  endcase
+
+// output
+always_comb
+  case (state)
+    WAITING_FOR_INPUT: begin
+      valid = 0;
+      if (bd_channel.v == 1)
+        bd_channel.a = 1;
+      else
+        bd_channel.a = 0;
+    end
+    VALID_LOW: begin
+      valid = 0;
+      bd_channel.a = 0;
+    end
+    VALID_HIGH: begin
+      valid = 1;
+      if (bd_channel.v == 1)
+        bd_channel.a = 1;
+      else
+        bd_channel.a = 0;
+    end
+  endcase
+
 endmodule
+
 
 module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
                    (Channel bd_channel,

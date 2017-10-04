@@ -1,12 +1,12 @@
 `define SIMULATION 
 
-`include "../src/OKCoreBD.sv"
+`include "../src/OKBD.sv"
 `include "BDSrcSink.sv"
 
 `timescale 1ns / 1ps
 `default_nettype none
 
-module OKCoreBD_tb;
+module OKBD_tb;
 
 // OK ifc
 wire [4:0]   okUH;
@@ -51,7 +51,7 @@ initial begin
 end
 
 // DUT
-OKCoreBD dut(.*);
+OKBD dut(.*);
 
 logic reset_for_BD_src_sink;
 assign reset_for_BD_src_sink = sReset | pReset;
@@ -92,36 +92,35 @@ logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
-const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
+const logic[31:0] nop = {1'b1, {31{1'b0}}};
 
 // index into PipeIn
 int i = 0;
 
-task SetReg(logic [4:0] reg_id, logic[15:0] data);
-  pipeInFlat[i] = {2'b10, 1'b0, reg_id, 8'b0, data};
+task SendToFPGA(logic [31:0] data);
+  pipeInFlat[i] = data;
   assert(i < pipeInSize);
   i = i + 1;
 endtask
 
-task SetChan(logic [4:0] chan_id, logic[15:0] data);
-  pipeInFlat[i] = {2'b11, 1'b0, chan_id, 8'b0, data};
-  assert(i < pipeInSize);
-  i = i + 1;
+task pResetOff();
+  SendToFPGA({6'b001000, {26{1'b0}}});
+endtask
+  
+task sResetOff();
+  SendToFPGA({6'b000100, {26{1'b0}}});
 endtask
 
-task SendToBD(logic[5:0] code, logic[23:0] payload);
-  pipeInFlat[i] = {2'b00, code, payload};
-  assert(i < pipeInSize);
-  i = i + 1;
+task holdDataOn(logic[20:0] data);
+  SendToFPGA({6'b000010, {5{1'b0}}, data});
 endtask
 
-task SendFromBD(logic[33:0] payload);
-  pipeInFlat[i] = {8'hff, payload[23:0]};
-  assert(i < pipeInSize);
-  i = i + 1;
-  pipeInFlat[i] = {8'hff, 14'd0, payload[33:24]};
-  assert(i < pipeInSize);
-  i = i + 1;
+task holdDataOff();
+  SendToFPGA({6'b000001, {26{1'b0}}});
+endtask
+
+task SendToBD(logic[20:0] data);
+  SendToFPGA({6'b010000, {5{1'b0}}, data});
 endtask
 
 task FlushAndSendPipeIn();
@@ -136,14 +135,6 @@ task FlushAndSendPipeIn();
   i = 0;
 endtask
 
-task SendToAllBD(int start, int num_words);
-  localparam NumHornLeaves = 34;
-  for (int i = 0; i < num_words; i++) begin
-    automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
-    automatic logic [23:0] payload = $urandom_range(0, 2**23-1);
-    SendToBD({2'b00, leaf}, payload);
-  end
-endtask
 
 
 // OK program
@@ -154,48 +145,24 @@ initial begin
 
   // turn off resets
   // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
-  SetReg(31, 0); 
+  pResetOff();
+  sResetOff();
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send AM word
-  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
+  // send a word
+  SendToBD({1'b1, {5{4'b0011}}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+  
+  // try holding the data
+  #(1000)
+  holdDataOn({21{1'b1}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send PAT word
-  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  // try sending, should send the held data in instead
+  #(1000)
+  SendToBD({1'b1, {5{4'b0011}}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send TAT0 word
-  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
-  FlushAndSendPipeIn(); // send the stuff we queued up
-
-  // send TAT1 word
-  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
-  FlushAndSendPipeIn(); // send the stuff we queued up
-
-  //SendToBD(0, 3'b101); // ADC 
-  //SendToBD(1, 11'b10101010101); // DAC0
-
-
-  //#(1000)
-  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
-
-  //#(1000)
-  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
-
-  //// send a bunch of BD words
-  //// do it a few times in case pipeInSize < number of horn leaves (34)
-
-  //SendToAllBD(0*pipeInSize, pipeInSize); 
-  //FlushAndSendPipeIn();
-  //SendToAllBD(1*pipeInSize, pipeInSize);
-  //FlushAndSendPipeIn();
-  //SendToAllBD(2*pipeInSize, pipeInSize);
-  //FlushAndSendPipeIn();
 
   forever begin
     #(1000)

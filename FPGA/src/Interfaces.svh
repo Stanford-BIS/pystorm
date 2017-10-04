@@ -57,14 +57,14 @@ endinterface
 
 interface UnencodedBDWordChannel;
   logic [5:0] leaf_code; // there are 34 leaves
-  logic [19:0] payload; // the longest data chunk
+  logic [23:0] payload; 
   logic v;
   logic a;
 endinterface
 
 interface DecodedBDWordChannel;
   logic [3:0] leaf_code; // there are 13 leaves
-  logic [31:0] payload; // the longest data chunk
+  logic [37:0] payload; // the longest data chunk
   logic v;
   logic a;
 endinterface

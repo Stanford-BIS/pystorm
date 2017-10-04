@@ -100,11 +100,10 @@ Core core(
   .clk(okClk),
   .reset(user_reset));
 
-// this is a low-level altera primitive, to turn LVDS -> single-ended, supposedly. 
-// It's what OK uses in the Counters example to get their clk
+// get single-ended clock
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
 
-logic pll_locked;
+logic pll_locked; // unused
 logic reset_BDIO;
 assign reset_BDIO = user_reset;
 
