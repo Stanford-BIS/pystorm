@@ -1,4 +1,5 @@
 """This module defines the hardware resources of braindrop/brainstorm"""
+from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
 from .mem_word_placeholders import BDWord
@@ -33,9 +34,9 @@ class ResourceConnection(object):
             self.tgt_range = range(tgt.dimensions_in)
 
         # check dimensional correctness
-        self._test_dims_correct(src.dimensions_out, tgt.dimensions_in)
+        self._check_dims(src.dimensions_out, tgt.dimensions_in)
 
-    def _test_dims_correct(self, src_dimensions_out, tgt_dimensions_in):
+    def _check_dims(self, src_dimensions_out, tgt_dimensions_in):
         """Check correctness of a slice connection between objects"""
         # range lengths must match
         assert len(self.src_range) == len(self.tgt_range)
@@ -50,7 +51,7 @@ class ResourceConnection(object):
         assert len(self.src_range) <= tgt_dimensions_in
         assert len(self.tgt_range) <= src_dimensions_out
 
-class Resource(object):
+class Resource(ABC):
     """Resources represent chunks of allocateable braindrop hardware
 
     A graph of hardware resources is necessary to implement the network
@@ -83,12 +84,12 @@ class Resource(object):
         self.conns_in = []
         self.conns_out = []
 
-    @property
+    @abstractproperty
     def dimensions_in(self):
         """Get input dimensionality"""
         raise NotImplementedError
 
-    @property
+    @abstractproperty
     def dimensions_out(self):
         """Get output dimensionality"""
         raise NotImplementedError
@@ -111,9 +112,10 @@ class Resource(object):
     # The mapping process is divided into phases
 
     def pretranslate(self, core):
-        """Perform any bookeeping that's needed before allocate
-        this could sometimes be done during construction, but we give it a separate phase
-        some preprocessing also needs Core parameters, which aren't available during construction
+        """Perform any bookeeping that's needed before allocation
+
+        Some preprocessing needs Core parameters,
+        which aren't available during construction
         """
         pass
 
@@ -121,6 +123,7 @@ class Resource(object):
         """Perform bookeeping before allocating the core to the resources"""
         pass
 
+    @abstractmethod
     def allocate(self, core):
         """Allocate the core to the resources"""
         pass
@@ -142,7 +145,8 @@ class Neurons(Resource):
     def __init__(self, N):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
-            sliceable_in=False, sliceable_out=False, max_conns_out=1)
+            sliceable_in=False, sliceable_out=False,
+            max_conns_out=1)
         self.N = N
 
         # pretranslate
@@ -168,11 +172,11 @@ class Neurons(Resource):
         self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
         # assert no more than one connection (only one decoder allowed)
-        assert len(self.conns_out) == 1
+        assert len(self.conns_out) <= 1
 
     def allocate(self, core):
         """neuron array allocation"""
-        self.start_pool_idx = core.NeuronArray.allocate(self.n_unit_pools)
+        self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
         self.start_nrn_idx = self.start_pool_idx * core.NeuronArray_pool_size
 
     def posttranslate(self, core):
@@ -196,7 +200,7 @@ class Neurons(Resource):
         """PAT assignment"""
         if self.PAT_contents is not None:
             pool_slice = slice(self.start_pool_idx, self.start_pool_idx + self.n_unit_pools)
-            core.PAT.assign(self.PAT_contents, pool_slice)
+            core.PAT.Assign(self.PAT_contents, pool_slice)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -446,7 +450,7 @@ class AMBuckets(Resource):
                 n += 1
 
     def allocate(self, core):
-        self.start_addr = core.AM.allocate(self.dimensions_out)
+        self.start_addr = core.AM.Allocate(self.dimensions_out)
 
     def posttranslate(self, core):
         # we need to create the (stop, value, thresholds) and next address entries for the AM
@@ -470,7 +474,7 @@ class AMBuckets(Resource):
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
-        core.AM.assign(self.AM_entries, self.start_addr)
+        core.AM.Assign(self.AM_entries, self.start_addr)
 
 class TATAccumulator(Resource):
     """Represents entries in the Tag Action Table for the Accumulator
@@ -542,8 +546,8 @@ class TATTapPoint(Resource):
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         self.N = N
-        self.D = taps.shape[0]
-        self.K = taps.shape[1]
+        self.D = taps.shape[1]
+        self.K = taps.shape[0]
         self.taps = taps
         self.signs = signs
 
@@ -585,7 +589,7 @@ class TATTapPoint(Resource):
             range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.allocate(self.size)
+        self.start_addr = core.TAT1.Allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
@@ -609,7 +613,7 @@ class TATTapPoint(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.assign(self.contents, self.start_addr)
+        core.TAT1.Assign(self.contents, self.start_addr)
 
 class TATFanout(Resource):
     """Represents a Tag Action Table entry for fanning out tags
@@ -647,7 +651,7 @@ class TATFanout(Resource):
             range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.allocate(self.size)
+        self.start_addr = core.TAT1.Allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
@@ -666,7 +670,7 @@ class TATFanout(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.assign(self.contents, self.start_addr)
+        core.TAT1.Assign(self.contents, self.start_addr)
 
 class Sink(Resource):
     """Represents a sink"""
@@ -691,7 +695,7 @@ class Sink(Resource):
             "only dimensions_in is defined")
 
     def allocate(self, core):
-        self.in_tags = core.ExternalSinks.allocate(self.D)
+        self.in_tags = core.ExternalSinks.Allocate(self.D)
 
 class Source(Resource):
     """Represents a source"""
@@ -715,3 +719,7 @@ class Source(Resource):
 
     def posttranslate(self, core):
         self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
+
+    def allocate(self, core):
+        # TODO: is this correct?  Should we do something here?
+        pass

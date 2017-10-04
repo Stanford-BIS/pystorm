@@ -31,4 +31,6 @@ class BDWord(object):
     # init(int)
     # AsUint()
 
+    def __repr__(self):
+        return str(self.field_vals)
 

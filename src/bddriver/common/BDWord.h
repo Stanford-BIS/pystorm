@@ -282,6 +282,37 @@ uint64_t PackWord(const std::initializer_list<std::pair<T, uint64_t> > & fields)
   return retval;
 }
 
+/// Non-const form of PackWord for dynamic usage
+template <class T>
+uint64_t PackWordVectorized(std::vector<std::pair<T, uint64_t> > & fields) { 
+  
+  uint64_t retval = 0;
+
+  // compute shifts (should be evaluable at compile-time), OR in default values
+  uint64_t shifts[static_cast<unsigned int>(T::FIELDCOUNT)];
+  uint64_t curr_shift = 0;
+  for (unsigned int i = 0; i < static_cast<unsigned int>(T::FIELDCOUNT); i++) {
+    retval |= FieldHCVal(static_cast<T>(i)) << curr_shift;
+    shifts[i] = curr_shift;
+    curr_shift += FieldWidth(static_cast<T>(i));
+  }
+
+  // OR in user values
+  for (auto& field_and_val : fields) {
+    T field      = field_and_val.first;
+    uint64_t val = field_and_val.second;
+
+    // make sure the user isn't packing too large a value into the field
+    assert(val <= (static_cast<uint64_t>(1) << FieldWidth(field)) - 1);
+    // make sure that the user isn't trying to set a hardcoded field
+    assert(FieldHCVal(field) == 0);
+
+    retval |= val << shifts[static_cast<unsigned int>(field)];
+  }
+
+  return retval;
+}
+
 template <class T>
 uint64_t GetField(uint64_t word, T field) {
 

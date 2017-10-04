@@ -1,7 +1,7 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-import pystorm._PyStorm as _PyStorm
+from . import core_pars
 from pystorm.hal.neuromorph.graph import (Bucket, Input, Output, Pool)
 from .core import Core
 from .hardware_resources import (
@@ -34,31 +34,26 @@ def create_resources(pystorm_obj):
 @create_resources.register(Input)
 def _create_resources_ps_input(ps_input):
     """create_resources for a neuromorph graph Input"""
-    return Source(ps_input.GetNumDimensions())
+    return Source(ps_input.get_num_dimensions())
 
 @create_resources.register(Output)
 def _create_resources_ps_output(ps_output):
     """create_resources for neuromorph graph Output"""
-    return Sink(ps_output.GetNumDimensions())
+    return Sink(ps_output.get_num_dimensions())
 
 @create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
     """create_resources for neuromorph graph Pool"""
-    return Neurons(ps_pool.GetNumNeurons())
+    return Neurons(ps_pool.get_num_neurons())
 
 @create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):
     """create_resources for neuromorph graph Bucket"""
-    return AMBuckets(ps_bucket.GetNumDimensions())
+    return AMBuckets(ps_bucket.get_num_dimensions())
 
 def create_mm_weights(ps_weights):
     """Create a representation of the main memory weights"""
-    weights = np.array(ps_weights.GetNumRows(),
-                       ps_weights.GetNumColumns())
-    for i in range(ps_weights.GetNumRows()):
-        for j in range(ps_weights.GetNumColumns()):
-            weights[i][j] = ps_weights.GetElement(i, j)
-    ret_value = MMWeights(weights)
+    ret_value = MMWeights(ps_weights)
     return ret_value
 
 class GraphHWMapper(object):
@@ -89,6 +84,9 @@ class GraphHWMapper(object):
         self.hardware_resource = create_resources(ps_obj)
         self.dest_mappers = []
 
+    def get_resource(self):
+        return self.hardware_resource
+
     def connect_src_to_dest_mapper(self, mapper, weight=None):
         """Connect this GraphHWMapper to another GraphHWMapper
         
@@ -116,24 +114,27 @@ class GraphHWMapper(object):
         Conn 3:
               neuromorph graph: Pool ─> Bucket
             hardware_resources: Neurons ─> MMWeights ─> AMBuckets
-        Conn 4:
+        Conn 4a:
               neuromorph graph: Bucket ─> Bucket
             hardware_resources: AMBuckets ─> MMWeights ─> AMBuckets
-        Conn 5:
+        Conn 4b:
               neuromorph graph: Bucket ─> Output
             hardware_resources: AMBuckets ─> Sink
-         Conn 6:
-              neuromorph graph: Bucket ─┬─> Bucket / Output
-                                        └─> Bucket / Output
+        Conn 4c:
+              neuromorph graph: Bucket ─> Pool
+            hardware_resources: AMBuckets ─> TATTapPoint -> Neurons
+         Conn 5:
+              neuromorph graph: Bucket ─┬─> Bucket / Output / Pool
+                                        └─> Bucket / Output / Pool
                                         ⋮
-                                        └─> Bucket / Output
-            hardware_resources: AMBuckets ─> TATFanout ─┬─> (MMWeights ─> AMBuckets) / Sink
-                                                        └─> (MMWeights ─> AMBuckets) / Sink
+                                        └─> Bucket / Output / Pool
+            hardware_resources: AMBuckets ─> TATFanout ─┬─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
+                                                        └─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
                                                         ⋮
-                                                        └─> (MMWeights ─> AMBuckets) / Sink
+                                                        └─> (MMWeights ─> AMBuckets) / Sink / (TATTapPoint -> Neurons)
         Note:
-        The first five connection types are from one object to one object.
-        Connections 6 is from one object to multiple objects;
+        The first four connection types are from one object to one object.
+        Connections 5 is from one object to multiple objects;
             this requires additional hardware_resources.
 
         Parameters
@@ -144,21 +145,23 @@ class GraphHWMapper(object):
 
         if n_tgt_nodes == 1:
             dest_node = self.dest_mappers[0]
-            dest_node_ps_obj = dest_node.second
-            dest_node_weights = dest_node.first
+            dest_node_ps_obj = dest_node[1].ps_obj
+            dest_node_weights = dest_node[0]
 
             # Conn 1: Input -> Pool
             if isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Pool):
-                num_neurons = self.ps_obj.GetNumNeurons()
+                num_neurons = dest_node_ps_obj.get_num_neurons()
                 matrix_dims = 2
-                adj_node_dims = dest_node_ps_obj.GetNumDimensions()
+                adj_node_dims = self.ps_obj.get_num_dimensions()
 
                 source = self.hardware_resource
                 tap = TATTapPoint(
+                    # TODO: This should not be random! 
+                    # Put in the H-Tree algorithm here!
                     np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
-                    np.random.randint(1, size=(matrix_dims, adj_node_dims))*2 - 1,
+                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
                     num_neurons)
-                neurons = dest_node_ps_obj.hardware_resource
+                neurons = dest_node[1].hardware_resource
 
                 source.connect(tap)
                 tap.connect(neurons)
@@ -168,7 +171,7 @@ class GraphHWMapper(object):
             #   Conn 2: Input -> Bucket
             elif isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Bucket):
                 source = self.hardware_resource
-                tat_acc_resource = TATAccumulator(self.ps_obj.GetNumDimensions())
+                tat_acc_resource = TATAccumulator(self.ps_obj.get_num_dimensions())
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket = dest_node_ps_obj.hardware_resource
 
@@ -183,30 +186,50 @@ class GraphHWMapper(object):
             elif isinstance(self.ps_obj, Pool) and isinstance(dest_node_ps_obj, Bucket):
                 neurons = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
-                am_bucket = dest_node_ps_obj.hardware_resource
+                am_bucket = dest_node[1].hardware_resource
 
                 neurons.connect(weight_resource)
                 weight_resource.connect(am_bucket)
 
                 hardware_resources.append(weight_resource)
 
-            #   Conn 4: Bucket -> Bucket
+            #   Conn 4a: Bucket -> Bucket
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Bucket):
                 am_bucket_in = self.hardware_resource
                 weight_resource = create_mm_weights(dest_node_weights)
-                am_bucket_out = dest_node_ps_obj.hardware_resource
+                am_bucket_out = dest_node[1].hardware_resource
 
                 am_bucket_in.connect(weight_resource)
                 weight_resource.connect(am_bucket_out)
 
                 hardware_resources.append(weight_resource)
 
-            #   Conn 5: Bucket -> Output
+            #   Conn 4b: Bucket -> Output
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Output):
                 am_bucket = self.hardware_resource
-                sink = dest_node_ps_obj.hardware_resource
+                sink = dest_node[1].hardware_resource
 
                 am_bucket.connect(sink)
+            elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Pool):
+                am_bucket = self.hardware_resource
+
+                num_neurons = dest_node_ps_obj.get_num_neurons()
+                matrix_dims = 2
+                adj_node_dims = self.ps_obj.get_num_dimensions()
+
+                tap = TATTapPoint(
+                    # TODO: This should not be random! 
+                    # Put in the H-Tree algorithm here!
+                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
+                    num_neurons)
+                neurons = dest_node[1].hardware_resource
+
+                am_bucket.connect(tap)
+                tap.connect(neurons)
+
+                hardware_resources.append(tap)
+
             else:
                 raise TypeError("connections between %s and %s are not currently supported"%(
                     str(self.ps_obj), str(dest_node_ps_obj)))
@@ -215,18 +238,18 @@ class GraphHWMapper(object):
         #                   └─> Bucket / Output
         #                   ⋮
         #                   └─> Bucket / Output
-        elif n_tgt_nodes > 1:
+        elif (n_tgt_nodes > 1):
             assert isinstance(self.ps_obj, Bucket)
             am_bucket_in = self.hardware_resource
-            tat_fanout = TATFanout(self.ps_obj.GetNumDimensions())
+            tat_fanout = TATFanout(self.ps_obj.get_num_dimensions())
 
             am_bucket_in.connect(tat_fanout)
 
             hardware_resources.append(tat_fanout)
 
             for dest_node in self.dest_mappers:
-                dest_node_ps_obj = dest_node.second
-                adj_node_weight = dest_node.first
+                dest_node_ps_obj = dest_node[1].ps_obj
+                dest_node_weights = dest_node[0]
                 if isinstance(dest_node_ps_obj, Bucket):
                     weight_resource = create_mm_weights(adj_node_weight)
                     am_bucket_out = dest_node_ps_obj
@@ -236,8 +259,27 @@ class GraphHWMapper(object):
                     tat_fanout.connect(weight_resource)
                     weight_resource.connect(am_bucket_out)
                 elif isinstance(dest_node_ps_obj, Output):
-                    sink = dest_node_ps_obj.hardware_resource
+                    sink = dest_node[1].hardware_resource
                     tat_fanout.connect(sink)
+                elif isinstance(dest_node_ps_obj, Pool):
+
+                    num_neurons = dest_node_ps_obj.get_num_neurons()
+                    matrix_dims = 2
+                    adj_node_dims = self.ps_obj.get_num_dimensions()
+
+                    tap = TATTapPoint(
+                        # TODO: This should not be random! 
+                        # Put in the H-Tree algorithm here!
+                        np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
+                        np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
+                        num_neurons)
+                    neurons = dest_node[1].hardware_resource
+
+                    tat_fanout.connect(tap)
+                    tap.connect(neurons)
+
+                    hardware_resources.append(tap)
+
                 else:
                     raise TypeError(
                         "fanout connections between %s and %s are not currently supported"%(
@@ -261,38 +303,38 @@ def create_network_resources(network):
     hardware_resources = []
     # A map from neuromorph graph objects to GraphHWMappers
     # The map forms a graph of neuromorph graph.Network/Resource objects
-    ps_hw_map = dict()
+    ng_obj_hw_map = dict()
 
     # Populate the GraphHWMappers in the graph
-    for inp in network.GetInputs():
-        ps_hw_map[inp] = GraphHWMapper(inp)
-        hardware_resources.append(ps_hw_map[inp].get_resource())
+    for inp in network.get_inputs():
+        ng_obj_hw_map[inp] = GraphHWMapper(inp)
+        hardware_resources.append(ng_obj_hw_map[inp].get_resource())
 
-    for out in network.GetOutputs():
-        ps_hw_map[out] = GraphHWMapper(out)
-        hardware_resources.append(ps_hw_map[out].get_resource())
+    for out in network.get_outputs():
+        ng_obj_hw_map[out] = GraphHWMapper(out)
+        hardware_resources.append(ng_obj_hw_map[out].get_resource())
 
-    for pool in network.GetPools():
-        ps_hw_map[pool] = GraphHWMapper(pool)
-        hardware_resources.append(ps_hw_map[pool].get_resource())
+    for pool in network.get_pools():
+        ng_obj_hw_map[pool] = GraphHWMapper(pool)
+        hardware_resources.append(ng_obj_hw_map[pool].get_resource())
 
-    for bucket in network.GetBuckets():
-        ps_hw_map[bucket] = GraphHWMapper(bucket)
-        hardware_resources.append(ps_hw_map[bucket].get_resource())
+    for bucket in network.get_buckets():
+        ng_obj_hw_map[bucket] = GraphHWMapper(bucket)
+        hardware_resources.append(ng_obj_hw_map[bucket].get_resource())
 
     # Connect source GraphHWMappers to their destination GraphHWMappers
-    connections = network.GetConnections()
+    connections = network.get_connections()
     for conn in connections:
-        source = conn.GetSource()
-        dest = conn.GetDest()
-        weights = conn.GetWeights()  # weights is either of type Weights or None
-        ps_hw_map[source].connect_src_to_dest_mapper(ps_hw_map[dest], weights)
+        source = conn.get_source()
+        dest = conn.get_dest()
+        weights = conn.get_weights()  # weights is either of type Weights or None
+        ng_obj_hw_map[source].connect_src_to_dest_mapper(ng_obj_hw_map[dest], weights)
 
     # Connect the adjacent nodes creating Resources relevant to each connection
-    for _, ps_hw_mapper in ps_hw_map.items():
-        ps_hw_mapper.connect(hardware_resources)
+    for _, ng_obj_hw_mapper in ng_obj_hw_map.items():
+        ng_obj_hw_mapper.connect(hardware_resources)
 
-    return hardware_resources
+    return ng_obj_hw_map, hardware_resources
 
 def map_resources_to_core(hardware_resources, core, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
@@ -307,31 +349,31 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     -------
     core: The modified Core object
     """
-    for node in hardware_resources:
-        node.PreTranslate(core)
+    for resource in hardware_resources:
+        resource.pretranslate(core)
     if verbose:
-        print("finished PreTranslate")
+        print("finished pretranslate")
 
-    for node in hardware_resources:
-        node.AllocateEarly(core)
+    for resource in hardware_resources:
+        resource.allocate_early(core)
     if verbose:
-        print("finished AllocateEarly")
+        print("finished allocate_early")
 
     core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
-    for node in hardware_resources:
-        node.Allocate(core)
+    for resource in hardware_resources:
+        resource.allocate(core)
     if verbose:
-        print("finished Allocate")
+        print("finished allocate")
 
-    for node in hardware_resources:
-        node.PostTranslate(core)
+    for resource in hardware_resources:
+        resource.posttranslate(core)
     if verbose:
-        print("finished PostTranslate")
+        print("finished posttranslate")
 
-    for node in hardware_resources:
-        node.Assign(core)
+    for resource in hardware_resources:
+        resource.assign(core)
     if verbose:
-        print("finished Assign")
+        print("finished assign")
 
     return core
 
@@ -342,19 +384,20 @@ def map_network(network, verbose=False):
     ----------
     network: An object of type neuromorph graph Network
 
-
     Returns
     -------
-    network: a mapped neuromorph graph Network
+    ng_obj_to_hw: dictionary
+        keys: neuromorph graph objects in the input network
+        values: hardware resources used to implement neuromorph graph object
+    hardware_resources: list of total hardware resources allocated for the input network
+    core: a representation of the hardware core
     """
-    pars = _PyStorm.GetCorePars()
+    pars = core_pars.get_core_pars()
 
     core = Core(pars)
 
-    hardware_resources = create_network_resources(network)
+    ng_obj_to_hw, hardware_resources = create_network_resources(network)
 
     core = map_resources_to_core(hardware_resources, core, verbose)
 
-    mapped_network = network
-
-    return mapped_network
+    return ng_obj_to_hw, hardware_resources, core

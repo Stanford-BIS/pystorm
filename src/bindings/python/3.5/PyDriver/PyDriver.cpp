@@ -428,6 +428,706 @@ void bind_model_BDModelDriver(std::function< pybind11::module &(std::string cons
 	}
 }
 
+// From BDWord.h
+void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_) > &M)
+{
+	// pystorm::bddriver::ToggleWord file: line:69
+	pybind11::enum_<pystorm::bddriver::ToggleWord>(M("pystorm::bddriver"), "ToggleWord", "")
+		.value("TRAFFIC_ENABLE", pystorm::bddriver::ToggleWord::TRAFFIC_ENABLE)
+		.value("DUMP_ENABLE", pystorm::bddriver::ToggleWord::DUMP_ENABLE)
+		.value("FIELDCOUNT", pystorm::bddriver::ToggleWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::ToggleWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::ToggleWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::ToggleWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::ToggleWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::ToggleWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::ToggleWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::DACWord file: line:73
+	pybind11::enum_<pystorm::bddriver::DACWord>(M("pystorm::bddriver"), "DACWord", "")
+		.value("DAC_TO_ADC_CONN", pystorm::bddriver::DACWord::DAC_TO_ADC_CONN)
+		.value("DAC_VALUE", pystorm::bddriver::DACWord::DAC_VALUE)
+		.value("FIELDCOUNT", pystorm::bddriver::DACWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::DACWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::DACWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::DACWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::DACWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::DACWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::DACWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::ADCWord file: line:77
+	pybind11::enum_<pystorm::bddriver::ADCWord>(M("pystorm::bddriver"), "ADCWord", "")
+		.value("ADC_SMALL_LARGE_CURRENT_0", pystorm::bddriver::ADCWord::ADC_SMALL_LARGE_CURRENT_0)
+		.value("ADC_SMALL_LARGE_CURRENT_1", pystorm::bddriver::ADCWord::ADC_SMALL_LARGE_CURRENT_1)
+		.value("ADC_OUTPUT_ENABLE", pystorm::bddriver::ADCWord::ADC_OUTPUT_ENABLE)
+		.value("FIELDCOUNT", pystorm::bddriver::ADCWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::ADCWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::ADCWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::ADCWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::ADCWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::ADCWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::ADCWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::DelayWord file: line:81
+	pybind11::enum_<pystorm::bddriver::DelayWord>(M("pystorm::bddriver"), "DelayWord", "")
+		.value("READ_DELAY", pystorm::bddriver::DelayWord::READ_DELAY)
+		.value("WRITE_DELAY", pystorm::bddriver::DelayWord::WRITE_DELAY)
+		.value("FIELDCOUNT", pystorm::bddriver::DelayWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::DelayWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::DelayWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::DelayWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::DelayWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::DelayWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::DelayWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AMWord file: line:86
+	pybind11::enum_<pystorm::bddriver::AMWord>(M("pystorm::bddriver"), "AMWord", "")
+		.value("ACCUMULATOR_VALUE", pystorm::bddriver::AMWord::ACCUMULATOR_VALUE)
+		.value("THRESHOLD", pystorm::bddriver::AMWord::THRESHOLD)
+		.value("STOP", pystorm::bddriver::AMWord::STOP)
+		.value("NEXT_ADDRESS", pystorm::bddriver::AMWord::NEXT_ADDRESS)
+		.value("FIELDCOUNT", pystorm::bddriver::AMWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AMWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AMWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AMWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AMWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::MMWord file: line:90
+	pybind11::enum_<pystorm::bddriver::MMWord>(M("pystorm::bddriver"), "MMWord", "")
+		.value("WEIGHT", pystorm::bddriver::MMWord::WEIGHT)
+		.value("FIELDCOUNT", pystorm::bddriver::MMWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::MMWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::MMWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::MMWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::MMWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::PATWord file: line:94
+	pybind11::enum_<pystorm::bddriver::PATWord>(M("pystorm::bddriver"), "PATWord", "")
+		.value("AM_ADDRESS", pystorm::bddriver::PATWord::AM_ADDRESS)
+		.value("MM_ADDRESS_LO", pystorm::bddriver::PATWord::MM_ADDRESS_LO)
+		.value("MM_ADDRESS_HI", pystorm::bddriver::PATWord::MM_ADDRESS_HI)
+		.value("FIELDCOUNT", pystorm::bddriver::PATWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::PATWord) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::PATWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::PATWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATWord) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::PATWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATAccWord file: line:98
+	pybind11::enum_<pystorm::bddriver::TATAccWord>(M("pystorm::bddriver"), "TATAccWord", "")
+		.value("STOP", pystorm::bddriver::TATAccWord::STOP)
+		.value("FIXED_0", pystorm::bddriver::TATAccWord::FIXED_0)
+		.value("AM_ADDRESS", pystorm::bddriver::TATAccWord::AM_ADDRESS)
+		.value("MM_ADDRESS", pystorm::bddriver::TATAccWord::MM_ADDRESS)
+		.value("FIELDCOUNT", pystorm::bddriver::TATAccWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATAccWord) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATAccWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATAccWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATAccWord) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATAccWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATAccWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATSpikeWord file: line:103
+	pybind11::enum_<pystorm::bddriver::TATSpikeWord>(M("pystorm::bddriver"), "TATSpikeWord", "")
+		.value("STOP", pystorm::bddriver::TATSpikeWord::STOP)
+		.value("FIXED_1", pystorm::bddriver::TATSpikeWord::FIXED_1)
+		.value("SYNAPSE_ADDRESS_0", pystorm::bddriver::TATSpikeWord::SYNAPSE_ADDRESS_0)
+		.value("SYNAPSE_SIGN_0", pystorm::bddriver::TATSpikeWord::SYNAPSE_SIGN_0)
+		.value("SYNAPSE_ADDRESS_1", pystorm::bddriver::TATSpikeWord::SYNAPSE_ADDRESS_1)
+		.value("SYNAPSE_SIGN_1", pystorm::bddriver::TATSpikeWord::SYNAPSE_SIGN_1)
+		.value("UNUSED", pystorm::bddriver::TATSpikeWord::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::TATSpikeWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATSpikeWord) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATSpikeWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATSpikeWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATSpikeWord) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATSpikeWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATSpikeWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATTagWord file: line:108
+	pybind11::enum_<pystorm::bddriver::TATTagWord>(M("pystorm::bddriver"), "TATTagWord", "")
+		.value("STOP", pystorm::bddriver::TATTagWord::STOP)
+		.value("FIXED_2", pystorm::bddriver::TATTagWord::FIXED_2)
+		.value("TAG", pystorm::bddriver::TATTagWord::TAG)
+		.value("GLOBAL_ROUTE", pystorm::bddriver::TATTagWord::GLOBAL_ROUTE)
+		.value("UNUSED", pystorm::bddriver::TATTagWord::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::TATTagWord::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATTagWord) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATTagWord)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATTagWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATTagWord) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATTagWord)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATTagWord) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::PATWrite file: line:114
+	pybind11::enum_<pystorm::bddriver::PATWrite>(M("pystorm::bddriver"), "PATWrite", "")
+		.value("ADDRESS", pystorm::bddriver::PATWrite::ADDRESS)
+		.value("FIXED_0", pystorm::bddriver::PATWrite::FIXED_0)
+		.value("DATA", pystorm::bddriver::PATWrite::DATA)
+		.value("FIELDCOUNT", pystorm::bddriver::PATWrite::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::PATWrite) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::PATWrite)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::PATWrite) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATWrite) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::PATWrite)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATWrite) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::PATRead file: line:119
+	pybind11::enum_<pystorm::bddriver::PATRead>(M("pystorm::bddriver"), "PATRead", "")
+		.value("ADDRESS", pystorm::bddriver::PATRead::ADDRESS)
+		.value("FIXED_1", pystorm::bddriver::PATRead::FIXED_1)
+		.value("UNUSED", pystorm::bddriver::PATRead::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::PATRead::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::PATRead) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::PATRead)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::PATRead) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATRead) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::PATRead)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::PATRead) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATSetAddress file: line:124
+	pybind11::enum_<pystorm::bddriver::TATSetAddress>(M("pystorm::bddriver"), "TATSetAddress", "")
+		.value("FIXED_0", pystorm::bddriver::TATSetAddress::FIXED_0)
+		.value("ADDRESS", pystorm::bddriver::TATSetAddress::ADDRESS)
+		.value("UNUSED", pystorm::bddriver::TATSetAddress::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::TATSetAddress::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATSetAddress) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATSetAddress)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATSetAddress) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATSetAddress)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATWriteIncrement file: line:129
+	pybind11::enum_<pystorm::bddriver::TATWriteIncrement>(M("pystorm::bddriver"), "TATWriteIncrement", "")
+		.value("FIXED_1", pystorm::bddriver::TATWriteIncrement::FIXED_1)
+		.value("DATA", pystorm::bddriver::TATWriteIncrement::DATA)
+		.value("FIELDCOUNT", pystorm::bddriver::TATWriteIncrement::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATWriteIncrement) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATWriteIncrement)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATWriteIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATWriteIncrement) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATWriteIncrement)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATWriteIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATReadIncrement file: line:134
+	pybind11::enum_<pystorm::bddriver::TATReadIncrement>(M("pystorm::bddriver"), "TATReadIncrement", "")
+		.value("FIXED_2", pystorm::bddriver::TATReadIncrement::FIXED_2)
+		.value("UNUSED", pystorm::bddriver::TATReadIncrement::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::TATReadIncrement::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATReadIncrement) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATReadIncrement)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATReadIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATReadIncrement) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATReadIncrement)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATReadIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::MMSetAddress file: line:139
+	pybind11::enum_<pystorm::bddriver::MMSetAddress>(M("pystorm::bddriver"), "MMSetAddress", "")
+		.value("FIXED_0", pystorm::bddriver::MMSetAddress::FIXED_0)
+		.value("ADDRESS", pystorm::bddriver::MMSetAddress::ADDRESS)
+		.value("UNUSED", pystorm::bddriver::MMSetAddress::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::MMSetAddress::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::MMSetAddress) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::MMSetAddress)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::MMSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMSetAddress) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::MMSetAddress)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::MMWriteIncrement file: line:144
+	pybind11::enum_<pystorm::bddriver::MMWriteIncrement>(M("pystorm::bddriver"), "MMWriteIncrement", "")
+		.value("FIXED_1", pystorm::bddriver::MMWriteIncrement::FIXED_1)
+		.value("DATA", pystorm::bddriver::MMWriteIncrement::DATA)
+		.value("UNUSED", pystorm::bddriver::MMWriteIncrement::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::MMWriteIncrement::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::MMWriteIncrement) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::MMWriteIncrement)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::MMWriteIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMWriteIncrement) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::MMWriteIncrement)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMWriteIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::MMReadIncrement file: line:149
+	pybind11::enum_<pystorm::bddriver::MMReadIncrement>(M("pystorm::bddriver"), "MMReadIncrement", "")
+		.value("FIXED_2", pystorm::bddriver::MMReadIncrement::FIXED_2)
+		.value("UNUSED", pystorm::bddriver::MMReadIncrement::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::MMReadIncrement::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::MMReadIncrement) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::MMReadIncrement)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::MMReadIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMReadIncrement) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::MMReadIncrement)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMReadIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AMSetAddress file: line:154
+	pybind11::enum_<pystorm::bddriver::AMSetAddress>(M("pystorm::bddriver"), "AMSetAddress", "")
+		.value("FIXED_0", pystorm::bddriver::AMSetAddress::FIXED_0)
+		.value("ADDRESS", pystorm::bddriver::AMSetAddress::ADDRESS)
+		.value("UNUSED", pystorm::bddriver::AMSetAddress::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::AMSetAddress::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AMSetAddress) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AMSetAddress)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AMSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMSetAddress) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AMSetAddress)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMSetAddress) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AMReadWrite file: line:159
+	pybind11::enum_<pystorm::bddriver::AMReadWrite>(M("pystorm::bddriver"), "AMReadWrite", "")
+		.value("FIXED_1", pystorm::bddriver::AMReadWrite::FIXED_1)
+		.value("DATA", pystorm::bddriver::AMReadWrite::DATA)
+		.value("FIELDCOUNT", pystorm::bddriver::AMReadWrite::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AMReadWrite) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AMReadWrite)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AMReadWrite) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMReadWrite) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AMReadWrite)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMReadWrite) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AMIncrement file: line:164
+	pybind11::enum_<pystorm::bddriver::AMIncrement>(M("pystorm::bddriver"), "AMIncrement", "")
+		.value("FIXED_2", pystorm::bddriver::AMIncrement::FIXED_2)
+		.value("UNUSED", pystorm::bddriver::AMIncrement::UNUSED)
+		.value("FIELDCOUNT", pystorm::bddriver::AMIncrement::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AMIncrement) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AMIncrement)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AMIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMIncrement) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AMIncrement)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMIncrement) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AMEncapsulation file: line:169
+	pybind11::enum_<pystorm::bddriver::AMEncapsulation>(M("pystorm::bddriver"), "AMEncapsulation", "")
+		.value("FIXED_0", pystorm::bddriver::AMEncapsulation::FIXED_0)
+		.value("PAYLOAD", pystorm::bddriver::AMEncapsulation::PAYLOAD)
+		.value("AMMM_STOP", pystorm::bddriver::AMEncapsulation::AMMM_STOP)
+		.value("FIELDCOUNT", pystorm::bddriver::AMEncapsulation::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AMEncapsulation) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AMEncapsulation)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AMEncapsulation) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMEncapsulation) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AMEncapsulation)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AMEncapsulation) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::MMEncapsulation file: line:174
+	pybind11::enum_<pystorm::bddriver::MMEncapsulation>(M("pystorm::bddriver"), "MMEncapsulation", "")
+		.value("FIXED_1", pystorm::bddriver::MMEncapsulation::FIXED_1)
+		.value("PAYLOAD", pystorm::bddriver::MMEncapsulation::PAYLOAD)
+		.value("AMMM_STOP", pystorm::bddriver::MMEncapsulation::AMMM_STOP)
+		.value("FIELDCOUNT", pystorm::bddriver::MMEncapsulation::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::MMEncapsulation) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::MMEncapsulation)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::MMEncapsulation) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMEncapsulation) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::MMEncapsulation)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::MMEncapsulation) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::InputTag file: line:180
+	pybind11::enum_<pystorm::bddriver::InputTag>(M("pystorm::bddriver"), "InputTag", "")
+		.value("COUNT", pystorm::bddriver::InputTag::COUNT)
+		.value("TAG", pystorm::bddriver::InputTag::TAG)
+		.value("FIELDCOUNT", pystorm::bddriver::InputTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::InputTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::InputTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::InputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::InputTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::InputTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::InputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FIFOInputTag file: line:184
+	pybind11::enum_<pystorm::bddriver::FIFOInputTag>(M("pystorm::bddriver"), "FIFOInputTag", "")
+		.value("TAG", pystorm::bddriver::FIFOInputTag::TAG)
+		.value("FIELDCOUNT", pystorm::bddriver::FIFOInputTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::FIFOInputTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FIFOInputTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FIFOInputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::FIFOInputTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FIFOInputTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FIFOInputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::InputSpike file: line:188
+	pybind11::enum_<pystorm::bddriver::InputSpike>(M("pystorm::bddriver"), "InputSpike", "")
+		.value("SYNAPSE_SIGN", pystorm::bddriver::InputSpike::SYNAPSE_SIGN)
+		.value("SYNAPSE_ADDRESS", pystorm::bddriver::InputSpike::SYNAPSE_ADDRESS)
+		.value("FIELDCOUNT", pystorm::bddriver::InputSpike::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::InputSpike) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::InputSpike)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::InputSpike) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::InputSpike) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::InputSpike)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::InputSpike) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::PreFIFOTag file: line:193
+	pybind11::enum_<pystorm::bddriver::PreFIFOTag>(M("pystorm::bddriver"), "PreFIFOTag", "")
+		.value("COUNT", pystorm::bddriver::PreFIFOTag::COUNT)
+		.value("TAG", pystorm::bddriver::PreFIFOTag::TAG)
+		.value("FIELDCOUNT", pystorm::bddriver::PreFIFOTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::PreFIFOTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::PreFIFOTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::PreFIFOTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::PreFIFOTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::PreFIFOTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::PreFIFOTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::PostFIFOTag file: line:197
+	pybind11::enum_<pystorm::bddriver::PostFIFOTag>(M("pystorm::bddriver"), "PostFIFOTag", "")
+		.value("COUNT", pystorm::bddriver::PostFIFOTag::COUNT)
+		.value("TAG", pystorm::bddriver::PostFIFOTag::TAG)
+		.value("FIELDCOUNT", pystorm::bddriver::PostFIFOTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::PostFIFOTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::PostFIFOTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::PostFIFOTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::PostFIFOTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::PostFIFOTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::PostFIFOTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::OutputSpike file: line:201
+	pybind11::enum_<pystorm::bddriver::OutputSpike>(M("pystorm::bddriver"), "OutputSpike", "")
+		.value("NEURON_ADDRESS", pystorm::bddriver::OutputSpike::NEURON_ADDRESS)
+		.value("FIELDCOUNT", pystorm::bddriver::OutputSpike::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::OutputSpike) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::OutputSpike)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::OutputSpike) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::OutputSpike) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::OutputSpike)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::OutputSpike) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::OverflowTag file: line:205
+	pybind11::enum_<pystorm::bddriver::OverflowTag>(M("pystorm::bddriver"), "OverflowTag", "")
+		.value("FIXED_1", pystorm::bddriver::OverflowTag::FIXED_1)
+		.value("FIELDCOUNT", pystorm::bddriver::OverflowTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::OverflowTag) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::OverflowTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::OverflowTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::OverflowTag) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::OverflowTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::OverflowTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::AccOutputTag file: line:210
+	pybind11::enum_<pystorm::bddriver::AccOutputTag>(M("pystorm::bddriver"), "AccOutputTag", "")
+		.value("COUNT", pystorm::bddriver::AccOutputTag::COUNT)
+		.value("TAG", pystorm::bddriver::AccOutputTag::TAG)
+		.value("GLOBAL_ROUTE", pystorm::bddriver::AccOutputTag::GLOBAL_ROUTE)
+		.value("FIELDCOUNT", pystorm::bddriver::AccOutputTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::AccOutputTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::AccOutputTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::AccOutputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::AccOutputTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::AccOutputTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::AccOutputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TATOutputTag file: line:214
+	pybind11::enum_<pystorm::bddriver::TATOutputTag>(M("pystorm::bddriver"), "TATOutputTag", "")
+		.value("COUNT", pystorm::bddriver::TATOutputTag::COUNT)
+		.value("TAG", pystorm::bddriver::TATOutputTag::TAG)
+		.value("GLOBAL_ROUTE", pystorm::bddriver::TATOutputTag::GLOBAL_ROUTE)
+		.value("FIELDCOUNT", pystorm::bddriver::TATOutputTag::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TATOutputTag) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TATOutputTag)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TATOutputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATOutputTag) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TATOutputTag)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TATOutputTag) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::NeuronConfig file: line:226
+	pybind11::enum_<pystorm::bddriver::NeuronConfig>(M("pystorm::bddriver"), "NeuronConfig", "")
+		.value("ROW_HI", pystorm::bddriver::NeuronConfig::ROW_HI)
+		.value("COL_HI", pystorm::bddriver::NeuronConfig::COL_HI)
+		.value("ROW_LO", pystorm::bddriver::NeuronConfig::ROW_LO)
+		.value("COL_LO", pystorm::bddriver::NeuronConfig::COL_LO)
+		.value("BIT_VAL", pystorm::bddriver::NeuronConfig::BIT_VAL)
+		.value("BIT_SEL", pystorm::bddriver::NeuronConfig::BIT_SEL)
+		.value("FIXED_2", pystorm::bddriver::NeuronConfig::FIXED_2)
+		.value("TILE_ADDR", pystorm::bddriver::NeuronConfig::TILE_ADDR)
+		.value("FIELDCOUNT", pystorm::bddriver::NeuronConfig::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::NeuronConfig) file: line:39
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::NeuronConfig)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::NeuronConfig) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::NeuronConfig) file: line:44
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::NeuronConfig)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::NeuronConfig) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FPGAIO file: line:232
+	pybind11::enum_<pystorm::bddriver::FPGAIO>(M("pystorm::bddriver"), "FPGAIO", "")
+		.value("PAYLOAD", pystorm::bddriver::FPGAIO::PAYLOAD)
+		.value("EP_CODE", pystorm::bddriver::FPGAIO::EP_CODE)
+		.value("FIELDCOUNT", pystorm::bddriver::FPGAIO::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGAIO) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGAIO)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGAIO) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGAIO) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGAIO)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGAIO) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FPGABYTES file: line:236
+	pybind11::enum_<pystorm::bddriver::FPGABYTES>(M("pystorm::bddriver"), "FPGABYTES", "")
+		.value("B0", pystorm::bddriver::FPGABYTES::B0)
+		.value("B1", pystorm::bddriver::FPGABYTES::B1)
+		.value("B2", pystorm::bddriver::FPGABYTES::B2)
+		.value("B3", pystorm::bddriver::FPGABYTES::B3)
+		.value("FIELDCOUNT", pystorm::bddriver::FPGABYTES::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGABYTES) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGABYTES)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGABYTES) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGABYTES) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGABYTES)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGABYTES) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::TWOFPGAPAYLOADS file: line:242
+	pybind11::enum_<pystorm::bddriver::TWOFPGAPAYLOADS>(M("pystorm::bddriver"), "TWOFPGAPAYLOADS", "")
+		.value("LSB", pystorm::bddriver::TWOFPGAPAYLOADS::LSB)
+		.value("MSB", pystorm::bddriver::TWOFPGAPAYLOADS::MSB)
+		.value("FIELDCOUNT", pystorm::bddriver::TWOFPGAPAYLOADS::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::TWOFPGAPAYLOADS) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::TWOFPGAPAYLOADS)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::TWOFPGAPAYLOADS) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TWOFPGAPAYLOADS)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::THREEFPGAREGS file: line:246
+	pybind11::enum_<pystorm::bddriver::THREEFPGAREGS>(M("pystorm::bddriver"), "THREEFPGAREGS", "")
+		.value("W0", pystorm::bddriver::THREEFPGAREGS::W0)
+		.value("W1", pystorm::bddriver::THREEFPGAREGS::W1)
+		.value("W2", pystorm::bddriver::THREEFPGAREGS::W2)
+		.value("FIELDCOUNT", pystorm::bddriver::THREEFPGAREGS::FIELDCOUNT);
+
+;
+
+	// pystorm::bddriver::FieldWidth(pystorm::bddriver::THREEFPGAREGS) file: line:56
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::THREEFPGAREGS)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::THREEFPGAREGS) --> unsigned int", pybind11::arg("field_name"));
+
+	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::THREEFPGAREGS) file: line:61
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::THREEFPGAREGS)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::THREEFPGAREGS) --> unsigned int", pybind11::arg("field_name"));
+
+    // GetField & PackWord template functions are explicitly expanded here
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::ToggleWord>(&pystorm::bddriver::GetField<pystorm::bddriver::ToggleWord>), "Get ToggleWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::ToggleWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::ToggleWord>), "Pack ToggleWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::DACWord>(&pystorm::bddriver::GetField<pystorm::bddriver::DACWord>), "Get DACWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::DACWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::DACWord>), "Pack DACWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::ADCWord>(&pystorm::bddriver::GetField<pystorm::bddriver::ADCWord>), "Get ADCWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::ADCWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::ADCWord>), "Pack ADCWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::DelayWord>(&pystorm::bddriver::GetField<pystorm::bddriver::DelayWord>), "Get DelayWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::DelayWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::DelayWord>), "Pack DelayWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AMWord>(&pystorm::bddriver::GetField<pystorm::bddriver::AMWord>), "Get AMWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AMWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AMWord>), "Pack AMWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::MMWord>(&pystorm::bddriver::GetField<pystorm::bddriver::MMWord>), "Get MMWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::MMWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::MMWord>), "Pack MMWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::PATWord>(&pystorm::bddriver::GetField<pystorm::bddriver::PATWord>), "Get PATWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::PATWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::PATWord>), "Pack PATWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATAccWord>(&pystorm::bddriver::GetField<pystorm::bddriver::TATAccWord>), "Get TATAccWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATAccWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATAccWord>), "Pack TATAccWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATSpikeWord>(&pystorm::bddriver::GetField<pystorm::bddriver::TATSpikeWord>), "Get TATSpikeWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATSpikeWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATSpikeWord>), "Pack TATSpikeWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATTagWord>(&pystorm::bddriver::GetField<pystorm::bddriver::TATTagWord>), "Get TATTagWord BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATTagWord, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATTagWord>), "Pack TATTagWord BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::PATWrite>(&pystorm::bddriver::GetField<pystorm::bddriver::PATWrite>), "Get PATWrite BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::PATWrite, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::PATWrite>), "Pack PATWrite BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::PATRead>(&pystorm::bddriver::GetField<pystorm::bddriver::PATRead>), "Get PATRead BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::PATRead, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::PATRead>), "Pack PATRead BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATSetAddress>(&pystorm::bddriver::GetField<pystorm::bddriver::TATSetAddress>), "Get TATSetAddress BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATSetAddress, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATSetAddress>), "Pack TATSetAddress BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATWriteIncrement>(&pystorm::bddriver::GetField<pystorm::bddriver::TATWriteIncrement>), "Get TATWriteIncrement BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATWriteIncrement, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATWriteIncrement>), "Pack TATWriteIncrement BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATReadIncrement>(&pystorm::bddriver::GetField<pystorm::bddriver::TATReadIncrement>), "Get TATReadIncrement BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATReadIncrement, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATReadIncrement>), "Pack TATReadIncrement BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::MMSetAddress>(&pystorm::bddriver::GetField<pystorm::bddriver::MMSetAddress>), "Get MMSetAddress BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::MMSetAddress, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::MMSetAddress>), "Pack MMSetAddress BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::MMWriteIncrement>(&pystorm::bddriver::GetField<pystorm::bddriver::MMWriteIncrement>), "Get MMWriteIncrement BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::MMWriteIncrement, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::MMWriteIncrement>), "Pack MMWriteIncrement BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::MMReadIncrement>(&pystorm::bddriver::GetField<pystorm::bddriver::MMReadIncrement>), "Get MMReadIncrement BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::MMReadIncrement, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::MMReadIncrement>), "Pack MMReadIncrement BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AMSetAddress>(&pystorm::bddriver::GetField<pystorm::bddriver::AMSetAddress>), "Get AMSetAddress BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AMSetAddress, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AMSetAddress>), "Pack AMSetAddress BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AMReadWrite>(&pystorm::bddriver::GetField<pystorm::bddriver::AMReadWrite>), "Get AMReadWrite BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AMReadWrite, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AMReadWrite>), "Pack AMReadWrite BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AMIncrement>(&pystorm::bddriver::GetField<pystorm::bddriver::AMIncrement>), "Get AMIncrement BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AMIncrement, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AMIncrement>), "Pack AMIncrement BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AMEncapsulation>(&pystorm::bddriver::GetField<pystorm::bddriver::AMEncapsulation>), "Get AMEncapsulation BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AMEncapsulation, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AMEncapsulation>), "Pack AMEncapsulation BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::MMEncapsulation>(&pystorm::bddriver::GetField<pystorm::bddriver::MMEncapsulation>), "Get MMEncapsulation BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::MMEncapsulation, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::MMEncapsulation>), "Pack MMEncapsulation BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::InputTag>(&pystorm::bddriver::GetField<pystorm::bddriver::InputTag>), "Get InputTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::InputTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::InputTag>), "Pack InputTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::FIFOInputTag>(&pystorm::bddriver::GetField<pystorm::bddriver::FIFOInputTag>), "Get FIFOInputTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::FIFOInputTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::FIFOInputTag>), "Pack FIFOInputTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::InputSpike>(&pystorm::bddriver::GetField<pystorm::bddriver::InputSpike>), "Get InputSpike BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::InputSpike, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::InputSpike>), "Pack InputSpike BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::PreFIFOTag>(&pystorm::bddriver::GetField<pystorm::bddriver::PreFIFOTag>), "Get PreFIFOTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::PreFIFOTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::PreFIFOTag>), "Pack PreFIFOTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::PostFIFOTag>(&pystorm::bddriver::GetField<pystorm::bddriver::PostFIFOTag>), "Get PostFIFOTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::PostFIFOTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::PostFIFOTag>), "Pack PostFIFOTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::OutputSpike>(&pystorm::bddriver::GetField<pystorm::bddriver::OutputSpike>), "Get OutputSpike BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::OutputSpike, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::OutputSpike>), "Pack OutputSpike BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::OverflowTag>(&pystorm::bddriver::GetField<pystorm::bddriver::OverflowTag>), "Get OverflowTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::OverflowTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::OverflowTag>), "Pack OverflowTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::AccOutputTag>(&pystorm::bddriver::GetField<pystorm::bddriver::AccOutputTag>), "Get AccOutputTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::AccOutputTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::AccOutputTag>), "Pack AccOutputTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TATOutputTag>(&pystorm::bddriver::GetField<pystorm::bddriver::TATOutputTag>), "Get TATOutputTag BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TATOutputTag, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TATOutputTag>), "Pack TATOutputTag BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::NeuronConfig>(&pystorm::bddriver::GetField<pystorm::bddriver::NeuronConfig>), "Get NeuronConfig BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::NeuronConfig, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::NeuronConfig>), "Pack NeuronConfig BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::FPGAIO>(&pystorm::bddriver::GetField<pystorm::bddriver::FPGAIO>), "Get FPGAIO BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::FPGAIO, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::FPGAIO>), "Pack FPGAIO BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::FPGABYTES>(&pystorm::bddriver::GetField<pystorm::bddriver::FPGABYTES>), "Get FPGABYTES BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::FPGABYTES, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::FPGABYTES>), "Pack FPGABYTES BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::TWOFPGAPAYLOADS>(&pystorm::bddriver::GetField<pystorm::bddriver::TWOFPGAPAYLOADS>), "Get TWOFPGAPAYLOADS BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TWOFPGAPAYLOADS, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TWOFPGAPAYLOADS>), "Pack TWOFPGAPAYLOADS BDWord fields");
+
+    M("pystorm::bddriver").def("GetField", pybind11::overload_cast<uint64_t, pystorm::bddriver::THREEFPGAREGS>(&pystorm::bddriver::GetField<pystorm::bddriver::THREEFPGAREGS>), "Get THREEFPGAREGS BDWord field");
+
+    M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::THREEFPGAREGS, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::THREEFPGAREGS>), "Pack THREEFPGAREGS BDWord fields");
+}
+
 typedef std::function< pybind11::module & (std::string const &) > ModuleGetter;
 
 void bind_unknown_unknown(std::function< pybind11::module &(std::string const &namespace_) > &M);
@@ -464,6 +1164,7 @@ PYBIND11_PLUGIN(_PyDriver) {
 	bind_unknown_unknown_3(M);
 	bind_MemInfo(M);
 	bind_model_BDModelDriver(M);
+    bind_BDWord(M);
 
 	return modules[""]->ptr();
 }
