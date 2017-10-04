@@ -67,7 +67,7 @@ target_link_libraries(${TARGET1_NAME} PRIVATE
 #################################################################################
 ## Build Driver bindings
 #################################################################################
-pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS})
+pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS} ${PRJ_ROOT_DIR}/src/bddriver/common/BDPars.cpp)
 target_link_libraries(${TARGET2_NAME} PRIVATE
     ${DRIVER_LIBRARY}
 )

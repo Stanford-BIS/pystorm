@@ -1,1 +1,1 @@
-Run `python PyRawDriver/Driver/test_Neuron.py`
+Run `python PyRawDriver/test_Neuron.py`

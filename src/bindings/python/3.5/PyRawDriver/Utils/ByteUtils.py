@@ -1,6 +1,5 @@
 import sys
-import time
-import PyRawDriver as bd
+from binascii import b2a_hex
 
 
 def PrintBytearrayAs32b(buf_out):
@@ -23,28 +22,11 @@ def PrintBytearrayAs32b(buf_out):
     print("plus " + str(nop_count) + " NOPs")
 
 
-driver = bd.Driver()
-driver.InitBD()
-
-driver.SetSpikeDumpState(1)
-driver.SetSpikeDumpState(1)
-time.sleep(1)
-driver.SetDACValue(bd.HORN.DAC_SOMA_OFFSET, 512)
-time.sleep(1)
-driver.SetDACValue(bd.HORN.DAC_SOMA_OFFSET, 512)
-time.sleep(1)
-driver.SetDACValue(bd.HORN.DAC_SOMA_REF, 8)
-time.sleep(1)
-driver.SetDACValue(bd.HORN.DAC_SOMA_REF, 8)
-time.sleep(1)
-
-#for _idx in range(4096):
-#    driver.EnableSoma(_idx)
-#    driver.SetSomaGain(_idx, bd.SomaGainId.ONE)
-#    driver.SetSomaOffsetSign(_idx, bd.SomaOffsetSignId.POSITIVE)
-#    driver.SetSomaOffsetMultiplier(_idx, bd.SomaOffsetMultiplierId.ZERO)
-
-
-while(1):
-    print(PrintBytearrayAs32b(driver.ReceiveWords()))
-    time.sleep(1)
+def PrettyPrintBytearray(buf_in, grouping=4):
+    num_words = int(len(buf_in) // 4)
+    op_stream = []
+    frmt = ("{0:0%db}" % (grouping * 8))
+    for idx in range(num_words):
+        _bytes = buf_in[idx * grouping : (idx + 1) * grouping][::-1]
+        _bytes = frmt.format(int(b2a_hex(_bytes), 16))
+        print(_bytes)
