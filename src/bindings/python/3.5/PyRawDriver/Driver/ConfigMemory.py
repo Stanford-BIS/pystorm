@@ -1,6 +1,7 @@
 from PyDriver.pystorm.bddriver import bdpars
 from PyDriver.pystorm.bddriver import PackWord
 from PyDriver.pystorm.bddriver import NeuronConfig
+from . import HORN
 from math import floor
 
 __config_mem__ = dict({
@@ -28,7 +29,7 @@ class ConfigMemory(object):
         self.BUFFER = []
         self.__buffered__ = True
 
-    def SendWords(self, word_list):
+    def SendBDWords(self, horn_id, payload_list):
         pass
 
     def __set_config_memory__(self, elem_type, elem_id, config_type, config_value):
@@ -59,9 +60,9 @@ class ConfigMemory(object):
             (NeuronConfig.TILE_ADDR, tile_id)
         ])
         if self.__buffered__:
-            self.BUFFER.append(config_word)
+            self.BUFFER.append((HORN.NeuronConfig, config_word))
         else:
-            self.SendWords(config_word)
+            self.SendBDWords(HORN.NeuronConfig, (config_word, ))
 
     def SetSomaConfigMemory(self, elem_id, config_type, config_value):
         self.__set_config_memory__('SOMA', elem_id, config_type, config_value)

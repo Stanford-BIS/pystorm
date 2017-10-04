@@ -21,7 +21,7 @@ class Driver(ConfigMemory):
         self.BD_PREFIX = "0b010000"
         self.__nop_bytes__ = int(self.NOP_DOWN, 0).to_bytes(4, byteorder='little')
         self.dev = None
-        self.__noout__ = debug
+        self.__dbg__ = debug
         self.__buffered__ = True
 
     def __make_byte_array__(self, code_list):
@@ -44,21 +44,30 @@ class Driver(ConfigMemory):
         assert (len(ok_out) % self.BLOCK_SIZE == 0)
         return ok_out
 
-    def __creat_bd_word__(self, payload):
+    def __create_bd_word__(self, payload):
         return self.BD_PREFIX + "00000" + payload
 
-    def SendWords(self, word_list):
+    def SendOKWords(self, word_list):
         if isinstance(word_list, str):
             word_list = (word_list, )
         out_bytes = self.__make_byte_array__(word_list)
-        if self.__noout__:
-            print(ByteUtils.PrintBytearrayAs32b(out_bytes))
+        if self.__dbg__:
+            print(ByteUtils.PrettyPrintBytearray(out_bytes, grouping=4, downstream=True))
         else:
             self.dev.WriteToBlockPipeIn(self.EP_DN, self.BLOCK_SIZE, out_bytes)
 
+    def SendBDWords(self, horn_id, payload_list):
+        bd_data = [self.__create_bd_word__(HORN.CreateInputWord(horn_id, _buf)) for _buf in payload_list]
+        self.SendOKWords(bd_data)
+
+    def FlushBDBuffer(self):
+        if len(self.BUFFER) > 0:
+            bd_data = [self.__create_bd_word__(HORN.CreateInputWord(_v[0], _v[1])) for _v in self.BUFFER]
+            self.SendOKWords(bd_data)
+
     def ReceiveWords(self):
         out_buf = bytearray(self.BLOCK_SIZE)
-        if self.__noout__:
+        if self.__dbg__:
             print("*INFO*: Reading from BD disabled")
         else:
             self.dev.ReadFromPipeOut(self.EP_UP, out_buf)
@@ -70,18 +79,18 @@ class Driver(ConfigMemory):
 
         # Send reset
         # pReset, sReset ON
-        self.SendWords(("0x20000001", "0x10000001"))
+        self.SendOKWords(("0x20000001", "0x10000001"))
         time.sleep(1.)
         # pReset OFF
-        self.SendWords(("0x20000000",))
+        self.SendOKWords(("0x20000000",))
         time.sleep(0.5)
         # sReset OFF
-        self.SendWords(("0x10000000",))
+        self.SendOKWords(("0x10000000",))
 
     def SetSpikeDumpState(self, state):
-        ok_data = self.__creat_bd_word__(HORN.CreateInputWord(HORN.NeuronDumpToggle, state * 2))
-        self.SendWords(ok_data)
+        bd_data = self.__create_bd_word__(HORN.CreateInputWord(HORN.NeuronDumpToggle, state * 2))
+        self.SendOKWords(bd_data)
 
     def SetDACValue(self, leaf_id, value):
-        ok_data = self.__creat_bd_word__(HORN.CreateInputWord(leaf_id, value))
-        self.SendWords(ok_data)
+        bd_data = self.__create_bd_word__(HORN.CreateInputWord(leaf_id, value))
+        self.SendOKWords(bd_data)

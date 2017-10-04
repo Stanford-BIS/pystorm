@@ -24,11 +24,13 @@ def PrintBytearrayAs32b(buf_out):
     print("plus " + str(nop_count) + " NOPs")
 
 
-def PrettyPrintBytearray(buf_in, grouping=4):
+def PrettyPrintBytearray(buf_in, grouping=4, downstream=True):
     num_words = int(len(buf_in) // 4)
-    op_stream = []
     frmt = ("{0:0%db}" % (grouping * 8))
     for idx in range(num_words):
         _bytes = buf_in[idx * grouping : (idx + 1) * grouping][::-1]
         _bytes = frmt.format(int(b2a_hex(_bytes), 16))
-        print(_bytes)
+        if downstream:
+            print("%s %s %s" % (''.join(_bytes[:6]), ''.join(_bytes[6:11]), ''.join(_bytes[11:])))
+        else:
+            print(_bytes)
