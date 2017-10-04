@@ -244,5 +244,3 @@ TEST_F(DriverFixture, TestFIFOOverflow) {
 
   ASSERT_EQ(driver->GetFIFOOverflowCounts(kCoreId), to_push);
 }
-
-

@@ -37,7 +37,13 @@ endfunction()
 
 if(NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_CONFIGURATION_TYPES "Release;Debug" CACHE STRING
-        "Choose the type of build, options are : Debug Release"
+        "Build types for multi-configuration setup are: Release, Debug"
+        FORCE)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING
+        "Specify build type for single-configuration setup from one of: Release, Debug"
         FORCE)
 endif()
 
