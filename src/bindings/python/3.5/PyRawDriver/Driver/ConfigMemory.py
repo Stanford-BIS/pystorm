@@ -44,12 +44,12 @@ class ConfigMemory(object):
         mem = __config_mem__[elem_type]
         mem_sub = mem[config_type]
         num_per_tile = len(mem_sub)
-        tile_id = floor(elem_id / num_per_tile)
+        tile_id = int(floor(elem_id / num_per_tile))
         intra_tile_id = elem_id % num_per_tile
         tile_mem_loc = mem_sub[intra_tile_id]
         row = tile_mem_loc % 8
-        column = floor(tile_mem_loc / 16)
-        bit_select = floor((tile_mem_loc % 16) / 8)
+        column = int(floor(tile_mem_loc / 16))
+        bit_select = int(floor((tile_mem_loc % 16) / 8))
         config_word = PackWord([
             (NeuronConfig.ROW_HI, (row >> 1) & 0x03),
             (NeuronConfig.ROW_LO, row & 0x01),
@@ -63,6 +63,24 @@ class ConfigMemory(object):
             self.BUFFER.append((HORN.NeuronConfig, config_word))
         else:
             self.SendBDWords(HORN.NeuronConfig, (config_word, ))
+
+    def ZeroConfigMemory(self):
+        config_words = []
+        for tile_id in range(256):
+            for tile_mem_loc in range(128):
+                row = tile_mem_loc % 8
+                column = int(floor(tile_mem_loc / 16))
+                bit_select = int(floor((tile_mem_loc % 16) / 8))
+                config_words.append(PackWord([
+                    (NeuronConfig.ROW_HI, (row >> 1) & 0x03),
+                    (NeuronConfig.ROW_LO, row & 0x01),
+                    (NeuronConfig.COL_HI, (column >> 2) & 0x01),
+                    (NeuronConfig.COL_LO, column & 0x03),
+                    (NeuronConfig.BIT_SEL, bit_select & 0x01),
+                    (NeuronConfig.BIT_VAL, 0),
+                    (NeuronConfig.TILE_ADDR, tile_id)
+                ]))
+        self.SendBDWords(HORN.NeuronConfig, config_words)
 
     def SetSomaConfigMemory(self, elem_id, config_type, config_value):
         self.__set_config_memory__('SOMA', elem_id, config_type, config_value)
