@@ -64,22 +64,26 @@ class ConfigMemory(object):
         else:
             self.SendBDWords(HORN.NeuronConfig, (config_word, ))
 
-    def ZeroConfigMemory(self):
+    def FillConfigMemory(self, value=0, repeat=1):
         config_words = []
         for tile_id in range(256):
             for tile_mem_loc in range(128):
                 row = tile_mem_loc % 8
                 column = int(floor(tile_mem_loc / 16))
                 bit_select = int(floor((tile_mem_loc % 16) / 8))
-                config_words.append(PackWord([
+                _word = PackWord([
                     (NeuronConfig.ROW_HI, (row >> 1) & 0x03),
                     (NeuronConfig.ROW_LO, row & 0x01),
                     (NeuronConfig.COL_HI, (column >> 2) & 0x01),
                     (NeuronConfig.COL_LO, column & 0x03),
                     (NeuronConfig.BIT_SEL, bit_select & 0x01),
-                    (NeuronConfig.BIT_VAL, 0),
+                    (NeuronConfig.BIT_VAL, value),
                     (NeuronConfig.TILE_ADDR, tile_id)
-                ]))
+                ])
+                config_words.append(_word)
+                if repeat > 1:
+                    for _idx in range(1, repeat):
+                        config_words.append(_word)
         self.SendBDWords(HORN.NeuronConfig, config_words)
 
     def SetSomaConfigMemory(self, elem_id, config_type, config_value):
