@@ -3,23 +3,25 @@
 `include "Interfaces.svh"
 `include "Deserializer.sv"
 
-// BD funnel routing table (from the wiki)
+// BD funnel routing table
 /*
-BDHornEP |leaf name         |depth |route   |route(int) |data width |serialization |chunk width |
-=========|==================|======|========|===========|===========|==============|============|===========================
-0        |DUMP_AM           |6     |101000  |40         |38         |2             |19          |AM diagnostic read output
-1        |DUMP_MM           |6     |101001  |41         |8          |1             |8           |MM diagnostic read output
-2        |DUMP_PAT          |5     |10101   |21         |20         |1             |20          |PAT diagnostic read output
-3        |DUMP_POST_FIFO[0] |6     |101110  |46         |19         |1             |19          |copy of tag class 0 traffic exiting FIFO
-4        |DUMP_POST_FIFO[1] |6     |101111  |47         |19         |1             |19          |copy of tag class 1 traffic exiting FIFO
-5        |DUMP_PRE_FIFO     |6     |101101  |45         |20         |1             |20          |copy of traffic entering FIFO
-6        |DUMP_TAT[0]       |4     |1000    |8          |29         |1             |29          |TAT 0 diagnostic read output
-7        |DUMP_TAT[1]       |4     |1001    |9          |29         |1             |29          |TAT 1 diagnostic read output
-8        |NRNI              |2     |11      |3          |12         |1             |12          |copy of traffic exiting neuron array
-9        |OVFLW[0]          |7     |1011000 |88         |1          |1             |1           |class 0 FIFO overflow warning
-10       |OVFLW[1]          |7     |1011001 |89         |1          |1             |1           |class 1 FIFO overflow warning
-11       |RO_ACC            |2     |01      |1          |28         |1             |28          |tag output from accumulator
-12       |RO_TAT            |2     |00      |0          |32         |1             |32          |tag output from TAT
+BDHornEP |leaf name         |route           |rt len |serialization |data width  |
+=========|==================|================|=======|==============|============|===========================
+0        |DUMP_AM           |100100000000000 |15     |2             |19          |AM diagnostic read output
+1        |DUMP_MM           |100100000000001 |15     |1             |8           |MM diagnostic read output
+2        |DUMP_PAT          |10010000000001  |14     |1             |20          |PAT diagnostic read output
+3        |DUMP_POST_FIFO[0] |100100000001100 |15     |1             |19          |copy of tag class 0 traffic exiting FIFO
+4        |DUMP_POST_FIFO[1] |100100000001101 |15     |1             |19          |copy of tag class 1 traffic exiting FIFO
+5        |DUMP_PRE_FIFO     |10010000000101  |14     |1             |20          |copy of traffic entering FIFO
+6        |DUMP_TAT[0]       |10000           |5      |1             |29          |TAT 0 diagnostic read output
+7        |DUMP_TAT[1]       |10001           |5      |1             |29          |TAT 1 diagnostic read output
+8        |NRNI              |101             |3      |1             |12          |copy of traffic exiting neuron array
+9        |OVFLW[0]          |10010000000100X |14+    |1             |1           |class 0 FIFO overflow warning
+10       |OVFLW[1]          |10010000000100X |14+    |1             |1           |class 1 FIFO overflow warning
+11       |RO_ACC            |01              |2      |1             |28          |tag output from accumulator
+12       |RO_TAT            |00              |2      |1             |32          |tag output from TAT
+
+we haven't actually observed the OVFLW outputs, but the part of the route we're able to infer is enough
 */
 
 /////////////////////////////////////////////////////////////
@@ -62,36 +64,36 @@ enum {
 
 // leaf id's value is also the output code
 const logic [0:Nfunnel-1][NBDdata-1:0] route_masks = '{
-  {{6{1'b1}}, {(34-6){1'b0}}},
-  {{6{1'b1}}, {(34-6){1'b0}}},
-  {{5{1'b1}}, {(34-5){1'b0}}},
-  {{6{1'b1}}, {(34-6){1'b0}}},
-  {{6{1'b1}}, {(34-6){1'b0}}},
-  {{6{1'b1}}, {(34-6){1'b0}}},
-  {{4{1'b1}}, {(34-4){1'b0}}},
-  {{4{1'b1}}, {(34-4){1'b0}}},
-  {{2{1'b1}}, {(34-2){1'b0}}},
-  {{7{1'b1}}, {(34-7){1'b0}}},
-  {{7{1'b1}}, {(34-7){1'b0}}},
-  {{2{1'b1}}, {(34-2){1'b0}}},
-  {{2{1'b1}}, {(34-2){1'b0}}}};
+  {{15{1'b1}}, {(34-15){1'b0}}},
+  {{15{1'b1}}, {(34-15){1'b0}}},
+  {{14{1'b1}}, {(34-14){1'b0}}},
+  {{15{1'b1}}, {(34-15){1'b0}}},
+  {{15{1'b1}}, {(34-15){1'b0}}},
+  {{14{1'b1}}, {(34-14){1'b0}}},
+   {{5{1'b1}},  {(34-5){1'b0}}},
+   {{5{1'b1}},  {(34-5){1'b0}}},
+   {{3{1'b1}},  {(34-3){1'b0}}},
+  {{14{1'b1}}, {(34-14){1'b0}}},
+  {{14{1'b1}}, {(34-14){1'b0}}},
+   {{2{1'b1}},  {(34-2){1'b0}}},
+   {{2{1'b1}},  {(34-2){1'b0}}}};
 
 const logic [0:Nfunnel-1][NBDdata-1:0] payload_masks = ~route_masks;
 
 const logic [0:Nfunnel-1][NBDdata-1:0] routes = '{
-  'b101000  << (NBDdata - 6),
-  'b101001  << (NBDdata - 6),
-  'b10101   << (NBDdata - 5),
-  'b101110  << (NBDdata - 6),
-  'b101111  << (NBDdata - 6),
-  'b101101  << (NBDdata - 6),
-  'b1000    << (NBDdata - 4),
-  'b1001    << (NBDdata - 4),
-  'b11      << (NBDdata - 2),
-  'b1011000 << (NBDdata - 7),
-  'b1011001 << (NBDdata - 7),
-  'b01      << (NBDdata - 2),
-  'b00      << (NBDdata - 2)};
+  'b100100000000000 << (NBDdata - 15),
+  'b100100000000001 << (NBDdata - 15),
+  'b10010000000001  << (NBDdata - 14),
+  'b100100000001100 << (NBDdata - 15),
+  'b100100000001101 << (NBDdata - 15),
+  'b10010000000101  << (NBDdata - 14),
+  'b10000           << (NBDdata - 5 ),
+  'b10001           << (NBDdata - 5 ),
+  'b101             << (NBDdata - 3 ),
+  'b10010000000100  << (NBDdata - 14),
+  'b10010000000100  << (NBDdata - 14),
+  'b01              << (NBDdata - 2 ),
+  'b00              << (NBDdata - 2 )};
 
 ///////////////////////////////////////////
 // logic
@@ -109,34 +111,34 @@ endgenerate
 
 // one-hot -> binary (enum)
 always_comb
-  if (test[0] == 1)
-    leaf = DUMP_AM;
-  else if (test[1] == 1)
-    leaf = DUMP_MM;
-  else if (test[2] == 1)
-    leaf = DUMP_PAT;
-  else if (test[3] == 1)
-    leaf = DUMP_POST_FIFO0;
-  else if (test[4] == 1)
-    leaf = DUMP_POST_FIFO1;
-  else if (test[5] == 1)
-    leaf = DUMP_PRE_FIFO;
-  else if (test[6] == 1)
-    leaf = DUMP_TAT0;
-  else if (test[7] == 1)
-    leaf = DUMP_TAT1;
-  else if (test[8] == 1)
-    leaf = NRNI;
-  else if (test[9] == 1)
-    leaf = OVFLW0;
-  else if (test[10] == 1)
-    leaf = OVFLW1;
-  else if (test[11] == 1)
-    leaf = RO_ACC;
-  else if (test[12] == 1)
-    leaf = RO_TAT;
-  else
-    leaf = INVALID;
+  unique case (test)
+    13'b0000000000001:
+      leaf = DUMP_AM;
+    13'b0000000000010:
+      leaf = DUMP_MM;
+    13'b0000000000100:
+      leaf = DUMP_PAT;
+    13'b0000000001000:
+      leaf = DUMP_POST_FIFO0;
+    13'b0000000010000:
+      leaf = DUMP_POST_FIFO1;
+    13'b0000000100000:
+      leaf = DUMP_PRE_FIFO;
+    13'b0000001000000:
+      leaf = DUMP_TAT0;
+    13'b0000010000000:
+      leaf = DUMP_TAT1;
+    13'b0000100000000:
+      leaf = NRNI;
+    13'b0011000000000: // will match both OVFLWs until we figure out the actual route
+      leaf = OVFLW0;
+    13'b0100000000000:
+      leaf = RO_ACC;
+    13'b1000000000000:
+      leaf = RO_TAT;
+    13'b0000000000000:
+      leaf = INVALID;
+  endcase
 
 logic [NBDdata-1:0] masked_payload;
 assign masked_payload = BD_in.d & payload_masks[leaf]; // will not discard any extra "high" bits!
@@ -152,6 +154,7 @@ endmodule
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 // BDHornDeserializer deserializes the two-part AMMM word
+// which doesn't really work anyway, LOL
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 

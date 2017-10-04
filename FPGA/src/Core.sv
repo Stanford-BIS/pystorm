@@ -117,13 +117,13 @@ localparam FIFOdepth = 4;
 //                             |          |      |                                           |                          X <------ ADC
 //                             +----------+      |                                           |             
 //               FPGASerializer_out |            |                                           |                    
-//                                  |            |                                           |    BDDecoder_out
-//                   +----------+   |            |   ||||||     BDTagSplit_out_tags    +-----------+  v  +-----------+ 
-//           ||||||  |          |<--+            +---|FIFO|----------------------------|           |  v  |           |   ||||||
-// PC_out <--|FIFO|--| PCPacker |                    ||||||          +----------+      |BDTagSplit |<----| BDDecoder |<--|FIFO|-- BD_in
-//  32b      ||||||  |          |<--+                                |          |<-----|           |     |           |   ||||||    34b
-//                   +----------+   |                                |  BDSer.  |   ^  +-----------+     +-----------+  
-//                                  +--------------------------------|          |   ^                    
+//                                  |            |                                           |          BDDecoder_out
+//                   +----------+   |            |   ||||||     BDTagSplit_out_tags    +-----------+           v  +-----------+ 
+//           ||||||  |          |<--+            +---|FIFO|----------------------------|           |   ||||||  v  |           |   ||||||
+// PC_out <--|FIFO|--| PCPacker |                    ||||||          +----------+      |BDTagSplit |<--|FIFO|-----| BDDecoder |<--|FIFO|-- BD_in
+//  32b      ||||||  |          |<--+                                |          |<-----|           |   ||||||     |           |   ||||||    34b
+//                   +----------+   |                                |  BDSer.  |   ^  +-----------+              +-----------+  
+//                                  +--------------------------------|          |   ^                        
 //                                               BDSerializer_out    +----------+  BDTagSplit_
 //                                                                                 out_other  
 //
@@ -167,6 +167,7 @@ UnencodedBDWordChannel BDTagMerge_out();
 
 // data channels: BD -> PC
 DecodedBDWordChannel BDDecoder_out();
+DecodedBDWordChannel BDDecoder_out_post_FIFO();
 DecodedBDWordChannel BDTagSplit_out_other();
 TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags();
 TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags_post_FIFO();
@@ -291,6 +292,17 @@ BDDecoder BD_decoder(
   BD_in_post_FIFO,
   clk, reset);
 
+// FIFO
+Channel #(40) BDDecoder_out_flat();
+Channel #(40) BDDecoder_out_post_FIFO_flat();
+assign BDDecoder_out_flat.v = BDDecoder_out.v;
+assign BDDecoder_out_flat.d = {BDDecoder_out.leaf_code, BDDecoder_out.payload};
+assign BDDecoder_out.a = BDDecoder_out_flat.a;
+ChannelFIFO #(.D(FIFOdepth), .N(40)) BDDecoder_out_FIFO(BDDecoder_out_post_FIFO_flat, BDDecoder_out_flat, clk, reset);
+assign BDDecoder_out_post_FIFO.v = BDDecoder_out_post_FIFO_flat.v;
+assign {BDDecoder_out_post_FIFO.leaf_code, BDDecoder_out_post_FIFO.payload} = BDDecoder_out_post_FIFO_flat.d;
+assign BDDecoder_out_post_FIFO_flat.a = BDDecoder_out_post_FIFO.a;
+
 // BDTagSplit
 BDTagSplit #(
   NBDdata_in, 
@@ -299,7 +311,7 @@ BDTagSplit #(
 BD_tag_split(
   BDTagSplit_out_tags,
   BDTagSplit_out_other,
-  BDDecoder_out,
+  BDDecoder_out_post_FIFO,
   TS_conf,
   clk, reset);
 

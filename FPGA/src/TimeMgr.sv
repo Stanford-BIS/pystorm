@@ -62,11 +62,18 @@ always_ff @(posedge clk, posedge reset)
       send_HB_up_pulse <= 0;
     end
 
-// generate stall signal
+// generate stall signal (it's a clock cycle behind, no biggie)
+logic next_stall_dn;
+always_ff @(posedge clk, posedge reset)
+  if (reset == 1)
+    stall_dn <= 0;
+  else
+    stall_dn <= next_stall_dn;
+
 always_comb
   if (conf.PC_time_elapsed > time_elapsed)
-    stall_dn = 1;
+    next_stall_dn = 1;
   else
-    stall_dn = 0;
+    next_stall_dn = 0;
 
 endmodule
