@@ -806,8 +806,7 @@ void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_
 	// pystorm::bddriver::InputSpike file: line:188
 	pybind11::enum_<pystorm::bddriver::InputSpike>(M("pystorm::bddriver"), "InputSpike", "")
 		.value("SYNAPSE_SIGN", pystorm::bddriver::InputSpike::SYNAPSE_SIGN)
-		.value("SYNAPSE_X", pystorm::bddriver::InputSpike::SYNAPSE_X)
-		.value("SYNAPSE_Y", pystorm::bddriver::InputSpike::SYNAPSE_Y)
+		.value("SYNAPSE_ADDRESS", pystorm::bddriver::InputSpike::SYNAPSE_ADDRESS)
 		.value("FIELDCOUNT", pystorm::bddriver::InputSpike::FIELDCOUNT);
 
 ;
