@@ -10,16 +10,16 @@ __syn_xy_to_flat__ = np.zeros(4096, dtype=np.int)
 __mem_xy_to_flat__ = np.zeros(256, dtype=np.int)
 
 for idx in range(4096):
-    xw = "{0:06b}".format(int(idx % 16))
-    yw = "{0:06b}".format(int(floor(idx / 16)))
+    xw = "{0:06b}".format(int(idx % 64))
+    yw = "{0:06b}".format(int(floor(idx / 64)))
     word = ['0'] * 12
     word[::2]  = yw
     word[1::2] = xw
     __soma_xy_to_flat__[idx] = int(''.join(word), 2)
 
 for idx in range(1024):
-    xw = "{0:05b}".format(int(idx % 16))
-    yw = "{0:05b}".format(int(floor(idx / 16)))
+    xw = "{0:05b}".format(int(idx % 32))
+    yw = "{0:05b}".format(int(floor(idx / 32)))
     word = ['0'] * 10
     word[::2]  = yw
     word[1::2] = xw
