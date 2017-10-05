@@ -5,33 +5,63 @@ from . import HORN
 from math import floor
 import numpy as np
 
-__soma_xy_to_flat__ = np.zeros(4096, dtype=np.int)
-__syn_xy_to_flat__ = np.zeros(4096, dtype=np.int)
-__mem_xy_to_flat__ = np.zeros(256, dtype=np.int)
+__soma_xyflat_to_aerflat__ = np.zeros(4096, dtype=np.int)
+__syn_xyflat_to_aerflat__ = np.zeros(1024, dtype=np.int)
+__mem_xyflat_to_aerflat__ = np.zeros(256, dtype=np.int)
 
 for idx in range(4096):
-    xw = "{0:06b}".format(int(idx % 64))
-    yw = "{0:06b}".format(int(floor(idx / 64)))
+    #xw = "{0:06b}".format(int(idx % 64))
+    #yw = "{0:06b}".format(int(floor(idx / 64)))
+    #word = ['0'] * 12
+    #word[::2]  = yw
+    #word[1::2] = xw
+    #__soma_xyflat_to_aerflat__[idx] = int(''.join(word), 2)
     word = ['0'] * 12
-    word[::2]  = yw
-    word[1::2] = xw
-    __soma_xy_to_flat__[idx] = int(''.join(word), 2)
+    _x = idx % 64
+    _y = int(floor(idx / 64))
+    
+    for jdx in range(6):
+        word[2 * jdx] = str((_x %2 ) ^ (_y % 2))
+        word[2 * jdx + 1] = str(_y % 2)
+        _x = _x >> 1
+        _y = _y >> 1
+    __soma_xyflat_to_aerflat__[idx] = int(''.join(word[::-1]), 2)
 
 for idx in range(1024):
-    xw = "{0:05b}".format(int(idx % 32))
-    yw = "{0:05b}".format(int(floor(idx / 32)))
+    #xw = "{0:05b}".format(int(idx % 32))
+    #yw = "{0:05b}".format(int(floor(idx / 32)))
+    #word = ['0'] * 10
+    #word[::2]  = yw
+    #word[1::2] = xw
+    #__syn_xyflat_to_aerflat__[idx] = int(''.join(word), 2)
     word = ['0'] * 10
-    word[::2]  = yw
-    word[1::2] = xw
-    __syn_xy_to_flat__[idx] = int(''.join(word), 2)
+    _x = idx % 32
+    _y = int(floor(idx / 32))
+
+    for jdx in range(5):
+        word[2 * jdx] = str((_x %2 ) ^ (_y % 2))
+        word[2 * jdx + 1] = str(_y % 2)
+        _x = _x >> 1
+        _y = _y >> 1
+    __syn_xyflat_to_aerflat__[idx] = int(''.join(word[::-1]), 2)
 
 for idx in range(256):
-    xw = "{0:04b}".format(int(idx % 16))
-    yw = "{0:04b}".format(int(floor(idx / 16)))
+    #xw = "{0:04b}".format(int(idx % 16))
+    #yw = "{0:04b}".format(int(floor(idx / 16)))
+    #word = ['0'] * 8
+    #word[::2]  = yw
+    #word[1::2] = xw
+    #__mem_xyflat_to_aerflat__[idx] = int(''.join(word), 2)
     word = ['0'] * 8
-    word[::2]  = yw
-    word[1::2] = xw
-    __mem_xy_to_flat__[idx] = int(''.join(word), 2)
+    _x = idx % 16
+    _y = int(floor(idx / 16))
+
+    for jdx in range(4):
+        word[2 * jdx] = str((_x %2 ) ^ (_y % 2))
+        word[2 * jdx + 1] = str(_y % 2)
+        _x = _x >> 1
+        _y = _y >> 1
+    __mem_xyflat_to_aerflat__[idx] = int(''.join(word[::-1]), 2)
 
 __config_mem__ = dict({
     'SOMA'    : bdpars.BDPars.config_soma_mem_,
@@ -76,11 +106,11 @@ class ConfigMemory(object):
         num_per_tile = len(mem_sub)
         
         if elem_type == 'SOMA':
-            _aer_elem_id = __soma_xy_to_flat__[elem_id]
+            _aer_elem_id = __soma_xyflat_to_aerflat__[elem_id]
         elif elem_type == 'SYNAPSE':
-            _aer_elem_id = __syn_xy_to_flat__[elem_id]
+            _aer_elem_id = __syn_xyflat_to_aerflat__[elem_id]
         elif elem_type == 'DIFF':
-            _aer_elem_id = __mem_xy_to_flat__[elem_id]
+            _aer_elem_id = __mem_xyflat_to_aerflat__[elem_id]
         else:
             _aer_elem_id = None
         

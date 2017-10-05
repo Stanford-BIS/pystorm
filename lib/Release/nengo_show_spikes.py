@@ -9,7 +9,7 @@ sys.path.append(".")
 import PyRawDriver as bd
 from PyDriver.pystorm.bddriver import bdpars
 
-FLAT_TO_XY = np.zeros((4096, 2), dtype=int)
+AER_TO_XY = np.zeros((4096, 2), dtype=int)
 for _idx in range(4096):
     x = 0
     y = 0
@@ -17,7 +17,8 @@ for _idx in range(4096):
     for _n in range(6):
         x += (1 << _n) * (int(word[2 * _n]) ^ int(word[2 * _n + 1]))
         y += (1 << _n) * int(word[2 * _n + 1])
-    FLAT_TO_XY[_idx] = (x, y)
+    AER_TO_XY[_idx] = (x, y)
+
 
 
 def singleton_driver():
@@ -37,10 +38,10 @@ def singleton_driver():
             nengo.bddriver.SetSomaGain(_idx, bdpars.SomaGainId.ONE)
             nengo.bddriver.SetSomaGain(_idx, bdpars.SomaGainId.ONE)
             nengo.bddriver.SetSomaGain(_idx, bdpars.SomaGainId.ONE)
-            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.NEGATIVE)
-            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.NEGATIVE)
-            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.NEGATIVE)
-            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.NEGATIVE)
+            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.POSITIVE)
+            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.POSITIVE)
+            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.POSITIVE)
+            nengo.bddriver.SetSomaOffsetSign(_idx, bdpars.SomaOffsetSignId.POSITIVE)
             nengo.bddriver.SetSomaOffsetMultiplier(_idx, bdpars.SomaOffsetMultiplierId.ZERO)
             nengo.bddriver.SetSomaOffsetMultiplier(_idx, bdpars.SomaOffsetMultiplierId.ZERO)
             nengo.bddriver.SetSomaOffsetMultiplier(_idx, bdpars.SomaOffsetMultiplierId.ZERO)
@@ -161,25 +162,33 @@ class BrainDropSpikes(nengo.Process):
         driver.SetDACValue(bd.HORN.DAC_SYN_LK, 1)
         driver.FlushBDBuffer()
         
-        in_idx = 255
+        in_idx = 528
 
-        driver.EnableSoma(in_idx * 4)
-        driver.EnableSoma(in_idx * 4)
-        driver.EnableSoma(in_idx * 4)
-        driver.EnableSoma(in_idx * 4)
-        driver.EnableSoma(in_idx * 4 + 1)
-        driver.EnableSoma(in_idx * 4 + 1)
-        driver.EnableSoma(in_idx * 4 + 1)
-        driver.EnableSoma(in_idx * 4 + 1)
-        driver.EnableSoma(in_idx * 4 + 2)
-        driver.EnableSoma(in_idx * 4 + 2)
-        driver.EnableSoma(in_idx * 4 + 2)
-        driver.EnableSoma(in_idx * 4 + 2)
-        driver.EnableSoma(in_idx * 4 + 3)
-        driver.EnableSoma(in_idx * 4 + 3)
-        driver.EnableSoma(in_idx * 4 + 3)
-        driver.EnableSoma(in_idx * 4 + 3)
-        driver.FlushBDBuffer()
+        for _y in range(16, 48):
+            for _x in range(16, 48):
+                _idx = _x * 64 + _y
+                driver.EnableSoma(_idx)
+                driver.EnableSoma(_idx)
+                driver.EnableSoma(_idx)
+                driver.EnableSoma(_idx)
+                driver.FlushBDBuffer()
+        #driver.EnableSoma(in_idx * 4)
+        #driver.EnableSoma(in_idx * 4)
+        #driver.EnableSoma(in_idx * 4)
+        #driver.EnableSoma(in_idx * 4)
+        #driver.EnableSoma(in_idx * 4 + 1)
+        #driver.EnableSoma(in_idx * 4 + 1)
+        #driver.EnableSoma(in_idx * 4 + 1)
+        #driver.EnableSoma(in_idx * 4 + 1)
+        #driver.EnableSoma(in_idx * 4 + 2)
+        #driver.EnableSoma(in_idx * 4 + 2)
+        #driver.EnableSoma(in_idx * 4 + 2)
+        #driver.EnableSoma(in_idx * 4 + 2)
+        #driver.EnableSoma(in_idx * 4 + 3)
+        #driver.EnableSoma(in_idx * 4 + 3)
+        #driver.EnableSoma(in_idx * 4 + 3)
+        #driver.EnableSoma(in_idx * 4 + 3)
+        #driver.FlushBDBuffer()
 
         driver.EnableSynapse(in_idx)
         driver.EnableSynapse(in_idx)
@@ -188,13 +197,12 @@ class BrainDropSpikes(nengo.Process):
         driver.FlushBDBuffer()
 
         def CreateSpikePacket(address, sign):
-            _x = address % 32
-            _y = int(floor(address / 32))
+            from PyRawDriver.Driver import ConfigMemory  as cm
+            _aer_address = cm.__syn_xyflat_to_aerflat__[address]
             from PyDriver.pystorm.bddriver import PackWord
             from PyDriver.pystorm.bddriver import InputSpike
             config_word = PackWord([
-                (InputSpike.SYNAPSE_X, _x),
-                (InputSpike.SYNAPSE_Y, _y),
+                (InputSpike.SYNAPSE_ADDRESS, _aer_address),
                 (InputSpike.SYNAPSE_SIGN, sign),
             ])
             return config_word
@@ -222,7 +230,7 @@ class BrainDropSpikes(nengo.Process):
             #  neuron that has spiked since the last time this was called.
             #  A larger numerical value will make the spikes brighter
             #  in the GUI
-            _exc = True
+            _exc = False
             if _exc:
                 driver.dev.WriteToBlockPipeIn(driver.EP_DN, driver.BLOCK_SIZE, spike_exc)
             else:
@@ -234,7 +242,7 @@ class BrainDropSpikes(nengo.Process):
             nrn_idx = []
             
             for i in range(0, len(w), 8):
-                _x, _y = FLAT_TO_XY[w[i] + w[i + 1] * 256]
+                _x, _y = AER_TO_XY[w[i] + w[i + 1] * 256]
                 nrn_idx.append(_x + 64 *_y)
                 
             self.spikes[nrn_idx] = 10.0
