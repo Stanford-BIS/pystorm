@@ -8,6 +8,10 @@ from .ConfigMemory import ConfigMemory
 from ..Utils import ByteUtils
 #import FUNNEL
 
+__dac_list__ = {HORN.DAC_DIFF_G, HORN.DAC_SYN_INH, HORN.DAC_SYN_PU, HORN.DAC_UNUSED, HORN.DAC_DIFF_R,
+                HORN.DAC_SOMA_OFFSET, HORN.DAC_SYN_LK, HORN.DAC_SYN_DC, HORN.DAC_SYN_PD, HORN.DAC_ADC_2, HORN.DAC_ADC_1,
+                HORN.DAC_SOMA_REF, HORN.DAC_SYN_EXC}
+
 
 class Driver(ConfigMemory):
     def __init__(self, bit_file="OKBD.rbf", block_size=16 * 4, debug=False):
@@ -22,6 +26,7 @@ class Driver(ConfigMemory):
         self.__nop_bytes__ = int(self.NOP_DOWN, 0).to_bytes(4, byteorder='little')
         self.dev = None
         self.__dbg__ = debug
+        self.BUFFER = []
         self.__buffered__ = True
 
     def __make_byte_array__(self, code_list):
@@ -57,17 +62,21 @@ class Driver(ConfigMemory):
             ret_code = self.dev.WriteToBlockPipeIn(self.EP_DN, self.BLOCK_SIZE, out_bytes)
             if ret_code < 0:
                 print("*ERROR*: OK Write Failure - '%s'" % ok.ErrorNames[ret_code])
-            else:
-                print("*INFO*: OK Write successful [%d bytes]" % ret_code)
+            #else:
+            #    print("*INFO*: OK Write successful [%d bytes]" % ret_code)
 
     def SendBDWords(self, horn_id, payload_list):
         bd_data = [self.__create_bd_word__(HORN.CreateInputWord(horn_id, _buf)) for _buf in payload_list]
         self.SendOKWords(bd_data)
+        
+    def BufferBDWord(self, horn_id, payload):
+        self.BUFFER.append((horn_id, payload))
 
     def FlushBDBuffer(self):
         if len(self.BUFFER) > 0:
             bd_data = [self.__create_bd_word__(HORN.CreateInputWord(_v[0], _v[1])) for _v in self.BUFFER]
             self.SendOKWords(bd_data)
+        self.BUFFER = []
 
     def ReceiveWords(self):
         out_buf = bytearray(self.BLOCK_SIZE)
@@ -92,9 +101,9 @@ class Driver(ConfigMemory):
         self.SendOKWords(("0x10000000",))
 
     def SetSpikeDumpState(self, state):
-        bd_data = self.__create_bd_word__(HORN.CreateInputWord(HORN.NeuronDumpToggle, state * 2))
-        self.SendOKWords(bd_data)
+        self.SendBDWords(HORN.NeuronDumpToggle, (state * 2, ))
 
     def SetDACValue(self, leaf_id, value):
-        bd_data = self.__create_bd_word__(HORN.CreateInputWord(leaf_id, value))
-        self.SendOKWords(bd_data)
+        assert leaf_id in __dac_list__
+        assert value > 0 and value <= 1024
+        self.SendBDWords(leaf_id, (value - 1, ))

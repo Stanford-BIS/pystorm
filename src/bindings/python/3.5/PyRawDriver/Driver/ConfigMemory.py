@@ -3,6 +3,35 @@ from PyDriver.pystorm.bddriver import PackWord
 from PyDriver.pystorm.bddriver import NeuronConfig
 from . import HORN
 from math import floor
+import numpy as np
+
+__soma_xy_to_flat__ = np.zeros(4096, dtype=np.int)
+__syn_xy_to_flat__ = np.zeros(4096, dtype=np.int)
+__mem_xy_to_flat__ = np.zeros(256, dtype=np.int)
+
+for idx in range(4096):
+    xw = "{0:06b}".format(int(idx % 16))
+    yw = "{0:06b}".format(int(floor(idx / 16)))
+    word = ['0'] * 12
+    word[::2]  = yw
+    word[1::2] = xw
+    __soma_xy_to_flat__[idx] = int(''.join(word), 2)
+
+for idx in range(1024):
+    xw = "{0:05b}".format(int(idx % 16))
+    yw = "{0:05b}".format(int(floor(idx / 16)))
+    word = ['0'] * 10
+    word[::2]  = yw
+    word[1::2] = xw
+    __syn_xy_to_flat__[idx] = int(''.join(word), 2)
+
+for idx in range(256):
+    xw = "{0:04b}".format(int(idx % 16))
+    yw = "{0:04b}".format(int(floor(idx / 16)))
+    word = ['0'] * 8
+    word[::2]  = yw
+    word[1::2] = xw
+    __mem_xy_to_flat__[idx] = int(''.join(word), 2)
 
 __config_mem__ = dict({
     'SOMA'    : bdpars.BDPars.config_soma_mem_,
@@ -41,11 +70,23 @@ class ConfigMemory(object):
         :param config_value: Bool
         :return:
         """
+        
         mem = __config_mem__[elem_type]
         mem_sub = mem[config_type]
         num_per_tile = len(mem_sub)
-        tile_id = int(floor(elem_id / num_per_tile))
-        intra_tile_id = elem_id % num_per_tile
+        
+        if elem_type == 'SOMA':
+            _aer_elem_id = __soma_xy_to_flat__[elem_id]
+        elif elem_type == 'SYNAPSE':
+            _aer_elem_id = __syn_xy_to_flat__[elem_id]
+        elif elem_type == 'DIFF':
+            _aer_elem_id = __mem_xy_to_flat__[elem_id]
+        else:
+            _aer_elem_id = None
+        
+        tile_id = int(floor(_aer_elem_id / num_per_tile))
+        
+        intra_tile_id = _aer_elem_id % num_per_tile
         tile_mem_loc = mem_sub[intra_tile_id]
         row = tile_mem_loc % 8
         column = int(floor(tile_mem_loc / 16))
