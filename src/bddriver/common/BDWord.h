@@ -186,8 +186,8 @@ DEFWORD(FIFOInputTag,
     WIDTHS(11  )   )
 
 DEFWORD(InputSpike,
-    FIELDS(SYNAPSE_SIGN , SYNAPSE_ADDRESS ) ,
-    WIDTHS(1            , 10              )   )
+    FIELDS(SYNAPSE_SIGN , SYNAPSE_X, SYNAPSE_Y ) ,
+    WIDTHS(1            , 5        , 5         )   )
 
 // output words
 DEFWORD(PreFIFOTag,
