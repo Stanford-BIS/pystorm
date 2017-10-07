@@ -1,10 +1,58 @@
 <Renderer>:
 
+<SliderRow@BoxLayout>:
+    orientation: 'horizontal'
+    slide_text: ""
+    Label:
+        text: root.slide_text
+        text_size: (110, None)
+        halign: 'left'
+        size: (110, root.height)
+        size_hint: (None, None)
+    Slider:
+        size_hint: (1., 1.)
+
 <RootLayout>:
-  rows: 1
-  cols: 2
-  renderer_widget: renderer_widget
-  Button:
-    text: "Click me"
-  Renderer:
-    id: renderer_widget
+    rows: 1
+    cols: 2
+    renderer_widget: renderer_widget
+    BoxLayout:
+        orientation: 'vertical'
+        SliderRow:
+            id: row_0
+            slide_text: "DAC 0"
+        SliderRow
+            id: row_1
+            slide_text: "DAC 1"
+        SliderRow
+            id: row_2
+            slide_text: "DAC 2"
+        SliderRow
+            id: row_3
+            slide_text: "DAC 3"
+        SliderRow
+            id: row_4
+            slide_text: "DAC 4"
+        SliderRow
+            id: row_5
+            slide_text: "DAC 5"
+        SliderRow
+            id: row_6
+            slide_text: "DAC 6"
+        SliderRow
+            id: row_7
+            slide_text: "DAC 7"
+        SliderRow
+            id: row_8
+            slide_text: "DAC 8"
+        SliderRow
+            id: row_9
+            slide_text: "DAC 9"
+        SliderRow
+            id: row_10
+            slide_text: "DAC 10"
+        SliderRow
+            id: row_11
+            slide_text: "DAC 11"
+    Renderer:
+        id: renderer_widget
