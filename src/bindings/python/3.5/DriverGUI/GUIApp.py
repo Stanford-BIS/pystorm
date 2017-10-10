@@ -1,4 +1,6 @@
+import sys
 from kivy.app import App
+from kivy.app import Builder
 from kivy.graphics.texture import Texture
 from kivy.graphics import Rectangle
 from kivy.uix.widget import Widget
@@ -88,4 +90,8 @@ class GUIApp(App):
 
 
 if __name__ == '__main__':
+    import re
+    app_file_name = sys.argv[0].rstrip()
+    kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
+    Builder.load_file(kv_file_name)
     GUIApp().run()
