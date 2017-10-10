@@ -30,6 +30,7 @@ class Renderer(Widget):
     ZERO_MAT       = np.zeros(4096, dtype=np.uint8)
     MAX_MAT        = np.full(4096, 255, dtype=np.uint8)
 
+    # create numpy array to hold spike data
     arr_data = np.zeros(4096, dtype=np.uint8)
     _mask1 = np.full(4096, False, dtype=np.bool)
     _mask2 = np.full(4096, False, dtype=np.bool)
@@ -39,8 +40,7 @@ class Renderer(Widget):
         # create a 64x64 texture, defaults to rgb / ubyte
         self.texture = Texture.create(size=(64, 64), colorfmt='luminance')
         self.texture.mag_filter = 'nearest'
-
-        # create numpy array to hold spike data
+        self.raster = Rectangle()
 
         # Trigger animation
         Clock.schedule_interval(self.update, self.REFRESH_PERIOD)
@@ -56,9 +56,11 @@ class Renderer(Widget):
     def update(self, dt):
         # then blit the buffer
         self.texture.blit_buffer(self.arr_data, colorfmt='luminance', bufferfmt='ubyte')
-
-        with self.canvas:
-            Rectangle(texture=self.texture, pos=self.pos, size=self.size)
+        self.raster.pos = self.pos
+        self.raster.size = self.size
+        self.raster.texture = self.texture
+        self.canvas.clear()
+        self.canvas.add(self.raster)
 
         np.less(self.arr_data, self.DECAY_MAT, self._mask2)
         np.greater_equal(self.arr_data, self.DECAY_MAT, self._mask3)
@@ -84,14 +86,14 @@ class RootLayout(GridLayout):
 class GUIApp(App):
 
     def build(self):
+        import re
+        app_file_name = sys.argv[0].rstrip()
+        kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
         root = RootLayout()
+        Builder.load_file(kv_file_name)
         root.init_children()
         return root
 
 
 if __name__ == '__main__':
-    import re
-    app_file_name = sys.argv[0].rstrip()
-    kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
-    Builder.load_file(kv_file_name)
     GUIApp().run()
