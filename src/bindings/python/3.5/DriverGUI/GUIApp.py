@@ -5,11 +5,13 @@ from kivy.graphics.texture import Texture
 from kivy.graphics import Rectangle
 from kivy.uix.widget import Widget
 from kivy.uix.gridlayout import GridLayout
+from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.label import Label
 from kivy.uix.slider import Slider
 from kivy.clock import Clock
 from kivy.properties import ObjectProperty
+from kivy.properties import NumericProperty
 from kivy.config import Config
 from kivy.uix.button import Button
 import threading
@@ -18,7 +20,7 @@ import time
 import numpy as np
 
 Config.set('graphics', 'width', '1024')
-Config.set('graphics', 'height', '512')
+Config.set('graphics', 'height', '562')
 
 
 class Renderer(Widget):
@@ -35,6 +37,11 @@ class Renderer(Widget):
     _mask1 = np.full(4096, False, dtype=np.bool)
     _mask2 = np.full(4096, False, dtype=np.bool)
     _mask3 = np.full(4096, False, dtype=np.bool)
+    
+    def __update_fade_vals__(self, decay_period):
+        self.DECAY_PERIOD = decay_period
+        self.DECAY_AMOUNT = int(255 / self.DECAY_PERIOD * self.REFRESH_PERIOD)
+        self.DECAY_MAT = np.full(4096, self.DECAY_AMOUNT, dtype=np.uint8)
 
     def init(self):
         # create a 64x64 texture, defaults to rgb / ubyte
@@ -78,9 +85,13 @@ class Renderer(Widget):
 class RootLayout(GridLayout):
 
     renderer_widget = ObjectProperty(None)
+    fade_slider = ObjectProperty(None)
 
     def init_children(self):
         self.renderer_widget.init()
+        
+    def update_fader(self, *args):
+        self.renderer_widget.__update_fade_vals__(args[0])
 
 
 class GUIApp(App):
