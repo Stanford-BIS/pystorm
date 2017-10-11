@@ -116,12 +116,21 @@ class Driver {
   void Start();
   /// stops the child workers
   void Stop();
-  /// Initializes hardware state
-  /// Calls Flush immediately
-  void InitBD();
+
+  /// Sets the time unit
+  void SetTimeUnitLen(unsigned int us_per_unit);
+  /// Sets FPGA clock to 0
+  void ResetFPGATime();
+  /// Cycles BD pReset/sReset
+  /// Useful for testing, but leaves memories in an indeterminate state
+  void ResetBD();
   /// Clears BD FIFOs
   /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
+  /// Initializes hardware state
+  /// Calls Reset, InitFIFO, among other things
+  /// Calls Flush immediately
+  void InitBD();
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -439,6 +448,15 @@ class Driver {
 
   ////////////////////////////////
   // data members
+  
+  // FPGA state (XXX perhaps should move to its own object)
+  const unsigned int ns_per_clk_  = 10; // 100 MHz FPGA clock
+  unsigned int clks_per_unit_     = 1000; // FPGA default
+  unsigned int us_per_unit_       = 10; // FPGA default
+  unsigned int highest_us_sent_   = 0;
+
+  // helper
+  inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
 
   /// parameters describing parameters of the software (e.g. buffer depths)
   const driverpars::DriverPars *driver_pars_;
