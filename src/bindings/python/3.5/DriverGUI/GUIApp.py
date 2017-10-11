@@ -36,7 +36,7 @@ class Renderer(Widget):
     _mask2 = np.full(4096, False, dtype=np.bool)
     _mask3 = np.full(4096, False, dtype=np.bool)
 
-    def init_update(self):
+    def init(self):
         # create a 64x64 texture, defaults to rgb / ubyte
         self.texture = Texture.create(size=(64, 64), colorfmt='luminance')
         self.texture.mag_filter = 'nearest'
@@ -80,20 +80,23 @@ class RootLayout(GridLayout):
     renderer_widget = ObjectProperty(None)
 
     def init_children(self):
-        self.renderer_widget.init_update()
+        self.renderer_widget.init()
 
 
 class GUIApp(App):
-
+    
     def build(self):
-        import re
-        app_file_name = sys.argv[0].rstrip()
-        kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
-        root = RootLayout()
-        Builder.load_file(kv_file_name)
-        root.init_children()
-        return root
+        self.root_layout = RootLayout()
+        return self.root_layout
+    
+    def on_start(self):
+        self.root_layout.init_children()
 
 
 if __name__ == '__main__':
-    GUIApp().run()
+    import re
+    app_file_name = sys.argv[0].rstrip()
+    kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
+    _gui = GUIApp()
+    _gui.load_kv(kv_file_name)
+    _gui.run()
