@@ -82,7 +82,7 @@ class Renderer(Widget):
         self.canvas.clear()
 
 
-class RootLayout(GridLayout):
+class RootLayout(BoxLayout):
 
     renderer_widget = ObjectProperty(None)
     fade_slider = ObjectProperty(None)
