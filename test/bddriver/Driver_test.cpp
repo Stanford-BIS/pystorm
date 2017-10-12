@@ -69,7 +69,7 @@ class DriverFixture : public testing::Test {
       std::vector<BDWord> spikes = MakeRandomSynSpikes(M);
       std::vector<BDTime> times;
       for (unsigned int i = 0; i < spikes.size(); i++) {
-        times.push_back(i);
+        times.push_back(i*10); // default us_per_unit_ = 10
       }
       driver->SendSpikes(0, spikes, times);
       sent_spikes.insert(sent_spikes.end(), spikes.begin(), spikes.end());
@@ -79,7 +79,7 @@ class DriverFixture : public testing::Test {
       std::vector<BDWord> tags = MakeRandomInputTags(M);
       std::vector<BDTime> times;
       for (unsigned int i = 0; i < tags.size(); i++) {
-        times.push_back(i);
+        times.push_back(i*10); // default us_per_unit_ = 10
       }
       driver->SendTags(0, tags, times);
       sent_tags.insert(sent_tags.end(), tags.begin(), tags.end());

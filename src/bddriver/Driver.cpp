@@ -101,20 +101,27 @@ Driver::Driver() {
 
   // initialize Comm
 #ifdef BD_COMM_TYPE_SOFT
+  cout << "initializing CommSoft" << endl;
     comm_ = new comm::CommSoft(
         *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
         *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
         dec_buf_in_,
         enc_buf_out_);
 #elif BD_COMM_TYPE_USB
+  cout << "NOT initializing USB comm" << endl;
     assert(false && "libUSB Comm is not implemented");
 #elif BD_COMM_TYPE_MODEL
+  cout << "NOT initializing BDModelComm (yet)" << endl;
     comm_ = nullptr;
 #elif BD_COMM_TYPE_OPALKELLY
+  cout << "initializing OKComm" << endl;
     comm_ = new comm::CommOK(dec_buf_in_, enc_buf_out_);
 #else
+  cout << "NOT initializing UNHANDLED Comm type comm" << endl;
     assert(false && "unhandled comm_type");
 #endif
+
+  cout << "Driver constructor done" << endl;
 
 }
 
@@ -135,11 +142,57 @@ Driver::~Driver() {
 // XXX get rid of this, it's used in some test
 void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
 
+void Driver::SetTimeUnitLen(BDTime us_per_unit) {
+
+  // update FPGA state
+  us_per_unit_ = us_per_unit;
+  clks_per_unit_ = us_per_unit / (ns_per_clk_ * 1000);
+
+  BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
+  SendToEP(0, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
+  Flush();
+}
+
+void Driver::SetTimePerUpHB(BDTime us_per_hb) {
+  units_per_HB_ = UnitsPerUs(us_per_hb);
+
+  // XXX this might break someday
+  BDWord us_per_hb_word = static_cast<uint64_t>(us_per_hb);
+  uint64_t w0 = GetField(us_per_hb_word, THREEFPGAREGS::W0);
+  uint64_t w1 = GetField(us_per_hb_word, THREEFPGAREGS::W1);
+  uint64_t w2 = GetField(us_per_hb_word, THREEFPGAREGS::W2);
+
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
+  Flush();
+}
+
+void Driver::ResetBD() {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+
+    BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
+    BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
+    BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
+
+    unsigned int delay_us = 500; // hold reset states for half a second (probably very conservative)
+
+    SendToEP(i, bdpars::FPGARegEP::BD_RESET, 
+        {pReset_1_sReset_1             , pReset_0_sReset_1             , pReset_0_sReset_0},
+        {highest_us_sent_ + delay_us*0 , highest_us_sent_ + delay_us*1 , highest_us_sent_ + delay_us*2});
+  }
+  Flush();
+}
+
+void Driver::ResetFPGATime() {
+  BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
+  BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
+}
+
 void Driver::InitBD() {
-#if BD_COMM_TYPE_OPALKELLY
-    // Initialize Opal Kelly Board
-    static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
-#endif
+    // BD hard reset
+    ResetBD();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
@@ -208,6 +261,7 @@ void Driver::InitBD() {
   }
 }
 
+
 void Driver::InitFIFO(unsigned int core_id) {
   // turn traffic off around FIFO (just kill everything to hijack the traffic drain timer in BDState)
   PauseTraffic(core_id);
@@ -231,7 +285,14 @@ void Driver::Start() {
   // start all worker threads
   enc_->Start();
   dec_->Start();
+  cout << "enc and dec started" << endl;
+
+  // Initialize Opal Kelly Board
+  static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+  cout << "init'd OK" << endl;
+
   comm_->StartStreaming();
+  cout << "comm started" << endl;
 }
 
 void Driver::Stop() {
@@ -849,7 +910,9 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push[2];
-      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
+
+      // convert from us -> time units
+      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
       // lsb first, msb second
       to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
@@ -870,7 +933,9 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push;
-      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
+
+      // convert from us -> time units
+      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
       to_push.payload = it;
       to_push.time = time;
@@ -887,7 +952,12 @@ void Driver::SendToEP(unsigned int core_id,
     for (auto& it : *serialized) {
       timed_queue_.push_back(it);
     }
-    std::sort(timed_queue_.begin(), timed_queue_.end());
+    std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
+
+    // update highest_us_sent_
+    unsigned int new_highest_us = timed_queue_.back().time * us_per_unit_;
+    highest_us_sent_ = new_highest_us > highest_us_sent_ ? new_highest_us : highest_us_sent_; // max()
+
   } else {
     sequenced_queue_.push(std::move(serialized));
   }
