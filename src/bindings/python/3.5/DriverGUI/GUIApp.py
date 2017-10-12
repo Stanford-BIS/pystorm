@@ -7,6 +7,7 @@ from kivy.uix.widget import Widget
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.label import Label
 from kivy.uix.slider import Slider
 from kivy.clock import Clock
@@ -15,6 +16,8 @@ from kivy.properties import NumericProperty
 from kivy.config import Config
 from kivy.uix.button import Button
 from kivy.uix.tabbedpanel import TabbedPanel
+from kivy.uix.scatter import Scatter
+from kivy.uix.stencilview import StencilView
 import threading
 import time
 
@@ -85,14 +88,23 @@ class Renderer(Widget):
 
 class RootLayout(BoxLayout):
 
+    renderer_box = ObjectProperty(None)
+    renderer_stencil = ObjectProperty(None)
     renderer_widget = ObjectProperty(None)
     fade_slider = ObjectProperty(None)
 
     def init_children(self):
         self.renderer_widget.init()
+
+    def reset_raster(self):
+        self.renderer_scatter.scale = 1
+        self.renderer_scatter.pos = self.renderer_stencil.pos
         
     def update_fader(self, *args):
         self.renderer_widget.__update_fade_vals__(args[0])
+
+    def update_bias(self, *args, **kwargs):
+        print("Name: %s, Value: %g" % (kwargs['name'], kwargs['value']))
 
 
 class GUIApp(App):
@@ -106,9 +118,9 @@ class GUIApp(App):
 
 
 if __name__ == '__main__':
-    import re
-    app_file_name = sys.argv[0].rstrip()
-    kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
+    #import re
+    #app_file_name = sys.argv[0].rstrip()
+    #kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
     _gui = GUIApp()
-    _gui.load_kv(kv_file_name)
+    #_gui.load_kv(kv_file_name)
     _gui.run()

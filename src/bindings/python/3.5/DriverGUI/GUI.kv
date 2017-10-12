@@ -2,74 +2,112 @@
 
 <SliderRow@BoxLayout>:
     orientation: 'horizontal'
-    slide_text: ""
+    slider_text: ""
+    slider_name: ""
+    slider_cb: None
     Label:
-        text: root.slide_text
+        text: root.slider_text
         text_size: (110, None)
         halign: 'left'
         size: (110, root.height)
         size_hint: (None, None)
+        pos: (root.pos[0] + 10, self.pos[1])
+        markup: True
     Slider:
+        id: slider
         size_hint: (1., 1.)
+        min: 1
+        max: 1024
+        value: 1
+        step: 1
+        value_track: True
+        on_value: root.slider_cb(name=root.slider_name, value=self.value)
+
+<StencilBox@StencilView+BoxLayout>:
 
 <RootLayout>:
     orientation: 'vertical'
+    renderer_box: renderer_box
+    renderer_stencil: renderer_stencil
+    renderer_scatter: renderer_scatter
     renderer_widget: renderer_widget
     fade_slider: fade_slider
     BoxLayout:
         orientation: 'horizontal'
         BoxLayout:
             orientation: 'vertical'
-            SliderRow:
-                id: row_0
-                slide_text: "DAC 0"
-            SliderRow
-                id: row_1
-                slide_text: "DAC 1"
-            SliderRow
-                id: row_2
-                slide_text: "DAC 2"
-            SliderRow
-                id: row_3
-                slide_text: "DAC 3"
-            SliderRow
-                id: row_4
-                slide_text: "DAC 4"
-            SliderRow
-                id: row_5
-                slide_text: "DAC 5"
-            SliderRow
-                id: row_6
-                slide_text: "DAC 6"
-            SliderRow
-                id: row_7
-                slide_text: "DAC 7"
-            SliderRow
-                id: row_8
-                slide_text: "DAC 8"
-            SliderRow
-                id: row_9
-                slide_text: "DAC 9"
-            SliderRow
-                id: row_10
-                slide_text: "DAC 10"
-            SliderRow
-                id: row_11
-                slide_text: "DAC 11"
+            GridLayout:
+                rows: 1
+                cols: 2
+                row_force_default: True
+                row_default_height: 240
+                Widget:
+                    size_hint_x: None
+                    width: 40
+                    Scatter:
+                        center: self.parent.center
+                        size: syn_label.size
+                        do_rotation: False
+                        do_translation: False
+                        do_scale: False
+                        rotation: 90
+                        Label:
+                            id: syn_label
+                            markup: True
+                            text: '[i]Synapse[/i]'
+                            size: self.texture_size
+                GridLayout:
+                    rows: 6
+                    row_force_default: True
+                    row_default_height: 40
+                    SliderRow:
+                        id: syn_lk
+                        slider_text: "Leak"
+                        slider_name: "syn_lk"
+                        slider_cb: root.update_bias
+                    SliderRow:
+                        id: syn_pu
+                        slider_text: "PE PU"
+                    SliderRow:
+                        id: syn_pd
+                        slider_text: "PE PD"
+                    SliderRow:
+                        id: syn_exc
+                        slider_text: "Exc"
+                    SliderRow:
+                        id: syn_dc
+                        slider_text: "DC"
+                    SliderRow:
+                        id: syn_inh
+                        slider_text: "Inh"
+
         TabbedPanel:
             do_default_tab: False
             TabbedPanelItem:
                 text: 'Sparkle'
                 BoxLayout:
                     orientation: 'vertical'
-                    Renderer:
-                        id: renderer_widget
+                    id: renderer_box
+                    StencilBox:
+                        id: renderer_stencil
                         size_hint: (1., 1.)
+                        Scatter:
+                            id: renderer_scatter
+                            do_rotation: False
+                            auto_bring_to_front: True
+                            size_hint: (1., 1.)
+                            Renderer:
+                                id: renderer_widget
+                                size_hint: (1., 1.)
+                                size: renderer_stencil.size
                     BoxLayout:
                         orientation: 'horizontal'
-                        size: (100., 50.)
-                        size_hint: (0.3, None)
+                        size: (100., 30.)
+                        size_hint: (0.5, None)
                         pos_hint: {'right': 1}
+                        Button:
+                            text: "Reset"
+                            on_release: root.reset_raster()
                         Label:
                             id: fade_value
                             text: ("%g (s)" % fade_slider.value)
