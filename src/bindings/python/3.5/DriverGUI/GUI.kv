@@ -56,22 +56,30 @@
             SliderRow
                 id: row_11
                 slide_text: "DAC 11"
-        Renderer:
-            id: renderer_widget
-            size_hint: (1., 1.)
-    BoxLayout:
-        orientation: 'horizontal'
-        size: (100., 50.)
-        size_hint: (0.25, None)
-        pos_hint: {'right': 1}
-        Label:
-            id: fade_value
-            text: ("%g (s)" % fade_slider.value)
-        Slider:
-            id: fade_slider
-            min: 17e-3
-            max: 1.
-            step: 1e-3
-            value_track: True
-            on_value: root.update_fader(self.value)
-
+        TabbedPanel:
+            do_default_tab: False
+            TabbedPanelItem:
+                text: 'Sparkle'
+                BoxLayout:
+                    orientation: 'vertical'
+                    Renderer:
+                        id: renderer_widget
+                        size_hint: (1., 1.)
+                    BoxLayout:
+                        orientation: 'horizontal'
+                        size: (100., 50.)
+                        size_hint: (0.3, None)
+                        pos_hint: {'right': 1}
+                        Label:
+                            id: fade_value
+                            text: ("%g (s)" % fade_slider.value)
+                        Slider:
+                            id: fade_slider
+                            value: 0.1
+                            min: 17e-3
+                            max: 1.
+                            step: 1e-3
+                            value_track: True
+                            on_value: root.update_fader(self.value)
+            TabbedPanelItem:
+                text: 'Raster'

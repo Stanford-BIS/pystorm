@@ -14,13 +14,14 @@ from kivy.properties import ObjectProperty
 from kivy.properties import NumericProperty
 from kivy.config import Config
 from kivy.uix.button import Button
+from kivy.uix.tabbedpanel import TabbedPanel
 import threading
 import time
 
 import numpy as np
 
 Config.set('graphics', 'width', '1024')
-Config.set('graphics', 'height', '562')
+Config.set('graphics', 'height', '580')
 
 
 class Renderer(Widget):
