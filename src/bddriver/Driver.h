@@ -118,7 +118,9 @@ class Driver {
   void Stop();
 
   /// Sets the time unit
-  void SetTimeUnitLen(unsigned int us_per_unit);
+  void SetTimeUnitLen(BDTime us_per_unit);
+  /// Sets how long the FPGA waits between sending upstream HBs
+  void SetTimePerUpHB(BDTime us_per_hb);
   /// Sets FPGA clock to 0
   void ResetFPGATime();
   /// Cycles BD pReset/sReset
@@ -452,6 +454,7 @@ class Driver {
   // FPGA state (XXX perhaps should move to its own object)
   const unsigned int ns_per_clk_  = 10; // 100 MHz FPGA clock
   unsigned int clks_per_unit_     = 1000; // FPGA default
+  unsigned int units_per_HB_      = 100000; // FPGA default, 1s HB (really long!)
   unsigned int us_per_unit_       = 10; // FPGA default
   unsigned int highest_us_sent_   = 0;
 

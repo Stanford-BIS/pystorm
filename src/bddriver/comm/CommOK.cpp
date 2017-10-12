@@ -1,7 +1,12 @@
 #include "CommOK.h"
 #include <chrono>
+#include <iostream>
 
 using namespace std::chrono_literals;
+
+using std::cout;
+using std::endl;
+
 namespace pystorm {
 namespace bddriver {
 namespace comm {
@@ -33,6 +38,7 @@ int CommOK::Init(const std::string bitfile, const std::string serial) {
 
 void CommOK::CommController() {
   while (CommStreamState::STARTED == GetStreamState()) {
+    cout << "running once" << endl;
     ReadFromDevice();
     WriteToDevice();
     std::this_thread::sleep_for(1us);
@@ -42,7 +48,9 @@ void CommOK::CommController() {
 void CommOK::StartStreaming() {
   if (CommStreamState::STOPPED == GetStreamState()) {
     m_state = CommStreamState::STARTED;
+    cout << "about ot start streaming" << endl;
     m_control_thread = std::thread(&CommOK::CommController, this);
+    cout << "after start streaming" << endl;
   }
 }
 
@@ -56,28 +64,34 @@ void CommOK::StopStreaming() {
 
 int CommOK::WriteToDevice() {
 
+    cout << "writing to device" << endl;
     // Pop one vector of COMMWords from the MutexBuffer
-    // blocks until there's something to read
-    std::unique_ptr<std::vector<COMMWord>> popped_vect = m_write_buffer->Pop();
+    // blocks for 1 us
+    std::unique_ptr<std::vector<COMMWord>> popped_vect = m_write_buffer->PopAll(1);
 
     // use the deserializer to build up blocks of WRITE_SIZE elements
     deserializer_.NewInput(popped_vect.get());
+
+    cout << "popped size " << popped_vect->size() << endl;
 
     std::vector<COMMWord> deserialized; // continuosly write into here
 
     int last_status = -1;
     deserializer_.GetOneOutput(&deserialized);
     while (deserialized.size() > 0) {
+        cout << "hi3" << endl;
         deserializer_.GetOneOutput(&deserialized);
         last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
         if (last_status != WRITE_SIZE) {
             printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
         }
     }
+    cout << "hi4" << endl;
     return last_status;
 }
 
 int CommOK::ReadFromDevice() {
+    cout << "reading from device" << endl;
     std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(READ_SIZE, 0));
     COMMWord * raw_data = &(*read_buffer)[0];
     int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, raw_data);
