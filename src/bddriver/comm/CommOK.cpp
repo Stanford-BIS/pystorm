@@ -70,9 +70,7 @@ int CommOK::WriteToDevice() {
     std::unique_ptr<std::vector<COMMWord>> popped_vect = m_write_buffer->PopAll(1);
 
     // use the deserializer to build up blocks of WRITE_SIZE elements
-    deserializer_.NewInput(popped_vect.get());
-
-    cout << "popped size " << popped_vect->size() << endl;
+    deserializer_.NewInput(std::move(popped_vect));
 
     std::vector<COMMWord> deserialized; // continuosly write into here
 

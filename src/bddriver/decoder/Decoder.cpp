@@ -39,7 +39,7 @@ void Decoder::RunOnce() {
 std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecInput>> input) {
 
   // load deserializer with new input
-  deserializer_.NewInput(input.get());
+  deserializer_.NewInput(std::move(input));
 
   std::vector<uint32_t> packed;
 

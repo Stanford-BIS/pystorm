@@ -980,7 +980,7 @@ std::pair<std::vector<BDWord>,
   for(auto& rit: popped_data){
     if (up_ep_deserializers_.count(ep_code) > 0) {
       auto& deserializer = up_ep_deserializers_.at(ep_code);
-      deserializer.NewInput(rit.get());
+      deserializer.NewInput(std::move(rit));
 
       // read first word
       std::vector<DecOutput> deserialized; // continuosly write into here
