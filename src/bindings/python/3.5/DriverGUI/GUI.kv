@@ -7,9 +7,9 @@
     slider_cb: None
     Label:
         text: root.slider_text
-        text_size: (75, None)
+        text_size: (100, None)
         halign: 'left'
-        size: (75, root.height)
+        size: (100, root.height)
         size_hint: (None, None)
         pos: (root.pos[0] + 10, self.pos[1])
         markup: True
@@ -22,6 +22,14 @@
         step: 1
         value_track: True
         on_value: root.slider_cb(name=root.slider_name, value=self.value)
+    TextInput:
+        id: text
+        multiline: False
+        input_filter: 'int'
+        text: '1'
+        on_text_validate: root.update_slider(slider, self, self.text)
+        size: (80, root.height)
+        size_hint: (None, None)
 
 <StencilBox@StencilView+BoxLayout>:
 
@@ -40,7 +48,7 @@
                 rows: 1
                 cols: 2
                 row_force_default: True
-                row_default_height: 240
+                row_default_height: root.ROW_HEIGHT * 6
                 Widget:
                     size_hint_x: None
                     width: 40
@@ -59,7 +67,7 @@
                 GridLayout:
                     rows: 6
                     row_force_default: True
-                    row_default_height: 40
+                    row_default_height: root.ROW_HEIGHT
                     SliderRow:
                         id: syn_lk
                         slider_text: "Leak"

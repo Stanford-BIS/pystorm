@@ -15,6 +15,7 @@ from kivy.properties import ObjectProperty
 from kivy.properties import NumericProperty
 from kivy.config import Config
 from kivy.uix.button import Button
+from kivy.uix.textinput import TextInput
 from kivy.uix.tabbedpanel import TabbedPanel
 from kivy.uix.scatter import Scatter
 from kivy.uix.stencilview import StencilView
@@ -26,6 +27,16 @@ import numpy as np
 Config.set('graphics', 'width', '1024')
 Config.set('graphics', 'height', '580')
 
+class SliderRow(BoxLayout):
+
+    def update_slider(self, inst_s, inst_t, val):
+        _val = int(val)
+        if _val < 1:
+            _val = 1
+        elif _val > 1024:
+            _val = 1024
+        inst_s.value = _val
+        inst_t.text = str(_val)
 
 class Renderer(Widget):
     DECAY_PERIOD   = 0.1  # seconds
@@ -88,6 +99,7 @@ class Renderer(Widget):
 
 class RootLayout(BoxLayout):
 
+    ROW_HEIGHT = 60
     renderer_box = ObjectProperty(None)
     renderer_stencil = ObjectProperty(None)
     renderer_widget = ObjectProperty(None)
@@ -118,9 +130,5 @@ class GUIApp(App):
 
 
 if __name__ == '__main__':
-    #import re
-    #app_file_name = sys.argv[0].rstrip()
-    #kv_file_name = re.sub(r'(.*)App.py$', r'\1.kv', app_file_name)
     _gui = GUIApp()
-    #_gui.load_kv(kv_file_name)
     _gui.run()
