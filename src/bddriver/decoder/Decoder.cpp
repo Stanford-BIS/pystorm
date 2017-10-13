@@ -98,8 +98,13 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         assert(false && "something wrong with next_HB_significance_ enum");
       }
 
+    // ignore nop
+    } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+      // do nothing
     // otherwise, forward to Driver
     } else {
+      cout << "decoder got something that wasn't a HB" << endl;
+      cout << "  ep# = " << ep_code << endl;
 
       DecOutput to_push;
       to_push.payload = payload;

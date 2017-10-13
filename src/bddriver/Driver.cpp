@@ -293,8 +293,11 @@ void Driver::Start() {
   cout << "enc and dec started" << endl;
 
   // Initialize Opal Kelly Board
+ 
+#ifdef BD_COMM_TYPE_OPALKELLY
   static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
   cout << "init'd OK" << endl;
+#endif
 
   comm_->StartStreaming();
   cout << "comm started" << endl;
@@ -738,11 +741,13 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   SendToEP(core_id, horn_ep, encapsulated_words);
 
   Flush();
+  cout << "sent words, waiting" << endl;
 
   // XXX this might discard remainders
   std::vector<BDWord> payloads;
   while (payloads.size() < mem_size) {
     std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
+    cout << "got something" << endl;
     payloads.insert(payloads.end(), recvd.first.begin(), recvd.first.end());
   }
   if (payloads.size() > mem_size) {
