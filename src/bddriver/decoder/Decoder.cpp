@@ -36,16 +36,16 @@ void Decoder::RunOnce() {
 }
 
 // pack inputs into 32-bit FPGA words, using remainder
-std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecInput>> input) {
+std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<std::vector<DecInput>> input) {
 
   // load deserializer with new input
-  deserializer_.NewInput(std::move(input));
+  deserializer_->NewInput(std::move(input));
 
   std::vector<uint32_t> packed;
 
   std::vector<uint8_t> deserialized; // continuosly write into here
 
-  deserializer_.GetOneOutput(&deserialized);
+  deserializer_->GetOneOutput(&deserialized);
   while (deserialized.size() > 0) {
     packed.push_back(PackWord<FPGABYTES>(
          {{FPGABYTES::B0, deserialized.at(0)}, 
@@ -53,13 +53,13 @@ std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecIn
           {FPGABYTES::B2, deserialized.at(2)}, 
           {FPGABYTES::B3, deserialized.at(3)}}));
 
-    deserializer_.GetOneOutput(&deserialized);
+    deserializer_->GetOneOutput(&deserialized);
   }
 
   return packed;
 }
 
-std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<const std::vector<DecInput>> input) {
+std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
   // pack inputs into 32-bit FPGA words, starting with the remainder
   std::vector<uint32_t> inputs_packed = PackBytes(std::move(input));

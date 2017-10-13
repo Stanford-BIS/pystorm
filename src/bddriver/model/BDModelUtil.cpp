@@ -58,7 +58,7 @@ std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned 
     VectorDeserializer<uint32_t> deserializer(2);
 
     // XXX make a copy so we can get a unique_ptr
-    std::make_unique<std::vector<uint32_t>> input_copy(inputs);
+    auto input_copy = std::make_unique<std::vector<uint32_t>>(inputs);
     deserializer.NewInput(std::move(input_copy));
 
     std::vector<uint32_t> deserialized; // continuosly write into here

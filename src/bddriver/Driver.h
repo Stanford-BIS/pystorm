@@ -490,7 +490,7 @@ class Driver {
   std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> dec_bufs_out_;
 
   /// deserializers for upstream traffic
-  std::unordered_map<uint8_t, VectorDeserializer<DecOutput>> up_ep_deserializers_;
+  std::unordered_map<uint8_t, VectorDeserializer<DecOutput> *> up_ep_deserializers_;
 
   /// encodes traffic to BD
   Encoder *enc_;

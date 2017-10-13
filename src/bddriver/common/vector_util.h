@@ -3,6 +3,8 @@
 
 #include <cassert>
 #include <vector>
+#include <queue>
+#include <memory>
 #include <utility>
 
 namespace pystorm {
@@ -14,16 +16,19 @@ namespace bddriver {
 template <class T>
 class VectorQueue {
  private:
-  std::queue<std::unique_ptr::<std::vector<T>>> queue_;
+  std::queue<std::unique_ptr<std::vector<T>>> queue_;
 
   // XXX should probably use iterators
   unsigned int curr_idx_front_; // we can virtually pop elements from the back() vector
 
  public:
-  VectorQueue() : curr_idx_back_(0) {};
+  // we contain unique_ptrs, can't copy
+  explicit VectorQueue() : curr_idx_front_(0) {};
+  VectorQueue(const VectorQueue&) = delete;
+  VectorQueue& operator=(const VectorQueue&) = delete;
 
   inline void PushVect(std::unique_ptr<std::vector<T>> to_push) {
-    queue_.push_back(std::move(to_push));
+    queue_.push(std::move(to_push));
   }
 
   inline bool HasN(unsigned int N) {
@@ -31,11 +36,11 @@ class VectorQueue {
   }
 
   inline T PopEl() {
-    T to_return = queue_.front()->at(curr_idx_front++);
-    if (curr_idx_front >= queue_.front()->size()) {
+    T to_return = queue_.front()->at(curr_idx_front_++);
+    if (curr_idx_front_ >= queue_.front()->size()) {
       // done with a vector
-      queue_.pop_front();
-      curr_idx_front = 0;
+      queue_.pop();
+      curr_idx_front_ = 0;
     }
     return to_return;
   }
@@ -47,7 +52,10 @@ class VectorDeserializer {
   const unsigned int D;
   VectorQueue<T> base_;
  public:
-  VectorDeserializer(unsigned int D) : D(D) {};
+  // we contain unique_ptrs, can't copy
+  explicit VectorDeserializer(unsigned int D) : D(D) {};
+  VectorDeserializer(const VectorDeserializer&) = delete;
+  VectorDeserializer& operator=(const VectorDeserializer&) = delete;
 
   inline void NewInput(std::unique_ptr<std::vector<T>> input) {
     base_.PushVect(std::move(input));
@@ -61,7 +69,7 @@ class VectorDeserializer {
       }
     }
   }
-}
+};
 
 } // bddriver
 } // pystorm

@@ -7,6 +7,8 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <memory>
+#include <utility>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -82,7 +84,7 @@ Driver::Driver() {
 
     // only create a deserializer when needed
     if (D > 1) {
-      up_ep_deserializers_.insert({ep, VectorDeserializer<DecOutput>(D)});
+      up_ep_deserializers_.insert({ep, new VectorDeserializer<DecOutput>(D)});
     }
   }
 
@@ -132,6 +134,9 @@ Driver::~Driver() {
   delete enc_buf_out_;
   delete dec_buf_in_;
   for (auto& it : dec_bufs_out_) {
+    delete it.second;
+  }
+  for (auto& it : up_ep_deserializers_) {
     delete it.second;
   }
   delete enc_;
@@ -980,11 +985,11 @@ std::pair<std::vector<BDWord>,
   for(auto& rit: popped_data){
     if (up_ep_deserializers_.count(ep_code) > 0) {
       auto& deserializer = up_ep_deserializers_.at(ep_code);
-      deserializer.NewInput(std::move(rit));
+      deserializer->NewInput(std::move(rit));
 
       // read first word
       std::vector<DecOutput> deserialized; // continuosly write into here
-      deserializer.GetOneOutput(&deserialized);
+      deserializer->GetOneOutput(&deserialized);
       while (deserialized.size() > 0) {
         // for now, D == 2 for all deserializers, so we can do this hack
         // if the width of a single data object returned from the FPGA ever
@@ -1000,7 +1005,7 @@ std::pair<std::vector<BDWord>,
         words.push_back(payload_all);
         times.push_back(time);
 
-        deserializer.GetOneOutput(&deserialized);
+        deserializer->GetOneOutput(&deserialized);
       }
     } else {
 
