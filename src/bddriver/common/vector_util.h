@@ -20,7 +20,7 @@ namespace bddriver {
 template <class T>
 class VectorQueue {
  private:
-  std::queue<std::unique_ptr<std::vector<T>>> queue_;
+  std::deque<std::unique_ptr<std::vector<T>>> queue_;
 
   // XXX should probably use iterators
   unsigned int curr_idx_front_; // we can virtually pop elements from the back() vector
@@ -33,21 +33,30 @@ class VectorQueue {
 
   inline void PushVect(std::unique_ptr<std::vector<T>> to_push) {
     //cout << "pushing" << endl;
-    queue_.push(std::move(to_push));
+    queue_.push_back(std::move(to_push));
     //cout << "size " << queue_.size() << endl;
   }
 
+  inline unsigned int TotalSize() {
+    unsigned int size = 0;
+    for (auto& it : queue_) {
+      size += it->size();
+    }
+    return size - curr_idx_front_; // have to subtract current progress in first vector
+  }
+
   inline bool HasN(unsigned int N) {
-    return (queue_.size() > 0) && (queue_.front()->size() > N);
+    return TotalSize() >= N;
   }
 
   inline T PopEl() {
     //cout << "popping " << curr_idx_front_ << endl;
+    assert(TotalSize() > 0);
     T to_return = queue_.front()->at(curr_idx_front_++);
     if (curr_idx_front_ >= queue_.front()->size()) {
       //cout << "done with vect" << endl;
       // done with a vector
-      queue_.pop();
+      queue_.pop_front();
       curr_idx_front_ = 0;
       //cout << "size " << queue_.size() << endl;
     }

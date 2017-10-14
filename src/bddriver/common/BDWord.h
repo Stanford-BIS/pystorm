@@ -112,14 +112,14 @@ DEFHCWORD(TATTagWord,
 
 // memory programming words
 DEFHCWORD(PATWrite,
-    FIELDS(ADDRESS , FIXED_0 , DATA ) ,
+    FIELDS(ADDRESS , FIXED_1 , DATA ) ,
     WIDTHS(6       , 1       , 20   ) ,
-    HCVALS(0       , 0       , 0    )   )
+    HCVALS(0       , 1       , 0    )   )
 
 DEFHCWORD(PATRead,
-    FIELDS(ADDRESS , FIXED_1 , UNUSED ) ,
+    FIELDS(ADDRESS , FIXED_0 , UNUSED ) ,
     WIDTHS(6       , 1       , 20     ) ,
-    HCVALS(0       , 1       , 0      )   )
+    HCVALS(0       , 0       , 0      )   )
 
 DEFHCWORD(TATSetAddress,
     FIELDS(FIXED_0 , ADDRESS , UNUSED ) ,

@@ -189,6 +189,17 @@ void Driver::ResetBD() {
   Flush();
 }
 
+void Driver::IssuePushWords() {
+  // we need to send something that will elicit an output, PAT read is the simplest
+  // thing we can request
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    DumpMemSend(i, bdpars::BDMemId::PAT, 2); // we're always two outputs behind
+    ResumeTraffic(i);
+  }
+  num_pushs_pending_ += 2;
+  // we have to do something special when dumping the PAT to skip the push words
+}
+
 void Driver::ResetFPGATime() {
   BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
@@ -196,8 +207,10 @@ void Driver::ResetFPGATime() {
 }
 
 void Driver::InitBD() {
-    // BD hard reset
-    ResetBD();
+  
+  // BD hard reset
+  ResetBD();
+  GetPhantomWords();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
@@ -704,19 +717,17 @@ void Driver::SetMem(
   ResumeTraffic(core_id);
 }
 
-
-std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
-
+/// helper for DumpMem
+void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n) {
   // make dump words
-  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
 
   std::vector<BDWord> encapsulated_words;
   if (mem_id == bdpars::BDMemId::PAT) {
-    encapsulated_words = PackRWDumpWords<PATRead>(0, mem_size);
+    encapsulated_words = PackRWDumpWords<PATRead>(0, dump_first_n);
   } else if (mem_id == bdpars::BDMemId::TAT0 || mem_id == bdpars::BDMemId::TAT1) {
-    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(0, mem_size);
+    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(0, dump_first_n);
   } else if (mem_id == bdpars::BDMemId::MM) {
-    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(0, mem_size);
+    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(0, dump_first_n);
   } else if (mem_id == bdpars::BDMemId::AM) {
     // a little tricky, reprogramming is the same as dump
     // need to write back whatever is currently in memory
@@ -736,27 +747,62 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
-  bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
   PauseTraffic(core_id);
   SendToEP(core_id, horn_ep, encapsulated_words);
 
   Flush();
-  cout << "sent words, waiting" << endl;
+}
+
+std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int timeout_us) {
+
+  bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
 
   // XXX this might discard remainders
-  std::vector<BDWord> payloads;
-  while (payloads.size() < mem_size) {
-    std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
-    cout << "got something" << endl;
-    payloads.insert(payloads.end(), recvd.first.begin(), recvd.first.end());
+  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, timeout_us);
+  std::vector<BDWord>& payloads = recvd.first;
+  if (payloads.size() == 0) {
   }
-  if (payloads.size() > mem_size) {
-    cout << "WARNING! LOST SOME MEM(BDMemId enum=" << int(mem_id) << ") WORDS" << endl;
+
+  // if this is the PAT, need to chop off the first pending - 2 outputs
+  // (the last two pending we just put on)
+  if (mem_id == bdpars::BDMemId::PAT) {
+    std::vector<BDWord> payloads_tmp;
+    payloads_tmp.swap(payloads);
+    for (unsigned int i = 0; i < payloads_tmp.size(); i++) {
+      if (i >= num_pushs_pending_ - 2) {
+        payloads.push_back(payloads_tmp.at(i));
+      }
+    }
+  }
+  
+  // we could get more words than we expect
+  // if this is the PAT, they're probably just the two pushes we just sent
+  // otherwise, something weird happened
+  if (mem_id != bdpars::BDMemId::PAT)
+    if (payloads.size() > dump_first_n) {
+      cout << "WARNING! LOST SOME MEM(BDMemId enum=" << int(mem_id) << ") WORDS" << endl;
+  else
+    if (payloads.size() > dump_first_n + num_pushs_pending_;
   }
   ResumeTraffic(core_id);
 
   // unpack payload field of DecOutput according to word format
   return payloads;
+}
+
+std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
+
+  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+
+  DumpMemSend(core_id, mem_id, mem_size);
+
+  // issue an additional two PAT reads to push out the last two words
+  IssuePushWords();
+
+  cout << "sent words, waiting" << endl;
+
+  return DumpMemRecv(core_id, mem_id, mem_size);
+
 }
 
 template <class TWrite>

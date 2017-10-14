@@ -458,8 +458,20 @@ class Driver {
   unsigned int us_per_unit_       = 10; // FPGA default
   unsigned int highest_us_sent_   = 0;
 
-  // helper
+  // time helper
   inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
+
+  /// Number of upstream "push"s sent.
+  /// There's a hardware bug where every upstream word has to be "pushed" out of the 
+  /// synchronizer queue by subsequent BD traffic. The number of elements waiting to be
+  /// pushed out at any given time is 2.
+  /// For calls that are dependent on a particular number of elements to be returned,
+  /// we issue some additional upstream words to get the last two words we need.
+  /// a "push" is a PAT dump (read)
+  unsigned int num_pushs_pending_ = 0;
+
+  /// Issues two push words (PAT dumps) to force out the 2 trapped words
+  void IssuePushWords();
 
   /// parameters describing parameters of the software (e.g. buffer depths)
   const driverpars::DriverPars *driver_pars_;
@@ -567,6 +579,9 @@ class Driver {
   template <class AMorMMEncapsulation>
   std::vector<BDWord> PackAMMMWord(const std::vector<BDWord> &payload) const;
 
+  // helpers for DumpMem
+  void DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n);
+  std::vector<BDWord> DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n);
 
   ////////////////////////////////
   // register programming helpers

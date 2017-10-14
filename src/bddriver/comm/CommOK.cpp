@@ -59,27 +59,60 @@ void CommOK::StopStreaming() {
   if (m_control_thread.joinable()) m_control_thread.join();
 }
 
+void PrintBinaryAsStr(uint32_t b, unsigned int N) {
+  std::vector<bool> bits;
+  // pop LSBs
+  for (unsigned int i = 0; i < N; i++) {
+    bool low_bit = b % 2 == 1;
+    b = b >> 1;
+    bits.push_back(low_bit);
+  }
+  for (unsigned int i = 0; i < N; i++) {
+    if (bits.at(N - 1 - i))
+      cout << "1";
+    else
+      cout << "0";
+  }
+  cout << endl;
+}
+
 int CommOK::WriteToDevice() {
 
     // Pop one vector of COMMWords from the MutexBuffer
     // blocks for 1 us
     std::vector<std::unique_ptr<std::vector<COMMWord>>> popped_vect = m_write_buffer->PopAll(1);
 
+    if (popped_vect.size() > 0) 
+      cout << "popped this many vects: " << popped_vect.size() << endl;
     // use the deserializer to build up blocks of WRITE_SIZE elements
-    for (auto& it : popped_vect) {
-      deserializer_->NewInput(std::move(it));
+    int size = 0;
+    for (unsigned int i = 0; i < popped_vect.size(); i++) {
+      size += popped_vect.at(i)->size();
+      deserializer_->NewInput(std::move(popped_vect.at(i)));
     }
+    if (popped_vect.size() > 0) 
+      cout << "  total size " << size << endl;
 
     std::vector<COMMWord> deserialized; // continuosly write into here
 
     int last_status = -1;
     deserializer_->GetOneOutput(&deserialized);
     while (deserialized.size() > 0) {
-        deserializer_->GetOneOutput(&deserialized);
+        assert(deserialized.size() == WRITE_SIZE);
+        //cout << "writing some words like:" << endl;
+        //PrintBinaryAsStr(deserialized[0], 8);
+        //PrintBinaryAsStr(deserialized[1], 8);
+        //PrintBinaryAsStr(deserialized[2], 8);
+        //PrintBinaryAsStr(deserialized[3], 8);
+        //PrintBinaryAsStr(deserialized[4+0], 8);
+        //PrintBinaryAsStr(deserialized[4+1], 8);
+        //PrintBinaryAsStr(deserialized[4+2], 8);
+        //PrintBinaryAsStr(deserialized[4+3], 8);
         last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
         if (last_status != WRITE_SIZE) {
             printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
         }
+        deserializer_->GetOneOutput(&deserialized);
     }
     return last_status;
 }

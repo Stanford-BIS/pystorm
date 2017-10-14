@@ -591,7 +591,7 @@ void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_
 	// pystorm::bddriver::PATWrite file: line:114
 	pybind11::enum_<pystorm::bddriver::PATWrite>(M("pystorm::bddriver"), "PATWrite", "")
 		.value("ADDRESS", pystorm::bddriver::PATWrite::ADDRESS)
-		.value("FIXED_0", pystorm::bddriver::PATWrite::FIXED_0)
+		.value("FIXED_1", pystorm::bddriver::PATWrite::FIXED_1)
 		.value("DATA", pystorm::bddriver::PATWrite::DATA)
 		.value("FIELDCOUNT", pystorm::bddriver::PATWrite::FIELDCOUNT);
 
@@ -606,7 +606,7 @@ void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_
 	// pystorm::bddriver::PATRead file: line:119
 	pybind11::enum_<pystorm::bddriver::PATRead>(M("pystorm::bddriver"), "PATRead", "")
 		.value("ADDRESS", pystorm::bddriver::PATRead::ADDRESS)
-		.value("FIXED_1", pystorm::bddriver::PATRead::FIXED_1)
+		.value("FIXED_0", pystorm::bddriver::PATRead::FIXED_0)
 		.value("UNUSED", pystorm::bddriver::PATRead::UNUSED)
 		.value("FIELDCOUNT", pystorm::bddriver::PATRead::FIELDCOUNT);
 
