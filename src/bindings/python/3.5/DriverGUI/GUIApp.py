@@ -1,6 +1,11 @@
 import sys
+#import os
+#os.environ['KIVY_DPI'] = '227'
+#os.environ['KIVY_METRICS_DENSITY'] = '1'
 from kivy.app import App
 from kivy.app import Builder
+from kivy.metrics import sp, dp
+from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.graphics.texture import Texture
 from kivy.graphics import Rectangle
 from kivy.uix.widget import Widget
@@ -24,8 +29,8 @@ import time
 
 import numpy as np
 
-Config.set('graphics', 'width', '1024')
-Config.set('graphics', 'height', '580')
+Config.set('graphics', 'width', '1200')
+Config.set('graphics', 'height', '720')
 
 class SliderRow(BoxLayout):
 
@@ -99,7 +104,7 @@ class Renderer(Widget):
 
 class RootLayout(BoxLayout):
 
-    ROW_HEIGHT = 60
+    ROW_HEIGHT = dp(60)
     renderer_box = ObjectProperty(None)
     renderer_stencil = ObjectProperty(None)
     renderer_widget = ObjectProperty(None)
@@ -117,16 +122,30 @@ class RootLayout(BoxLayout):
 
     def update_bias(self, *args, **kwargs):
         print("Name: %s, Value: %g" % (kwargs['name'], kwargs['value']))
+        
+class MainScreen(Screen):
+    main_area = ObjectProperty(None)
+    
+    def init_children(self):
+        self.main_area.init_children()
+
+
+class SettingsScreen(Screen):
+    pass
+
+sm = ScreenManager()
+_main = MainScreen(name='main')
+sm.add_widget(_main)
+sm.add_widget(SettingsScreen(name='settings'))
 
 
 class GUIApp(App):
     
     def build(self):
-        self.root_layout = RootLayout()
-        return self.root_layout
+        return sm
     
     def on_start(self):
-        self.root_layout.init_children()
+        _main.init_children()
 
 
 if __name__ == '__main__':
