@@ -108,7 +108,11 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
 
       DecOutput to_push;
       to_push.payload = payload;
-      to_push.time    = last_HB_recvd_;
+
+      // update times for "push" output problem
+      to_push.time       = word_i_min_2_time;
+      word_i_min_2_time_ = word_i_min_1_time;
+      word_i_min_1_time_ = last_HB_recvd_;
 
       if (outputs.count(ep_code) == 0) {
         outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();

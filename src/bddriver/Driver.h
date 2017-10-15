@@ -581,7 +581,7 @@ class Driver {
 
   // helpers for DumpMem
   void DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n);
-  std::vector<BDWord> DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n);
+  std::vector<BDWord> DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us);
 
   ////////////////////////////////
   // register programming helpers

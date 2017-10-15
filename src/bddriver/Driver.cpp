@@ -9,6 +9,8 @@
 #include <algorithm>
 #include <memory>
 #include <utility>
+#include <chrono>
+#include <thread>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -753,18 +755,23 @@ void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned 
   Flush();
 }
 
-std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int timeout_us) {
+std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us) {
+
+  // sleep to wait for the outputs to come back
+  std::this_thread::sleep_for(std::chrono::microseconds(wait_for_us)); 
 
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
 
-  // XXX this might discard remainders
-  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, timeout_us);
+  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, timeout_us=1); // timeout immediately if nothing is there
   std::vector<BDWord>& payloads = recvd.first;
+
   if (payloads.size() == 0) {
+    cout << "WARNING: DumpMemRecv timed out! Expected output from memory" << endl;
+    return payloads;
   }
 
-  // if this is the PAT, need to chop off the first pending - 2 outputs
-  // (the last two pending we just put on)
+  // if this is the PAT, need to chop off the first num_pushs_pending_ - 2 outputs
+  // (the last two pending we just put on, come after the memory words)
   if (mem_id == bdpars::BDMemId::PAT) {
     std::vector<BDWord> payloads_tmp;
     payloads_tmp.swap(payloads);
@@ -775,18 +782,27 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
     }
   }
   
-  // we could get more words than we expect
-  // if this is the PAT, they're probably just the two pushes we just sent
+  // we might have received more words than we expected
+  // if this is the PAT, and there are <2, they're probably just the pushes we just sent
+  // (they can get pushed out by other traffic)
   // otherwise, something weird happened
-  if (mem_id != bdpars::BDMemId::PAT)
-    if (payloads.size() > dump_first_n) {
-      cout << "WARNING! LOST SOME MEM(BDMemId enum=" << int(mem_id) << ") WORDS" << endl;
-  else
-    if (payloads.size() > dump_first_n + num_pushs_pending_;
+  unsigned int extra_words = payloads.size() - dump_first_n
+  if (mem_id = bdpars::BDMemId::PAT) {
+    if (num_pushs_pending_ - extra_words < 0) {
+      cout << "WARNING! Got more words from PAT memory than expected" << endl;
+      num_pushs_pending_ = 0; // best guess of what to do
+    } else if (num_pushs_pending_ - extra_words > 2) {
+      cout << "WARNING! Didn't get all the push words that we expected" << endl;
+      num_pushs_pending_ -= extra_words; // best guess of what to do
+    } else {
+      num_pushs_pending -= extra_words;
+    }
+  else {
+    cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
   }
+
   ResumeTraffic(core_id);
 
-  // unpack payload field of DecOutput according to word format
   return payloads;
 }
 
@@ -801,7 +817,7 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
 
   cout << "sent words, waiting" << endl;
 
-  return DumpMemRecv(core_id, mem_id, mem_size);
+  return DumpMemRecv(core_id, mem_id, mem_size, 10000); // wait 10 ms
 
 }
 

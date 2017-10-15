@@ -48,6 +48,12 @@ class Decoder : public Xcoder {
   const bdpars::BDPars * bd_pars_;
 
   BDTime last_HB_recvd_;
+
+  // because of the "push" output problem, we have to shift how we label times by
+  // two words: the time that event i actually happened is the time for event i - 2
+  BDTime word_i_min_2_time_ = 0;
+  BDTime word_i_min_1_time_ = 0;
+
   NextHBSignificance next_HB_significance_; // whether the next upstream HB has LSBs or MSBs
 
   VectorDeserializer<DecInput> * deserializer_;
