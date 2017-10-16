@@ -222,7 +222,45 @@ module BD_Source #(
   assign sync_oute = ready;
 
   int delay;
+  
+  parameter Nfunnel = 13;
+  parameter NBDdata = NUM_BITS;
+  const logic [0:Nfunnel-1][NUM_BITS-1:0] routes = '{
+    'b100100000000000 << (NBDdata - 15),
+    'b100100000000001 << (NBDdata - 15),
+    'b10010000000001  << (NBDdata - 14),
+    'b100100000001100 << (NBDdata - 15),
+    'b100100000001101 << (NBDdata - 15),
+    'b10010000000101  << (NBDdata - 14),
+    'b10000           << (NBDdata - 5 ),
+    'b10001           << (NBDdata - 5 ),
+    'b101             << (NBDdata - 3 ),
+    'b10010000000100  << (NBDdata - 14),
+    'b10010000000100  << (NBDdata - 14),
+    'b01              << (NBDdata - 2 ),
+    'b00              << (NBDdata - 2 )};
 
+  const logic [0:Nfunnel-1][NBDdata-1:0] route_masks = '{
+    {{15{1'b1}}, {(34-15){1'b0}}},
+    {{15{1'b1}}, {(34-15){1'b0}}},
+    {{14{1'b1}}, {(34-14){1'b0}}},
+    {{15{1'b1}}, {(34-15){1'b0}}},
+    {{15{1'b1}}, {(34-15){1'b0}}},
+    {{14{1'b1}}, {(34-14){1'b0}}},
+     {{5{1'b1}},  {(34-5){1'b0}}},
+     {{5{1'b1}},  {(34-5){1'b0}}},
+     {{3{1'b1}},  {(34-3){1'b0}}},
+    {{14{1'b1}}, {(34-14){1'b0}}},
+    {{14{1'b1}}, {(34-14){1'b0}}},
+     {{2{1'b1}},  {(34-2){1'b0}}},
+     {{2{1'b1}},  {(34-2){1'b0}}}};
+
+  int funnel_idx;
+  logic [NUM_BITS-1:0] funnel_route;
+  logic [NUM_BITS-1:0] payload_mask;
+  logic [63:0] big_rand;
+  logic [NUM_BITS-1:0] masked_payload;
+    
   // BD internal handshake
   always @(sync_ine, reset)
     if (reset == 1) begin
@@ -231,9 +269,22 @@ module BD_Source #(
     end
     else
       if (sync_ine == 1) begin
-        automatic logic [63:0] big_rand = {$urandom_range(0,2**32-1), $urandom_range(0,2**32-1)};
-        sync_DI = big_rand[NUM_BITS-1:0];
-        $display("[T=%g]: data=%h (BD_Source)", $time, data);
+        funnel_idx = $urandom_range(0,Nfunnel-1);
+        funnel_route = routes[funnel_idx];
+        payload_mask = ~route_masks[funnel_idx];
+
+        big_rand = {$urandom_range(0,2**32-1), $urandom_range(0,2**32-1)};
+
+        masked_payload = payload_mask & big_rand[NUM_BITS-1:0];
+        sync_DI = funnel_route | masked_payload;
+
+        $display("[T=%g]: route_idx=%b (BD_Source)", $time, funnel_idx);
+        $display("[T=%g]: route=%b (BD_Source)", $time, funnel_route);
+        $display("[T=%g]: masked_payload=%b (BD_Source)", $time, masked_payload);
+        $display("[T=%g]: data=%b (BD_Source)", $time, sync_DI);
+
+        assert(masked_payload ^ funnel_route == 0);
+
         delay = $urandom_range(DelayMax, DelayMin);
         for (int i = 0; i < delay + 1; i++) begin
           #(1);
