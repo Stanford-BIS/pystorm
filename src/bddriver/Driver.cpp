@@ -196,7 +196,6 @@ void Driver::IssuePushWords() {
   // thing we can request
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     DumpMemSend(i, bdpars::BDMemId::PAT, 2); // we're always two outputs behind
-    ResumeTraffic(i);
   }
   num_pushs_pending_ += 2;
   // we have to do something special when dumping the PAT to skip the push words
@@ -212,7 +211,6 @@ void Driver::InitBD() {
   
   // BD hard reset
   ResetBD();
-  GetPhantomWords();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
@@ -749,10 +747,14 @@ void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned 
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
+
   PauseTraffic(core_id);
+
   SendToEP(core_id, horn_ep, encapsulated_words);
 
   Flush();
+
+  ResumeTraffic(core_id);
 }
 
 std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us) {
@@ -762,7 +764,7 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
 
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
 
-  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, timeout_us=1); // timeout immediately if nothing is there
+  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, 1); // timeout immediately if nothing is there
   std::vector<BDWord>& payloads = recvd.first;
 
   if (payloads.size() == 0) {
@@ -775,38 +777,44 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
   if (mem_id == bdpars::BDMemId::PAT) {
     std::vector<BDWord> payloads_tmp;
     payloads_tmp.swap(payloads);
+    unsigned int pushs_absorbed = 0;
     for (unsigned int i = 0; i < payloads_tmp.size(); i++) {
       if (i >= num_pushs_pending_ - 2) {
         payloads.push_back(payloads_tmp.at(i));
+      } else {
+        pushs_absorbed += 1;
       }
     }
+    num_pushs_pending_ -= pushs_absorbed;
+    cout << "possibly discarding initial PAT words" << endl;
+    cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
   }
-  
+
+  cout << "num pending before: " << num_pushs_pending_ << endl;
+
   // we might have received more words than we expected
   // if this is the PAT, and there are <2, they're probably just the pushes we just sent
   // (they can get pushed out by other traffic)
   // otherwise, something weird happened
-  unsigned int extra_words = payloads.size() - dump_first_n
-  if (mem_id = bdpars::BDMemId::PAT) {
-    if (num_pushs_pending_ - extra_words < 0) {
+  unsigned int extra_words_after = payloads.size() - dump_first_n;
+  if (mem_id == bdpars::BDMemId::PAT) {
+    if (extra_words_after > num_pushs_pending_) {
       cout << "WARNING! Got more words from PAT memory than expected" << endl;
       num_pushs_pending_ = 0; // best guess of what to do
-    } else if (num_pushs_pending_ - extra_words > 2) {
-      cout << "WARNING! Didn't get all the push words that we expected" << endl;
-      num_pushs_pending_ -= extra_words; // best guess of what to do
     } else {
-      num_pushs_pending -= extra_words;
+      num_pushs_pending_ -= extra_words_after;
     }
-  else {
+  } else {
     cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
   }
 
-  ResumeTraffic(core_id);
+  cout << "num pending after: " << num_pushs_pending_ << endl;
 
   return payloads;
 }
 
 std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
+
 
   unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
 
@@ -817,7 +825,9 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
 
   cout << "sent words, waiting" << endl;
 
-  return DumpMemRecv(core_id, mem_id, mem_size, 10000); // wait 10 ms
+  auto to_return = DumpMemRecv(core_id, mem_id, mem_size, 100000); // wait 100 ms
+
+  return to_return;
 
 }
 
