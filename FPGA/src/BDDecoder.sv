@@ -105,9 +105,17 @@ genvar i;
 generate
 for (i = 0; i < Nfunnel; i++) begin : masked_routes_generate
   assign masked_routes[i] = BD_in.d & route_masks[i];
-  assign test[i] = (masked_routes[i] == routes[i]);
+  //assign test[i] = (masked_routes[i] == routes[i]); // XXX this can still result in X when input is X
 end
 endgenerate
+
+always_comb
+  for (int i = 0; i < Nfunnel; i++) begin
+    if (masked_routes[i] == routes[i]) 
+      test[i] = 1;
+    else
+      test[i] = 0;
+  end
 
 // one-hot -> binary (enum)
 always_comb
