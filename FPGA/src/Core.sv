@@ -293,12 +293,12 @@ BDDecoder BD_decoder(
   clk, reset);
 
 // FIFO
-Channel #(40) BDDecoder_out_flat();
-Channel #(40) BDDecoder_out_post_FIFO_flat();
+Channel #(42) BDDecoder_out_flat();
+Channel #(42) BDDecoder_out_post_FIFO_flat();
 assign BDDecoder_out_flat.v = BDDecoder_out.v;
 assign BDDecoder_out_flat.d = {BDDecoder_out.leaf_code, BDDecoder_out.payload};
 assign BDDecoder_out.a = BDDecoder_out_flat.a;
-ChannelFIFO #(.D(FIFOdepth), .N(40)) BDDecoder_out_FIFO(BDDecoder_out_post_FIFO_flat, BDDecoder_out_flat, clk, reset);
+ChannelFIFO #(.D(FIFOdepth), .N(42)) BDDecoder_out_FIFO(BDDecoder_out_post_FIFO_flat, BDDecoder_out_flat, clk, reset);
 assign BDDecoder_out_post_FIFO.v = BDDecoder_out_post_FIFO_flat.v;
 assign {BDDecoder_out_post_FIFO.leaf_code, BDDecoder_out_post_FIFO.payload} = BDDecoder_out_post_FIFO_flat.d;
 assign BDDecoder_out_post_FIFO_flat.a = BDDecoder_out_post_FIFO.a;
