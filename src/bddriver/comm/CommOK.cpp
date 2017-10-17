@@ -99,19 +99,17 @@ int CommOK::WriteToDevice() {
     deserializer_->GetOneOutput(&deserialized);
     while (deserialized.size() > 0) {
         assert(deserialized.size() == WRITE_SIZE);
-        //cout << "writing some words like:" << endl;
-        //PrintBinaryAsStr(deserialized[0], 8);
-        //PrintBinaryAsStr(deserialized[1], 8);
-        //PrintBinaryAsStr(deserialized[2], 8);
-        //PrintBinaryAsStr(deserialized[3], 8);
-        //PrintBinaryAsStr(deserialized[4+0], 8);
-        //PrintBinaryAsStr(deserialized[4+1], 8);
-        //PrintBinaryAsStr(deserialized[4+2], 8);
-        //PrintBinaryAsStr(deserialized[4+3], 8);
+
+        //cout << "Comm writing words:" << endl;
+        //for (unsigned int i = 0; i < WRITE_SIZE; i++) {
+        //  PrintBinaryAsStr(deserialized[i], 8);
+        //}
+
         last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
         if (last_status != WRITE_SIZE) {
             printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
         }
+        cout << "Comm wrote " << WRITE_SIZE << " words" << endl;
         deserializer_->GetOneOutput(&deserialized);
     }
     return last_status;
@@ -120,7 +118,14 @@ int CommOK::WriteToDevice() {
 int CommOK::ReadFromDevice() {
     std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(READ_SIZE, 0));
     COMMWord * raw_data = &(*read_buffer)[0];
-    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_SIZE, READ_SIZE, raw_data);
+    int num_bytes = dev.ReadFromPipeOut(PIPE_OUT_ADDR, READ_SIZE, raw_data);
+
+    //cout << "Comm reading words:" << endl;
+    //for (unsigned int i = 0; i < READ_SIZE; i++) {
+    //  PrintBinaryAsStr(raw_data[i], 8);
+    //}
+
+    assert(num_bytes == READ_SIZE);
     if (num_bytes > 0) {
       m_read_buffer->Push(std::move(read_buffer));
     }

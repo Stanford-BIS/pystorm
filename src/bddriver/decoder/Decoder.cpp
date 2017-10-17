@@ -103,8 +103,8 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       // do nothing
     // otherwise, forward to Driver
     } else {
-      cout << "decoder got something that wasn't a HB" << endl;
-      cout << "  ep# = " << ep_code << endl;
+      //cout << "decoder got something that wasn't a HB" << endl;
+      //cout << "  ep# = " << ep_code << endl;
 
       DecOutput to_push;
       to_push.payload = payload;

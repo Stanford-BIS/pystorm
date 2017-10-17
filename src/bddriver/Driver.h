@@ -384,6 +384,9 @@ class Driver {
   /// Dump the contents of one of the memories.
   /// BDWords must subsequently be unpacked as the correct word type for the mem_id
   std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::BDMemId mem_id);
+  /// DumpMem, but specify a specific range of addresses to dump
+  /// end is not inclusive, so end=1024 dumps up to element 1023
+  std::vector<BDWord> DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end);
 
   /// Dump copy of traffic pre-FIFO
   void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
@@ -580,7 +583,7 @@ class Driver {
   std::vector<BDWord> PackAMMMWord(const std::vector<BDWord> &payload) const;
 
   // helpers for DumpMem
-  void DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n);
+  void DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr);
   std::vector<BDWord> DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us);
 
   ////////////////////////////////

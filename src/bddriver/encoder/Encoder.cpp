@@ -99,8 +99,8 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
     // serialize to bytes 
     PushWord(output, FPGA_encoded);
 
-    if (FPGA_ep_code != bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP))
-      PrintBinaryAsStr(FPGA_encoded, 32);
+    //if (FPGA_ep_code != bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP))
+    //  PrintBinaryAsStr(FPGA_encoded, 32);
 
   }
 

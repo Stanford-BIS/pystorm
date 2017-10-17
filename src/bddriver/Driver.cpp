@@ -195,7 +195,7 @@ void Driver::IssuePushWords() {
   // we need to send something that will elicit an output, PAT read is the simplest
   // thing we can request
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
-    DumpMemSend(i, bdpars::BDMemId::PAT, 2); // we're always two outputs behind
+    DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
   }
   num_pushs_pending_ += 2;
   // we have to do something special when dumping the PAT to skip the push words
@@ -718,21 +718,28 @@ void Driver::SetMem(
 }
 
 /// helper for DumpMem
-void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n) {
+void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr) {
   // make dump words
+  
+  assert(start_addr >= 0);
+  assert(end_addr <= bd_pars_->mem_info_.at(mem_id).size);
 
   std::vector<BDWord> encapsulated_words;
   if (mem_id == bdpars::BDMemId::PAT) {
-    encapsulated_words = PackRWDumpWords<PATRead>(0, dump_first_n);
+    encapsulated_words = PackRWDumpWords<PATRead>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::TAT0 || mem_id == bdpars::BDMemId::TAT1) {
-    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(0, dump_first_n);
+    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::MM) {
-    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(0, dump_first_n);
+    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::AM) {
     // a little tricky, reprogramming is the same as dump
     // need to write back whatever is currently in memory
     const std::vector<BDWord> *curr_data = bd_state_.at(core_id).GetMem(bdpars::BDMemId::AM);
-    encapsulated_words = PackRMWProgWords<AMSetAddress, AMReadWrite, AMIncrement>(*curr_data, 0);
+    std::vector<BDWord> to_rewrite;
+    for (unsigned int i = start_addr; i < end_addr; i++) {
+      to_rewrite.push_back(curr_data->at(i));
+    }
+    encapsulated_words = PackRMWProgWords<AMSetAddress, AMReadWrite, AMIncrement>(to_rewrite, start_addr);
   } else {
     assert(false && "Bad memory ID");
   }
@@ -796,16 +803,24 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
   // if this is the PAT, and there are <2, they're probably just the pushes we just sent
   // (they can get pushed out by other traffic)
   // otherwise, something weird happened
-  unsigned int extra_words_after = payloads.size() - dump_first_n;
-  if (mem_id == bdpars::BDMemId::PAT) {
-    if (extra_words_after > num_pushs_pending_) {
-      cout << "WARNING! Got more words from PAT memory than expected" << endl;
-      num_pushs_pending_ = 0; // best guess of what to do
+  if (payloads.size() > dump_first_n) {
+    unsigned int extra_words_after = payloads.size() - dump_first_n;
+    if (mem_id == bdpars::BDMemId::PAT) {
+      if (extra_words_after > num_pushs_pending_) {
+        cout << "WARNING! Got more words from PAT memory than expected" << endl;
+        num_pushs_pending_ = 0; // best guess of what to do
+      } else {
+        num_pushs_pending_ -= extra_words_after;
+      }
     } else {
-      num_pushs_pending_ -= extra_words_after;
+      if (extra_words_after > 0) {
+        cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
+        cout << "  expected: " << dump_first_n << endl;
+        cout << "  received: " << payloads.size() << endl; 
+      }
     }
-  } else {
-    cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
+  } else if (dump_first_n > payloads.size()) {
+    cout << "WARNING! didn't get the full dump size we requested" << endl;
   }
 
   cout << "num pending after: " << num_pushs_pending_ << endl;
@@ -813,21 +828,27 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
   return payloads;
 }
 
-std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
+std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end) {
 
+  assert(end > start);
 
-  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
-
-  DumpMemSend(core_id, mem_id, mem_size);
+  DumpMemSend(core_id, mem_id, start, end);
 
   // issue an additional two PAT reads to push out the last two words
   IssuePushWords();
 
   cout << "sent words, waiting" << endl;
 
-  auto to_return = DumpMemRecv(core_id, mem_id, mem_size, 100000); // wait 100 ms
+  auto to_return = DumpMemRecv(core_id, mem_id, end - start, 2000000); // wait 2s
 
   return to_return;
+
+}
+
+std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
+
+  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+  return DumpMemRange(core_id, mem_id, 0, mem_size);
 
 }
 
