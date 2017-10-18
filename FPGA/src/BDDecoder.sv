@@ -105,13 +105,13 @@ genvar i;
 generate
 for (i = 0; i < Nfunnel; i++) begin : masked_routes_generate
   assign masked_routes[i] = BD_in.d & route_masks[i];
-  assign test[i] = (masked_routes[i] == routes[i]);
+  assign test[i] = (masked_routes[i] == routes[i]); // XXX this can still result in X when input is X
 end
 endgenerate
 
 // one-hot -> binary (enum)
 always_comb
-  unique case (test)
+  case (test)
     13'b0000000000001:
       leaf = DUMP_AM;
     13'b0000000000010:
@@ -136,7 +136,7 @@ always_comb
       leaf = RO_ACC;
     13'b1000000000000:
       leaf = RO_TAT;
-    13'b0000000000000:
+    default:
       leaf = INVALID;
   endcase
 

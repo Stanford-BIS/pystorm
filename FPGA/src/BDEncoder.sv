@@ -250,10 +250,16 @@ ChannelMerge merge_23(merge_23_out, merge_in[2], merge_in[3], clk, reset);
 ChannelMerge merge_0123(merge_0123_out, merge_01_out, merge_23_out, clk, reset);
 ChannelMerge merge_top(merge_out, merge_0123_out, merge_in[4], clk, reset);
 
+// put a FIFO in, that's a lot of stages of logic we just went through 
+// (merges don't cut combinational paths, as designed);
+Channel #(Nbiggest_payload + Ncode) merge_out_post_FIFO();
+localparam FIFOdepth = 2;
+ChannelFIFO #(.N(Nbiggest_payload + Ncode), .D(FIFOdepth)) output_FIFO(merge_out_post_FIFO, merge_out, clk, reset);
+
 // unpack merge_out
-assign {words_out.leaf_code, words_out.payload} = merge_out.d;
-assign words_out.v                              = merge_out.v;
-assign merge_out.a                              = words_out.a;
+assign {words_out.leaf_code, words_out.payload} = merge_out_post_FIFO.d;
+assign words_out.v                              = merge_out_post_FIFO.v;
+assign merge_out_post_FIFO.a                    = words_out.a;
 
 endmodule
 

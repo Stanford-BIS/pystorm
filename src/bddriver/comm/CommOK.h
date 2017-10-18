@@ -22,7 +22,7 @@ class CommOK : public Comm {
 public:
     /// Constructor
     CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
-        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED), deserializer_(VectorDeserializer<COMMWord>(WRITE_SIZE)) {};
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED), deserializer_(new VectorDeserializer<COMMWord>(WRITE_SIZE)) {};
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
@@ -32,7 +32,7 @@ public:
     /// Default move assignment
     CommOK& operator=(CommOK&&) = delete;
     /// Default destructor
-    ~CommOK() { }
+    ~CommOK() { delete deserializer_; }
 
     /// Initialization
     int Init(const std::string bitfile, const std::string serial);
@@ -52,7 +52,8 @@ protected:
   MutexBuffer<COMMWord>* m_write_buffer;
   std::atomic<CommStreamState> m_state;
   std::thread m_control_thread;
-  VectorDeserializer<COMMWord> deserializer_; 
+  VectorDeserializer<COMMWord> * deserializer_; 
+  std::vector<COMMWord> deserialized_; // continuosly write into here
 
   void CommController();
 

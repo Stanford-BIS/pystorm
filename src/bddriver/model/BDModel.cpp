@@ -231,12 +231,12 @@ void BDModel::ProcessPAT(const uint64_t input) {
 
   BDWord word(input);
 
-  if (GetField<PATWrite>(word, PATWrite::FIXED_0) == 0) {
+  if (GetField<PATWrite>(word, PATWrite::FIXED_1) == 1) {
       unsigned int addr = GetField<PATWrite>(word, PATWrite::ADDRESS);
       uint64_t data = GetField<PATWrite>(word, PATWrite::DATA);
       state_->SetMem(bdpars::BDMemId::PAT, addr, {BDWord(data)});
 
-  } else if (GetField<PATRead>(word, PATRead::FIXED_1) == 1) {
+  } else if (GetField<PATRead>(word, PATRead::FIXED_0) == 0) {
       unsigned int addr = GetField<PATRead>(word, PATRead::ADDRESS);
       BDWord data = state_->GetMem(bdpars::BDMemId::PAT)->at(addr);
       PushMem(bdpars::BDMemId::PAT, {data});

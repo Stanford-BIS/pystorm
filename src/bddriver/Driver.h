@@ -116,12 +116,23 @@ class Driver {
   void Start();
   /// stops the child workers
   void Stop();
-  /// Initializes hardware state
-  /// Calls Flush immediately
-  void InitBD();
+
+  /// Sets the time unit
+  void SetTimeUnitLen(BDTime us_per_unit);
+  /// Sets how long the FPGA waits between sending upstream HBs
+  void SetTimePerUpHB(BDTime us_per_hb);
+  /// Sets FPGA clock to 0
+  void ResetFPGATime();
+  /// Cycles BD pReset/sReset
+  /// Useful for testing, but leaves memories in an indeterminate state
+  void ResetBD();
   /// Clears BD FIFOs
   /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
+  /// Initializes hardware state
+  /// Calls Reset, InitFIFO, among other things
+  /// Calls Flush immediately
+  void InitBD();
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -373,6 +384,9 @@ class Driver {
   /// Dump the contents of one of the memories.
   /// BDWords must subsequently be unpacked as the correct word type for the mem_id
   std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::BDMemId mem_id);
+  /// DumpMem, but specify a specific range of addresses to dump
+  /// end is not inclusive, so end=1024 dumps up to element 1023
+  std::vector<BDWord> DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end);
 
   /// Dump copy of traffic pre-FIFO
   void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
@@ -439,6 +453,28 @@ class Driver {
 
   ////////////////////////////////
   // data members
+  
+  // FPGA state (XXX perhaps should move to its own object)
+  const unsigned int ns_per_clk_  = 10; // 100 MHz FPGA clock
+  unsigned int clks_per_unit_     = 1000; // FPGA default
+  unsigned int units_per_HB_      = 100000; // FPGA default, 1s HB (really long!)
+  unsigned int us_per_unit_       = 10; // FPGA default
+  unsigned int highest_us_sent_   = 0;
+
+  // time helper
+  inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
+
+  /// Number of upstream "push"s sent.
+  /// There's a hardware bug where every upstream word has to be "pushed" out of the 
+  /// synchronizer queue by subsequent BD traffic. The number of elements waiting to be
+  /// pushed out at any given time is 2.
+  /// For calls that are dependent on a particular number of elements to be returned,
+  /// we issue some additional upstream words to get the last two words we need.
+  /// a "push" is a PAT dump (read)
+  unsigned int num_pushs_pending_ = 0;
+
+  /// Issues two push words (PAT dumps) to force out the 2 trapped words
+  void IssuePushWords();
 
   /// parameters describing parameters of the software (e.g. buffer depths)
   const driverpars::DriverPars *driver_pars_;
@@ -469,7 +505,7 @@ class Driver {
   std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> dec_bufs_out_;
 
   /// deserializers for upstream traffic
-  std::unordered_map<uint8_t, VectorDeserializer<DecOutput>> up_ep_deserializers_;
+  std::unordered_map<uint8_t, VectorDeserializer<DecOutput> *> up_ep_deserializers_;
 
   /// encodes traffic to BD
   Encoder *enc_;
@@ -546,6 +582,9 @@ class Driver {
   template <class AMorMMEncapsulation>
   std::vector<BDWord> PackAMMMWord(const std::vector<BDWord> &payload) const;
 
+  // helpers for DumpMem
+  void DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr);
+  std::vector<BDWord> DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us);
 
   ////////////////////////////////
   // register programming helpers
