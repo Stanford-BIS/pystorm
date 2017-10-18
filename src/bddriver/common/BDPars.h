@@ -48,40 +48,40 @@ enum class DnEPType {
 // enum value is the code value
 
 enum class BDHornEP {
-  ADC,                // ADC small/large current enable, output enable
-  DAC_DIFF_G,         // DIFF_G DAC bias value
-  DAC_SYN_INH,        // SYN_INH DAC bias value
-  DAC_SYN_PU,         // SYN_PU DAC bias value
-  DAC_UNUSED,         // UNUSED (ghost DAC)
-  DAC_DIFF_R,         // DIFF_R DAC bias value
-  DAC_SOMA_OFFSET,    // SOMA_OFFSET DAC bias value
-  DAC_SYN_LK,         // SYN_LK DAC bias value
-  DAC_SYN_DC,         // SYN_DC DAC bias value
-  DAC_SYN_PD,         // SYN_PD DAC bias value
-  DAC_ADC_BIAS_2,     // ADC_BIAS_2 DAC bias value
-  DAC_ADC_BIAS_1,     // ADC_BIAS_1 DAC bias value
-  DAC_SOMA_REF,       // SOMA_REF DAC bias value
-  DAC_SYN_EXC,        // SYN_EXC DAC bias value
-  DELAY_DCTFIFO,      // FIFO:DCT delay line config
-  DELAY_PGFIFO,       // FIFO:PG delay line config
-  DELAY_TAT0,         // TAT 0 delay line config
-  DELAY_TAT1,         // TAT 1 delay line config
-  DELAY_PAT,          // PAT delay line config
-  DELAY_MM,           // MM delay line config
-  DELAY_AM,           // AM delay line config
-  INIT_FIFO_DCT,      // inserts a tag into the DCT side of the FIFO
-  INIT_FIFO_HT,       // trigger sets FIFO head/tail register to empty state
-  NEURON_CONFIG,      // programming input for neuron array tile SRAM
-  NEURON_DUMP_TOGGLE, // toggles data/dump traffic for neuron array output
-  NEURON_INJECT,      // direct spike injection to neuron array
-  PROG_AMMM,          // AM/MM programming/diagnostic port
-  PROG_PAT,           // PAT programming/diagnostic port
-  PROG_TAT0,          // TAT 0 programming/diagnostic port
-  PROG_TAT1,          // TAT 1 programming/diagnostic port
-  RI,                 // main tag input to FIFO
-  TOGGLE_POST_FIFO0,  // toggles data/dump traffic for FIFO tag class 0 output
-  TOGGLE_POST_FIFO1,  // toggles data/dump traffic for FIFO tag class 1 output
-  TOGGLE_PRE_FIFO,    // toggles data/dump traffic for FIFO input
+  ADC,                // 0:  ADC small/large current enable, output enable
+  DAC_DIFF_G,         // 1:  DIFF_G DAC bias value
+  DAC_SYN_INH,        // 2:  SYN_INH DAC bias value
+  DAC_SYN_PU,         // 3:  SYN_PU DAC bias value
+  DAC_UNUSED,         // 4:  UNUSED (ghost DAC)
+  DAC_DIFF_R,         // 5:  DIFF_R DAC bias value
+  DAC_SOMA_OFFSET,    // 6:  SOMA_OFFSET DAC bias value
+  DAC_SYN_LK,         // 7:  SYN_LK DAC bias value
+  DAC_SYN_DC,         // 8:  SYN_DC DAC bias value
+  DAC_SYN_PD,         // 9:  SYN_PD DAC bias value
+  DAC_ADC_BIAS_2,     // 10: ADC_BIAS_2 DAC bias value
+  DAC_ADC_BIAS_1,     // 11: ADC_BIAS_1 DAC bias value
+  DAC_SOMA_REF,       // 12: SOMA_REF DAC bias value
+  DAC_SYN_EXC,        // 13: SYN_EXC DAC bias value
+  DELAY_DCTFIFO,      // 14: FIFO:DCT delay line config
+  DELAY_PGFIFO,       // 15: FIFO:PG delay line config
+  DELAY_TAT0,         // 16: TAT 0 delay line config
+  DELAY_TAT1,         // 17: TAT 1 delay line config
+  DELAY_PAT,          // 18: PAT delay line config
+  DELAY_MM,           // 19: MM delay line config
+  DELAY_AM,           // 20: AM delay line config
+  INIT_FIFO_DCT,      // 21: inserts a tag into the DCT side of the FIFO
+  INIT_FIFO_HT,       // 22: trigger sets FIFO head/tail register to empty state
+  NEURON_CONFIG,      // 23: programming input for neuron array tile SRAM
+  NEURON_DUMP_TOGGLE, // 24: toggles data/dump traffic for neuron array output
+  NEURON_INJECT,      // 25: direct spike injection to neuron array
+  PROG_AMMM,          // 26: AM/MM programming/diagnostic port
+  PROG_PAT,           // 27: PAT programming/diagnostic port
+  PROG_TAT0,          // 28: TAT 0 programming/diagnostic port
+  PROG_TAT1,          // 29: TAT 1 programming/diagnostic port
+  RI,                 // 30: main tag input to FIFO
+  TOGGLE_POST_FIFO0,  // 31: toggles data/dump traffic for FIFO tag class 0 output
+  TOGGLE_POST_FIFO1,  // 32: toggles data/dump traffic for FIFO tag class 1 output
+  TOGGLE_PRE_FIFO,    // 33: toggles data/dump traffic for FIFO input
   COUNT
 };
 
@@ -265,7 +265,7 @@ class BDPars {
   const unsigned int DnEPFPGABitsPerReg     = 16;
   const unsigned int DnEPFPGABitsPerChannel = 16;
 
-  const unsigned int DnWordsPerFrame        = 64; // FPGAIO words per USB frame
+  const unsigned int DnWordsPerFrame        = 128; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
   const unsigned int DnTimeUnitsPerHB       = 10; // Send FPGA downstream heartbeat every <this many time units>
 
   // downstream endpoint info

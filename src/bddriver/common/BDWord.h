@@ -9,7 +9,7 @@
 
 // Macros for defining word parameters
 // invoked like:
-// DEFWORD(SomeWord, 
+// DEFHCWORD(SomeWord, 
 //  FIELDS(field_name1, field_name2)
 //  WIDTHS(field_width1, field_width2),
 //  HCVALS(hard_coded_field_val1, hard_coded_field_val2))
@@ -112,14 +112,14 @@ DEFHCWORD(TATTagWord,
 
 // memory programming words
 DEFHCWORD(PATWrite,
-    FIELDS(ADDRESS , FIXED_0 , DATA ) ,
+    FIELDS(ADDRESS , FIXED_1 , DATA ) ,
     WIDTHS(6       , 1       , 20   ) ,
-    HCVALS(0       , 0       , 0    )   )
+    HCVALS(0       , 1       , 0    )   )
 
 DEFHCWORD(PATRead,
-    FIELDS(ADDRESS , FIXED_1 , UNUSED ) ,
+    FIELDS(ADDRESS , FIXED_0 , UNUSED ) ,
     WIDTHS(6       , 1       , 20     ) ,
-    HCVALS(0       , 1       , 0      )   )
+    HCVALS(0       , 0       , 0      )   )
 
 DEFHCWORD(TATSetAddress,
     FIELDS(FIXED_0 , ADDRESS , UNUSED ) ,
@@ -237,7 +237,6 @@ DEFWORD(FPGABYTES,
     FIELDS(B0 , B1 , B2 , B3 ) ,
     WIDTHS(8  , 8  , 8  , 8  )   )
 
-
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,
     FIELDS(LSB, MSB ) ,
@@ -246,6 +245,19 @@ DEFWORD(TWOFPGAPAYLOADS,
 DEFWORD(THREEFPGAREGS,
     FIELDS(W0, W1, W2 ) ,
     WIDTHS(16, 16, 16 )   )
+
+// FPGA register words
+DEFWORD(FPGABDReset,
+    FIELDS(PRESET, SRESET ) ,
+    WIDTHS(1     , 1      )   )
+
+DEFWORD(FPGATMUnitLen,
+    FIELDS(UNIT_LEN ) ,
+    WIDTHS(16       )   )
+
+DEFWORD(FPGAResetClock,
+    FIELDS(RESET_STATE) ,
+    WIDTHS(1          )   )
 
 
 // There's no proper BDWord type anymore (there never was, really)

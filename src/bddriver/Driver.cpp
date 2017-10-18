@@ -7,6 +7,10 @@
 #include <vector>
 #include <queue>
 #include <algorithm>
+#include <memory>
+#include <utility>
+#include <chrono>
+#include <thread>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -82,7 +86,7 @@ Driver::Driver() {
 
     // only create a deserializer when needed
     if (D > 1) {
-      up_ep_deserializers_.insert({ep, VectorDeserializer<DecOutput>(D)});
+      up_ep_deserializers_.insert({ep, new VectorDeserializer<DecOutput>(D)});
     }
   }
 
@@ -101,20 +105,27 @@ Driver::Driver() {
 
   // initialize Comm
 #ifdef BD_COMM_TYPE_SOFT
+  cout << "initializing CommSoft" << endl;
     comm_ = new comm::CommSoft(
         *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
         *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
         dec_buf_in_,
         enc_buf_out_);
 #elif BD_COMM_TYPE_USB
+  cout << "NOT initializing USB comm" << endl;
     assert(false && "libUSB Comm is not implemented");
 #elif BD_COMM_TYPE_MODEL
+  cout << "NOT initializing BDModelComm (yet)" << endl;
     comm_ = nullptr;
 #elif BD_COMM_TYPE_OPALKELLY
+  cout << "initializing OKComm" << endl;
     comm_ = new comm::CommOK(dec_buf_in_, enc_buf_out_);
 #else
+  cout << "NOT initializing UNHANDLED Comm type comm" << endl;
     assert(false && "unhandled comm_type");
 #endif
+
+  cout << "Driver constructor done" << endl;
 
 }
 
@@ -127,6 +138,9 @@ Driver::~Driver() {
   for (auto& it : dec_bufs_out_) {
     delete it.second;
   }
+  for (auto& it : up_ep_deserializers_) {
+    delete it.second;
+  }
   delete enc_;
   delete dec_;
   delete comm_;
@@ -135,11 +149,68 @@ Driver::~Driver() {
 // XXX get rid of this, it's used in some test
 void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
 
+void Driver::SetTimeUnitLen(BDTime us_per_unit) {
+
+  // update FPGA state
+  us_per_unit_ = us_per_unit;
+  clks_per_unit_ = us_per_unit / (ns_per_clk_ * 1000);
+
+  BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
+  SendToEP(0, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
+  Flush();
+}
+
+void Driver::SetTimePerUpHB(BDTime us_per_hb) {
+  units_per_HB_ = UnitsPerUs(us_per_hb);
+
+  // XXX this might break someday
+  BDWord us_per_hb_word = static_cast<uint64_t>(us_per_hb);
+  uint64_t w0 = GetField(us_per_hb_word, THREEFPGAREGS::W0);
+  uint64_t w1 = GetField(us_per_hb_word, THREEFPGAREGS::W1);
+  uint64_t w2 = GetField(us_per_hb_word, THREEFPGAREGS::W2);
+
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
+  Flush();
+}
+
+void Driver::ResetBD() {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+
+    BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
+    BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
+    BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
+
+    unsigned int delay_us = 500; // hold reset states for half a second (probably very conservative)
+
+    SendToEP(i, bdpars::FPGARegEP::BD_RESET, 
+        {pReset_1_sReset_1             , pReset_0_sReset_1             , pReset_0_sReset_0},
+        {highest_us_sent_ + delay_us*0 , highest_us_sent_ + delay_us*1 , highest_us_sent_ + delay_us*2});
+  }
+  Flush();
+}
+
+void Driver::IssuePushWords() {
+  // we need to send something that will elicit an output, PAT read is the simplest
+  // thing we can request
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
+  }
+  num_pushs_pending_ += 2;
+  // we have to do something special when dumping the PAT to skip the push words
+}
+
+void Driver::ResetFPGATime() {
+  BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
+  BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
+  SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
+}
+
 void Driver::InitBD() {
-#if BD_COMM_TYPE_OPALKELLY
-    // Initialize Opal Kelly Board
-    static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
-#endif
+  
+  // BD hard reset
+  ResetBD();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
@@ -208,6 +279,7 @@ void Driver::InitBD() {
   }
 }
 
+
 void Driver::InitFIFO(unsigned int core_id) {
   // turn traffic off around FIFO (just kill everything to hijack the traffic drain timer in BDState)
   PauseTraffic(core_id);
@@ -231,7 +303,17 @@ void Driver::Start() {
   // start all worker threads
   enc_->Start();
   dec_->Start();
+  cout << "enc and dec started" << endl;
+
+  // Initialize Opal Kelly Board
+ 
+#ifdef BD_COMM_TYPE_OPALKELLY
+  static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+  cout << "init'd OK" << endl;
+#endif
+
   comm_->StartStreaming();
+  cout << "comm started" << endl;
 }
 
 void Driver::Stop() {
@@ -635,24 +717,29 @@ void Driver::SetMem(
   ResumeTraffic(core_id);
 }
 
-
-std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
-
+/// helper for DumpMem
+void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr) {
   // make dump words
-  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+  
+  assert(start_addr >= 0);
+  assert(end_addr <= bd_pars_->mem_info_.at(mem_id).size);
 
   std::vector<BDWord> encapsulated_words;
   if (mem_id == bdpars::BDMemId::PAT) {
-    encapsulated_words = PackRWDumpWords<PATRead>(0, mem_size);
+    encapsulated_words = PackRWDumpWords<PATRead>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::TAT0 || mem_id == bdpars::BDMemId::TAT1) {
-    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(0, mem_size);
+    encapsulated_words = PackRIWIDumpWords<TATSetAddress, TATReadIncrement>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::MM) {
-    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(0, mem_size);
+    encapsulated_words = PackRIWIDumpWords<MMSetAddress, MMReadIncrement>(start_addr, end_addr);
   } else if (mem_id == bdpars::BDMemId::AM) {
     // a little tricky, reprogramming is the same as dump
     // need to write back whatever is currently in memory
     const std::vector<BDWord> *curr_data = bd_state_.at(core_id).GetMem(bdpars::BDMemId::AM);
-    encapsulated_words = PackRMWProgWords<AMSetAddress, AMReadWrite, AMIncrement>(*curr_data, 0);
+    std::vector<BDWord> to_rewrite;
+    for (unsigned int i = start_addr; i < end_addr; i++) {
+      to_rewrite.push_back(curr_data->at(i));
+    }
+    encapsulated_words = PackRMWProgWords<AMSetAddress, AMReadWrite, AMIncrement>(to_rewrite, start_addr);
   } else {
     assert(false && "Bad memory ID");
   }
@@ -667,25 +754,102 @@ std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
-  bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
+
   PauseTraffic(core_id);
+
   SendToEP(core_id, horn_ep, encapsulated_words);
 
   Flush();
 
-  // XXX this might discard remainders
-  std::vector<BDWord> payloads;
-  while (payloads.size() < mem_size) {
-    std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
-    payloads.insert(payloads.end(), recvd.first.begin(), recvd.first.end());
-  }
-  if (payloads.size() > mem_size) {
-    cout << "WARNING! LOST SOME MEM(BDMemId enum=" << int(mem_id) << ") WORDS" << endl;
-  }
   ResumeTraffic(core_id);
+}
 
-  // unpack payload field of DecOutput according to word format
+std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us) {
+
+  // sleep to wait for the outputs to come back
+  std::this_thread::sleep_for(std::chrono::microseconds(wait_for_us)); 
+
+  bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
+
+  std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, 1); // timeout immediately if nothing is there
+  std::vector<BDWord>& payloads = recvd.first;
+
+  if (payloads.size() == 0) {
+    cout << "WARNING: DumpMemRecv timed out! Expected output from memory" << endl;
+    return payloads;
+  }
+
+  // if this is the PAT, need to chop off the first num_pushs_pending_ - 2 outputs
+  // (the last two pending we just put on, come after the memory words)
+  if (mem_id == bdpars::BDMemId::PAT) {
+    std::vector<BDWord> payloads_tmp;
+    payloads_tmp.swap(payloads);
+    unsigned int pushs_absorbed = 0;
+    for (unsigned int i = 0; i < payloads_tmp.size(); i++) {
+      if (i >= num_pushs_pending_ - 2) {
+        payloads.push_back(payloads_tmp.at(i));
+      } else {
+        pushs_absorbed += 1;
+      }
+    }
+    num_pushs_pending_ -= pushs_absorbed;
+    cout << "possibly discarding initial PAT words" << endl;
+    cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
+  }
+
+  cout << "num pending before: " << num_pushs_pending_ << endl;
+
+  // we might have received more words than we expected
+  // if this is the PAT, and there are <2, they're probably just the pushes we just sent
+  // (they can get pushed out by other traffic)
+  // otherwise, something weird happened
+  if (payloads.size() > dump_first_n) {
+    unsigned int extra_words_after = payloads.size() - dump_first_n;
+    if (mem_id == bdpars::BDMemId::PAT) {
+      if (extra_words_after > num_pushs_pending_) {
+        cout << "WARNING! Got more words from PAT memory than expected" << endl;
+        num_pushs_pending_ = 0; // best guess of what to do
+      } else {
+        num_pushs_pending_ -= extra_words_after;
+      }
+    } else {
+      if (extra_words_after > 0) {
+        cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
+        cout << "  expected: " << dump_first_n << endl;
+        cout << "  received: " << payloads.size() << endl; 
+      }
+    }
+  } else if (dump_first_n > payloads.size()) {
+    cout << "WARNING! didn't get the full dump size we requested" << endl;
+  }
+
+  cout << "num pending after: " << num_pushs_pending_ << endl;
+
   return payloads;
+}
+
+std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end) {
+
+  assert(end > start);
+
+  DumpMemSend(core_id, mem_id, start, end);
+
+  // issue an additional two PAT reads to push out the last two words
+  IssuePushWords();
+
+  cout << "sent words, waiting" << endl;
+
+  auto to_return = DumpMemRecv(core_id, mem_id, end - start, 2000000); // wait 2s
+
+  return to_return;
+
+}
+
+std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
+
+  unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+  return DumpMemRange(core_id, mem_id, 0, mem_size);
+
 }
 
 template <class TWrite>
@@ -849,7 +1013,9 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push[2];
-      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
+
+      // convert from us -> time units
+      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
       // lsb first, msb second
       to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
@@ -870,7 +1036,9 @@ void Driver::SendToEP(unsigned int core_id,
     unsigned int i = 0;
     for (auto& it : payload) {
       EncInput to_push;
-      BDTime time = !timed ? 0 : times.at(i); // time 0 is never held up by the FPGA
+
+      // convert from us -> time units
+      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
       to_push.payload = it;
       to_push.time = time;
@@ -887,7 +1055,12 @@ void Driver::SendToEP(unsigned int core_id,
     for (auto& it : *serialized) {
       timed_queue_.push_back(it);
     }
-    std::sort(timed_queue_.begin(), timed_queue_.end());
+    std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
+
+    // update highest_us_sent_
+    unsigned int new_highest_us = timed_queue_.back().time * us_per_unit_;
+    highest_us_sent_ = new_highest_us > highest_us_sent_ ? new_highest_us : highest_us_sent_; // max()
+
   } else {
     sequenced_queue_.push(std::move(serialized));
   }
@@ -910,11 +1083,11 @@ std::pair<std::vector<BDWord>,
   for(auto& rit: popped_data){
     if (up_ep_deserializers_.count(ep_code) > 0) {
       auto& deserializer = up_ep_deserializers_.at(ep_code);
-      deserializer.NewInput(rit.get());
+      deserializer->NewInput(std::move(rit));
 
       // read first word
       std::vector<DecOutput> deserialized; // continuosly write into here
-      deserializer.GetOneOutput(&deserialized);
+      deserializer->GetOneOutput(&deserialized);
       while (deserialized.size() > 0) {
         // for now, D == 2 for all deserializers, so we can do this hack
         // if the width of a single data object returned from the FPGA ever
@@ -930,7 +1103,7 @@ std::pair<std::vector<BDWord>,
         words.push_back(payload_all);
         times.push_back(time);
 
-        deserializer.GetOneOutput(&deserialized);
+        deserializer->GetOneOutput(&deserialized);
       }
     } else {
 

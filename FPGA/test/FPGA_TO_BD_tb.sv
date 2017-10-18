@@ -47,7 +47,7 @@ module BD_TO_FPGA_tb;
 // FPGA channel uses Valid-Acknowledge (active sender, passive receiver)
 // BD uses Ready-Valid (passive sender, active receiver)
     parameter DelayMinCh = 0;
-    parameter DelayMaxCh = 5;
+    parameter DelayMaxCh = 200;
     // parameter DelayMaxCh = 0;
     parameter DelayMinBD = 0;
     parameter DelayMaxBD = 200;

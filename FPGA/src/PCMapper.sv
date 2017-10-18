@@ -83,7 +83,7 @@ localparam TM_PC_reset_time_idx      = TM_base + N_TM_unit_chunks + 2*N_TM_time_
 localparam TS_base                   = TM_base + N_TM_unit_chunks + 2*N_TM_time_chunks + 1; // = 30
 localparam TS_report_tags_idx        = TS_base + 0;
 
-localparam BD_base                   = TS_base + 1;
+localparam BD_base                   = TS_base + 1; // = 31
 localparam BD_all_idx                = BD_base + 0;
 
 // assign registers

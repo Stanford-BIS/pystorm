@@ -36,16 +36,16 @@ void Decoder::RunOnce() {
 }
 
 // pack inputs into 32-bit FPGA words, using remainder
-std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecInput>> input) {
+std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<std::vector<DecInput>> input) {
 
   // load deserializer with new input
-  deserializer_.NewInput(input.get());
+  deserializer_->NewInput(std::move(input));
 
   std::vector<uint32_t> packed;
 
   std::vector<uint8_t> deserialized; // continuosly write into here
 
-  deserializer_.GetOneOutput(&deserialized);
+  deserializer_->GetOneOutput(&deserialized);
   while (deserialized.size() > 0) {
     packed.push_back(PackWord<FPGABYTES>(
          {{FPGABYTES::B0, deserialized.at(0)}, 
@@ -53,13 +53,13 @@ std::vector<uint32_t> Decoder::PackBytes(std::unique_ptr<const std::vector<DecIn
           {FPGABYTES::B2, deserialized.at(2)}, 
           {FPGABYTES::B3, deserialized.at(3)}}));
 
-    deserializer_.GetOneOutput(&deserialized);
+    deserializer_->GetOneOutput(&deserialized);
   }
 
   return packed;
 }
 
-std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<const std::vector<DecInput>> input) {
+std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
   // pack inputs into 32-bit FPGA words, starting with the remainder
   std::vector<uint32_t> inputs_packed = PackBytes(std::move(input));
@@ -98,12 +98,21 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         assert(false && "something wrong with next_HB_significance_ enum");
       }
 
+    // ignore nop
+    } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+      // do nothing
     // otherwise, forward to Driver
     } else {
+      //cout << "decoder got something that wasn't a HB" << endl;
+      //cout << "  ep# = " << ep_code << endl;
 
       DecOutput to_push;
       to_push.payload = payload;
-      to_push.time    = last_HB_recvd_;
+
+      // update times for "push" output problem
+      to_push.time       = word_i_min_2_time_;
+      word_i_min_2_time_ = word_i_min_1_time_;
+      word_i_min_1_time_ = last_HB_recvd_;
 
       if (outputs.count(ep_code) == 0) {
         outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
