@@ -26,6 +26,7 @@ input clk;          // Global clock
 
 enum {WAITING_FOR_INPUT, VALID_LOW, VALID_HIGH} state, next_state;
 logic [NUM_BITS-1:0] next_data;
+logic next_a;
 
 // data can be sampled at any time while valid is high, 
 // so we want to make sure that it can't glitch
@@ -35,10 +36,12 @@ always_ff @(posedge clk, posedge reset)
   if (reset == 1) begin
     state <= WAITING_FOR_INPUT;
     data <= '0;
+    bd_channel.a <= 0;
   end
   else begin
     state <= next_state;
     data <= next_data;
+    bd_channel.a <= next_a;
   end
 
 // state update/data update
@@ -50,14 +53,17 @@ always_comb
       if (bd_channel.v == 1) begin
         next_data = bd_channel.d; // set up new data
         next_state = VALID_LOW;
+        next_a = 1;
       end
       else begin
         next_data = 'X;
         next_state = WAITING_FOR_INPUT;
+        next_a = 0;
       end
     end
     VALID_LOW: begin
       next_data = data; // hold data
+      next_a = 0;
       if (ready == 1)
         next_state = VALID_HIGH;
       else
@@ -68,15 +74,18 @@ always_comb
         if (bd_channel.v == 1) begin
           next_data = bd_channel.d; // set up new data
           next_state = VALID_LOW;
+          next_a = 1;
         end
         else begin
           next_data = 'X;
           next_state = WAITING_FOR_INPUT;
+          next_a = 0;
         end
       end
       else begin
         next_data = data; // hold data
         next_state = VALID_HIGH;
+        next_a = 0;
       end
     end
   endcase
@@ -86,21 +95,12 @@ always_comb
   case (state)
     WAITING_FOR_INPUT: begin
       valid = 0;
-      if (bd_channel.v == 1)
-        bd_channel.a = 1;
-      else
-        bd_channel.a = 0;
     end
     VALID_LOW: begin
       valid = 0;
-      bd_channel.a = 0;
     end
     VALID_HIGH: begin
       valid = 1;
-      if (bd_channel.v == 1)
-        bd_channel.a = 1;
-      else
-        bd_channel.a = 0;
     end
   endcase
 
