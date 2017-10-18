@@ -42,6 +42,8 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
 
   // note that initialization only occurs on the first function invocation
   static BDTime last_time = 0;
+  static BDTime last_time_p1 = 0;
+  static BDTime last_time_p2 = 0;
   static bool last_time_lsb_msb = false;
 
   for (unsigned int i = 0; i < N; i++) {
@@ -94,18 +96,22 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
              {TWOFPGAPAYLOADS::LSB, curr_time_lsb}});
       }
       last_time_lsb_msb = !last_time_lsb_msb;
-
-    // only append output for non-time input word
+    // only append output for non-time, non-nop input word
     } else {
-      DecOutput to_push;
-      to_push.payload = payload;
-      to_push.time = last_time;
+      if (code != pars->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+        DecOutput to_push;
+        to_push.payload = payload;
+        to_push.time = last_time_p2;
+        last_time_p2 = last_time_p1;
+        last_time_p1 = last_time;
 
-      if (dec_outputs.count(code) == 0) {
-        cout << int(code) << endl;
-        assert(false);
+        if (dec_outputs.count(code) == 0) {
+          cout << int(code) << endl;
+          assert(false);
+        }
+
+        dec_outputs.at(code).push_back(to_push);
       }
-      dec_outputs.at(code).push_back(to_push);
     }
 
   }
