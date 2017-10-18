@@ -14,8 +14,8 @@ namespace comm {
 static const int PIPE_IN_ADDR = 0x80;  /// Endpoint to send to FPGA
 static const int PIPE_OUT_ADDR = 0xa0; /// Endpoint to read from FPGA
 
-static const unsigned int WRITE_SIZE             = 64;
-static const unsigned int READ_SIZE              = 64;
+static const unsigned int WRITE_SIZE             = 512;
+static const unsigned int READ_SIZE              = 512;
 static const unsigned int DEFAULT_BUFFER_TIMEOUT = 1;
 
 class CommOK : public Comm {
@@ -53,6 +53,7 @@ protected:
   std::atomic<CommStreamState> m_state;
   std::thread m_control_thread;
   VectorDeserializer<COMMWord> * deserializer_; 
+  std::vector<COMMWord> deserialized_; // continuosly write into here
 
   void CommController();
 

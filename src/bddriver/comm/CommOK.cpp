@@ -79,7 +79,7 @@ void PrintBinaryAsStr(uint32_t b, unsigned int N) {
 int CommOK::WriteToDevice() {
 
     // Pop one vector of COMMWords from the MutexBuffer
-    // blocks for 1 us
+    // potentially blocks for 1 us
     std::vector<std::unique_ptr<std::vector<COMMWord>>> popped_vect = m_write_buffer->PopAll(1);
 
     if (popped_vect.size() > 0) 
@@ -93,26 +93,34 @@ int CommOK::WriteToDevice() {
     if (popped_vect.size() > 0) 
       cout << "  total size " << size << endl;
 
-    std::vector<COMMWord> deserialized; // continuosly write into here
 
-    int last_status = -1;
-    deserializer_->GetOneOutput(&deserialized);
-    while (deserialized.size() > 0) {
-        assert(deserialized.size() == WRITE_SIZE);
-
-        //cout << "Comm writing words:" << endl;
-        //for (unsigned int i = 0; i < WRITE_SIZE; i++) {
-        //  PrintBinaryAsStr(deserialized[i], 8);
-        //}
-
-        last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized[0]);
-        if (last_status != WRITE_SIZE) {
-            printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
-        }
-        cout << "Comm wrote " << WRITE_SIZE << " words" << endl;
-        deserializer_->GetOneOutput(&deserialized);
+    if (deserialized_.size() == 0) {
+      deserializer_->GetOneOutput(&deserialized_);
     }
-    return last_status;
+
+    //cout << "Comm writing words:" << endl;
+    //for (unsigned int i = 0; i < WRITE_SIZE; i++) {
+    //  PrintBinaryAsStr(deserialized[i], 8);
+    //}
+
+    if (deserialized_.size() > 0) {
+      assert(deserialized_.size() == WRITE_SIZE);
+
+      cout << "comm about to write" << endl;
+      int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized_[0]);
+      cout << "comm wrote " << last_status << " words" << endl;
+
+      if (last_status == WRITE_SIZE) {
+        deserialized_.clear();
+      } else {
+        printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
+      }
+
+      return last_status;
+    } else {
+      return -1;
+    }
+
 }
 
 int CommOK::ReadFromDevice() {
@@ -125,7 +133,8 @@ int CommOK::ReadFromDevice() {
     //  PrintBinaryAsStr(raw_data[i], 8);
     //}
 
-    assert(num_bytes == READ_SIZE);
+    //assert(num_bytes == READ_SIZE);
+    //cout << "comm read: " << num_bytes << endl;
     if (num_bytes > 0) {
       m_read_buffer->Push(std::move(read_buffer));
     }
@@ -162,6 +171,11 @@ bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial)
         std::cout << "FrontPanel support is not enabled." << std::endl;
         return(false);
     }
+
+    // If the BTPipeIn (downstream) isn't ready, we want to return ASAP
+    dev.SetTimeout(1);
+    dev.SetBTPipePollingInterval(1);
+
     return(true);
 }
 
