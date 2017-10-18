@@ -155,7 +155,18 @@ TEST_F(DriverFixture, TestDumpPAT) {
   auto data = MakeRandomPATData(size);
   driver->SetMem(kCoreId, bdpars::BDMemId::PAT, data, 0);
   auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::PAT);
-  ASSERT_EQ(data, dumped);
+
+  // THIS IS A HACK! The Model doesn't encode the weird "need to push words out behavior"
+  // a PAT dump is our chosen "push" word, so we only have to fiddle with this test
+  if (dumped.size() != 66) {
+    ASSERT_EQ(0, 1);
+  } else {
+    std::vector<BDWord> dumped_first_64;
+    for (unsigned int i = 0; i < 64; i++) {
+      dumped_first_64.push_back(dumped[i]);
+    }
+    ASSERT_EQ(data, dumped_first_64);
+  }
 }
 
 TEST_F(DriverFixture, TestDumpAM) {
