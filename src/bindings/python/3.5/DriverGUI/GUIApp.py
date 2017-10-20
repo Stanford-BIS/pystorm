@@ -74,13 +74,6 @@ class Sparkle(Widget):
         self.texture.mag_filter = 'nearest'
         self.sparkle = Rectangle()
 
-        # Trigger animation
-        Clock.schedule_interval(self.update, self.REFRESH_PERIOD)
-
-        ## Trigger Polling
-        Clock.schedule_interval(self.poll_data, self.POLLING_PERIOD)
-        #threading.Thread(target=self.poll_data).start()
-
     def poll_data(self, *args):
         np.greater(np.random.rand(4096), 0.9, self._mask1)
         np.copyto(self.arr_data, self.MAX_MAT, where=self._mask1)
@@ -130,17 +123,10 @@ class Raster(Widget):
         self.texture.mag_filter = 'nearest'
         self.raster = Rectangle()
 
-        # Trigger animation
-        Clock.schedule_interval(self.update, self.REFRESH_PERIOD)
-
-        ## Trigger Polling
-        Clock.schedule_interval(self.poll_data, self.POLLING_PERIOD)
-
     def poll_data(self, dt):
         bin_rem = int(ceil(dt / self._bin_time))
         if bin_rem >= self.NUM_X_PIXELS:
             bin_rem = self.NUM_X_PIXELS - 1
-            print("dt > window")
         self._remainder -= bin_rem
         if(self._remainder <= 0):
             self._remainder = self._bin_num
@@ -169,19 +155,49 @@ class RootLayout(BoxLayout):
     sparkle_widget = ObjectProperty(None)
     fade_slider = ObjectProperty(None)
     raster_box = ObjectProperty(None)
-    #raster_stencil = ObjectProperty(None)
     raster_widget = ObjectProperty(None)
 
     def init_children(self):
         self.sparkle_widget.init()
         self.raster_widget.init()
-        #self.raster_scatter.pos = self.raster_stencil.pos
-        #self.raster_scatter.rotation = -90
+
+        # Trigger animation
+        self.sparkle_anim_event = Clock.schedule_interval(self.sparkle_widget.update, self.sparkle_widget.REFRESH_PERIOD)
+
+        # Trigger Polling
+        self.sparkle_poll_event = Clock.schedule_interval(self.sparkle_widget.poll_data, self.sparkle_widget.POLLING_PERIOD)
+
+        # Trigger animation
+        self.raster_anim_event = None
+
+        # Trigger Polling
+        self.raster_poll_event = None
+
+    def select_plot(self, type_name):
+        if type_name == 'sparkle':
+            if self.sparkle_poll_event is None:
+                self.sparkle_anim_event = Clock.schedule_interval(self.sparkle_widget.update, self.sparkle_widget.REFRESH_PERIOD)
+                self.sparkle_poll_event = Clock.schedule_interval(self.sparkle_widget.poll_data, self.sparkle_widget.POLLING_PERIOD)
+            if self.raster_poll_event is not None:
+                self.raster_anim_event.cancel()
+                self.raster_poll_event.cancel()
+                self.raster_anim_event = None
+                self.raster_poll_event = None
+        elif type_name == 'raster':
+            if self.raster_poll_event is None:
+                self.raster_anim_event = Clock.schedule_interval(self.raster_widget.update, self.raster_widget.REFRESH_PERIOD)
+                self.raster_poll_event = Clock.schedule_interval(self.raster_widget.poll_data, self.raster_widget.POLLING_PERIOD)
+            if self.sparkle_poll_event is not None:
+                self.sparkle_anim_event.cancel()
+                self.sparkle_poll_event.cancel()
+                self.sparkle_anim_event = None
+                self.sparkle_poll_event = None
 
     def reset_sparkle(self):
         self.sparkle_scatter.scale = 1
         self.sparkle_scatter.pos = self.sparkle_stencil.pos
         self.raster_scatter.scale = 1
+        self.raster_scatter.pos = self.raster_stencil.pos
         
     def update_fader(self, *args):
         self.sparkle_widget.__update_fade_vals__(args[0])
