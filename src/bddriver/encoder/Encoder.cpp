@@ -16,6 +16,23 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
+void PrintBinaryAsStr(uint32_t b, unsigned int N) {
+  std::vector<bool> bits;
+  // pop LSBs
+  for (unsigned int i = 0; i < N; i++) {
+    bool low_bit = b % 2 == 1;
+    b = b >> 1;
+    bits.push_back(low_bit);
+  }
+  for (unsigned int i = 0; i < N; i++) {
+    if (bits.at(N - 1 - i))
+      cout << "1";
+    else
+      cout << "0";
+  }
+  cout << endl;
+}
+
 void Encoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<EncInput>> popped_vect = in_buf_->Pop(timeout_us_);
@@ -57,9 +74,6 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
     // [ code | payload ]
     uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
 
-    // serialize to bytes 
-    PushWord(output, FPGA_encoded);
-
     // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
     // package the event's time into a spike
     if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {
@@ -81,6 +95,12 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
         PushWord(output, PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
       }
     }
+
+    // serialize to bytes 
+    PushWord(output, FPGA_encoded);
+
+    //if (FPGA_ep_code != bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP))
+    //  PrintBinaryAsStr(FPGA_encoded, 32);
 
   }
 

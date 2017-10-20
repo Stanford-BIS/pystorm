@@ -1,33 +1,37 @@
 import numpy as np
-from . MemWordEnums import *
-from . MemWordPlaceholders import *
-import Pystorm as ps
-
+from .mem_word_enums import (AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField)
+from .mem_word_placeholders import BDWord
+import pystorm._PyStorm as ps
 
 class Core(object):
-    def __init__(self, pars):
-        # base parameters
+    """Represents a braindrop/brainstorm core
 
-        pars_idx = ps.CoreParsIndex
+    Contains the neuron array, digital datapath, and memories.
 
-        self.MM_height = pars[pars_idx.MM_height]
-        self.MM_width = pars[pars_idx.MM_width]
+    Parameters
+    ----------
+    ps_pars: _PyStorm CorePars instance
+    """
+    def __init__(self, ps_pars):
+        self.MM_height = ps_pars['MM_height']
+        self.MM_width = ps_pars['MM_width']
 
-        self.AM_size = pars[pars_idx.AM_size]
+        self.AM_size = ps_pars['AM_size']
 
-        self.TAT_size = pars[pars_idx.TAT_size]
+        self.TAT_size = ps_pars['TAT_size']
 
-        self.NeuronArray_height = pars[pars_idx.NeuronArray_height]
-        self.NeuronArray_width  = pars[pars_idx.NeuronArray_width]
-        self.NeuronArray_pool_size = pars[pars_idx.NeuronArray_pool_size] # number of neurons that share each PAT entry
-        self.NeuronArray_neurons_per_tap = pars[pars_idx.NeuronArray_neurons_per_tap]
+        self.NeuronArray_height = ps_pars['NeuronArray_height']
+        self.NeuronArray_width  = ps_pars['NeuronArray_width']
+        self.NeuronArray_pool_size = ps_pars[
+            'NeuronArray_pool_size'] # number of neurons that share each PAT entry
+        self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
         self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
 
-        self.num_threshold_levels = pars[pars_idx.num_threshold_levels]
-        self.min_threshold_value = pars[pars_idx.min_threshold_value]
-        self.max_weight_value = pars[pars_idx.max_weight_value]
+        self.num_threshold_levels = ps_pars['num_threshold_levels']
+        self.min_threshold_value = ps_pars['min_threshold_value']
+        self.max_weight_value = ps_pars['max_weight_value']
 
         # set up allocable objects (Resource containers)
 
@@ -103,7 +107,7 @@ class MemAllocator(object):
                     return False
                 if idx_slice.stop > self.L.size:
                     return False
-        
+
         # otherwise, the slice is compeletely in-bounds, check all entries
         if len(self.shape) == 2 and isinstance(idx_slice, slice): # using flat indexing on 2D
             if np.sum(1*self.L.flat[idx_slice]) == 0:
@@ -122,8 +126,9 @@ class MemAllocator(object):
         print(1*self.L)
 
 class StepMemAllocator(MemAllocator):
-    # the TAT is simple to allocate, there are no constraints on positioning,
-    # so we just fill it up from the bottom
+    """the TAT is simple to allocate, there are no constraints on positioning,
+    so we just fill it up from the bottom
+    """
     def __init__(self, shape):
         super(StepMemAllocator, self).__init__(shape)
         self.pos = 0
@@ -137,7 +142,7 @@ class StepMemAllocator(MemAllocator):
         return try_slice.start
 
 class MMAllocator(MemAllocator):
-    # we have to place the decoders carefully, but we have a lot of freedom with transforms
+    """we have to place the decoders carefully, but we have a lot of freedom with transforms"""
     def __init__(self, shape, NPOOL):
         super(MMAllocator, self).__init__(shape)
         self.xpos = 0
@@ -172,13 +177,13 @@ class MMAllocator(MemAllocator):
         return (try_slice[0].start, try_slice[1].start)
 
     def SwitchToTrans(self):
-        # this is lazy, wastes a little space
+        """this is lazy, wastes a little space"""
         if self.xpos != 0:
             self.ypos += self.NPOOL
         self.xpos = 0
 
     def AllocateTransRow(self, D):
-        # very similar to StepMemAllocator Allocate
+        """very similar to StepMemAllocator Allocate"""
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
@@ -211,9 +216,8 @@ class Memory(object):
         idx_slice = (slice(start[0], start[0] + mem.shape[0]), slice(start[1], start[1] + mem.shape[1]))
         self.M[idx_slice] = mem
 
-
 class StepMem(Memory):
-    # r_w_memory
+    """Read-Write Memory"""
     def __init__(self, shape):
         super(StepMem, self).__init__(shape)
 
@@ -224,14 +228,14 @@ class PATMem(Memory):
 class MM(object):
     def __init__(self, shape, NPOOL):
         self.mem = StepMem(shape)
-        self.alloc = MMAllocator(shape, NPOOL) 
+        self.alloc = MMAllocator(shape, NPOOL)
 
     def AllocateDec(self, D):
         return self.alloc.AllocatePoolDec(D)
 
     def AllocateTrans(self, D):
         return self.alloc.AllocateTransRow(D)
-    
+
     def AssignDec(self, data, start):
         self.mem.Assign2DBlock(data, start)
 
@@ -262,7 +266,7 @@ class AM(object):
 
     def Allocate(self, size):
         return self.alloc.Allocate(size)
-    
+
     def Assign(self, data, start):
         self.mem.Assign1DBlock(data, start)
 
@@ -285,7 +289,7 @@ class TAT(object):
 
     def Allocate(self, size):
         return self.alloc.Allocate(size)
-    
+
     def Assign(self, data, start):
         self.mem.Assign1DBlock(data, start)
 
@@ -345,7 +349,6 @@ class PAT(object):
             f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
-
 class NeuronArray(object):
     def __init__(self, N, NPOOL):
         self.NPOOL = NPOOL
@@ -366,5 +369,3 @@ class ExternalSinks(object):
         base_idx = ExternalSinks.curr_idx
         ExternalSinks.curr_idx += D
         return np.array(range(base_idx, base_idx + D))
-    
-

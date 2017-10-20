@@ -1,4 +1,4 @@
-from . MemWordEnums import *
+from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
 
 # XXX this isn't permanent implementation
 # just meant to behave like the actual boost object would
@@ -31,4 +31,6 @@ class BDWord(object):
     # init(int)
     # AsUint()
 
+    def __repr__(self):
+        return str(self.field_vals)
 

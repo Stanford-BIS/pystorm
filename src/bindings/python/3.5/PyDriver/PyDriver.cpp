@@ -342,6 +342,10 @@ void bind_unknown_unknown_2(std::function< pybind11::module &(std::string const 
 		cl.def("testcall", (void (pystorm::bddriver::Driver::*)(const std::string &)) &pystorm::bddriver::Driver::testcall, "C++: pystorm::bddriver::Driver::testcall(const class std::__cxx11::basic_string<char> &) --> void", pybind11::arg("msg"));
 		cl.def("Start", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Start, "starts child workers, e.g. encoder and decoder\n\nC++: pystorm::bddriver::Driver::Start() --> void");
 		cl.def("Stop", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Stop, "stops the child workers\n\nC++: pystorm::bddriver::Driver::Stop() --> void");
+		cl.def("SetTimePerUpHB", (void (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::SetTimePerUpHB, "sets number of us per upstream HB");
+		cl.def("SetTimeUnitLen", (void (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::SetTimeUnitLen, "sets number of clock cycles per time unit");
+		cl.def("ResetFPGATime", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::ResetFPGATime, "resets FPGA clock to 0");
+		cl.def("ResetBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::ResetBD, "Toggles pReset/sReset");
 		cl.def("InitBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::InitBD, "Initializes hardware state\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitBD() --> void");
 		cl.def("InitFIFO", (void (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::InitFIFO, "Clears BD FIFOs\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitFIFO(unsigned int) --> void", pybind11::arg("core_id"));
 		cl.def("Flush", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Flush, "Flush queued up downstream traffic\n Commits queued-up messages (sends enough nops to flush the USB)\n By default, many configuration calls will call Flush()\n Notably, the Neuron config calls do not call Flush()\n\nC++: pystorm::bddriver::Driver::Flush() --> void");
@@ -589,7 +593,7 @@ void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_
 	// pystorm::bddriver::PATWrite file: line:114
 	pybind11::enum_<pystorm::bddriver::PATWrite>(M("pystorm::bddriver"), "PATWrite", "")
 		.value("ADDRESS", pystorm::bddriver::PATWrite::ADDRESS)
-		.value("FIXED_0", pystorm::bddriver::PATWrite::FIXED_0)
+		.value("FIXED_1", pystorm::bddriver::PATWrite::FIXED_1)
 		.value("DATA", pystorm::bddriver::PATWrite::DATA)
 		.value("FIELDCOUNT", pystorm::bddriver::PATWrite::FIELDCOUNT);
 
@@ -604,7 +608,7 @@ void bind_BDWord(std::function< pybind11::module &(std::string const &namespace_
 	// pystorm::bddriver::PATRead file: line:119
 	pybind11::enum_<pystorm::bddriver::PATRead>(M("pystorm::bddriver"), "PATRead", "")
 		.value("ADDRESS", pystorm::bddriver::PATRead::ADDRESS)
-		.value("FIXED_1", pystorm::bddriver::PATRead::FIXED_1)
+		.value("FIXED_0", pystorm::bddriver::PATRead::FIXED_0)
 		.value("UNUSED", pystorm::bddriver::PATRead::UNUSED)
 		.value("FIELDCOUNT", pystorm::bddriver::PATRead::FIELDCOUNT);
 

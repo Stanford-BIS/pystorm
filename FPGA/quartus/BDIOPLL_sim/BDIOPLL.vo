@@ -1,5 +1,5 @@
 //IP Functional Simulation Model
-//VERSION_BEGIN 17.0 cbx_mgl 2017:07:13:10:04:39:SJ cbx_simgen 2017:07:13:08:24:32:SJ  VERSION_END
+//VERSION_BEGIN 17.0 cbx_mgl 2017:04:19:10:26:36:SJ cbx_simgen 2017:04:19:09:17:27:SJ  VERSION_END
 // synthesis VERILOG_INPUT_VERSION VERILOG_2001
 // altera message_off 10463
 
@@ -229,7 +229,7 @@ module  BDIOPLL
 		bdiopll_altera_pll_altera_pll_i_1098.n_cnt_odd_div_duty_en = "false",
 		bdiopll_altera_pll_altera_pll_i_1098.number_of_clocks = 2,
 		bdiopll_altera_pll_altera_pll_i_1098.operation_mode = "direct",
-		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency0 = "20.000000 MHz",
+		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency0 = "10.000000 MHz",
 		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency1 = "10.000000 MHz",
 		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency10 = "0 MHz",
 		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency11 = "0 MHz",
@@ -248,7 +248,7 @@ module  BDIOPLL
 		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency8 = "0 MHz",
 		bdiopll_altera_pll_altera_pll_i_1098.output_clock_frequency9 = "0 MHz",
 		bdiopll_altera_pll_altera_pll_i_1098.phase_shift0 = "0 ps",
-		bdiopll_altera_pll_altera_pll_i_1098.phase_shift1 = "-1977 ps",
+		bdiopll_altera_pll_altera_pll_i_1098.phase_shift1 = "-1973 ps",
 		bdiopll_altera_pll_altera_pll_i_1098.phase_shift10 = "0 ps",
 		bdiopll_altera_pll_altera_pll_i_1098.phase_shift11 = "0 ps",
 		bdiopll_altera_pll_altera_pll_i_1098.phase_shift12 = "0 ps",

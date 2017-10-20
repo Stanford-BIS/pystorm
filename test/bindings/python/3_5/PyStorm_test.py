@@ -1,5 +1,5 @@
 import unittest
-import PyStorm as ps
+import _PyStorm as ps
 import numpy as np
 
 class TestPool(unittest.TestCase):
@@ -111,7 +111,6 @@ class TestOutput(unittest.TestCase):
         self.assertEqual(self.num_dims, _output.get_num_dimensions())
 
 class TestWeights(unittest.TestCase):
-
     def test_constructor(self):
         a = np.array([[1,2,3],
                       [4,5,6]])

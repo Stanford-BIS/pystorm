@@ -22,7 +22,7 @@ UnpackChannelArray #(Nchan) conf_unpacker(conf_channel_out, conf_channel_out_unp
 UnencodedBDWordChannel BD_data_out();
 
 // input; from PC
-Channel #(NPCin) PC_in();
+Channel #(NPCin) PC_in_ext();
 
 logic [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals = '0;
 
@@ -40,8 +40,14 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
+// stall
+logic stall;
+parameter Tstall = 100;
+always #(Tstall/2) stall = ~stall;
+initial stall = 0;
+
 // PC sender
-RandomChannelSrc #(.N(NPCin)) PC_src(PC_in, clk, reset);
+RandomChannelSrc #(.N(NPCin)) PC_src(PC_in_ext, clk, reset);
 
 // BD receiver
 Channel #(26) BD_data_out_packed();
@@ -53,7 +59,7 @@ ChannelSink BD_sink(BD_data_out_packed, clk, reset);
 // conf_channel receivers
 ChannelSink chan_sinks[Nchan-1:0](conf_channel_out_unpacked, clk, reset);
 
-PCParser #(NPCin, NBDbiggest_data, Nconf, Nreg, Nchan) dut(.*);
+PCParser #(NPCin, Nconf, Nreg, Nchan) dut(.*);
 
 endmodule
 

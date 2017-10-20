@@ -22,7 +22,7 @@ module FPGA_TO_BD_tb;
     wire ready;
     wire [`NUM_BITS_PIN2CORE - 1: 0] data_out;
 
-    RandomChannelSrc #(.N(`NUM_BITS_PIN2CORE), .ClkDelaysMin(DelayMinCh), .ClkDelaysMax(DelayMaxCh)) fpga_src(.out(ch_from_fpga), .clk(clk), .reset(reset));
+    RandomChannelSrc #(.N(`NUM_BITS_PIN2CORE), .ClkDelaysMin(DelayMinCh), .ClkDelaysMax(DelayMaxCh)) fpga_src(.out(ch_from_fpga), .clk(clk2), .reset(reset));
     FPGA_TO_BD fpga_to_bd(.bd_channel(ch_from_fpga), .valid(valid), .data(data_out),
                           .ready(ready), .reset(reset), .clk(clk2));
     BD_Sink #(.NUM_BITS(`NUM_BITS_PIN2CORE), .DelayMin(DelayMinBD), .DelayMax(DelayMaxBD)) bd_sink(.ready(ready), .valid(valid), .data(data_out), .reset(reset), .clk(clk));
@@ -47,7 +47,7 @@ module BD_TO_FPGA_tb;
 // FPGA channel uses Valid-Acknowledge (active sender, passive receiver)
 // BD uses Ready-Valid (passive sender, active receiver)
     parameter DelayMinCh = 0;
-    parameter DelayMaxCh = 5;
+    parameter DelayMaxCh = 200;
     // parameter DelayMaxCh = 0;
     parameter DelayMinBD = 0;
     parameter DelayMaxBD = 200;

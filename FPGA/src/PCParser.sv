@@ -1,5 +1,6 @@
 `include "Interfaces.svh"
 `include "Channel.svh"
+`include "ChannelUtil.svh"
 
 module PCParser #(
   parameter NPCin = 32,
@@ -17,13 +18,23 @@ module PCParser #(
   UnencodedBDWordChannel BD_data_out,
   
   // input, from PC
-  Channel PC_in,
+  Channel PC_in_ext,
 
   // reset values for the conf registers
   // set in PCMapper (because PCMapper assigns the regs meaning)
   input [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals,
 
+  // input from TM
+  input stall,
+
   input clk, reset);
+
+/////////////////////////////////////////////////
+// stall input when running ahead
+
+Channel #(NPCin) PC_in();
+ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
+
 
 /////////////////////////////////////////////////
 //
@@ -84,7 +95,8 @@ module PCParser #(
 //  smaller channels just waste bits
 // the LSBs contain (up to) 16 bits of channel data
 
-localparam NBDbiggest_data = 20;
+
+localparam NBDbiggest_data = 24;
 localparam Narray_id_max_bits = NPCin - 2 - Nconf;
 
 // unpack PC_in.d for FPGA-bound word 
@@ -97,11 +109,10 @@ logic [Nconf-1:0] conf_data;
 assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
 
 // unpack PC_in.d for BD-bound word
-logic [1:0] BD_unused_hi;
+logic [1:0] BD_unused;
 logic [5:0] leaf_code;
-logic [3:0] BD_unused_lo;
 logic [NBDbiggest_data-1:0] BD_data;
-assign {BD_unused_hi, leaf_code, BD_unused_lo, BD_data} = PC_in.d;
+assign {BD_unused, leaf_code, BD_data} = PC_in.d;
 
 // determine word type, for convenience
 enum {BD_WORD, REG_WORD, CHANNEL_WORD} word_type;

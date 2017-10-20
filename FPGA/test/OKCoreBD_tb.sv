@@ -1,6 +1,7 @@
 `define SIMULATION 
 
 `include "../src/OKCoreBD.sv"
+`include "BDSrcSink.sv"
 
 `timescale 1ns / 1ps
 `default_nettype none
@@ -55,10 +56,10 @@ OKCoreBD dut(.*);
 logic reset_for_BD_src_sink;
 assign reset_for_BD_src_sink = sReset | pReset;
 // BD src
-BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(200)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
+BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(1000000)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset_for_BD_src_sink, BD_in_clk);
 
 // BD sink
-BD_Sink #(.NUM_BITS(21), .DelayMin(0), .DelayMax(200)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
+BD_Sink #(.NUM_BITS(21), .DelayMin(0), .DelayMax(1000000)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset_for_BD_src_sink, BD_out_clk);
 
 //------------------------------------------------------------------------
 // Begin okHostInterface simulation user configurable  global data
@@ -108,8 +109,8 @@ task SetChan(logic [4:0] chan_id, logic[15:0] data);
   i = i + 1;
 endtask
 
-task SendToBD(logic[5:0] code, logic[19:0] payload);
-  pipeInFlat[i] = {2'b00, code, 4'b0, payload};
+task SendToBD(logic[5:0] code, logic[23:0] payload);
+  pipeInFlat[i] = {2'b00, code, payload};
   assert(i < pipeInSize);
   i = i + 1;
 endtask
@@ -139,7 +140,7 @@ task SendToAllBD(int start, int num_words);
   localparam NumHornLeaves = 34;
   for (int i = 0; i < num_words; i++) begin
     automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
-    automatic logic [19:0] payload = $urandom_range(0, 2**20-1);
+    automatic logic [23:0] payload = $urandom_range(0, 2**23-1);
     SendToBD({2'b00, leaf}, payload);
   end
 endtask
@@ -151,25 +152,50 @@ initial begin
 	FrontPanelReset;                      // Start routine with FrontPanelReset;
   user_reset <= 0;
 
-  SendToBD(0, 3'b101); // ADC 
-  SendToBD(1, 11'b10101010101); // DAC0
-  SetReg(31, 0); // turn off resets
+  // turn off resets
+  // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
+  SetReg(31, 0); 
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  #(1000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+  // send AM word
+  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
 
-  #(1000)
-  ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+  // send PAT word
+  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send a bunch of BD words
-  // do it a few times in case pipeInSize < number of horn leaves (34)
-  SendToAllBD(0*pipeInSize, pipeInSize); 
-  FlushAndSendPipeIn();
-  SendToAllBD(1*pipeInSize, pipeInSize);
-  FlushAndSendPipeIn();
-  SendToAllBD(2*pipeInSize, pipeInSize);
-  FlushAndSendPipeIn();
+  // send TAT0 word
+  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // send TAT1 word
+  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
+  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  //SendToBD(0, 3'b101); // ADC 
+  //SendToBD(1, 11'b10101010101); // DAC0
+
+
+  //#(1000)
+  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+  //#(1000)
+  //ReadFromPipeOut(8'ha0, pipeOutSize); // get inputs from BDsrc
+
+  //// send a bunch of BD words
+  //// do it a few times in case pipeInSize < number of horn leaves (34)
+
+  //SendToAllBD(0*pipeInSize, pipeInSize); 
+  //FlushAndSendPipeIn();
+  //SendToAllBD(1*pipeInSize, pipeInSize);
+  //FlushAndSendPipeIn();
+  //SendToAllBD(2*pipeInSize, pipeInSize);
+  //FlushAndSendPipeIn();
 
   forever begin
     #(1000)

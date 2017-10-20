@@ -2,6 +2,9 @@
 #include "gtest/gtest.h"
 #include "logger.h"
 
+// only run log test if log is enabled
+#ifdef LOG_ENABLED
+
 class LoggableObject : public LoggableIfc {
 public:
     LoggableObject(std::string msg) : m_message(msg) {
@@ -101,3 +104,5 @@ TEST(LoggerTest, HandlesErrorLogWithLoggableObject){
     ASSERT_EQ(buffer.str(),correctString);
     std::cout.rdbuf(sbuf);
 }
+
+#endif // if LOG_ENABLED

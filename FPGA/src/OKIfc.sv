@@ -161,19 +161,28 @@ PipeOutFIFO fifo_out(
   .usedw(FIFO_out_count),
   .clock(okClk));
 
+// delay pipe out data 1 cycle
+// per OK manual
+logic [31:0] next_pipe_out_data;
+always_ff @(posedge okClk, posedge user_reset)
+  if (user_reset == 1)
+    pipe_out_data <= 'X;
+  else
+    pipe_out_data <= next_pipe_out_data;
+
 // FIFO -> pipe
 always_comb
   if (pipe_out_read == 1) // pipe needs data this cycle!
     if (FIFO_out_empty == 0) begin // use data from FPGA
-      pipe_out_data = FIFO_out_data_out;
+      next_pipe_out_data = FIFO_out_data_out;
       FIFO_out_rd_ack = 1;
     end
     else begin
-      pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
+      next_pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
       FIFO_out_rd_ack = 0;
     end
   else begin
-    pipe_out_data = 'X;
+    next_pipe_out_data = 'X;
     FIFO_out_rd_ack = 0;
   end
 
