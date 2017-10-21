@@ -1,8 +1,10 @@
 """This module defines the hardware resources of braindrop/brainstorm"""
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
-from .mem_word_enums import AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField
-from .mem_word_placeholders import BDWord
+
+# for BDWord
+from pystorm.PyDriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
+from pystorm.PyDriver import PackWord
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -190,10 +192,10 @@ class Neurons(Resource):
                 MMAY, MMAX = weights.InDimToMMA(in_idx)
                 AMA = buckets.start_addr
 
-                self.PAT_contents += [BDWord({
-                    PATField.AM_ADDRESS: AMA,
-                    PATField.MM_ADDRESS_LO: MMAX,
-                    PATField.MM_ADDRESS_HI: MMAY})]
+                self.PAT_contents += [PackWord([
+                    (bd.PATWord.AM_ADDRESS, AMA),
+                    (bd.PATWord.MM_ADDRESS_LO, MMAX),
+                    (bd.PATWord.MM_ADDRESS_HI, MMAY)])]
             self.PAT_contents = np.array(self.PAT_contents, dtype=object)
 
     def assign(self, core):
@@ -279,7 +281,7 @@ class MMWeights(Resource):
         """convert to BDWord, even though it's just a single int"""
         for W_slice in self.W_slices:
             contents = [[
-                BDWord({MMField.WEIGHT: W_slice[i, j]})
+                PackWord([(bd.MMWord.WEIGHT, W_slice[i, j])])
                 for j in range(W_slice.shape[1])]
                         for i in range(W_slice.shape[0])]
 
@@ -466,11 +468,11 @@ class AMBuckets(Resource):
 
         self.AM_entries = []
         for s, v, t, n in zip(stop, val, thr, NAs):
-            self.AM_entries += [BDWord({
-                AMField.ACCUMULATOR_VALUE: v,
-                AMField.THRESHOLD: t,
-                AMField.STOP: s,
-                AMField.NEXT_ADDRESS: n})]
+            self.AM_entries += [PackWord([
+                (bd.AMWord.ACCUMULATOR_VALUE, v),
+                (bd.AMWord.THRESHOLD, t),
+                (bd.AMWord.STOP, s),
+                (bd.AMWord.NEXT_ADDRESS, n)])]
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
@@ -527,11 +529,11 @@ class TATAccumulator(Resource):
                 MMAY, MMAX = weights.InDimToMMA(d)
                 stop = 1 * (t == len(self.conns_out) - 1)
 
-                self.contents += [BDWord({
-                    TATAccField.STOP: stop,
-                    TATAccField.AM_ADDRESS: AMA,
-                    TATAccField.MM_ADDRESS_LO: MMAX,
-                    TATAccField.MM_ADDRESS_HI: MMAY})]
+                self.contents += [PackWord([
+                    (TATAccWord.STOP, stop),
+                    (TATAccWord.AM_ADDRESS, AMA),
+                    (TATAccWord.MM_ADDRESS_LO, MMAX),
+                    (TATAccWord.MM_ADDRESS_HI, MMAY)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -604,12 +606,12 @@ class TATTapPoint(Resource):
                 tap1 = self.mapped_taps[k+1, d]
                 s1 = self.signs[k+1, d]
 
-                self.contents += [BDWord({
-                    TATSpikeField.STOP: stop,
-                    TATSpikeField.SYNAPSE_ADDRESS_0: tap0,
-                    TATSpikeField.SYNAPSE_SIGN_0: s0,
-                    TATSpikeField.SYNAPSE_ADDRESS_1: tap1,
-                    TATSpikeField.SYNAPSE_SIGN_1: s1})]
+                self.contents += [PackWord([
+                    (TATSpikeWord.STOP, stop),
+                    (TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
+                    (TATSpikeWord.SYNAPSE_SIGN_0, s0)
+                    (TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
+                    (TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -663,10 +665,10 @@ class TATFanout(Resource):
                 tag = tgt.in_tags[d]
                 global_route = 0
 
-                self.contents += [BDWord({
-                    TATTagField.STOP: stop,
-                    TATTagField.TAG: tag,
-                    TATTagField.GLOBAL_ROUTE: global_route})]
+                self.contents += [PackWord([
+                    (TATTagWord.STOP, stop),
+                    (TATTagWord.TAG, tag),
+                    (TATTagWord.GLOBAL_ROUTE, global_route)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):

@@ -1,7 +1,9 @@
 import numpy as np
-from .mem_word_enums import (AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField)
-from .mem_word_placeholders import BDWord
 import pystorm._PyStorm as ps
+
+# for BDWord
+from pystorm.PyDriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
+from pystorm.PyDriver import GetField
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -246,7 +248,7 @@ class MM(object):
         f = open(fname_pre + "MM.txt", 'w')
         for y in range(self.mem.shape[0]):
             for x in range(self.mem.shape[1]):
-                numstr = str(self.mem.M[y,x].At(MMField.WEIGHT))
+                numstr = str(GetField(self.mem.M[y,x], bd.MMWord.WEIGHT))
                 spaces = ' ' * max(1, 4 - len(numstr))
                 if x == 0:
                     f.write('[' + spaces)
@@ -274,11 +276,11 @@ class AM(object):
         f = open(fname_pre + "AM.txt", 'w')
         f.write("AM: [ val | thr | stop | na ]\n")
         for idx in range(self.mem.shape[0]):
-            m = self.mem.M[idx]
-            val = m.At(AMField.ACCUMULATOR_VALUE)
-            thr = m.At(AMField.THRESHOLD)
-            stop = m.At(AMField.STOP)
-            na = m.At(AMField.NEXT_ADDRESS)
+            m    = self.mem.M[idx]
+            val  = GetField(m, AMWord.ACCUMULATOR_VALUE)
+            thr  = GetField(m, AMWord.THRESHOLD)
+            stop = GetField(m, AMWord.STOP)
+            na   = GetField(m, AMWord.NEXT_ADDRESS)
             f.write("[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n")
         f.close()
 
@@ -301,30 +303,30 @@ class TAT(object):
         for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
 
-            if m.At(TATTagField.FIXED_2) != 0:
-                ty = 2
-                s = m.At(TATTagField.STOP)
-                tag = m.At(TATTagField.TAG)
-                grt = m.At(TATTagField.GLOBAL_ROUTE)
-                X = m.At(TATTagField.UNUSED)
+            if GetField(m, TATTagWord.FIXED_2) == 2:
+                ty  = 2
+                s   = GetField(m, TATTagWord.STOP)
+                tag = GetField(m, TATTagWord.TAG)
+                grt = GetField(m, TATTagWord.GLOBAL_ROUTE)
+                X   = GetField(m, TATTagWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n")
 
-            elif m.At(TATSpikeField.FIXED_1) != 0:
-                ty = 1
-                s = m.At(TATSpikeField.STOP)
-                tap0 = m.At(TATSpikeField.SYNAPSE_ADDRESS_0)
-                s0 = m.At(TATSpikeField.SYNAPSE_SIGN_0)
-                tap1 = m.At(TATSpikeField.SYNAPSE_ADDRESS_1)
-                s1 = m.At(TATSpikeField.SYNAPSE_SIGN_1)
-                X = m.At(TATSpikeField.UNUSED)
+            elif GetField(m, TATSpikeWord.FIXED_1) == 1:
+                ty   = 1
+                s    = GetField(m, TATSpikeWord.STOP)
+                tap0 = GetField(m, TATSpikeWord.SYNAPSE_ADDRESS_0)
+                s0   = GetField(m, TATSpikeWord.SYNAPSE_SIGN_0)
+                tap1 = GetField(m, TATSpikeWord.SYNAPSE_ADDRESS_1)
+                s1   = GetField(m, TATSpikeWord.SYNAPSE_SIGN_1)
+                X    = GetField(m, TATSpikeWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
 
             else:
-                ty = 0
-                s = m.At(TATAccField.STOP)
-                ama = m.At(TATAccField.AM_ADDRESS)
-                mmax = m.At(TATAccField.MM_ADDRESS_LO)
-                mmay = m.At(TATAccField.MM_ADDRESS_HI)
+                ty   = 0
+                s    = GetField(m, TATAccWord.STOP)
+                ama  = GetField(m, TATAccWord.AM_ADDRESS)
+                mmax = GetField(m, TATAccWord.MM_ADDRESS_LO)
+                mmay = GetField(m, TATAccWord.MM_ADDRESS_HI)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
 
         f.close()
@@ -342,10 +344,10 @@ class PAT(object):
         f = open(fname_pre + "PAT.txt", 'w')
         f.write("PAT : [ ama | mmax | mmay_base ]\n")
         for idx in range(self.mem.shape[0]):
-            m = self.mem.M[idx]
-            ama = m.At(PATField.AM_ADDRESS)
-            mmax = m.At(PATField.MM_ADDRESS_LO)
-            mmay_base = m.At(PATField.MM_ADDRESS_HI)
+            m         = self.mem.M[idx]
+            ama       = GetField(m, PATWord.AM_ADDRESS)
+            mmax      = GetField(m, PATWord.MM_ADDRESS_LO)
+            mmay_base = GetField(m, PATWord.MM_ADDRESS_HI)
             f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
