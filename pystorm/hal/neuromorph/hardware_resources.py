@@ -122,12 +122,19 @@ class Resource(ABC):
         pass
 
     def allocate_early(self, core):
-        """Perform bookeeping before allocating the core to the resources"""
+        """Some objects need to be allocated before others, the first set of objects is allocated here"""
+        # for now, only MMWeights has allocate early, to allocate decoders before transforms
         pass
 
     @abstractmethod
     def allocate(self, core):
         """Allocate the core to the resources"""
+        pass
+
+    def posttranslate_early(self, core):
+        """Perform bookeeping after allocating, some bookkeeping has to be done first"""
+        # for now, only AMBuckets has posttranslate_early, to compute max_row_weights,
+        # which is needed by MMWeights' posttranslate
         pass
 
     def posttranslate(self, core):
@@ -213,104 +220,18 @@ class MMWeights(Resource):
     XXX later can code this up to automate matrix caching
     """
 
-    # XXX this is probably the wrong syntax
+    # static member variables
     # keep track of MMWeights -> unique id for combined matrices
     forward_cache = {}
     # keep track of unique ids for combined matrices -> list(MMWeights)
     reverse_cache = {}
 
-    def __init__(self, W):
-        super().__init__(
-            [Neurons, TATAccumulator], [AMBuckets],
-            sliceable_in=True, sliceable_out=False,
-            max_conns_in=1, max_conns_out=1)
-
-        self.user_W = W
-
-        # do caching based on object id of W, object id of self
-        MMWeights.forward_cache[id(self)] = id(W)
-        if self in MMWeights.reverse_cache:
-            MMWeights.reverse_cache[id(W)] += [id(self)]
-        else:
-            MMWeights.reverse_cache[id(W)] = [id(self)]
-
-        # pretranslate (XXX by AMBuckets's pretranslate!)
-        self.is_dec = None
-        self.programmed_W = None
-        self.W_slices = []
-
-        # allocate (by AMBuckets)
-        self.slice_start_addrs = []
-
-        # posttranslate
-        self.W_slices_contents = []
-
-    def InDimToMMA(self, dim):
-        """Calculate the max x and y coordinates in main memory associated with dim"""
-        slice_width = self.W_slices[0].shape[1]
-        slice_idx = dim // slice_width
-        slice_offset = dim % slice_width
-        MM_start_addr = self.slice_start_addrs[slice_idx]
-        MMAY = MM_start_addr[0] + slice_offset
-        MMAX = MM_start_addr[1]
-        return [MMAY, MMAX]
-
-    @property
-    def dimensions_in(self):
-        return self.user_W.shape[1]
-
-    @property
-    def dimensions_out(self):
-        return self.user_W.shape[0]
-
-    def allocate_early(self, core):
-        """allocate decoders (big slices) first"""
-        if self.is_dec:
-            for W_slice in self.W_slices:
-                start_addr = core.MM.AllocateDec(self.dimensions_out)
-                self.slice_start_addrs += [start_addr]
-
-    def allocate(self, core):
-        """allocate transforms (small slices) after"""
-        if not self.is_dec:
-            for W_slice in self.W_slices:
-                start_addr = core.MM.AllocateTrans(self.dimensions_out)
-                self.slice_start_addrs += [start_addr]
-
-    def posttranslate(self, core):
-        """convert to BDWord, even though it's just a single int"""
-        for W_slice in self.W_slices:
-            contents = [[
-                PackWord([(bd.MMWord.WEIGHT, W_slice[i, j])])
-                for j in range(W_slice.shape[1])]
-                        for i in range(W_slice.shape[0])]
-
-            self.W_slices_contents += [np.array(contents, dtype=object)]
-
-
-    def assign(self, core):
-        for W_slice, start_addr in zip(
-                self.W_slices_contents, self.slice_start_addrs):
-            if self.is_dec:
-                # transpose, the memory is flipped from linalg orientation
-                core.MM.AssignDec(W_slice.T, start_addr)
-            else:
-                # 1D slices in trans row case
-                core.MM.AssignTrans(W_slice, start_addr)
-
-class AMBuckets(Resource):
-    """Represents entries in accumulator memory
-
-    The accumulator memory contains an array of buckets defined by
-    their threshold values and next address targets in the hardware.
-    The last bucket has the stop bit
-    """
-
     @staticmethod
-    def weight_to_mem(user_W, core):
-        """Given the user's desired weight matrix and the core parameters,
+    def weight_to_mem(user_W, max_abs_row_weights, core):
+        """Given the user's desired weight matrix, the max weights
+        implemented in the decoder/transform row (which may be shared
+        with other user_Ws), and the core parameters,
         determine the best implementable weights and threshold values
-        is a namespace fn, not a member fn
         """
 
         def dec2onesc(x, max_weight):
@@ -334,9 +255,136 @@ class AMBuckets(Resource):
 
             return xonesc
 
-        # first, determine bucket thresholds
-        # biggest weight in each row (feeding each bucket)
-        user_max_abs_W_rows = np.max(np.abs(user_W), axis=1)
+        # this is the threshold value we should use (and scale the user weights by, in this case)
+        _, thr_vals = AMBuckets.thr_idxs_vals(max_abs_row_weights, core)
+
+        W = (user_W.T * thr_vals).T
+        W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
+
+        W = dec2onesc(W, core.max_weight_value)
+
+        return W
+
+
+    def __init__(self, W):
+        super().__init__(
+            [Neurons, TATAccumulator], [AMBuckets],
+            sliceable_in=True, sliceable_out=False,
+            max_conns_in=1, max_conns_out=1)
+
+        self.user_W = W
+
+        # do caching based on object id of W, object id of self
+        MMWeights.forward_cache[id(self)] = id(W)
+        if self in MMWeights.reverse_cache:
+            MMWeights.reverse_cache[id(W)] += [id(self)]
+        else:
+            MMWeights.reverse_cache[id(W)] = [id(self)]
+
+        # pretranslate
+        self.W_slice_idxs = []
+        self.is_dec = None
+
+        # allocate (by AMBuckets)
+        self.slice_start_addrs = []
+
+        # posttranslate
+        self.programmed_W = None
+        self.W_slices = []
+        self.W_slices_BDWord = []
+
+
+    def InDimToMMA(self, dim):
+        """Calculate the max x and y coordinates in main memory associated with dim"""
+        slice_width = self.W_slices[0].shape[1]
+        slice_idx = dim // slice_width
+        slice_offset = dim % slice_width
+        MM_start_addr = self.slice_start_addrs[slice_idx]
+        MMAY = MM_start_addr[0] + slice_offset
+        MMAX = MM_start_addr[1]
+        return [MMAY, MMAX]
+
+    @property
+    def dimensions_in(self):
+        return self.user_W.shape[1]
+
+    @property
+    def dimensions_out(self):
+        return self.user_W.shape[0]
+
+    def pretranslate(self, core):
+        """Determine matrix slicing. Decoders are broken into 64 entry tall slices, Transforms into 1 entry tall slices"""
+
+        # first, decide if this is a decoder or a transform
+        if len(self.conns_in) > 0:
+            self.is_dec = isinstance(self.conns_in[0].src, Neurons)
+        else:
+            self.is_dec = False
+            print("Warning: in pretranslate, odd situation: MMWeights with no input connection")
+
+        # generate slice indexing
+        if self.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
+            slice_width = core.NeuronArray_pool_size
+        else: # can chop up transforms by single columns
+            slice_width = 1
+        
+        self.W_slice_idxs = [(i, min(programmed_W.shape[1], i+slice_width)) for i in range(0, programmed_W.shape[1], slice_width)]
+
+    def allocate_early(self, core):
+        """allocate decoders (big slices) first"""
+        if self.is_dec:
+            for W_slice_idx in self.W_slice_idxs: 
+                # actually doesn't matter what the slice is, always allocate 64xDO
+                start_addr = core.MM.AllocateDec(self.dimensions_out)
+                self.slice_start_addrs += [start_addr]
+
+    def allocate(self, core):
+        """allocate transforms (small slices) after"""
+        if not self.is_dec:
+            for W_slice_idx in self.W_slice_idxs:
+                # actually doesn't matter what the slice is, always allocate 1xDO
+                start_addr = core.MM.AllocateTrans(self.dimensions_out)
+                self.slice_start_addrs += [start_addr]
+
+    def posttranslate(self, core):
+        # look at AMBuckets.max_user_W, compute weights to program
+        self.programmed_W = MMWeights.weight_to_mem(user_W, conns_out[0].max_abs_row_weights, core)
+
+        # slice up W according to slice indexing
+        for W_slice_idx in self.W_slice_idxs:
+            self.W_slices += [self.programmed_W[W_slice_idx[0]:W_slice_idx[1]]]
+
+        # Pack into BDWord (which doesn't actually do anything)
+        for W_slice in self.W_slices:
+            contents = [
+                [PackWord([(bd.MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
+            for i in range(W_slice.shape[0])]
+
+            self.W_slices_BDWord += [np.array(contents, dtype=object)]
+
+    def assign(self, core):
+        for W_slice, start_addr in zip(
+                self.W_slices_BDWord, self.slice_start_addrs):
+            if self.is_dec:
+                # transpose, the memory is flipped from linalg orientation
+                core.MM.AssignDec(W_slice.T, start_addr)
+            else:
+                # 1D slices in trans row case
+                core.MM.AssignTrans(W_slice, start_addr)
+
+class AMBuckets(Resource):
+    """Represents entries in accumulator memory
+
+    The accumulator memory contains an array of buckets defined by
+    their threshold values and next address targets in the hardware.
+    The last bucket has the stop bit
+    """
+
+    @staticmethod
+    def thr_idxs_vals(max_abs_row_weights, core):
+        """for a set of max_abs_row_weights, get the thr idx (programmed values) and 
+        effective weight values that the AMBuckets should use
+        """
 
         # With the threshold at the minimum value (64),
         # it's technically possible to have weights that behave sort of like
@@ -344,53 +392,24 @@ class AMBuckets(Resource):
         # To have well-defined behavior, with threshold = 64, the weights
         # must be in [-64, 64]
         # this is equivalent to restricting the user weights to be in [-1, 1]
-        assert np.max(user_max_abs_W_rows) <= 1
+        assert np.max(max_abs_row_weights) <= 1
 
-        # compute hardware threshold vals (64, 128, 256, ...)
-        thr_vals = np.array(
+        # compute all possible hardware threshold vals (64, 128, 256, ...)
+        all_thr_vals = np.array(
             [core.min_threshold_value * 2**t for t in range(core.num_threshold_levels)])
 
         # compute max possible weight, in user-space, for each threshold value
         # the first value (for threshold = 64) is special, as noted above
         user_max_weights_for_thr_vals = np.array(
-            [1.] + [core.max_weight_value / thr_val for thr_val in thr_vals[1:]])
+            [1.] + [core.max_weight_value / thr_val for thr_val in all_thr_vals[1:]])
 
         # find max_row_Ws in the user_max_weights we just computed
         # user_max_weights is descending, so we provide the sorter argument
-        #sorter_idxs = np.array(range(len(thr_vals))[::-1])
-        #thr_idxs = np.searchsorted(
-        #    user_max_weights_for_thr_vals, user_max_abs_W_rows, sorter=sorter_idxs) - 1
-        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -user_max_abs_W_rows) - 1
+        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights) - 1
 
-        # this is the threshold value we should use (and scale the user weights by)
-        row_thr_vals = thr_vals[thr_idxs]
+        thr_vals = all_thr_vals[thr_idxs]
 
-        W = (user_W.T * row_thr_vals).T
-        W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
-
-        W = dec2onesc(W, core.max_weight_value)
-
-        return W, thr_idxs
-
-    @staticmethod
-    def weights_to_mem(W_list, core):
-        """extends weight_to_mem to work for multiple matrices sharing the same bucket
-        works by stacking the matrices, calling the original function, then unstacking
-        is a namespace fn, not a member fn
-        """
-        W = np.hstack(W_list)
-
-        programmed_W, thr = AMBuckets.weight_to_mem(W, core)
-
-        input_dims = [w.shape[1] for w in W_list]
-        split_indices = np.cumsum(input_dims)
-
-        if len(split_indices > 1):
-            programmed_W_list = np.split(programmed_W, split_indices[:-1], axis=1)
-        else:
-            programmed_W_list = [programmed_W]
-
-        return programmed_W_list, thr
+        return thr_idxs, thr_vals
 
     def __init__(self, D):
         super().__init__([MMWeights], [TATAccumulator, TATFanout, TATTapPoint, Sink],
@@ -403,10 +422,11 @@ class AMBuckets(Resource):
         # filled in allocation
         self.start_addr = None
 
+        # filled in posttranslate_early
+        self.max_abs_row_weights = None
+
         # filled in posttranslate
         self.AM_entries = None
-
-    # XXX these methods modify any attached MMWeights objects!
 
     @property
     def dimensions_in(self):
@@ -416,58 +436,31 @@ class AMBuckets(Resource):
     def dimensions_out(self):
         return self.D
 
-    def pretranslate(self, core):
-        """first, derive thresholds and weight matrix entries"""
-
-        # collect all input matrices
-        user_W_list = [conn.src.user_W for conn in self.conns_in]
-
-        programmed_W_list, self.thr = AMBuckets.weights_to_mem(user_W_list, core)
-
-        # iterate through all input MMWeights conns
-        for conn, programmed_W in zip(self.conns_in, programmed_W_list):
-
-            # assign programmed_W
-            MM_weight = conn.src
-            MM_weight.programmed_W = programmed_W
-
-            # break weight matrix into per-pool (or per-dim, for transforms) slices
-
-            if len(MM_weight.conns_in) > 0:
-                MM_weight.is_dec = isinstance(MM_weight.conns_in[0].src, Neurons)
-            else:
-                MM_weight.is_dec = False
-
-            if MM_weight.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
-                slice_width = core.NeuronArray_pool_size
-            else: # can chop up transforms by single columns
-                slice_width = 1
-
-            n = 0
-            while n * slice_width < programmed_W.shape[1]:
-                lo = n * slice_width
-                hi = min(programmed_W.shape[1], (n+1) * slice_width)
-                W_slice = programmed_W[:, lo:hi]
-                MM_weight.W_slices += [W_slice]
-                n += 1
-
     def allocate(self, core):
         self.start_addr = core.AM.Allocate(self.dimensions_out)
 
+    def posttranslate_early(self, core):
+        """Determines the largest weight in each dimension feeding these buckets is"""
+        W_list = [conn.src.user_W for conn in self.conns_in]
+        W_stack = np.hstack(W_list)
+
+        self.max_abs_row_weights = np.max(np.abs(W_stack), axis=1)
+
     def posttranslate(self, core):
+
         # we need to create the (stop, value, thresholds) and next address entries for the AM
         stop = np.zeros((self.dimensions_out,)).astype(int)
         stop[-1] = 1
         val = np.zeros((self.dimensions_out,)).astype(int)
-        thr = self.thr
+        thr_idx, _ = thr_idxs_vals(self.max_abs_row_weights, core)
 
         if len(self.conns_out) > 0:
             NAs = self.conns_out[0].tgt.in_tags
         else:
-            NAs = np.zeros_like(thr)
+            NAs = np.zeros_like(thr_idx)
 
         self.AM_entries = []
-        for s, v, t, n in zip(stop, val, thr, NAs):
+        for s, v, t, n in zip(stop, val, thr_idx, NAs):
             self.AM_entries += [PackWord([
                 (bd.AMWord.ACCUMULATOR_VALUE, v),
                 (bd.AMWord.THRESHOLD, t),

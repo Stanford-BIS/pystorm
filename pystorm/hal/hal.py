@@ -152,6 +152,10 @@ class HAL(object):
         """
         ng_obj_to_hw, hardware_resources, core = map_network(network)
         hw_to_ng_obj = {v: k for k, v in ng_obj_to_hw.items()}
+
+        # implement core objects, calling driver
+        core.Implement(self.driver, CORE_ID)
+
         # what do I set after getting this mapping?
         # tags to Input/Output mapping?
         self.ng_input_to_tags = None # TODO

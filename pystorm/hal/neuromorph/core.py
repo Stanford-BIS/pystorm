@@ -5,6 +5,9 @@ import pystorm._PyStorm as ps
 from pystorm.PyDriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
 from pystorm.PyDriver import GetField
 
+# for SetMem
+from pystorm.PyDriver.bdpars import MemId
+
 class Core(object):
     """Represents a braindrop/brainstorm core
 
@@ -74,6 +77,14 @@ class Core(object):
         self.TAT1.WriteToFile(fname_pre, self, 1)
         self.MM.WriteToFile(fname_pre, self)
         self.AM.WriteToFile(fname_pre, self)
+
+    def Implement(self, driver, core_id):
+        """Calls a supplied driver to implement this Core to BD"""
+        driver.SetMem(core_id, MemId.PAT,  self.PAT.m,  0);
+        driver.SetMem(core_id, MemId.TAT0, self.TAT0.m, 0);
+        driver.SetMem(core_id, MemId.TAT1, self.TAT1.m, 0);
+        driver.SetMem(core_id, MemId.MM,   self.MM.m,   0);
+        driver.SetMem(core_id, MemId.AM,   self.AM.m,   0);
 
 class MemAllocator(object):
     def __init__(self, shape):
