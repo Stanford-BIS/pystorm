@@ -1,12 +1,11 @@
 import numpy as np
-import pystorm._PyStorm as ps
 
 # for BDWord
-from pystorm.PyDriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
-from pystorm.PyDriver import GetField
+from PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
+from PyDriver.pystorm.bddriver import GetField
 
 # for SetMem
-from pystorm.PyDriver.bdpars import MemId
+from PyDriver.pystorm.bddriver.bdpars import BDMemId
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -211,9 +210,9 @@ class Memory(object):
     def __init__(self, shape, ):
         self.shape = shape
         if len(self.shape) == 1:
-            self.M = [BDWord({}) for i in range(self.shape[0])]
+            self.M = [None for i in range(self.shape[0])]
         else:
-            self.M = [[BDWord({}) for i in range(self.shape[0])] for j in range(self.shape[1])]
+            self.M = [[None for i in range(self.shape[0])] for j in range(self.shape[1])]
         self.M = np.array(self.M, dtype=object)
 
     def Assign1DBlock(self, mem, start):

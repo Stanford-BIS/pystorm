@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 
 # for BDWord
-from pystorm.PyDriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
-from pystorm.PyDriver import PackWord
+from PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
+from PyDriver.pystorm.bddriver import PackWord
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -115,9 +115,8 @@ class Resource(ABC):
 
     def pretranslate(self, core):
         """Perform any bookeeping that's needed before allocation
-
-        Some preprocessing needs Core parameters,
-        which aren't available during construction
+        This might include things like determining how to break up matrices or pools
+        into the chunks that go into the allocator.
         """
         pass
 
@@ -128,17 +127,22 @@ class Resource(ABC):
 
     @abstractmethod
     def allocate(self, core):
-        """Allocate the core to the resources"""
+        """Allocate the core to the resources. These should be simple calls.
+        Elaborate logic is meant to go in pretranslate.
+        """
         pass
 
     def posttranslate_early(self, core):
-        """Perform bookeeping after allocating, some bookkeeping has to be done first"""
+        """Perform bookeeping after allocating, but before other bookkeeping"""
         # for now, only AMBuckets has posttranslate_early, to compute max_row_weights,
         # which is needed by MMWeights' posttranslate
         pass
 
     def posttranslate(self, core):
-        """Perform bookeeping after allocating the core to the resources"""
+        """Perform bookeeping after allocating the core to the resources
+        This might include things like determining accumulator threshold values/
+        weight matrix scalings. It also includes packing BDWords before assign()
+        """
         pass
 
     def assign(self, core):
@@ -347,6 +351,7 @@ class MMWeights(Resource):
                 self.slice_start_addrs += [start_addr]
 
     def posttranslate(self, core):
+        """calculate implemented weights"""
         # look at AMBuckets.max_user_W, compute weights to program
         self.programmed_W = MMWeights.weight_to_mem(user_W, conns_out[0].max_abs_row_weights, core)
 
@@ -440,7 +445,9 @@ class AMBuckets(Resource):
         self.start_addr = core.AM.Allocate(self.dimensions_out)
 
     def posttranslate_early(self, core):
-        """Determines the largest weight in each dimension feeding these buckets is"""
+        """Determines the largest weight in each dimension feeding these buckets is.
+        MMWeights posttranslate depends on this, so it uses posttranslate_early.
+        """
         W_list = [conn.src.user_W for conn in self.conns_in]
         W_stack = np.hstack(W_list)
 

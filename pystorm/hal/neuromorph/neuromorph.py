@@ -1,10 +1,10 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-from . import core_pars
-from pystorm.hal.neuromorph.graph import (Bucket, Input, Output, Pool)
-from .core import Core
-from .hardware_resources import (
+import core_pars
+from graph import (Bucket, Input, Output, Pool)
+from core import Core
+from hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
 
 def instance_method_singledispatch(func):
@@ -364,6 +364,11 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
         resource.allocate(core)
     if verbose:
         print("finished allocate")
+
+    for resource in hardware_resources:
+        resource.posttranslate_early(core)
+    if verbose:
+        print("finished posttranslate_early")
 
     for resource in hardware_resources:
         resource.posttranslate(core)

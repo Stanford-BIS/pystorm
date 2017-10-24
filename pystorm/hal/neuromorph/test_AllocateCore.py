@@ -1,7 +1,7 @@
-from Resources import *
-from Core import *
-from CoreParsPlaceholder import *
-from test_Resources import *
+from test_hardware_resources import *
+from core import Core
+from core_pars import *
+from neuromorph import map_resources_to_core
 
 print("calling Map for various Resource graphs")
 print("writing results to net_dump/")
@@ -16,8 +16,8 @@ for idx, N in enumerate([N1, N2, N3, N4]):
 #for idx, n in enumerate([N1]):
 
     print("NETWORK " + str(idx))
-    pars = CoreParsPlaceholder()
+    pars = get_core_pars()
     core = Core(pars)
-    core.Map(N, verbose=True)
+    map_resources_to_core(N, core, True)
     core.Print()
     core.WriteMemsToFile("net_dump/N" + str(idx))
