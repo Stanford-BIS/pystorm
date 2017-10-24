@@ -210,9 +210,9 @@ class Memory(object):
     def __init__(self, shape, ):
         self.shape = shape
         if len(self.shape) == 1:
-            self.M = [None for i in range(self.shape[0])]
+            self.M = [0 for i in range(self.shape[0])]
         else:
-            self.M = [[None for i in range(self.shape[0])] for j in range(self.shape[1])]
+            self.M = [[0 for i in range(self.shape[0])] for j in range(self.shape[1])]
         self.M = np.array(self.M, dtype=object)
 
     def Assign1DBlock(self, mem, start):
@@ -258,7 +258,7 @@ class MM(object):
         f = open(fname_pre + "MM.txt", 'w')
         for y in range(self.mem.shape[0]):
             for x in range(self.mem.shape[1]):
-                numstr = str(GetField(self.mem.M[y,x], bd.MMWord.WEIGHT))
+                numstr = str(GetField(self.mem.M[y,x], MMWord.WEIGHT))
                 spaces = ' ' * max(1, 4 - len(numstr))
                 if x == 0:
                     f.write('[' + spaces)
@@ -332,11 +332,12 @@ class TAT(object):
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
 
             else:
-                ty   = 0
-                s    = GetField(m, TATAccWord.STOP)
-                ama  = GetField(m, TATAccWord.AM_ADDRESS)
-                mmax = GetField(m, TATAccWord.MM_ADDRESS_LO)
-                mmay = GetField(m, TATAccWord.MM_ADDRESS_HI)
+                ty  = 0
+                s   = GetField(m, TATAccWord.STOP)
+                ama = GetField(m, TATAccWord.AM_ADDRESS)
+                mma = GetField(m, TATAccWord.MM_ADDRESS)
+                mmay = mma / core.MM_width
+                mmax = mma % core.MM_width
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
 
         f.close()

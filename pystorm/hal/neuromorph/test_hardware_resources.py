@@ -4,16 +4,6 @@ from hardware_resources import (
 
 R = []
 
-# weights -> bucket
-def GetN1():
-    D = 2
-
-    W = MMWeights(np.random.rand(D, D))
-    B = AMBuckets(D)
-
-    W.connect(B)
-
-    return [W, B]
 
 # neurons -> weights -> bucket
 def GetN2():
@@ -28,6 +18,21 @@ def GetN2():
     W.connect(B)
 
     return [N, W, B]
+
+# weights -> bucket
+# XXX this is no longer legal
+def GetN1():
+    """
+    D = 2
+
+    W = MMWeights(np.random.rand(D, D))
+    B = AMBuckets(D)
+
+    W.connect(B)
+
+    return [W, B]
+    """
+    return GetN2()
 
 # source -> TATTapPoint -> neurons -> weights -> bucket -> sink
 def GetN3():
@@ -87,12 +92,12 @@ def GetN4():
 
     return [I1, I2, TP, TA, TF, N, W1, W2, B, O1, O2]
 
-def __main__():
+if __name__ == "__main__":
 
     print("creating Resource graphs")
     print("all this is testing is that no assertions are thrown, expect no further output")
 
     N1 = GetN1()
     N2 = GetN2()
-N3 = GetN3()
-N4 = GetN4()
+    N3 = GetN3()
+    N4 = GetN4()

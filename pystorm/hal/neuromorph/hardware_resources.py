@@ -204,9 +204,9 @@ class Neurons(Resource):
                 AMA = buckets.start_addr
 
                 self.PAT_contents += [PackWord([
-                    (bd.PATWord.AM_ADDRESS, AMA),
-                    (bd.PATWord.MM_ADDRESS_LO, MMAX),
-                    (bd.PATWord.MM_ADDRESS_HI, MMAY)])]
+                    (PATWord.AM_ADDRESS, AMA),
+                    (PATWord.MM_ADDRESS_LO, MMAX),
+                    (PATWord.MM_ADDRESS_HI, MMAY)])]
             self.PAT_contents = np.array(self.PAT_contents, dtype=object)
 
     def assign(self, core):
@@ -300,7 +300,7 @@ class MMWeights(Resource):
 
     def InDimToMMA(self, dim):
         """Calculate the max x and y coordinates in main memory associated with dim"""
-        slice_width = self.W_slices[0].shape[1]
+        slice_width = self.user_W.shape[1]
         slice_idx = dim // slice_width
         slice_offset = dim % slice_width
         MM_start_addr = self.slice_start_addrs[slice_idx]
@@ -332,7 +332,7 @@ class MMWeights(Resource):
         else: # can chop up transforms by single columns
             slice_width = 1
         
-        self.W_slice_idxs = [(i, min(programmed_W.shape[1], i+slice_width)) for i in range(0, programmed_W.shape[1], slice_width)]
+        self.W_slice_idxs = [(i, min(self.user_W.shape[1], i+slice_width)) for i in range(0, self.user_W.shape[1], slice_width)]
 
     def allocate_early(self, core):
         """allocate decoders (big slices) first"""
@@ -353,7 +353,7 @@ class MMWeights(Resource):
     def posttranslate(self, core):
         """calculate implemented weights"""
         # look at AMBuckets.max_user_W, compute weights to program
-        self.programmed_W = MMWeights.weight_to_mem(user_W, conns_out[0].max_abs_row_weights, core)
+        self.programmed_W = MMWeights.weight_to_mem(self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
 
         # slice up W according to slice indexing
         for W_slice_idx in self.W_slice_idxs:
@@ -362,7 +362,7 @@ class MMWeights(Resource):
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:
             contents = [
-                [PackWord([(bd.MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
+                [PackWord([(MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
             for i in range(W_slice.shape[0])]
 
             self.W_slices_BDWord += [np.array(contents, dtype=object)]
@@ -459,7 +459,7 @@ class AMBuckets(Resource):
         stop = np.zeros((self.dimensions_out,)).astype(int)
         stop[-1] = 1
         val = np.zeros((self.dimensions_out,)).astype(int)
-        thr_idx, _ = thr_idxs_vals(self.max_abs_row_weights, core)
+        thr_idx, _ = AMBuckets.thr_idxs_vals(self.max_abs_row_weights, core)
 
         if len(self.conns_out) > 0:
             NAs = self.conns_out[0].tgt.in_tags
@@ -469,10 +469,10 @@ class AMBuckets(Resource):
         self.AM_entries = []
         for s, v, t, n in zip(stop, val, thr_idx, NAs):
             self.AM_entries += [PackWord([
-                (bd.AMWord.ACCUMULATOR_VALUE, v),
-                (bd.AMWord.THRESHOLD, t),
-                (bd.AMWord.STOP, s),
-                (bd.AMWord.NEXT_ADDRESS, n)])]
+                (AMWord.ACCUMULATOR_VALUE, v),
+                (AMWord.THRESHOLD, t),
+                (AMWord.STOP, s),
+                (AMWord.NEXT_ADDRESS, n)])]
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
@@ -515,7 +515,7 @@ class TATAccumulator(Resource):
             range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT0.allocate(self.size)
+        self.start_addr = core.TAT0.Allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets
 
     def posttranslate(self, core):
@@ -527,17 +527,17 @@ class TATAccumulator(Resource):
 
                 AMA = buckets.start_addr
                 MMAY, MMAX = weights.InDimToMMA(d)
+                MMA = MMAY * core.MM_width + MMAX
                 stop = 1 * (t == len(self.conns_out) - 1)
 
                 self.contents += [PackWord([
                     (TATAccWord.STOP, stop),
                     (TATAccWord.AM_ADDRESS, AMA),
-                    (TATAccWord.MM_ADDRESS_LO, MMAX),
-                    (TATAccWord.MM_ADDRESS_HI, MMAY)])]
+                    (TATAccWord.MM_ADDRESS, MMA)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT0.assign(self.contents, self.start_addr)
+        core.TAT0.Assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
     """XXX not supporting fanout to multiple pools (and therefore no output slicing).
@@ -595,6 +595,10 @@ class TATTapPoint(Resource):
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
+
+        def bin_sign(sign):
+            return (sign + 1) // 2
+
         self.mapped_taps = self.tap_map(self.conns_out[0].tgt.start_nrn_idx + self.taps)
 
         self.contents = []
@@ -602,14 +606,14 @@ class TATTapPoint(Resource):
             for k in range(0, self.K, 2):
                 stop = 1*(k == self.K - 2)
                 tap0 = self.mapped_taps[k, d]
-                s0 = self.signs[k, d]
+                s0 = bin_sign(self.signs[k, d])
                 tap1 = self.mapped_taps[k+1, d]
-                s1 = self.signs[k+1, d]
+                s1 = bin_sign(self.signs[k+1, d])
 
                 self.contents += [PackWord([
                     (TATSpikeWord.STOP, stop),
                     (TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
-                    (TATSpikeWord.SYNAPSE_SIGN_0, s0)
+                    (TATSpikeWord.SYNAPSE_SIGN_0, s0),
                     (TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
                     (TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
         self.contents = np.array(self.contents, dtype=object)
