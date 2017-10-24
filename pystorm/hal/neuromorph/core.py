@@ -363,8 +363,13 @@ class PAT(object):
         f.close()
 
 class NeuronArray(object):
-    def __init__(self, N, NPOOL):
-        self.NPOOL = NPOOL
+    def __init__(self, x, y, pool_x, pool_y):
+        self.y = y
+        self.x = x
+        self.pool_y = pool_y
+        self.pool_x = pool_x
+        assert(x % pool_x == 0)
+        assert(y % pool_y == 0)
         self.n_pools = N // NPOOL
         shape = (self.n_pools,)
         self.alloc = StepMemAllocator(shape) # FIXME need smarter allocator to make square-ish shapes eventually
