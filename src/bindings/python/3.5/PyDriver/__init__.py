@@ -1,21 +1,22 @@
-from . _PyDriver import pystorm as pystorm
+from . _PyDriver import pystorm as _pystorm
 from yaml import load, dump
 try:
     from yaml import CLoader as Loader, CDumper as Dumper
 except ImportError:
     from yaml import Loader, Dumper
+bddriver = _pystorm.bddriver
 
-__Driver__ = pystorm.bddriver.Driver
-BDHornEP = pystorm.bddriver.bdpars.BDHornEP
-ConfigSomaID = pystorm.bddriver.bdpars.ConfigSomaID
-ConfigSynapseID = pystorm.bddriver.bdpars.ConfigSynapseID
-SomaStatusId = pystorm.bddriver.bdpars.SomaStatusId
-SomaGainId = pystorm.bddriver.bdpars.SomaGainId
-SomaOffsetSignId = pystorm.bddriver.bdpars.SomaOffsetSignId
-SomaOffsetMultiplierId = pystorm.bddriver.bdpars.SomaOffsetMultiplierId
-SynapseStatusId = pystorm.bddriver.bdpars.SynapseStatusId
-DiffusorCutStatusId = pystorm.bddriver.bdpars.DiffusorCutStatusId
-DiffusorCutLocationId = pystorm.bddriver.bdpars.DiffusorCutLocationId
+__Driver__ = bddriver.Driver
+BDHornEP = bddriver.bdpars.BDHornEP
+ConfigSomaID = bddriver.bdpars.ConfigSomaID
+ConfigSynapseID = bddriver.bdpars.ConfigSynapseID
+SomaStatusId = bddriver.bdpars.SomaStatusId
+SomaGainId = bddriver.bdpars.SomaGainId
+SomaOffsetSignId = bddriver.bdpars.SomaOffsetSignId
+SomaOffsetMultiplierId = bddriver.bdpars.SomaOffsetMultiplierId
+SynapseStatusId = bddriver.bdpars.SynapseStatusId
+DiffusorCutStatusId = bddriver.bdpars.DiffusorCutStatusId
+DiffusorCutLocationId = bddriver.bdpars.DiffusorCutLocationId
 
 DAC_LIST = [
     BDHornEP.DAC_DIFF_G,
