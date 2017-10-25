@@ -86,7 +86,7 @@ endif()
 #################################################################################
 ## Build Driver bindings
 #################################################################################
-pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS})
+pybind11_add_module(${TARGET2_NAME} MODULE ${DRIVER_BINDINGS} ${PRJ_ROOT_DIR}/src/bddriver/common/BDPars.cpp)
 target_link_libraries(${TARGET2_NAME} PRIVATE
     ${DRIVER_LIBRARY}
 )
@@ -165,6 +165,9 @@ if(BD_COMM_TYPE STREQUAL "OPALKELLY")
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyOK/__init__.py
         ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyOK/__init__.py
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${OK_LIBRARY}
+        ${PRJ_ROOT_DIR}/lib/$<CONFIG>/
     )
 
     set_property(TARGET ${TARGET3_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})

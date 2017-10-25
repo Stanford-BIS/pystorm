@@ -216,7 +216,9 @@ void bind_unknown_unknown(std::function< pybind11::module &(std::string const &n
 		cl.def(pybind11::init<>());
 
 		cl.def(pybind11::init<const class pystorm::bddriver::bdpars::BDPars &>(), pybind11::arg(""));
-
+        cl.def_readonly_static("config_soma_mem_", &pystorm::bddriver::bdpars::BDPars::config_soma_mem_);
+        cl.def_readonly_static("config_synapse_mem_", &pystorm::bddriver::bdpars::BDPars::config_synapse_mem_);
+        cl.def_readonly_static("config_diff_cut_mem_", &pystorm::bddriver::bdpars::BDPars::config_diff_cut_mem_);
 		cl.def_readonly("NumCores", &pystorm::bddriver::bdpars::BDPars::NumCores);
 		cl.def_readonly("DnEPFPGARegOffset", &pystorm::bddriver::bdpars::BDPars::DnEPFPGARegOffset);
 		cl.def_readonly("DnEPFPGANumReg", &pystorm::bddriver::bdpars::BDPars::DnEPFPGANumReg);
