@@ -155,18 +155,22 @@ class Neurons(Resource):
     """a chunk of the neuron array needed to implement a logical pool of neurons
     also includes the direct-mapped PAT memory needed to get to the accumulator
     """
-    def __init__(self, N):
+    def __init__(self, y, x):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
             max_conns_out=1)
-        self.N = N
+        self.y = y
+        self.x = x
+        self.N = y * x
 
         # pretranslate
-        self.n_unit_pools = None
+        self.py = None
+        self.px = None
 
         # allocate
-        self.start_pool_idx = None
+        self.py_loc = None
+        self.px_loc = None
         self.start_nrn_idx = None
 
         # posttranslate
@@ -182,38 +186,44 @@ class Neurons(Resource):
 
     def pretranslate(self, core):
         """neuron array allocation prep"""
-        self.n_unit_pools = int(np.ceil(self.N // core.NeuronArray_pool_size))
 
-        # assert no more than one connection (only one decoder allowed)
-        assert len(self.conns_out) <= 1
+        # round size y/x up to the number of pools needed
+        self.py = int(np.ceil(self.y / core.NeuronArray_pool_size_y))
+        self.px = int(np.ceil(self.x / core.NeuronArray_pool_size_x))
+
+        # let the allocator know about it
+        core.NeuronArray.AddPool(self)
 
     def allocate(self, core):
         """neuron array allocation"""
-        self.start_pool_idx = core.NeuronArray.Allocate(self.n_unit_pools)
-        self.start_nrn_idx = self.start_pool_idx * core.NeuronArray_pool_size
+        self.py_loc, self.px_loc = core.NeuronArray.Allocate(self)
+        self.start_nrn_idx = (self.py_loc * core.NeuronArray.pools_x + self.px_loc) * core.NeuronArray_pool_size
 
     def posttranslate(self, core):
         """PAT assignment setup"""
-        if len(self.conns_out) == 1:
-            weights = self.conns_out[0].tgt
-            buckets = self.conns_out[0].tgt.conns_out[0].tgt
-            self.PAT_contents = []
-            for n_pools in range(self.n_unit_pools):
-                in_idx = n_pools * core.NeuronArray_pool_size
-                MMAY, MMAX = weights.InDimToMMA(in_idx)
+        assert(len(self.conns_out) == 1) # assert no more than one connection (only one decoder allowed)
+
+        weights = self.conns_out[0].tgt
+        buckets = self.conns_out[0].tgt.conns_out[0].tgt
+
+        self.PAT_contents = np.empty((self.py, self.px), dtype=object)
+
+        for py_idx in range(self.py):
+            for px_idx in range(self.px):
+
+                nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size # first nrn idx in block
+                MMAY, MMAX = weights.InDimToMMA(nrn_idx)
+
                 AMA = buckets.start_addr
 
-                self.PAT_contents += [PackWord([
+                self.PAT_contents[py_idx, px_idx] = PackWord([
                     (PATWord.AM_ADDRESS, AMA),
                     (PATWord.MM_ADDRESS_LO, MMAX),
-                    (PATWord.MM_ADDRESS_HI, MMAY)])]
-            self.PAT_contents = np.array(self.PAT_contents, dtype=object)
+                    (PATWord.MM_ADDRESS_HI, MMAY)])
 
     def assign(self, core):
         """PAT assignment"""
-        if self.PAT_contents is not None:
-            pool_slice = slice(self.start_pool_idx, self.start_pool_idx + self.n_unit_pools)
-            core.PAT.Assign(self.PAT_contents, pool_slice)
+        core.PAT.Assign(self.PAT_contents, (self.py_loc, self.px_loc))
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -300,7 +310,7 @@ class MMWeights(Resource):
 
     def InDimToMMA(self, dim):
         """Calculate the max x and y coordinates in main memory associated with dim"""
-        slice_width = self.user_W.shape[1]
+        slice_width = self.dimensions_in
         slice_idx = dim // slice_width
         slice_offset = dim % slice_width
         MM_start_addr = self.slice_start_addrs[slice_idx]
@@ -357,7 +367,7 @@ class MMWeights(Resource):
 
         # slice up W according to slice indexing
         for W_slice_idx in self.W_slice_idxs:
-            self.W_slices += [self.programmed_W[W_slice_idx[0]:W_slice_idx[1]]]
+            self.W_slices += [self.programmed_W[:, W_slice_idx[0]:W_slice_idx[1]]]
 
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:

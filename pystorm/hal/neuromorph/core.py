@@ -1,4 +1,5 @@
 import numpy as np
+import rectpack # for NeuronAllocator
 
 # for BDWord
 from PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
@@ -26,8 +27,9 @@ class Core(object):
 
         self.NeuronArray_height = ps_pars['NeuronArray_height']
         self.NeuronArray_width  = ps_pars['NeuronArray_width']
-        self.NeuronArray_pool_size = ps_pars[
-            'NeuronArray_pool_size'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
@@ -43,24 +45,24 @@ class Core(object):
         AM_shape = (self.AM_size,)
         TAT0_shape = (self.TAT_size,)
         TAT1_shape = (self.TAT_size,)
-        PAT_shape = (self.PAT_size,)
+        PAT_shape = (self.NeuronArray_height // self.NeuronArray_pool_size_y, 
+                     self.NeuronArray_width // self.NeuronArray_pool_size_x)
 
         self.MM = MM(MM_shape, self.NeuronArray_pool_size)
         self.AM = AM(AM_shape)
         self.TAT0 = TAT(TAT0_shape)
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
-        self.NeuronArray = NeuronArray(self.NeuronArray_size, self.NeuronArray_pool_size)
+        self.NeuronArray = NeuronArray(
+                self.NeuronArray_height, self.NeuronArray_width, self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
         # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
 
     def Print(self):
         print("Printing Allocation maps")
-        print("NeuronArray")
+        print("NeuronArray/PAT")
         self.NeuronArray.alloc.Print()
-        print("PAT")
-        self.PAT.alloc.Print()
         print("AM")
         self.AM.alloc.Print()
         print("MM")
@@ -84,6 +86,39 @@ class Core(object):
         driver.SetMem(core_id, MemId.TAT1, self.TAT1.m, 0);
         driver.SetMem(core_id, MemId.MM,   self.MM.m,   0);
         driver.SetMem(core_id, MemId.AM,   self.AM.m,   0);
+
+class NeuronAllocator(object):
+    """based on rectpack python module, works in pool-size-x/pool-size-y granularity"""
+
+    def __init__(self, size_py, size_px):
+
+        self.packer = rectpack.newPacker(
+                mode=rectpack.PackingMode.Offline,
+                rotation=False)
+
+        self.packer.add_bin(size_py, size_px)
+
+        self.pack_called = False
+        self.alloc_results = {} # filled in after pack is called
+
+    def AddPool(self, py, px, pid):
+        """Let the allocator know about a py-by-px size pool with pool id pid"""
+        self.packer.add_rect(py, px, rid=pid)
+
+    def Allocate(self, pid):
+        """Get allocation result for pool id pid"""
+
+        if not self.pack_called:
+            self.packer.pack()
+            for rect in self.packer.rect_list():
+                b, y, x, w, h, pid = rect
+                self.alloc_results[pid] = (y, x)
+            self.pack_called = True
+
+        return self.alloc_results[pid]
+
+    def Print(self):
+        print(self.alloc_results)
 
 class MemAllocator(object):
     def __init__(self, shape):
@@ -345,37 +380,44 @@ class TAT(object):
 class PAT(object):
     def __init__(self, shape):
         self.mem = PATMem(shape)
-        self.alloc = MemAllocator(shape) # kind of unecessary, but a nice assert
 
-    def Assign(self, data, pool_slice):
-        assert self.alloc.CheckBlockUnallocated(pool_slice)
-        self.mem.Assign1DBlock(data, pool_slice.start)
+    def Assign(self, data, start):
+        self.mem.Assign2DBlock(data, start)
 
     def WriteToFile(self, fname_pre, core):
         f = open(fname_pre + "PAT.txt", 'w')
         f.write("PAT : [ ama | mmax | mmay_base ]\n")
         for idx in range(self.mem.shape[0]):
-            m         = self.mem.M[idx]
-            ama       = GetField(m, PATWord.AM_ADDRESS)
-            mmax      = GetField(m, PATWord.MM_ADDRESS_LO)
-            mmay_base = GetField(m, PATWord.MM_ADDRESS_HI)
-            f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
+            for jdx in range(self.mem.shape[1]):
+                m         = self.mem.M[idx, jdx]
+                ama       = GetField(m, PATWord.AM_ADDRESS)
+                mmax      = GetField(m, PATWord.MM_ADDRESS_LO)
+                mmay_base = GetField(m, PATWord.MM_ADDRESS_HI)
+                f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
 class NeuronArray(object):
-    def __init__(self, x, y, pool_x, pool_y):
+    def __init__(self, y, x, pool_size_y, pool_size_x):
         self.y = y
         self.x = x
-        self.pool_y = pool_y
-        self.pool_x = pool_x
-        assert(x % pool_x == 0)
-        assert(y % pool_y == 0)
-        self.n_pools = N // NPOOL
-        shape = (self.n_pools,)
-        self.alloc = StepMemAllocator(shape) # FIXME need smarter allocator to make square-ish shapes eventually
+        self.pool_size_y = pool_size_y
+        self.pool_size_x = pool_size_x
+        assert(x % pool_size_x == 0)
+        assert(y % pool_size_y == 0)
+        self.pools_y = self.y // self.pool_size_y 
+        self.pools_x = self.x // self.pool_size_x
 
-    def Allocate(self, n_pools):
-        return self.alloc.Allocate(n_pools)
+        self.N = y * x # total neurons
+        self.NPOOL = self.pool_size_x * self.pool_size_y # neurons per pool
+
+        shape = (self.y, self.x)
+        self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
+
+    def AddPool(self, pool):
+        self.alloc.AddPool(pool.py, pool.px, id(pool))
+
+    def Allocate(self, pool):
+        return self.alloc.Allocate(id(pool))
 
 class ExternalSinks(object):
     curr_idx = 0

@@ -13,7 +13,6 @@ N3 = GetN3()
 N4 = GetN4()
 
 for idx, N in enumerate([N1, N2, N3, N4]):
-#for idx, n in enumerate([N1]):
 
     print("NETWORK " + str(idx))
     pars = get_core_pars()

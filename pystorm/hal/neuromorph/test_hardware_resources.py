@@ -4,13 +4,14 @@ from hardware_resources import (
 
 R = []
 
-
 # neurons -> weights -> bucket
-def GetN2():
+def GetN1():
     D = 2
-    M = 10
+    My = 10
+    Mx = 20
+    M = My*Mx
 
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
 
@@ -19,30 +20,21 @@ def GetN2():
 
     return [N, W, B]
 
-# weights -> bucket
-# XXX this is no longer legal
-def GetN1():
-    """
-    D = 2
-
-    W = MMWeights(np.random.rand(D, D))
-    B = AMBuckets(D)
-
-    W.connect(B)
-
-    return [W, B]
-    """
-    return GetN2()
+# (neurons -> weights -> bucket) *2
+def GetN2():
+    return GetN1() + GetN1()
 
 # source -> TATTapPoint -> neurons -> weights -> bucket -> sink
 def GetN3():
     D = 2
     K = 2
-    M = 10
+    My = 10
+    Mx = 20
+    M = My*Mx
 
     I = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
     O = Sink(D)
@@ -61,11 +53,13 @@ def GetN3():
 def GetN4():
     D = 2
     K = 2
-    M = 10
+    My = 10
+    Mx = 20
+    M = My*Mx
 
     I1 = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W1 = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
     O1 = Sink(D)
