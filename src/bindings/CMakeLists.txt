@@ -98,12 +98,21 @@ set_property(TARGET ${TARGET2_NAME} PROPERTY LIBRARY_OUTPUT_DIRECTORY_RELEASE ${
 set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PRJ_ROOT_DIR}/lib/Debug/PyDriver)
 set_property(TARGET ${TARGET2_NAME} PROPERTY RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PRJ_ROOT_DIR}/lib/Release/PyDriver)
 
-add_custom_command(
-    TARGET ${TARGET2_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy
-    ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
-    ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyDriver/__init__.py
-)
+if(Win32)
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
+        ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyDriver/__init__.py
+    )
+else()
+    add_custom_command(
+        TARGET ${TARGET2_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/3.5/PyDriver/__init__.py
+        ${PRJ_ROOT_DIR}/lib/$<CONFIG>/PyDriver/__init__.py
+    )
+endif()
 
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD ${PYSTORM_CXX_STANDARD})
 set_property(TARGET ${TARGET1_NAME} ${TARGET2_NAME} PROPERTY CXX_STANDARD_REQUIRED ON)
