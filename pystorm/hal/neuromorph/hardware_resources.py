@@ -3,8 +3,8 @@ from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 
 # for BDWord
-from PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
-from PyDriver.pystorm.bddriver import PackWord
+from pystorm.PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
+from pystorm.PyDriver.pystorm.bddriver import PackWord
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""

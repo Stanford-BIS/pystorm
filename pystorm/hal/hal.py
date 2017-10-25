@@ -3,6 +3,9 @@ import numpy as np
 from pystorm.PyDriver import Driver
 from pystorm.hal.neuromorph import map_network
 
+# for SetMem
+from pystorm.PyDriver.pystorm.bddriver.bdpars import BDMemId
+
 CORE_ID = 0 # hardcoded for now
 
 class HAL(object):
@@ -124,6 +127,15 @@ class HAL(object):
             tags.append(self.ng_input_to_tags[inp]) # TODO: what is out_tags of a Source? what about count?
 
         self.driver.SendTags(CORE_ID, tags, times)
+
+    def implement_core(self):
+        """Calls a supplied driver to implement this Core to BD"""
+        driver.SetMem(CORE_ID, MemId.PAT,  self.PAT.m,  0);
+        driver.SetMem(CORE_ID, MemId.TAT0, self.TAT0.m, 0);
+        driver.SetMem(CORE_ID, MemId.TAT1, self.TAT1.m, 0);
+        driver.SetMem(CORE_ID, MemId.MM,   self.MM.m,   0);
+        driver.SetMem(CORE_ID, MemId.AM,   self.AM.m,   0);
+
 
 
     ##############################################################################
