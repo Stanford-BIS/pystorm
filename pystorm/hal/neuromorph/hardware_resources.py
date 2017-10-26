@@ -3,8 +3,7 @@ from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 
 # for BDWord
-from pystorm.PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
-from pystorm.PyDriver.pystorm.bddriver import PackWord
+from pystorm.PyDriver import bddriver
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -216,10 +215,10 @@ class Neurons(Resource):
 
                 AMA = buckets.start_addr
 
-                self.PAT_contents[py_idx, px_idx] = PackWord([
-                    (PATWord.AM_ADDRESS, AMA),
-                    (PATWord.MM_ADDRESS_LO, MMAX),
-                    (PATWord.MM_ADDRESS_HI, MMAY)])
+                self.PAT_contents[py_idx, px_idx] = bddriver.PackWord([
+                    (bddriver.PATWord.AM_ADDRESS, AMA),
+                    (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
+                    (bddriver.PATWord.MM_ADDRESS_HI, MMAY)])
 
     def assign(self, core):
         """PAT assignment"""
@@ -372,7 +371,7 @@ class MMWeights(Resource):
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:
             contents = [
-                [PackWord([(MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
+                [bddriver.PackWord([(bddriver.MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
             for i in range(W_slice.shape[0])]
 
             self.W_slices_BDWord += [np.array(contents, dtype=object)]
@@ -478,11 +477,11 @@ class AMBuckets(Resource):
 
         self.AM_entries = []
         for s, v, t, n in zip(stop, val, thr_idx, NAs):
-            self.AM_entries += [PackWord([
-                (AMWord.ACCUMULATOR_VALUE, v),
-                (AMWord.THRESHOLD, t),
-                (AMWord.STOP, s),
-                (AMWord.NEXT_ADDRESS, n)])]
+            self.AM_entries += [bddriver.PackWord([
+                (bddriver.AMWord.ACCUMULATOR_VALUE, v),
+                (bddriver.AMWord.THRESHOLD, t),
+                (bddriver.AMWord.STOP, s),
+                (bddriver.AMWord.NEXT_ADDRESS, n)])]
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
@@ -540,10 +539,10 @@ class TATAccumulator(Resource):
                 MMA = MMAY * core.MM_width + MMAX
                 stop = 1 * (t == len(self.conns_out) - 1)
 
-                self.contents += [PackWord([
-                    (TATAccWord.STOP, stop),
-                    (TATAccWord.AM_ADDRESS, AMA),
-                    (TATAccWord.MM_ADDRESS, MMA)])]
+                self.contents += [bddriver.PackWord([
+                    (bddriver.TATAccWord.STOP, stop),
+                    (bddriver.TATAccWord.AM_ADDRESS, AMA),
+                    (bddriver.TATAccWord.MM_ADDRESS, MMA)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -620,12 +619,12 @@ class TATTapPoint(Resource):
                 tap1 = self.mapped_taps[k+1, d]
                 s1 = bin_sign(self.signs[k+1, d])
 
-                self.contents += [PackWord([
-                    (TATSpikeWord.STOP, stop),
-                    (TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
-                    (TATSpikeWord.SYNAPSE_SIGN_0, s0),
-                    (TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
-                    (TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
+                self.contents += [bddriver.PackWord([
+                    (bddriver.TATSpikeWord.STOP, stop),
+                    (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
+                    (bddriver.TATSpikeWord.SYNAPSE_SIGN_0, s0),
+                    (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
+                    (bddriver.TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -679,10 +678,10 @@ class TATFanout(Resource):
                 tag = tgt.in_tags[d]
                 global_route = 0
 
-                self.contents += [PackWord([
-                    (TATTagWord.STOP, stop),
-                    (TATTagWord.TAG, tag),
-                    (TATTagWord.GLOBAL_ROUTE, global_route)])]
+                self.contents += [bddriver.PackWord([
+                    (bddriver.TATTagWord.STOP, stop),
+                    (bddriver.TATTagWord.TAG, tag),
+                    (bddriver.TATTagWord.GLOBAL_ROUTE, global_route)])]
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -712,6 +711,7 @@ class Sink(Resource):
 
     def allocate(self, core):
         self.in_tags = core.ExternalSinks.Allocate(self.D)
+        # XXX this needs to propagate to the FPGA somehow
 
 class Source(Resource):
     """Represents a source"""
@@ -737,5 +737,5 @@ class Source(Resource):
         self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
 
     def allocate(self, core):
-        # TODO: is this correct?  Should we do something here?
+        # XXX eventually, allocate something on FPGA
         pass

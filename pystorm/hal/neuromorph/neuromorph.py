@@ -1,10 +1,17 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-import core_pars
-from graph import (Bucket, Input, Output, Pool)
-from core import Core
-from hardware_resources import (
+
+#import core_pars
+#from graph import (Bucket, Input, Output, Pool)
+#from core import Core
+#from hardware_resources import (
+#    AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
+
+from . import core_pars
+from .graph import (Bucket, Input, Output, Pool)
+from .core import Core
+from .hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
 
 def instance_method_singledispatch(func):
@@ -342,13 +349,9 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     Parameters
     ----------
     hardware_resources: A list of hardware_resources.Resource objects
-    core: A Core object
     verbose: A bool
-
-    Returns
-    -------
-    core: The modified Core object
     """
+
     for resource in hardware_resources:
         resource.pretranslate(core)
     if verbose:
@@ -380,10 +383,39 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished assign")
 
-    return core
+def reassign_resources_to_core(hardware_resources, core, verbose=False):
+    """given a set of resources that has already been mapped,
+    AND WHOSE TOPOLOGY HAS NOT CHANGED SINCE THE INITIAL MAPPING,
+    perform assignment to a core object. 
+    This is only meant to be used to reassign connection weights.
+    This will break badly if you change the topology.
+
+    Parameters
+    ----------
+    hardware_resources: A list of hardware_resources.Resource objects
+    verbose: A bool
+    """
+
+    # start with posttranslate early
+    # this should pick up modifications to decoders in the user network
+
+    for resource in hardware_resources:
+        resource.posttranslate_early(core)
+    if verbose:
+        print("finished posttranslate_early")
+
+    for resource in hardware_resources:
+        resource.posttranslate(core)
+    if verbose:
+        print("finished posttranslate")
+
+    for resource in hardware_resources:
+        resource.assign(core)
+    if verbose:
+        print("finished assign")
 
 def map_network(network, verbose=False):
-    """Create a MappedNetwork object given a neuromorphg graph Network object
+    """Create a mapped core object given a neuromorph graph network objects
 
     Parameters
     ----------
@@ -397,12 +429,39 @@ def map_network(network, verbose=False):
     hardware_resources: list of total hardware resources allocated for the input network
     core: a representation of the hardware core
     """
-    pars = core_pars.get_core_pars()
-
-    core = Core(pars)
 
     ng_obj_to_hw, hardware_resources = create_network_resources(network)
 
-    core = map_resources_to_core(hardware_resources, core, verbose)
+    # create new core
+    pars = core_pars.get_core_pars()
+    core = Core(pars)
+
+    map_resources_to_core(hardware_resources, core, verbose)
 
     return ng_obj_to_hw, hardware_resources, core
+
+def remap_resources(hardware_resources, verbose=False):
+    """Create a mapped core object given previously mapped resources objects list
+
+    This meant to be used after modifying connection weights in the neuromorph Network.
+    E.g. after computing decoders.
+
+    (resource objects reference matrices from neuromorph Network objects, they do not copy them)
+
+    Parameters
+    ----------
+    hardware_resources: list of previously mapped network resources
+
+    Returns
+    -------
+    core: a representation of the hardware core
+    """
+
+    # create new core
+    pars = core_pars.get_core_pars()
+    core = Core(pars)
+
+    reassign_resources_to_core(hardware_resources, core, verbose)
+
+    return core
+

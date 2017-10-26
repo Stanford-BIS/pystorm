@@ -2,8 +2,7 @@ import numpy as np
 import rectpack # for NeuronAllocator
 
 # for BDWord
-from pystorm.PyDriver.pystorm.bddriver import AMWord, MMWord, PATWord, TATAccWord, TATTagWord, TATSpikeWord
-from pystorm.PyDriver.pystorm.bddriver import GetField
+from pystorm.PyDriver import bddriver
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -282,7 +281,7 @@ class MM(object):
         f = open(fname_pre + "MM.txt", 'w')
         for y in range(self.mem.shape[0]):
             for x in range(self.mem.shape[1]):
-                numstr = str(GetField(self.mem.M[y,x], MMWord.WEIGHT))
+                numstr = str(bddriver.GetField(self.mem.M[y,x], MMWord.WEIGHT))
                 spaces = ' ' * max(1, 4 - len(numstr))
                 if x == 0:
                     f.write('[' + spaces)
@@ -311,10 +310,10 @@ class AM(object):
         f.write("AM: [ val | thr | stop | na ]\n")
         for idx in range(self.mem.shape[0]):
             m    = self.mem.M[idx]
-            val  = GetField(m, AMWord.ACCUMULATOR_VALUE)
-            thr  = GetField(m, AMWord.THRESHOLD)
-            stop = GetField(m, AMWord.STOP)
-            na   = GetField(m, AMWord.NEXT_ADDRESS)
+            val  = bddriver.GetField(m, bddriver.AMWord.ACCUMULATOR_VALUE)
+            thr  = bddriver.GetField(m, bddriver.AMWord.THRESHOLD)
+            stop = bddriver.GetField(m, bddriver.AMWord.STOP)
+            na   = bddriver.GetField(m, bddriver.AMWord.NEXT_ADDRESS)
             f.write("[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n")
         f.close()
 
@@ -337,29 +336,29 @@ class TAT(object):
         for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
 
-            if GetField(m, TATTagWord.FIXED_2) == 2:
+            if bddriver.GetField(m, bddriver.TATTagWord.FIXED_2) == 2:
                 ty  = 2
-                s   = GetField(m, TATTagWord.STOP)
-                tag = GetField(m, TATTagWord.TAG)
-                grt = GetField(m, TATTagWord.GLOBAL_ROUTE)
-                X   = GetField(m, TATTagWord.UNUSED)
+                s   = bddriver.GetField(m, bddriver.TATTagWord.STOP)
+                tag = bddriver.GetField(m, bddriver.TATTagWord.TAG)
+                grt = bddriver.GetField(m, bddriver.TATTagWord.GLOBAL_ROUTE)
+                X   = bddriver.GetField(m, bddriver.TATTagWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n")
 
-            elif GetField(m, TATSpikeWord.FIXED_1) == 1:
+            elif bddriver.GetField(m, TATSpikeWord.FIXED_1) == 1:
                 ty   = 1
-                s    = GetField(m, TATSpikeWord.STOP)
-                tap0 = GetField(m, TATSpikeWord.SYNAPSE_ADDRESS_0)
-                s0   = GetField(m, TATSpikeWord.SYNAPSE_SIGN_0)
-                tap1 = GetField(m, TATSpikeWord.SYNAPSE_ADDRESS_1)
-                s1   = GetField(m, TATSpikeWord.SYNAPSE_SIGN_1)
-                X    = GetField(m, TATSpikeWord.UNUSED)
+                s    = bddriver.GetField(m, bddriver.TATSpikeWord.STOP)
+                tap0 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0)
+                s0   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_0)
+                tap1 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1)
+                s1   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_1)
+                X    = bddriver.GetField(m, bddriver.TATSpikeWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
 
             else:
                 ty  = 0
-                s   = GetField(m, TATAccWord.STOP)
-                ama = GetField(m, TATAccWord.AM_ADDRESS)
-                mma = GetField(m, TATAccWord.MM_ADDRESS)
+                s   = bddriver.GetField(m, bddriver.TATAccWord.STOP)
+                ama = bddriver.GetField(m, bddriver.TATAccWord.AM_ADDRESS)
+                mma = bddriver.GetField(m, bddriver.TATAccWord.MM_ADDRESS)
                 mmay = mma / core.MM_width
                 mmax = mma % core.MM_width
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
@@ -379,9 +378,9 @@ class PAT(object):
         for idx in range(self.mem.shape[0]):
             for jdx in range(self.mem.shape[1]):
                 m         = self.mem.M[idx, jdx]
-                ama       = GetField(m, PATWord.AM_ADDRESS)
-                mmax      = GetField(m, PATWord.MM_ADDRESS_LO)
-                mmay_base = GetField(m, PATWord.MM_ADDRESS_HI)
+                ama       = bddriver.GetField(m, bddriver.PATWord.AM_ADDRESS)
+                mmax      = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_LO)
+                mmay_base = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_HI)
                 f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
