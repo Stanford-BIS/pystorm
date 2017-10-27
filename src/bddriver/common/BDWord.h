@@ -237,6 +237,15 @@ DEFWORD(FPGABYTES,
     FIELDS(B0 , B1 , B2 , B3 ) ,
     WIDTHS(8  , 8  , 8  , 8  )   )
 
+DEFWORD(FPGASFWORD,
+    FIELDS(STATE , FILTIDX ) ,
+    WIDTHS(27    , 9       )   )
+
+DEFHCWORD(FPGASGWORD,
+    FIELDS(TAG , TICKS , PERIOD , GENIDX ) ,
+    WIDTHS(11  , 16    , 16     , 8      ) ,
+    HCVALS(0   , 0     , 0      , 0      )   )
+
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,
     FIELDS(LSB, MSB ) ,
