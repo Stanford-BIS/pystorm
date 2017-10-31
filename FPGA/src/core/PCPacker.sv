@@ -1,6 +1,6 @@
-`include "Interfaces.svh"
-`include "Channel.svh"
-`include "ChannelUtil.svh"
+`include "../lib/Interfaces.svh"
+`include "../lib/Channel.svh"
+`include "../lib/ChannelUtil.svh"
 
 // PCPacker collects the two upwards streams,
 // the BD traffic, and the SpikeGeneratorArray traffic,

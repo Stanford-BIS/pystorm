@@ -1,7 +1,7 @@
 `ifndef SERIALIZER_SV
 `define SERIALIZER_SV
 
-`include "Channel.svh"
+`include "../lib/Channel.svh"
 
 module Serializer #(parameter Nin = 2, parameter Nout = 1) (
   Channel out,

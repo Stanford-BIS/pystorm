@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/Channel.svh"
+`include "../src/lib/Channel.svh"
 
 ////////////////////////////////////////////
 // Testbench code

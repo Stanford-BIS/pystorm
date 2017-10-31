@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/Deserializer.sv"
+`include "../src/core/Deserializer.sv"
 `include "ChannelSrcSink.sv"
 
 module Deserializer_tb;

@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/TimeMgr.sv"
+`include "../src/core/TimeMgr.sv"
 `include "ChannelSrcSink.sv"
 
 module TimeMgr_tb;
