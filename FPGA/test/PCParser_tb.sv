@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/PCParser.sv"
+`include "../src/core/PCParser.sv"
 `include "ChannelSrcSink.sv"
 
 module PCParser_tb;

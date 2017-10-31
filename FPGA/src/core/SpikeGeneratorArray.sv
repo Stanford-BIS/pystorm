@@ -1,8 +1,8 @@
-`include "Interfaces.svh"
-`include "Channel.svh"
+`include "../lib/Interfaces.svh"
+`include "../lib/Channel.svh"
 // for quartus, we add external IP to the project
 `ifdef SIMULATION
-  `include "../quartus/SpikeGeneratorMem.v"
+  `include "../../quartus/SpikeGeneratorMem.v"
 `endif
 
 // Creates a variable number of uniform spike streams.

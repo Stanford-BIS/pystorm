@@ -1,5 +1,5 @@
-`include "../quartus/BDIOPLL.v"
-`include "../quartus/BDIOPLL/BDIOPLL_0002.v"
+`include "../../quartus/BDIOPLL.v"
+`include "../../quartus/BDIOPLL/BDIOPLL_0002.v"
 
 module BDClkGen (
   output wire BD_in_clk_int,

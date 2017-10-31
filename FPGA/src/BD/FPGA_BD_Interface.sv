@@ -1,4 +1,4 @@
-`include "Channel.svh"
+`include "../lib/Channel.svh"
 
 `define NUM_BITS_PIN2CORE 21
 `define NUM_BITS_CORE2PIN 34

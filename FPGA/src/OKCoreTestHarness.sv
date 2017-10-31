@@ -1,5 +1,5 @@
-`include "OKIfc.sv"
-`include "CoreTestHarness.sv"
+`include "OK/OKIfc.sv"
+`include "core/CoreTestHarness.sv"
 
 module OKCoreTestHarness (
 	input  wire [4:0]   okUH,

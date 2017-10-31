@@ -1,6 +1,6 @@
-`include "Channel.svh"
-`include "ChannelUtil.svh"
-`include "Interfaces.svh"
+`include "../lib/Channel.svh"
+`include "../lib/ChannelUtil.svh"
+`include "../lib/Interfaces.svh"
 `include "Serializer.sv"
 
 // this table is from the wiki and is wrong! routes have reversed bit-order

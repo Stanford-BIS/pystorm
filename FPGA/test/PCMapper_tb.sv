@@ -1,6 +1,6 @@
 `define SIMULATION
-`include "../src/PCParser.sv"
-`include "../src/PCMapper.sv"
+`include "../src/core/PCParser.sv"
+`include "../src/core/PCMapper.sv"
 `include "ChannelSrcSink.sv"
 
 // testbench includes PCParser

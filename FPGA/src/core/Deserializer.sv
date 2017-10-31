@@ -1,7 +1,7 @@
 `ifndef DESERIALIZER_SV
 `define DESERIALIZER_SV
 
-`include "Channel.svh"
+`include "../lib/Channel.svh"
 
 module Deserializer #(parameter Nin = 1, parameter Nout = 2) (
   Channel out, // Nout wide

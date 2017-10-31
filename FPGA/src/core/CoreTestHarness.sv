@@ -1,5 +1,5 @@
-`include "Channel.svh"
-`include "ChannelUtil.svh"
+`include "../lib/Channel.svh"
+`include "../lib/ChannelUtil.svh"
 `include "Core.sv"
 
 module CoreTestHarness #(
