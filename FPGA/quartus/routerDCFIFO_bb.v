@@ -71,10 +71,10 @@ endmodule
 // Retrieval info: PRIVATE: Full NUMERIC "1"
 // Retrieval info: PRIVATE: INTENDED_DEVICE_FAMILY STRING "MAX 10"
 // Retrieval info: PRIVATE: LE_BasedFIFO NUMERIC "0"
-// Retrieval info: PRIVATE: LegacyRREQ NUMERIC "1"
+// Retrieval info: PRIVATE: LegacyRREQ NUMERIC "0"
 // Retrieval info: PRIVATE: MAX_DEPTH_BY_9 NUMERIC "0"
 // Retrieval info: PRIVATE: OVERFLOW_CHECKING NUMERIC "0"
-// Retrieval info: PRIVATE: Optimize NUMERIC "2"
+// Retrieval info: PRIVATE: Optimize NUMERIC "0"
 // Retrieval info: PRIVATE: RAM_BLOCK_TYPE NUMERIC "0"
 // Retrieval info: PRIVATE: SYNTH_WRAPPER_GEN_POSTFIX STRING "0"
 // Retrieval info: PRIVATE: UNDERFLOW_CHECKING NUMERIC "0"
@@ -95,7 +95,7 @@ endmodule
 // Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 // Retrieval info: CONSTANT: INTENDED_DEVICE_FAMILY STRING "MAX 10"
 // Retrieval info: CONSTANT: LPM_NUMWORDS NUMERIC "256"
-// Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "OFF"
+// Retrieval info: CONSTANT: LPM_SHOWAHEAD STRING "ON"
 // Retrieval info: CONSTANT: LPM_TYPE STRING "dcfifo"
 // Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "11"
 // Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "8"
@@ -128,6 +128,6 @@ endmodule
 // Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO.inc FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO.cmp FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO.bsf FALSE
-// Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO_inst.v TRUE
+// Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO_inst.v FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL routerDCFIFO_bb.v TRUE
 // Retrieval info: LIB_FILE: altera_mf
