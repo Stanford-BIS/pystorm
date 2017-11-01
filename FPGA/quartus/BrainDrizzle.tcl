@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: BrainDrizzle.tcl
-# Generated on: Tue Oct 31 17:47:32 2017
+# Generated on: Wed Nov 01 16:37:13 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -59,9 +59,8 @@ if {$make_assignments} {
 	set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 	set_global_assignment -name FLOW_ENABLE_POWER_ANALYZER ON
 	set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"
-	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/InputController.sv
 	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/BrainDrizzle.sv
-	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/allocator.sv
+	set_global_assignment -name QIP_FILE routerDCFIFO.qip
 	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments

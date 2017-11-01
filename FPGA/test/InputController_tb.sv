@@ -8,7 +8,7 @@ reg clk;
 reg [10:0] data_in;
 reg ready_0;
 reg ready_1;
-reg almost_empty;
+reg empty;
 wire read;
 wire req_0;
 wire req_1;
@@ -16,7 +16,7 @@ wire [10:0] data_out;
 
 InputController DUT	(
 	.clk				(clk),
-	.almost_empty	(almost_empty),
+	.empty				(empty),
 	.ready_0			(ready_0),
 	.ready_1			(ready_1),
 	.data_in			(data_in),

@@ -76,14 +76,14 @@ end
 
 
 //Flip Flops for request signal. Needed to control output FIFO_wr when input FIFO becomes empty.
-always @ (posedge clk)
-	begin: req_FFs
-	req_0_ff <= req_0;
-	req_1_ff <= req_1;
-end
+//always @ (posedge clk)
+//	begin: req_FFs
+//	req_0_ff <= req_0;
+//	req_1_ff <= req_1;
+//end
 
 //output combinational logic
-always @ (state or out_FIFO_full or data_in_0 or data_in_1)
+always @ (state or out_FIFO_full or data_in_0 or data_in_1 or req_0 or req_1)
 begin: output_logic
 	case(state)
 		idle_recent_0:	begin
@@ -104,14 +104,14 @@ begin: output_logic
 						ready_0=~out_FIFO_full;
 						ready_1=0;
 						data_out=data_in_0;
-						out_FIFO_wr=~out_FIFO_full && req_0_ff;
+						out_FIFO_wr=~out_FIFO_full && req_0;
 						end
 						
 		msg_1:			begin
 						ready_0=0;
 						ready_1=~out_FIFO_full;
 						data_out=data_in_1;
-						out_FIFO_wr=~out_FIFO_full && req_1_ff;
+						out_FIFO_wr=~out_FIFO_full && req_1;
 						end
 	endcase
 end

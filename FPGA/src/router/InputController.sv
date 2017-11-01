@@ -2,7 +2,7 @@
 
 module InputController (
 input clk,
-input almost_empty,
+input empty,
 input ready_0,
 input ready_1,
 input [10:0] data_in,
@@ -27,12 +27,12 @@ parameter send_0 = 2'b10;
 parameter send_1 = 2'b11;
 
 //Next State combinational logic
-always @ (state or tail or almost_empty or data_in or ready_0 or ready_1)
+always @ (state or tail or empty or dest or ready_0 or ready_1)
 begin : next_state_logic
 	next_state = state;
 	case(state)
 		idle:		begin
-						if(almost_empty==0)
+						if(empty==0)
 							next_state=parse;
 					end	
 						
@@ -46,19 +46,19 @@ begin : next_state_logic
 					end
 							
 		send_0:	begin
-						if((tail==1) && (almost_empty==1)) begin
+						if((tail==1) && (empty==1)) begin
 							next_state=idle;
 						end
-						else if((tail==1) && (almost_empty==0)) begin
+						else if((tail==1) && (empty==0)) begin
 							next_state=parse;
 						end
 					end
 		
 		send_1:	begin
-						if((tail==1) && (almost_empty==1)) begin
+						if((tail==1) && (empty==1)) begin
 							next_state=idle;
 						end
-						else if((tail==1) && (almost_empty==0)) begin
+						else if((tail==1) && (empty==0)) begin
 							next_state=parse;
 						end
 					end
@@ -74,11 +74,11 @@ always @ (posedge clk)
 end
 
 //output combinational logic
-always @ (state or ready_0 or ready_1 or tail or dest or data_in or almost_empty)
+always @ (state or ready_0 or ready_1 or tail or dest or data_in or empty)
 begin: output_logic
 	case(state)
 		idle:		begin
-						read=~almost_empty;
+						read=0;
 						req_0=0;
 						req_1=0;
 						data_out=data_in;
@@ -90,27 +90,29 @@ begin: output_logic
 							req_1=1;
 							//decrement hop count in header.
 							data_out={data_in[10],dest-10'b1};
-							read=~almost_empty & ready_1;
+							read=~empty & ready_1;
 						end
 						else begin
 							req_0=1;
 							req_1=0;
 							//negate destination if going out the bottom
 							data_out={data_in[10],-dest};
-							read=~almost_empty & ready_0;
+							read=~empty & ready_0;
 						end
 							
 					end
 						
 		send_0:	begin
-						req_0=~almost_empty;
-						read = ~almost_empty && ready_0;
+						req_0=~empty;
+						req_1=0;
+						read = ~empty && ready_0;
 						data_out=data_in;
 					end
 				
 		send_1:	begin
-						req_1=~almost_empty;
-						read = ~almost_empty && ready_1;
+						req_0=0;
+						req_1=~empty;
+						read = ~empty && ready_1;
 						data_out=data_in;
 					end
 	endcase
