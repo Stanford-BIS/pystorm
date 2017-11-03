@@ -383,6 +383,7 @@ class BDPars {
 
  private:
 
+  // D is binary tree depth, not 4-ary tree depth, must be even
   template <int D>
   void InitAERMappers(std::array<unsigned int, (1<<D)> * xy_to_aer, std::array<unsigned int, (1<<D)> * aer_to_xy) {
     for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
@@ -392,7 +393,8 @@ class BDPars {
       
       // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
       uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
-      for (unsigned int aer_node_idx = 0; aer_node_idx < D; aer_node_idx++) {
+      assert(D % 2 == 0); // D must be even
+      for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
 
         // determine 2-bit AER code to give to each AER node
         unsigned int yx = ((y % 2) << 1) | x % 2;
@@ -402,11 +404,14 @@ class BDPars {
           case 1 : aer_node_addr = 1;
           case 2 : aer_node_addr = 3;
           case 3 : aer_node_addr = 2;
-          default: assert(false);
         }
 
         // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
-        aer_idx |= aer_node_addr << (2 * aer_node_idx);
+        unsigned int shift = 2 * aer_node_idx;
+        //cout << "D " << D << endl;
+        //cout << "shift " << shift << endl;
+        aer_idx |= aer_node_addr << shift;
+        //cout << aer_idx << endl;
 
         // shift out x/y bits
         x = x >> 1;
@@ -414,8 +419,8 @@ class BDPars {
       }
 
       // write results
-      assert(xy_idx << 1<<D && "xy_idx too big");
-      assert(aer_idx << 1<<D && "aer_idx too big");
+      assert(xy_idx < 1<<D && "xy_idx too big");
+      assert(aer_idx < 1<<D && "aer_idx too big");
       xy_to_aer->at(xy_idx) = aer_idx;
       aer_to_xy->at(aer_idx) = xy_idx;
     }

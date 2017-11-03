@@ -994,7 +994,6 @@ void Driver::SetSpikeGeneratorRates(
     bool flush) {
   
   assert(tags.size() == rates.size());
-  assert(time.size() == 0 || tags.size() == times.size());
 
   std::vector<BDWord> SG_prog_words;
 
