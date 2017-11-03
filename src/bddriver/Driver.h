@@ -448,7 +448,12 @@ class Driver {
   // FPGA tag IO
   //////////////////////////////////////////////////////////////////////////
 
-  /// Set input rates (in Hz) for a vector of g
+  /// Set input rates (in Hz) for Spike Generators.
+  /// The SGs are organized as an array, each entry outputting one tag stream
+  /// A programming packet specifies the array index of the generator being programmed,
+  /// the tag id that it is supposed to output to BD, and the rate that it outputs those tags.
+  /// This call allows multiple generators to be set simultaneously.
+  /// <time> specifies when the SGs will be programmed (updating the output rates)
   void SetSpikeGeneratorRates(
       unsigned int core_id,
       std::vector<unsigned int> gen_idxs, 
