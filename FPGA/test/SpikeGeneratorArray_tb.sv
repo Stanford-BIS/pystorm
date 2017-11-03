@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/SpikeGeneratorArray.sv"
+`include "../src/core/SpikeGeneratorArray.sv"
 `include "ChannelSrcSink.sv"
 
 module SpikeGeneratorArray_tb;

@@ -1,6 +1,6 @@
-`include "Interfaces.svh"
-`include "Channel.svh"
-`include "ChannelUtil.svh"
+`include "../lib/Interfaces.svh"
+`include "../lib/Channel.svh"
+`include "../lib/ChannelUtil.svh"
 
 module BDTagSplit #(
   parameter NBDdata_in = 34,

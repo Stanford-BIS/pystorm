@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/BDTagSplit.sv"
+`include "../src/core/BDTagSplit.sv"
 `include "ChannelSrcSink.sv"
 
 module BDTagSplit_tb;

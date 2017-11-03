@@ -1,6 +1,6 @@
-`include "Channel.svh"
-`include "ChannelUtil.svh"
-`include "Interfaces.svh"
+`include "../lib/Channel.svh"
+`include "../lib/ChannelUtil.svh"
+`include "../lib/Interfaces.svh"
 `include "Deserializer.sv"
 
 // BD funnel routing table

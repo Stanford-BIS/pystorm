@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/BDDecoder.sv"
+`include "../src/core/BDDecoder.sv"
 `include "ChannelSrcSink.sv"
 
 module BDHornDecoder_tb;

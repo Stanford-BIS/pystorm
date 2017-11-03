@@ -1,5 +1,5 @@
-`include "Channel.svh"
-`include "Interfaces.svh"
+`include "../lib/Channel.svh"
+`include "../lib/Interfaces.svh"
 
 module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
   SerializedPCWordChannel ser_out,

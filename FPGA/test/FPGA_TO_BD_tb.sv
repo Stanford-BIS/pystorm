@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/FPGA_BD_Interface.sv"
+`include "../src/BD/FPGA_BD_Interface.sv"
 `include "ChannelSrcSink.sv"
 `include "BDSrcSink.sv"
 

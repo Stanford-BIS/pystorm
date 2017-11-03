@@ -1,5 +1,5 @@
-`include "Interfaces.svh" 
-`include "Channel.svh"
+`include "../lib/Interfaces.svh" 
+`include "../lib/Channel.svh"
 `include "TimeUnitPulser.sv"
 
 // Responsible for keeping the wall clock, in time_units

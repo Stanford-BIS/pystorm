@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/Core.sv"
+`include "../src/core/Core.sv"
 `include "ChannelSrcSink.sv"
 
 module Core_tb;
