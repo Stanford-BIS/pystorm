@@ -43,7 +43,7 @@ class Shell(EventDispatcher):
         _redirected_error = sys.stderr = StringIO()
         _success = True
         try:
-            eval(compile(command, '<string>', 'exec'))
+            eval(compile(command, '<string>', 'single'))
         except:
             try:
                 _exc_info = sys.exc_info()
