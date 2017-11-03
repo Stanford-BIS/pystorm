@@ -33,7 +33,7 @@ class HAL(object):
 
         self.start_hardware()
 
-        #self.driver.InitBD()
+        self.driver.InitBD()
 
     def start_hardware(self):
         """Starts the driver"""
