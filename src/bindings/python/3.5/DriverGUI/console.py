@@ -1,4 +1,4 @@
-from kivy.base import runTouchApp
+from kivy.app import App
 from kivy.event import EventDispatcher
 from kivy.lang import Builder
 from kivy.properties import ObjectProperty, ListProperty, StringProperty, \
@@ -6,11 +6,13 @@ from kivy.properties import ObjectProperty, ListProperty, StringProperty, \
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.textinput import TextInput
 import os
-import subprocess
 import threading
-from multiprocessing import Process
-import shlex
+import queue
+from io import StringIO
 import sys
+import traceback
+
+EQ = queue.Queue(1)
 
 Builder.load_string('''
 <KivyConsole>:
@@ -29,35 +31,57 @@ Builder.load_string('''
             height: max(self.parent.height, self.minimum_height)
 ''')
 
-def threaded(fn):
-    def wrapper(*args, **kwargs):
-        threading.Thread(target=fn, args=args, kwargs=kwargs).start()
-    return wrapper
-
 
 class Shell(EventDispatcher):
     # , 'on_stop', 'on_start', 'on_complete', 'on_error'
     __events__ = ('on_output', 'on_complete')
 
-    process = ObjectProperty(None)
-    '''subprocess process
-    '''
-
-    @threaded
     def run_command(self, command, show_output=True, *args):
-        output = ''
-        self.process = subprocess.Popen(command, stdout=subprocess.PIPE)
-        lines_iterator = iter(self.process.stdout.readline, "")
-        for line in lines_iterator:
+        _old_stdout = sys.stdout
+        _old_stderr = sys.stderr
+        _redirected_output = sys.stdout = StringIO()
+        _redirected_error = sys.stderr = StringIO()
+        _success = True
+        try:
+            eval(compile(command, '<string>', 'exec'))
+        except:
+            try:
+                _exc_info = sys.exc_info()
+            finally:
+                _success = False
+                traceback.print_exception(*_exc_info, file=_redirected_error)
+                del _exc_info
+        sys.stdout = _old_stdout
+        sys.stderr = _old_stderr
+
+        output = ""
+        for line in _redirected_output.getvalue().splitlines(True):
             output += line
             if show_output:
                 self.dispatch('on_output', line)
+        if not _success:
+            for line in _redirected_error.getvalue().splitlines(True):
+                output += line
+                if show_output:
+                    self.dispatch('on_output', line)
         self.dispatch('on_complete', output)
 
-    @threaded
     def stop(self, *args):
-        if self.process:
-            self.process.kill()
+        self._do_run = False
+
+    def main_loop(self, *args, **kwargs):
+        """
+        Main REPL loop
+        """
+        while(self._do_run):
+            if not EQ.empty():
+                _item = EQ.get()
+                self.run_command(_item)
+
+    def init(self, *args, **kwargs):
+        self._do_run = True
+        self.run_thread = threading.Thread(target=self.main_loop, args=args, kwargs=kwargs)
+        self.run_thread.start()
 
 
 class ConsoleInput(TextInput):
@@ -68,7 +92,6 @@ class ConsoleInput(TextInput):
     shell = ObjectProperty(None)
     '''Instance of KivyConsole(parent) widget
     '''
-
 
     def __init__(self, **kwargs):
         super(ConsoleInput, self).__init__(**kwargs)
@@ -116,12 +139,13 @@ class ConsoleInput(TextInput):
             window, keycode, text, modifiers)
 
     def _run_cmd(self, cmd, *args):
-        _posix = True
-        if sys.platform[0] == 'w':
-            _posix = False
-
-        commands = shlex.split(str(cmd), posix=_posix)
-        self.shell.run_command(commands)
+        commands = cmd.split("\n")
+        _num = len(commands)
+        _idx = 0
+        while(_idx < _num):
+            if not EQ.full():
+                EQ.put(commands[_idx])
+                _idx += 1
 
 
     def validate_cursor_pos(self, *args):
@@ -131,9 +155,7 @@ class ConsoleInput(TextInput):
     def prompt(self, *args):
         '''Show the PS1 variable
         '''
-        ps1 = "[%s@%s %s]> " % (
-            self._username, self._hostname,
-            os.path.basename(str(self.cur_dir)))
+        ps1 = "[BD]>>> " 
         self._cursor_pos = self.cursor_index() + len(ps1)
         self.text += ps1
 
@@ -176,7 +198,7 @@ class KivyConsole(BoxLayout, Shell):
     Default to 'DroidSansMono'
     '''
 
-    font_size = NumericProperty(14)
+    font_size = NumericProperty(28)
     '''Indicates the size of the font used for the console
 
     :data:`font_size` is a :class:`~kivy.properties.NumericProperty`,
@@ -189,6 +211,7 @@ class KivyConsole(BoxLayout, Shell):
         # self.run_command = self.shell.run_command
         # self.shell.bind(on_output=self.console_input.on_output)
         # self.shell.bind(on_complete=self.console_input.on_output)
+        self.init()
 
     def on_output(self, output):
         '''Event handler to send output data
@@ -200,5 +223,18 @@ class KivyConsole(BoxLayout, Shell):
         '''
         self.console_input.on_complete(output)
 
+class GUIApp(App):
+    def build(self):
+        self.root = KivyConsole()
+        return self.root
+    
+    def on_stop(self, *args, **kwargs):
+        '''Event handler to clean-up
+        '''
+        self.root.stop()
+        print("Waiting for threads to stop...")
+        self.root.run_thread.join()
+
 if __name__ == '__main__':
-    runTouchApp(KivyConsole())
+    _gui = GUIApp()
+    _gui.run()
