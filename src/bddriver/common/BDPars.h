@@ -413,8 +413,8 @@ class BDPars {
       }
 
       // write results
-      (*xy_to_aer)[xy_idx] = aer_idx;
-      (*aer_to_xy)[aer_idx] = xy_idx;
+      xy_to_aer->at(xy_idx) = aer_idx;
+      aer_to_xy->at(aer_idx) = xy_idx;
     }
   }
 
