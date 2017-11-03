@@ -144,9 +144,9 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10};
 
   // init AER address translation tables
-  //InitAERMappers<12>(&soma_xy_to_aer_, &soma_aer_to_xy_);
-  //InitAERMappers<10>(&syn_xy_to_aer_, &syn_aer_to_xy_);
-  //InitAERMappers<8>(&mem_xy_to_aer_, &mem_aer_to_xy_);
+  InitAERMappers<12>(&soma_xy_to_aer_, &soma_aer_to_xy_);
+  InitAERMappers<10>(&syn_xy_to_aer_, &syn_aer_to_xy_);
+  InitAERMappers<8>(&mem_xy_to_aer_, &mem_aer_to_xy_);
 }
 
 } // bdpars
