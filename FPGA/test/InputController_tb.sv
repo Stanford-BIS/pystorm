@@ -30,22 +30,22 @@ initial
 begin
 	#0
 	clk = 0;
-	almost_empty=1;
+	empty=1;
 	ready_0=0;
 	ready_1=0;
 	data_in=11'b01111111101;
 	
 	#210
-	almost_empty=0;
+	empty=0;
 	
 	#500
 	ready_0=1;
 	
 	#500
-	almost_empty=1;
+	empty=1;
 	
 	#200
-	almost_empty=0;
+	empty=0;
 	
 	#200
 	data_in[10]=1;
@@ -59,15 +59,15 @@ begin
 	ready_1=1;
 	
 	#300 
-	almost_empty=1;
+	empty=1;
 	
 	#100
-	almost_empty=0;
+	empty=0;
 	
 	#400
 	data_in[10]=1;
-	
-	#200
+	#100
+	empty=1;
 	ready_1=0;
 	
 	

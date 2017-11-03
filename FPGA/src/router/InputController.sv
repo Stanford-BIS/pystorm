@@ -1,4 +1,8 @@
-//Controls input FIFOs
+//Input Controller
+
+//In each router node, there is one input controller per input.
+//In controls the input FIFOs and based on the destination field
+//of the input header, request the proper output.
 
 module InputController (
 input clk,
@@ -21,21 +25,15 @@ assign tail = data_in[10];
 
 reg [1:0] state=2'b00;  
 reg [1:0] next_state;
-parameter idle = 2'b00; 
-parameter parse = 2'b01; 
-parameter send_0 = 2'b10;
-parameter send_1 = 2'b11;
+parameter parse = 2'b00; 
+parameter send_0 = 2'b01;
+parameter send_1 = 2'b10;
 
 //Next State combinational logic
 always @ (state or tail or empty or dest or ready_0 or ready_1)
 begin : next_state_logic
 	next_state = state;
-	case(state)
-		idle:		begin
-						if(empty==0)
-							next_state=parse;
-					end	
-						
+	case(state)					
 		parse:	begin
 						if($signed(dest)>0 && ready_1==1) begin
 							next_state=send_1;
@@ -46,19 +44,13 @@ begin : next_state_logic
 					end
 							
 		send_0:	begin
-						if((tail==1) && (empty==1)) begin
-							next_state=idle;
-						end
-						else if((tail==1) && (empty==0)) begin
+						if((tail==1)) begin
 							next_state=parse;
 						end
 					end
 		
 		send_1:	begin
-						if((tail==1) && (empty==1)) begin
-							next_state=idle;
-						end
-						else if((tail==1) && (empty==0)) begin
+						if(tail==1) begin
 							next_state=parse;
 						end
 					end
@@ -77,25 +69,21 @@ end
 always @ (state or ready_0 or ready_1 or tail or dest or data_in or empty)
 begin: output_logic
 	case(state)
-		idle:		begin
-						read=0;
-						req_0=0;
-						req_1=0;
-						data_out=data_in;
-					end
 
 		parse:	begin
 						if($signed(dest) > 0) begin
 							req_0=0;
-							req_1=1;
+							//If we have a valid header with a positive destination field, send it to output 1.
+							req_1=~empty;
 							//decrement hop count in header.
-							data_out={data_in[10],dest-10'b1};
+							data_out={data_in[10],dest-10'b0000000001};
 							read=~empty & ready_1;
 						end
 						else begin
-							req_0=1;
+							//If we have a valid header with a dest field <= 0, send it to output 0
+							req_0=~empty;
 							req_1=0;
-							//negate destination if going out the bottom
+							//negate destination if going to output 0
 							data_out={data_in[10],-dest};
 							read=~empty & ready_0;
 						end
@@ -105,7 +93,7 @@ begin: output_logic
 		send_0:	begin
 						req_0=~empty;
 						req_1=0;
-						read = ~empty && ready_0;
+						read = ~empty && ready_0; //read as long as output is ready to receive and input FIFO not empty
 						data_out=data_in;
 					end
 				

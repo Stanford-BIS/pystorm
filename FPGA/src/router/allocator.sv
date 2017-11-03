@@ -1,5 +1,11 @@
 //output Allocator
 
+//In each router node, there is one allocator per output.
+//Its function is to allocate the output to one of two possible inputs.
+//If both inputs simultaneously request the same output, the allocator
+//forces the input which has most recently been granted the output to wait,
+//while allocating the output to the other input.
+
 module allocator (
 input clk,
 input req_0,
@@ -41,27 +47,32 @@ always @ (state or tail_0 or tail_1 or req_0 or req_1)
 begin : next_state_logic
 	next_state = state;
 	case(state)
+		//Idle. Has most recently allocated the output to input 0.
 		idle_recent_0:	begin
 						if(req_1==1)
+							//input 1 has priority in this state
 							next_state=msg_1;
 						else if(req_0==1)
 							next_state=msg_0;
 						end
-						
+		//Idle. Has most recently allocated the output to input 1.				
 		idle_recent_1:	begin
 						if(req_0==1)
+							//input 0 has priority in this state
 							next_state=msg_0;
 						else if(req_1==1)
 							next_state=msg_1;
 						end
-						
+		
+		//The output has been allocated to input 0.
 		msg_0:			begin
 						if((tail_0==1) && (req_1==1))
 							next_state=msg_1;
 						else if(tail_0==1)
 							next_state=idle_recent_0;
 						end
-							
+		
+		//The output has been allocated to input 1.
 		msg_1:			begin
 						if((tail_1==1) && (req_0==1))
 							next_state=msg_0;
@@ -75,12 +86,6 @@ begin : next_state_logic
 end
 
 
-//Flip Flops for request signal. Needed to control output FIFO_wr when input FIFO becomes empty.
-//always @ (posedge clk)
-//	begin: req_FFs
-//	req_0_ff <= req_0;
-//	req_1_ff <= req_1;
-//end
 
 //output combinational logic
 always @ (state or out_FIFO_full or data_in_0 or data_in_1 or req_0 or req_1)
@@ -101,10 +106,10 @@ begin: output_logic
 						end
 
 		msg_0:			begin
-						ready_0=~out_FIFO_full;
+						ready_0=~out_FIFO_full; //ready for input 0 as long as the output FIFO is not full
 						ready_1=0;
 						data_out=data_in_0;
-						out_FIFO_wr=~out_FIFO_full && req_0;
+						out_FIFO_wr=~out_FIFO_full && req_0; //write input 0 to the output fifo as long as it is not full, and input 0 is valid
 						end
 						
 		msg_1:			begin

@@ -1,6 +1,9 @@
 //BrainDrizzle Top
 `include "InputController.sv"
 `include "allocator.sv"
+`ifdef SIMULATION
+	`include "../../quartus/routerDCFIFO.v"
+`endif
 
 
 module BrainDrizzle(
@@ -15,15 +18,18 @@ input [10:0] top_in,
 input [10:0] bot_in,
 input [10:0] BD_in,
 //Will be removed after Zach is finished with inter-board handshaking
-input top_out_rd,
-input	BD_out_rd,
-input bot_out_rd,
+input top_out_read,
+input	BD_out_read,
+input bot_out_read,
 input top_in_wr,
 input BD_in_wr,
 input bot_in_wr,
 output top_in_full,
 output BD_in_full,
 output bot_in_full,
+output top_out_empty,
+output BD_out_empty,
+output bot_out_empty,
 ////////////////////////////////
 output [10:0] top_out,
 output [10:0] bot_out,
@@ -33,7 +39,8 @@ output ready_bot,
 output ready_BD,
 output top_out_clk,
 output BD_out_clk,
-output bot_out_clk);
+output bot_out_clk
+);
 
 //Signals which originate from allocators
 wire top_wr;
@@ -233,12 +240,12 @@ routerDCFIFO bot_in_FIFO (
 //3 output FIFOs (Same DCFIFO IP)
 routerDCFIFO top_out_FIFO (
 	top_out_to_FIFO,
-	clk,//FILL THIS IN
-	,//FILL THIS IN
+	top_in_clk,//FILL THIS IN
+	top_out_read,//FILL THIS IN
 	clk,
 	top_wr,
 	top_out,
-	,//FILL THIS IN
+	top_out_empty,//FILL THIS IN
 	,//FILL THIS IN
 	top_out_FIFO_full,
 	//wrusedw not used
@@ -246,12 +253,12 @@ routerDCFIFO top_out_FIFO (
 
 routerDCFIFO BD_out_FIFO (
 	BD_out_to_FIFO,
-	clk,//FILL THIS IN
-	,//FILL THIS IN
+	BD_in_clk,//FILL THIS IN
+	BD_out_read,//FILL THIS IN
 	clk,
 	BD_wr,
 	BD_out,
-	,//FILL THIS IN
+	BD_out_empty,//FILL THIS IN
 	,//FILL THIS IN
 	BD_out_FIFO_full,
 	//wrusedw not used
@@ -259,12 +266,12 @@ routerDCFIFO BD_out_FIFO (
 
 routerDCFIFO bot_out_FIFO (
 	bot_out_to_FIFO,
-	clk,//FILL THIS IN
-	,//FILL THIS IN
+	bot_in_clk,//FILL THIS IN
+	bot_out_read,//FILL THIS IN
 	clk,
 	bot_wr,
 	bot_out,
-	,//FILL THIS IN
+	bot_out_empty,//FILL THIS IN
 	,//FILL THIS IN
 	bot_out_FIFO_full,
 	//wrusedw not used
