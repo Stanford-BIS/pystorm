@@ -157,7 +157,7 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
 
   // update FPGA state
   us_per_unit_ = us_per_unit;
-  clks_per_unit_ = us_per_unit / (ns_per_clk_ * 1000);
+  clks_per_unit_ = us_per_unit * (1000 / ns_per_clk_);
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
@@ -165,10 +165,16 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
   const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
   if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
     cout << "WARNING: us_per_unit too small: FPGA Spike Generator updates might not complete" << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  Spike Generator requires " << clks_per_SG_ << " cycles per operation" << endl;
+    cout << "  Max Spike Generators: " << max_num_SG_ << endl;
   }
 
   if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_) {
     cout << "WARNING: us_per_unit too small: FPGA Spike Filter updates might not complete" << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  Spike Filter requires " << clks_per_SF_ << " cycles per operation" << endl;
+    cout << "  Max Spike Filters: " << max_num_SG_ << endl;
   }
 
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});

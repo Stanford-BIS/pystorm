@@ -1,6 +1,7 @@
 from pystorm.PyDriver import bddriver as bd
 
 D = bd.Driver()
+
 D.Start() # starts driver threads
 D.ResetBD()
 
@@ -9,7 +10,8 @@ tag = 0
 # then sends tag, hitting every tap point
 
 tat_tap_entries = []
-N = 64;
+
+N = 32; # 32x32 array of synapses
 for y in range(0, N, 1): 
     for x in range(0, N, 2): # each tap point entry goes to two synapses
         yx0 = y * N + x
@@ -21,7 +23,7 @@ for y in range(0, N, 1):
         stop = y is N - 1 and x is N - 2 # tells the TAT this is the last entry for the TAG
 
         # pack TAT entry
-        entry = PackWord([
+        entry = bd.PackWord([
             (bd.TATSpikeWord.STOP, stop),
             (bd.TATSpikeWord.SYNAPSE_ADDRESS_0, syn_addr_0),
             (bd.TATSpikeWord.SYNAPSE_SIGN_0, sign0),
@@ -32,9 +34,11 @@ for y in range(0, N, 1):
         tat_tap_entries.append(entry)
 
 # the tag we're using is the start addr
+print("* Programming memory")
 D.SetMem(0, bd.bdpars.BDMemId.TAT0, tat_tap_entries, tag)
 
 # set time unit to 10 us
+print("* Setting FPGA time units")
 FPGA_unit = 10 # us
 D.SetTimeUnitLen(FPGA_unit)
 # set upstream HB time to .1 ms
@@ -52,8 +56,9 @@ def sec_to_FPGA_unit(sec):
     return sec / (FPGA_unit * 1e-6)
 
 N_tags = exp_duration * tag_rate
-times = [int(i * sec_to_FPGA_unit(1/tag_rate)) for i in N_tags]
+times = [int(i * sec_to_FPGA_unit(1/tag_rate)) for i in range(N_tags)]
  
+print("* Sending tags")
 D.SendTags(0, [tag]*N_tags, times, True)
 
 # now you want to call D.RecvSpikes probably, to measure some effect
