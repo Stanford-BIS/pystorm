@@ -11,6 +11,7 @@ import queue
 from io import StringIO
 import sys
 import traceback
+import numpy as np
 
 EQ = queue.Queue(1)
 
@@ -20,6 +21,10 @@ Builder.load_string('''
     scroll_view: scroll_view
     ScrollView:
         id: scroll_view
+        size_hint: (1, None)
+        size: (root.width, root.height)
+        bar_width: 20
+        scroll_type: ['bars', 'content']
         ConsoleInput:
             id: console_input
             shell: root
@@ -28,7 +33,7 @@ Builder.load_string('''
             font_size: root.font_size
             foreground_color: root.foreground_color
             background_color: root.background_color
-            height: max(self.parent.height, self.minimum_height)
+            height: max(scroll_view.height, self.minimum_height)
 ''')
 
 
@@ -101,18 +106,6 @@ class ConsoleInput(TextInput):
     def __init_console(self, *args):
         '''Create initial values for the prompt and shows it
         '''
-        self.cur_dir = os.getcwd()
-        self._hostname = 'kivy'
-        try:
-            if hasattr(os, 'uname'):
-                self._hostname = os.uname()[1]
-            else:
-                self._hostname = os.environ.get('COMPUTERNAME', 'kivy')
-        except Exception:
-            pass
-        self._username = os.environ.get('USER', '')
-        if not self._username:
-            self._username = os.environ.get('USERNAME', 'designer')
         self.prompt()
 
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
@@ -152,10 +145,21 @@ class ConsoleInput(TextInput):
         if self.cursor_index() < self._cursor_pos:
             self.cursor = self.get_cursor_from_index(self._cursor_pos)
 
+    @staticmethod
+    def _truncate_pwd():
+        import re
+        _pwd = os.getcwd()
+        _home = os.path.expanduser('~')
+        _pwd = re.sub(_home, "~", _pwd)
+        _paths = _pwd.split('/')
+        if len(_paths) > 4:
+            _pwd = "%s/%s/.../%s/%s" % (_paths[0], _paths[1], _paths[-2], _paths[-1])
+        return _pwd
+
     def prompt(self, *args):
         '''Show the PS1 variable
         '''
-        ps1 = "[BD]>>> " 
+        ps1 = "%s>>> " % self._truncate_pwd()
         self._cursor_pos = self.cursor_index() + len(ps1)
         self.text += ps1
 
@@ -232,7 +236,6 @@ class GUIApp(App):
         '''Event handler to clean-up
         '''
         self.root.stop()
-        print("Waiting for threads to stop...")
         self.root.run_thread.join()
 
 if __name__ == '__main__':
