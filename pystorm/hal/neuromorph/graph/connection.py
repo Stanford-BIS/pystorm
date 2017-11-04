@@ -5,6 +5,9 @@ class Connection(object):
         self.dest = dest
         self.weights = weights
 
+    def reassign_weights(self, new_weights):
+        self.weights = new_weights
+
     def get_label(self):
         return self.label
 

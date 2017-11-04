@@ -1,7 +1,13 @@
 """Provides the hardware abstraction layer"""
 import numpy as np
-from pystorm.PyDriver import Driver
-from pystorm.hal.neuromorph import map_network
+from pystorm.hal.neuromorph import map_network, remap_resources
+from pystorm.PyDriver import bddriver
+
+# notes that affect nengo BE:
+# set_weights -> remap_weights (set_weights should just modify network directly, call remap_weights() when done
+
+# notes that affect driver
+# need to expose some functionality to do (y,x) <-> AER encoding
 
 CORE_ID = 0 # hardcoded for now
 
@@ -16,7 +22,7 @@ class HAL(object):
     driver: Instance of pystorm.PyDriver Driver
     """
     def __init__(self):
-        self.driver = Driver()
+        self.driver = bddriver.Driver()
 
         # maps between neuromorph graph Input/Output to tag (indices?)
         self.ng_input_to_tags = None
@@ -25,13 +31,9 @@ class HAL(object):
         # map between spike id and pool/neuron_idx
         self.spk_to_pool_nrn = None
 
-        # map between neuromorph graph Connection and main memory
-        self.ng_conn_to_memid = None
-
-        # what order do I initialize and start?
-        self.driver.InitBD()
-        self.driver.InitFIFO(CORE_ID)
         self.start_hardware()
+
+        self.driver.InitBD()
 
     def start_hardware(self):
         """Starts the driver"""
@@ -47,11 +49,12 @@ class HAL(object):
 
     def disable_output_recording(self):
         """Turns off recording from all outputs."""
-        self.driver.SetTagTrafficState(CORE_ID, en=False)
+        # XXX make some FPGA calls
+        pass 
 
     def disable_spike_recording(self):
         """Turns off spike recording from all neurons."""
-        self.driver.SetSpikeTrafficState(CORE_ID, en=False)
+        self.driver.SetSpikeDumpState(CORE_ID, en=False)
 
     def enable_output_recording(self):
         """Turns on recording from all outputs.
@@ -59,7 +62,8 @@ class HAL(object):
         These output values will go into a buffer that can be drained by calling
         get_outputs().
         """
-        self.driver.SetTagTrafficState(CORE_ID, en=True)
+        # XXX make some FPGA calls
+        pass 
 
     def enable_spike_recording(self):
         """Turns on spike recording from all neurons.
@@ -67,7 +71,7 @@ class HAL(object):
         These spikes will go into a buffer that can be drained by calling
         get_spikes().
         """
-        self.driver.SetSpikeTrafficState(CORE_ID, en=True)
+        self.driver.SetSpikeDumpState(CORE_ID, en=True)
 
     def get_outputs(self):
         """Returns all pending output values gathered since this was last called.
@@ -130,18 +134,21 @@ class HAL(object):
     #                           Mapping functions                                #
     ##############################################################################
 
-    def set_weights(self, connection, weights):
-        """Sets the weights for a connection (used to set decoders)
+    def remap_weights(self, network, hardware_resources):
+        """Call a subset of map()'s functionality to reprogram weights
+        that have been modified in the network objects
 
         Parameters
         ----------
-        connection: neuromorph graph Connection object
-        weights: numpy array
-            connection weights
+        network: pystorm.hal.neuromorph.graph Network object
+        hardware_resources: output of previous map() call
         """
-        mem_id = self.ng_conn_to_memid[connection]
-        start_addr = None # TODO need another map?
-        self.driver.SetMem(CORE_ID, mem_id, weights, start_addr)
+
+        # network is unused: hardware_resources references it
+
+        # generate a new core based on the new allocation, but assigning the new weights
+        core = remap_resources(hardware_resource)
+        implement_core(core)
 
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
@@ -152,9 +159,34 @@ class HAL(object):
         """
         ng_obj_to_hw, hardware_resources, core = map_network(network)
         hw_to_ng_obj = {v: k for k, v in ng_obj_to_hw.items()}
-        # what do I set after getting this mapping?
-        # tags to Input/Output mapping?
-        self.ng_input_to_tags = None # TODO
-        self.tags_to_ng_output = None # TODO
-        self.spk_to_pool_nrn = None #TODO
-        self.ng_conn_to_memid = None # TODO
+
+        # implement core objects, calling driver
+        implement_core(core)
+
+        self.ng_input_to_tags = {}
+        self.tags_to_ng_output = {}
+        self.spk_to_pool_nrn = {}
+        for resource in hardware_resources:
+            ng_obj = hw_to_ng_obj[resource]
+
+            # input -> tags mapping
+            if isinstance(resource, Source):
+                self.ng_input_to_tags[ng_obj] = resource.out_tags
+        
+            # tags -> (output, dim) mapping
+            elif isinstance(resource, Sink):
+                for dim_idx, tag in enumerate(resource.out_tags):
+                    self.tags_to_ng_output[tag] = (ng_obj, dim_idx)
+
+            # neuron (x,y) -> (pool, x, y)
+            elif isinstance(resource, Neurons):
+                pass
+
+
+    def implement_core(self, core):
+        """Implements a supplied core to BD"""
+        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0);
+        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0);
+        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0);
+        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0);
+        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0);

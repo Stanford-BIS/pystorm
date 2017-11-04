@@ -1,7 +1,8 @@
 import numpy as np
-from .mem_word_enums import (AMField, MMField, PATField, TATAccField, TATSpikeField, TATTagField)
-from .mem_word_placeholders import BDWord
-import pystorm._PyStorm as ps
+import rectpack # for NeuronAllocator
+
+# for BDWord
+from pystorm.PyDriver import bddriver
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -22,8 +23,9 @@ class Core(object):
 
         self.NeuronArray_height = ps_pars['NeuronArray_height']
         self.NeuronArray_width  = ps_pars['NeuronArray_width']
-        self.NeuronArray_pool_size = ps_pars[
-            'NeuronArray_pool_size'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x'] # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
@@ -39,24 +41,24 @@ class Core(object):
         AM_shape = (self.AM_size,)
         TAT0_shape = (self.TAT_size,)
         TAT1_shape = (self.TAT_size,)
-        PAT_shape = (self.PAT_size,)
+        PAT_shape = (self.NeuronArray_height // self.NeuronArray_pool_size_y, 
+                     self.NeuronArray_width // self.NeuronArray_pool_size_x)
 
         self.MM = MM(MM_shape, self.NeuronArray_pool_size)
         self.AM = AM(AM_shape)
         self.TAT0 = TAT(TAT0_shape)
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
-        self.NeuronArray = NeuronArray(self.NeuronArray_size, self.NeuronArray_pool_size)
+        self.NeuronArray = NeuronArray(
+                self.NeuronArray_height, self.NeuronArray_width, self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
         # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
 
     def Print(self):
         print("Printing Allocation maps")
-        print("NeuronArray")
+        print("NeuronArray/PAT")
         self.NeuronArray.alloc.Print()
-        print("PAT")
-        self.PAT.alloc.Print()
         print("AM")
         self.AM.alloc.Print()
         print("MM")
@@ -72,6 +74,39 @@ class Core(object):
         self.TAT1.WriteToFile(fname_pre, self, 1)
         self.MM.WriteToFile(fname_pre, self)
         self.AM.WriteToFile(fname_pre, self)
+
+class NeuronAllocator(object):
+    """based on rectpack python module, works in pool-size-x/pool-size-y granularity"""
+
+    def __init__(self, size_py, size_px):
+
+        self.packer = rectpack.newPacker(
+                mode=rectpack.PackingMode.Offline,
+                rotation=False)
+
+        self.packer.add_bin(size_py, size_px)
+
+        self.pack_called = False
+        self.alloc_results = {} # filled in after pack is called
+
+    def AddPool(self, py, px, pid):
+        """Let the allocator know about a py-by-px size pool with pool id pid"""
+        self.packer.add_rect(py, px, rid=pid)
+
+    def Allocate(self, pid):
+        """Get allocation result for pool id pid"""
+
+        if not self.pack_called:
+            self.packer.pack()
+            for rect in self.packer.rect_list():
+                b, y, x, w, h, pid = rect
+                self.alloc_results[pid] = (y, x)
+            self.pack_called = True
+
+        return self.alloc_results[pid]
+
+    def Print(self):
+        print(self.alloc_results)
 
 class MemAllocator(object):
     def __init__(self, shape):
@@ -198,9 +233,9 @@ class Memory(object):
     def __init__(self, shape, ):
         self.shape = shape
         if len(self.shape) == 1:
-            self.M = [BDWord({}) for i in range(self.shape[0])]
+            self.M = [0 for i in range(self.shape[0])]
         else:
-            self.M = [[BDWord({}) for i in range(self.shape[0])] for j in range(self.shape[1])]
+            self.M = [[0 for i in range(self.shape[0])] for j in range(self.shape[1])]
         self.M = np.array(self.M, dtype=object)
 
     def Assign1DBlock(self, mem, start):
@@ -246,7 +281,7 @@ class MM(object):
         f = open(fname_pre + "MM.txt", 'w')
         for y in range(self.mem.shape[0]):
             for x in range(self.mem.shape[1]):
-                numstr = str(self.mem.M[y,x].At(MMField.WEIGHT))
+                numstr = str(bddriver.GetField(self.mem.M[y,x], MMWord.WEIGHT))
                 spaces = ' ' * max(1, 4 - len(numstr))
                 if x == 0:
                     f.write('[' + spaces)
@@ -274,11 +309,11 @@ class AM(object):
         f = open(fname_pre + "AM.txt", 'w')
         f.write("AM: [ val | thr | stop | na ]\n")
         for idx in range(self.mem.shape[0]):
-            m = self.mem.M[idx]
-            val = m.At(AMField.ACCUMULATOR_VALUE)
-            thr = m.At(AMField.THRESHOLD)
-            stop = m.At(AMField.STOP)
-            na = m.At(AMField.NEXT_ADDRESS)
+            m    = self.mem.M[idx]
+            val  = bddriver.GetField(m, bddriver.AMWord.ACCUMULATOR_VALUE)
+            thr  = bddriver.GetField(m, bddriver.AMWord.THRESHOLD)
+            stop = bddriver.GetField(m, bddriver.AMWord.STOP)
+            na   = bddriver.GetField(m, bddriver.AMWord.NEXT_ADDRESS)
             f.write("[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n")
         f.close()
 
@@ -301,30 +336,31 @@ class TAT(object):
         for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
 
-            if m.At(TATTagField.FIXED_2) != 0:
-                ty = 2
-                s = m.At(TATTagField.STOP)
-                tag = m.At(TATTagField.TAG)
-                grt = m.At(TATTagField.GLOBAL_ROUTE)
-                X = m.At(TATTagField.UNUSED)
+            if bddriver.GetField(m, bddriver.TATTagWord.FIXED_2) == 2:
+                ty  = 2
+                s   = bddriver.GetField(m, bddriver.TATTagWord.STOP)
+                tag = bddriver.GetField(m, bddriver.TATTagWord.TAG)
+                grt = bddriver.GetField(m, bddriver.TATTagWord.GLOBAL_ROUTE)
+                X   = bddriver.GetField(m, bddriver.TATTagWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n")
 
-            elif m.At(TATSpikeField.FIXED_1) != 0:
-                ty = 1
-                s = m.At(TATSpikeField.STOP)
-                tap0 = m.At(TATSpikeField.SYNAPSE_ADDRESS_0)
-                s0 = m.At(TATSpikeField.SYNAPSE_SIGN_0)
-                tap1 = m.At(TATSpikeField.SYNAPSE_ADDRESS_1)
-                s1 = m.At(TATSpikeField.SYNAPSE_SIGN_1)
-                X = m.At(TATSpikeField.UNUSED)
+            elif bddriver.GetField(m, TATSpikeWord.FIXED_1) == 1:
+                ty   = 1
+                s    = bddriver.GetField(m, bddriver.TATSpikeWord.STOP)
+                tap0 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0)
+                s0   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_0)
+                tap1 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1)
+                s1   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_1)
+                X    = bddriver.GetField(m, bddriver.TATSpikeWord.UNUSED)
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
 
             else:
-                ty = 0
-                s = m.At(TATAccField.STOP)
-                ama = m.At(TATAccField.AM_ADDRESS)
-                mmax = m.At(TATAccField.MM_ADDRESS_LO)
-                mmay = m.At(TATAccField.MM_ADDRESS_HI)
+                ty  = 0
+                s   = bddriver.GetField(m, bddriver.TATAccWord.STOP)
+                ama = bddriver.GetField(m, bddriver.TATAccWord.AM_ADDRESS)
+                mma = bddriver.GetField(m, bddriver.TATAccWord.MM_ADDRESS)
+                mmay = mma / core.MM_width
+                mmax = mma % core.MM_width
                 f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
 
         f.close()
@@ -332,32 +368,44 @@ class TAT(object):
 class PAT(object):
     def __init__(self, shape):
         self.mem = PATMem(shape)
-        self.alloc = MemAllocator(shape) # kind of unecessary, but a nice assert
 
-    def Assign(self, data, pool_slice):
-        assert self.alloc.CheckBlockUnallocated(pool_slice)
-        self.mem.Assign1DBlock(data, pool_slice.start)
+    def Assign(self, data, start):
+        self.mem.Assign2DBlock(data, start)
 
     def WriteToFile(self, fname_pre, core):
         f = open(fname_pre + "PAT.txt", 'w')
         f.write("PAT : [ ama | mmax | mmay_base ]\n")
         for idx in range(self.mem.shape[0]):
-            m = self.mem.M[idx]
-            ama = m.At(PATField.AM_ADDRESS)
-            mmax = m.At(PATField.MM_ADDRESS_LO)
-            mmay_base = m.At(PATField.MM_ADDRESS_HI)
-            f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
+            for jdx in range(self.mem.shape[1]):
+                m         = self.mem.M[idx, jdx]
+                ama       = bddriver.GetField(m, bddriver.PATWord.AM_ADDRESS)
+                mmax      = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_LO)
+                mmay_base = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_HI)
+                f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
         f.close()
 
 class NeuronArray(object):
-    def __init__(self, N, NPOOL):
-        self.NPOOL = NPOOL
-        self.n_pools = N // NPOOL
-        shape = (self.n_pools,)
-        self.alloc = StepMemAllocator(shape) # FIXME need smarter allocator to make square-ish shapes eventually
+    def __init__(self, y, x, pool_size_y, pool_size_x):
+        self.y = y
+        self.x = x
+        self.pool_size_y = pool_size_y
+        self.pool_size_x = pool_size_x
+        assert(x % pool_size_x == 0)
+        assert(y % pool_size_y == 0)
+        self.pools_y = self.y // self.pool_size_y 
+        self.pools_x = self.x // self.pool_size_x
 
-    def Allocate(self, n_pools):
-        return self.alloc.Allocate(n_pools)
+        self.N = y * x # total neurons
+        self.NPOOL = self.pool_size_x * self.pool_size_y # neurons per pool
+
+        shape = (self.y, self.x)
+        self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
+
+    def AddPool(self, pool):
+        self.alloc.AddPool(pool.py, pool.px, id(pool))
+
+    def Allocate(self, pool):
+        return self.alloc.Allocate(id(pool))
 
 class ExternalSinks(object):
     curr_idx = 0

@@ -125,7 +125,11 @@ Driver::Driver() {
     assert(false && "unhandled comm_type");
 #endif
 
+  // initialize FPGA stuff
+  InitSGEn();
+
   cout << "Driver constructor done" << endl;
+
 
 }
 
@@ -153,7 +157,25 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
 
   // update FPGA state
   us_per_unit_ = us_per_unit;
-  clks_per_unit_ = us_per_unit / (ns_per_clk_ * 1000);
+  clks_per_unit_ = us_per_unit * (1000 / ns_per_clk_);
+
+  // make sure that we aren't going to break the SG or SF
+  // XXX can check highest_SF/SG_used instead, emit harder error
+  
+  const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
+  if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
+    cout << "WARNING: us_per_unit too small: FPGA Spike Generator updates might not complete" << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  Spike Generator requires " << clks_per_SG_ << " cycles per operation" << endl;
+    cout << "  Max Spike Generators: " << max_num_SG_ << endl;
+  }
+
+  if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_) {
+    cout << "WARNING: us_per_unit too small: FPGA Spike Filter updates might not complete" << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  Spike Filter requires " << clks_per_SF_ << " cycles per operation" << endl;
+    cout << "  Max Spike Filters: " << max_num_SG_ << endl;
+  }
 
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
   SendToEP(0, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
@@ -967,6 +989,67 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
   // do something with times
   SendToEP(core_id, bdpars::BDHornEP::RI, tags, times);
   if (flush) Flush();
+}
+
+void Driver::SetSpikeGeneratorRates(
+    unsigned int core_id,
+    std::vector<unsigned int> gen_idxs, 
+    std::vector<unsigned int> tags, 
+    std::vector<unsigned int> rates, 
+    BDTime time,
+    bool flush) {
+  
+  assert(tags.size() == rates.size());
+
+  std::vector<BDWord> SG_prog_words;
+
+  unsigned int clks_per_sec = 1e9 / ns_per_clk_;
+
+  // program periods/tag output idxs
+  for (unsigned int i = 0; i < tags.size(); i++) {
+
+    unsigned int gen_idx = gen_idxs.at(i);
+    unsigned int tag = tags.at(i);
+    
+    // (period in clks) = (clks/sec) / (rate in 1/sec)
+    const unsigned int max_period = (1 << FieldWidth(FPGASGWORD::PERIOD)) - 1;
+    unsigned int rate = rates.at(i);
+    unsigned int period = rate > 0 ? clks_per_sec / rate : max_period;
+    period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
+
+    SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}}));
+  }
+  std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
+
+  // update generator enable states
+  for (unsigned int i = 0; i < tags.size(); i++) {
+
+    unsigned int gen_idx = gen_idxs.at(i);
+    unsigned int rate = rates.at(i);
+
+    bool new_state = rate > 0;
+    SG_en_[gen_idx] = new_state;
+  }
+
+  // set all SG enables, regardless of which ones we actually modified
+  uint16_t en_word;
+  for (unsigned int gen_idx = 0; gen_idx < SG_en_.size(); gen_idx++) {
+    unsigned int bit_idx = gen_idx % 16;
+    uint16_t bit_sel = 1 << bit_idx;
+
+    if (bit_idx == 0) en_word = 0;
+
+    if (SG_en_[gen_idx]) en_word |= bit_sel;
+
+    if (bit_idx == 15) {
+      bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
+      SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
+    }
+  }
+
+  if (flush) Flush(); 
+
 }
 
 

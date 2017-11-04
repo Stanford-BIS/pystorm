@@ -6,9 +6,11 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <array>
 #include <typeinfo>
 #include <typeindex>
 #include <algorithm>
+#include <cassert>
 
 using std::cout;
 using std::endl;
@@ -280,6 +282,14 @@ class BDPars {
   // DAC info
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
 
+  // maps for AER address translation
+  std::array<unsigned int, 4096> soma_xy_to_aer_;
+  std::array<unsigned int, 4096> soma_aer_to_xy_;
+  std::array<unsigned int, 1024> syn_xy_to_aer_;
+  std::array<unsigned int, 1024> syn_aer_to_xy_;
+  std::array<unsigned int, 256> mem_xy_to_aer_;
+  std::array<unsigned int, 256> mem_aer_to_xy_;
+
   ///////////////////////////////
   // Neuron config stuff
 
@@ -366,6 +376,56 @@ class BDPars {
     }
     return retval;
   }
+
+  inline FPGARegEP GenIdxToSG_GENS_EN(unsigned int gen_idx) const {
+    return static_cast<FPGARegEP>(static_cast<unsigned int>(FPGARegEP::SG_GENS_EN0) + gen_idx / 16);
+  }
+
+ private:
+
+  // D is binary tree depth, not 4-ary tree depth, must be even
+  template <int D>
+  void InitAERMappers(std::array<unsigned int, (1<<D)> * xy_to_aer, std::array<unsigned int, (1<<D)> * aer_to_xy) {
+    for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
+      unsigned int tile_size = (1<<D) / 64;
+      unsigned int x = xy_idx % tile_size;
+      unsigned int y = xy_idx / tile_size;
+      
+      // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
+      uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
+      assert(D % 2 == 0); // D must be even
+      for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
+
+        // determine 2-bit AER code to give to each AER node
+        unsigned int yx = ((y % 2) << 1) | x % 2;
+        uint16_t aer_node_addr;
+        switch (yx) {
+          case 0 : aer_node_addr = 0;
+          case 1 : aer_node_addr = 1;
+          case 2 : aer_node_addr = 3;
+          case 3 : aer_node_addr = 2;
+        }
+
+        // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
+        unsigned int shift = 2 * aer_node_idx;
+        //cout << "D " << D << endl;
+        //cout << "shift " << shift << endl;
+        aer_idx |= aer_node_addr << shift;
+        //cout << aer_idx << endl;
+
+        // shift out x/y bits
+        x = x >> 1;
+        y = y >> 1;
+      }
+
+      // write results
+      assert(xy_idx < 1<<D && "xy_idx too big");
+      assert(aer_idx < 1<<D && "aer_idx too big");
+      xy_to_aer->at(xy_idx) = aer_idx;
+      aer_to_xy->at(aer_idx) = xy_idx;
+    }
+  }
+
 
 };
 
