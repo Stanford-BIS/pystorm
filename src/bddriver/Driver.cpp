@@ -1083,54 +1083,60 @@ void Driver::SendToEP(unsigned int core_id,
 
   bool timed = times.size() > 0;
 
-  const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+  // slightly different serialization behaviors for BD vs FPGA EPs
+  // data width is 24 for BD EPs, 16 for FPGA EPs
+  const unsigned int FPGA_serialization_width = bd_pars_->DnEPCodeIsBDHornEP(ep_code) ? 
+      FieldWidth(FPGAIO::PAYLOAD)
+    : FieldWidth(THREEFPGAREGS::W0);
+
   const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
-  const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
-      ep_data_size / FPGA_payload_width
-    : ep_data_size / FPGA_payload_width + 1;
+  const unsigned int D = ep_data_size % FPGA_serialization_width == 0 ?
+      ep_data_size / FPGA_serialization_width
+    : ep_data_size / FPGA_serialization_width + 1;
 
-  if (D > 1) {
-    // if the width of a single data object sent downstream ever
-    // exceeds 64 bits, we may need to rethink this
-    assert(D == 2); // only case to deal with for now
-    unsigned int i = 0;
-    for (auto& it : payload) {
-      EncInput to_push[2];
+  const unsigned int MaxD = 4;
+  assert(D <= MaxD);
 
-      // convert from us -> time units
-      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
+  unsigned int i = 0;
+  for (auto& it : payload) {
 
-      // lsb first, msb second
-      to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
-      to_push[0].time = time;
-      to_push[0].core_id = core_id;
-      to_push[0].FPGA_ep_code = ep_code;
+    // convert from us -> time units
+    BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
-      to_push[1].payload = GetField(it, TWOFPGAPAYLOADS::MSB);
-      to_push[1].time = time;
-      to_push[1].core_id = core_id;
-      to_push[1].FPGA_ep_code = ep_code;
+    BDWord payloads[MaxD];
 
-      serialized->push_back(to_push[0]);
-      serialized->push_back(to_push[1]);
-      i++;
+    // FPGA serialization scheme is lsbs first
+    if (bd_pars_->DnEPCodeIsBDHornEP(ep_code)) {
+      if (D == 1) {
+        payloads[0] = it;
+      } else if (D == 2) {
+        payloads[0] = GetField(it, TWOFPGAPAYLOADS::LSB);
+        payloads[1] = GetField(it, TWOFPGAPAYLOADS::MSB);
+      } else {
+        assert(false && "not implemented: no BD EP word has >2x FPGA serialization");
+      }
+    } else { // FPGA channel or register (all regs should be 1x, only channel is 4x)
+      if (D == 1) {
+        payloads[0] = it;
+      } else if (D == 4) {
+        payloads[0] = GetField(it, FOURFPGAREGS::W0);
+        payloads[1] = GetField(it, FOURFPGAREGS::W1);
+        payloads[2] = GetField(it, FOURFPGAREGS::W2);
+        payloads[3] = GetField(it, FOURFPGAREGS::W3);
+      } else {
+        assert(false && "not implemented: no FPGA EP word has FPGA serialization != 1x or 4x");
+      }
     }
-  } else {
-    unsigned int i = 0;
-    for (auto& it : payload) {
+
+    for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
-
-      // convert from us -> time units
-      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
-
-      to_push.payload = it;
+      to_push.payload = payloads[j];
       to_push.time = time;
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
-
       serialized->push_back(to_push);
-      i++;
     }
+    i++;
   }
 
   if (timed) {

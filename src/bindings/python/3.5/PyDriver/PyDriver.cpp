@@ -994,6 +994,28 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
 	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) file: line:61
 	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TWOFPGAPAYLOADS)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) --> unsigned int", py::arg("field_name"));
 
+  // FPGASGWORD manually added:
+	py::enum_<FPGASGWORD>(M("pystorm::bddriver"), "FPGASGWORD", "")
+		.value("TAG", FPGASGWORD::TAG)
+		.value("TICKS", FPGASGWORD::TICKS)
+		.value("PERIOD", FPGASGWORD::PERIOD)
+		.value("GENIDX", FPGASGWORD::GENIDX)
+		.value("FIELDCOUNT", FPGASGWORD::FIELDCOUNT);
+
+;
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGASGWORD)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGASGWORD) --> unsigned int", py::arg("field_name"));
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGASGWORD)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGASGWORD) --> unsigned int", py::arg("field_name"));
+
+  // FPGASFWORD manually added:
+	py::enum_<FPGASFWORD>(M("pystorm::bddriver"), "FPGASFWORD", "")
+		.value("STATE", FPGASFWORD::STATE)
+		.value("FILTIDX", FPGASFWORD::FILTIDX)
+		.value("FIELDCOUNT", FPGASFWORD::FIELDCOUNT);
+
+;
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGASFWORD)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGASFWORD) --> unsigned int", py::arg("field_name"));
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGASFWORD)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGASFWORD) --> unsigned int", py::arg("field_name"));
+
 	// pystorm::bddriver::THREEFPGAREGS file: line:246
 	py::enum_<pystorm::bddriver::THREEFPGAREGS>(M("pystorm::bddriver"), "THREEFPGAREGS", "")
 		.value("W0", pystorm::bddriver::THREEFPGAREGS::W0)
