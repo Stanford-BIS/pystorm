@@ -1,7 +1,5 @@
 import numpy as np
 import rectpack # for NeuronAllocator
-
-# for BDWord
 from pystorm.PyDriver import bddriver
 
 class Core(object):
@@ -178,11 +176,11 @@ class StepMemAllocator(MemAllocator):
 
 class MMAllocator(MemAllocator):
     """we have to place the decoders carefully, but we have a lot of freedom with transforms"""
-    def __init__(self, shape, NPOOL):
+    def __init__(self, shape, neurons_per_pool):
         super(MMAllocator, self).__init__(shape)
         self.xpos = 0
         self.ypos = 0
-        self.NPOOL = NPOOL
+        self.neurons_per_pool = neurons_per_pool
 
     def AllocatePoolDec(self, D):
 
@@ -192,29 +190,35 @@ class MMAllocator(MemAllocator):
 
         # can fit in the current mem row, just increment xpos when done
         elif self.xpos + D < self.shape[1]:
-            try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
+            try_slice = (
+                slice(self.ypos, self.ypos + self.neurons_per_pool),
+                slice(self.xpos, self.xpos + D))
             assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos += D
 
         # can *barely* fit in the current mem row, move to the next pool row when done
         elif self.xpos + D == self.shape[1]:
-            try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
+            try_slice = (
+                slice(self.ypos, self.ypos + self.neurons_per_pool),
+                slice(self.xpos, self.xpos + D))
             assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos = 0
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
 
         # can't fit in the current row, skip to the next one
         else:
-            try_slice = (slice(self.ypos + self.NPOOL, self.ypos + 2*self.NPOOL), slice(0, D))
+            try_slice = (
+                slice(self.ypos + self.neurons_per_pool, self.ypos + 2*self.neurons_per_pool),
+                slice(0, D))
             assert self.CheckBlockUnallocated(try_slice) # allocate
             self.xpos = D
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
         return (try_slice[0].start, try_slice[1].start)
 
     def SwitchToTrans(self):
         """this is lazy, wastes a little space"""
         if self.xpos != 0:
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
         self.xpos = 0
 
     def AllocateTransRow(self, D):
@@ -261,9 +265,10 @@ class PATMem(Memory):
         super(PATMem, self).__init__(shape)
 
 class MM(object):
-    def __init__(self, shape, NPOOL):
+    """Represents a Core's main memory"""
+    def __init__(self, shape, neurons_per_pool):
         self.mem = StepMem(shape)
-        self.alloc = MMAllocator(shape, NPOOL)
+        self.alloc = MMAllocator(shape, neurons_per_pool)
 
     def AllocateDec(self, D):
         return self.alloc.AllocatePoolDec(D)
@@ -385,6 +390,19 @@ class PAT(object):
         f.close()
 
 class NeuronArray(object):
+    """Represents a Core's neuron array
+    
+    Parameters
+    ----------
+    y: int
+        array y dimension ; y*x = n_neurons
+    x: int
+        array x dimension; y*x = n_neurons
+    pool_size_y: int
+        minimum pool y size in number of neurons
+    pool_size_x: int
+        minimum pool x size in number of neurons
+    """
     def __init__(self, y, x, pool_size_y, pool_size_x):
         self.y = y
         self.x = x
@@ -396,7 +414,7 @@ class NeuronArray(object):
         self.pools_x = self.x // self.pool_size_x
 
         self.N = y * x # total neurons
-        self.NPOOL = self.pool_size_x * self.pool_size_y # neurons per pool
+        self.neurons_per_pool = self.pool_size_x * self.pool_size_y
 
         shape = (self.y, self.x)
         self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
