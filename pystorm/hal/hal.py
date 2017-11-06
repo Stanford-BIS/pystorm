@@ -22,7 +22,7 @@ class HAL(object):
     driver: Instance of pystorm.PyDriver Driver
     """
     def __init__(self):
-        self.driver = bddriver.Driver()
+        self.driver = bddriver.BDModelDriver()
 
         # maps between neuromorph graph Input/Output to tag (indices?)
         self.ng_input_to_tags = None
@@ -181,7 +181,6 @@ class HAL(object):
             # neuron (x,y) -> (pool, x, y)
             elif isinstance(resource, Neurons):
                 pass
-
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""

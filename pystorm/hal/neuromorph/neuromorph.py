@@ -51,7 +51,7 @@ def _create_resources_ps_output(ps_output):
 @create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
     """create_resources for neuromorph graph Pool"""
-    return Neurons(ps_pool.get_num_neurons())
+    return Neurons(ps_pool.y, ps_pool.x)
 
 @create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):

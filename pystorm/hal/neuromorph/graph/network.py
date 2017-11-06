@@ -1,9 +1,9 @@
+import numpy as np
 from . import bucket
 from . import pool
 from . import input
 from . import output
 from . import connection
-
 
 class Network(object):
     def __init__(self, label):
@@ -32,8 +32,23 @@ class Network(object):
     def get_connections(self):
         return self.connections
 
+    @staticmethod
+    def _flat_to_rectangle(n_neurons):
+        """find the squarest rectangle to fit n_neurons
+        
+        Returns the x and y dimensions of the rectangle
+        """
+        assert isinstance(n_neurons, (int, np.integer))
+        y = int(np.floor(np.sqrt(n_neurons)))
+        while n_neurons % y != 0:
+            y -= 1
+        x = n_neurons // y
+        assert x*y == n_neurons
+        return x, y
+
     def create_pool(self, label, n_neurons, dimensions):
-        p = pool.Pool(label, n_neurons, dimensions)
+        x, y = self._flat_to_rectangle(n_neurons)
+        p = pool.Pool(label, n_neurons, dimensions, x, y)
         self.pools.append(p)
         return p
 
@@ -56,6 +71,3 @@ class Network(object):
         o = output.Output(label, dimensions)
         self.outputs.append(o)
         return o
-
-def create_network(label):
-    return Network(label)
