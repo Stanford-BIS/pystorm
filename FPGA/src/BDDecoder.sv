@@ -63,7 +63,7 @@ enum {
   INVALID} leaf;
 
 // leaf id's value is also the output code
-const logic [0:Nfunnel-1][NBDdata-1:0] route_masks = '{
+const logic [0:Nfunnel][NBDdata-1:0] route_masks = '{
   {{15{1'b1}}, {(34-15){1'b0}}},
   {{15{1'b1}}, {(34-15){1'b0}}},
   {{14{1'b1}}, {(34-14){1'b0}}},
@@ -76,9 +76,10 @@ const logic [0:Nfunnel-1][NBDdata-1:0] route_masks = '{
   {{14{1'b1}}, {(34-14){1'b0}}},
   {{14{1'b1}}, {(34-14){1'b0}}},
    {{2{1'b1}},  {(34-2){1'b0}}},
-   {{2{1'b1}},  {(34-2){1'b0}}}};
+   {{2{1'b1}},  {(34-2){1'b0}}},
+                     {34{1'b0}}}; // for INVALID report full word received
 
-const logic [0:Nfunnel-1][NBDdata-1:0] payload_masks = ~route_masks;
+const logic [0:Nfunnel][NBDdata-1:0] payload_masks = ~route_masks;
 
 const logic [0:Nfunnel-1][NBDdata-1:0] routes = '{
   'b100100000000000 << (NBDdata - 15),
