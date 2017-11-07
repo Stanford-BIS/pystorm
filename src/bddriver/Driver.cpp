@@ -160,6 +160,7 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
   // update FPGA state
   us_per_unit_ = us_per_unit;
   clks_per_unit_ = us_per_unit * (1000 / ns_per_clk_);
+  cout << "setting FPGA time unit to " << us_per_unit << " us = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
@@ -186,12 +187,12 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
 
 void Driver::SetTimePerUpHB(BDTime us_per_hb) {
   units_per_HB_ = UnitsPerUs(us_per_hb);
+  cout << "setting HB reporting period to " << us_per_hb << " us = " << units_per_HB_ << " FPGA time units" << endl;
 
-  // XXX this might break someday
-  BDWord us_per_hb_word = static_cast<uint64_t>(us_per_hb);
-  uint64_t w0 = GetField(us_per_hb_word, THREEFPGAREGS::W0);
-  uint64_t w1 = GetField(us_per_hb_word, THREEFPGAREGS::W1);
-  uint64_t w2 = GetField(us_per_hb_word, THREEFPGAREGS::W2);
+  BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
+  uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
+  uint64_t w1 = GetField(units_per_HB_word, THREEFPGAREGS::W1);
+  uint64_t w2 = GetField(units_per_HB_word, THREEFPGAREGS::W2);
 
   SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
   SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
