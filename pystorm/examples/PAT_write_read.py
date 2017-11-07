@@ -1,3 +1,7 @@
+"""Memory write-read loopback test
+Programs all entries of the PAT
+Reads those entries back and checks equivalence
+"""
 from pystorm.PyDriver import bddriver as bd
 
 D = bd.Driver()
