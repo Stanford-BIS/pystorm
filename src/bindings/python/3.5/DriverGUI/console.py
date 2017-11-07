@@ -28,7 +28,7 @@ Builder.load_string('''
         ConsoleInput:
             id: console_input
             shell: root
-            size_hint: (1, None)
+            size_hint_y: None
             font_name: root.font_name
             font_size: root.font_size
             foreground_color: root.foreground_color
@@ -101,12 +101,13 @@ class ConsoleInput(TextInput):
     def __init__(self, **kwargs):
         super(ConsoleInput, self).__init__(**kwargs)
         self._cursor_pos = 0  # position of the cursor before after prompt
+        self.cursor_width = 16
         self.__init_console()
 
     def __init_console(self, *args):
         '''Create initial values for the prompt and shows it
         '''
-        self.prompt()
+        Clock.schedule_once(self.prompt)
 
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
         '''Override of _keyboard_on_key_down.
@@ -120,6 +121,7 @@ class ConsoleInput(TextInput):
                 Clock.schedule_once(partial(self._run_cmd, text))
             else:
                 Clock.schedule_once(self.prompt)
+            self.parent.scroll_y = 0
         elif keycode[0] in [8, 37, 38]:
             self.cancel_selection()
             if self.cursor_index() <= self._cursor_pos:
@@ -165,6 +167,10 @@ class ConsoleInput(TextInput):
         ps1 = "%s>>> " % self._truncate_pwd()
         self._cursor_pos = self.cursor_index() + len(ps1)
         self.text += ps1
+
+    def on_cursor(self, *args, **kwargs):
+        Clock.schedule_once(self.validate_cursor_pos)
+        super(ConsoleInput, self).on_cursor(*args, **kwargs)
 
     def on_output(self, output):
         self.text += output
