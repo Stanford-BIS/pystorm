@@ -164,10 +164,12 @@ class Neurons(Resource):
         self.N = y * x
 
         # pretranslate
+        # y and x sizes in units of minimum pool x and y dimensions
         self.py = None
         self.px = None
 
         # allocate
+        # y and x locations in units of minimum pool x and y dimensions
         self.py_loc = None
         self.px_loc = None
         self.start_nrn_idx = None
@@ -468,7 +470,7 @@ class AMBuckets(Resource):
         stop = np.zeros((self.dimensions_out,)).astype(int)
         stop[-1] = 1
         val = np.zeros((self.dimensions_out,)).astype(int)
-        thr_idx, _ = AMBuckets.thr_idxs_vals(self.max_abs_row_weights, core)
+        thr_idx, self.thr = AMBuckets.thr_idxs_vals(self.max_abs_row_weights, core)
 
         if len(self.conns_out) > 0:
             NAs = self.conns_out[0].tgt.in_tags

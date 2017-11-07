@@ -413,7 +413,10 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikeFilterStates", &Driver::RecvSpikeFilterStates, "Get FPGA SpikeFilter outputs",
         py::arg("core_id"), py::arg("timeout_us"));
 
-		cl.def("RecvTags", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > > (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::RecvTags, "Receive a stream of tags\n receive from both tag output leaves, the Acc and TAT\n\nC++: pystorm::bddriver::Driver::RecvTags(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned int, class std::allocator<unsigned int> > >", py::arg("core_id"));
+    // added manually
+		cl.def("RecvTags", &Driver::RecvTags, "Receive a stream of tags\n receive from both tag output leaves, the Acc and TAT", py::arg("core_id"), py::arg("timeout_us")=1000);
+    cl.def("GetOutputQueueCounts", &Driver::GetOutputQueueCounts, "Returns the total number of elements in each output queue");
+
 		cl.def("GetRegState", (const struct std::pair<const unsigned long, bool> (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::Driver::GetRegState, "Get register contents by name.\n\nC++: pystorm::bddriver::Driver::GetRegState(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const --> const struct std::pair<const unsigned long, bool>", py::arg("core_id"), py::arg("reg_id"));
 		cl.def("GetMemState", (const class std::vector<unsigned long, class std::allocator<unsigned long> > * (pystorm::bddriver::Driver::*)(pystorm::bddriver::bdpars::BDMemId, unsigned int) const) &pystorm::bddriver::Driver::GetMemState, "Get software state of memory contents: this DOES NOT dump the memory.\n\nC++: pystorm::bddriver::Driver::GetMemState(pystorm::bddriver::bdpars::BDMemId, unsigned int) const --> const class std::vector<unsigned long, class std::allocator<unsigned long> > *", py::return_value_policy::automatic, py::arg("mem_id"), py::arg("core_id"));
 	}
@@ -994,6 +997,28 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
 	// pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) file: line:61
 	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::TWOFPGAPAYLOADS)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::TWOFPGAPAYLOADS) --> unsigned int", py::arg("field_name"));
 
+  // FPGASGWORD manually added:
+	py::enum_<FPGASGWORD>(M("pystorm::bddriver"), "FPGASGWORD", "")
+		.value("TAG", FPGASGWORD::TAG)
+		.value("TICKS", FPGASGWORD::TICKS)
+		.value("PERIOD", FPGASGWORD::PERIOD)
+		.value("GENIDX", FPGASGWORD::GENIDX)
+		.value("FIELDCOUNT", FPGASGWORD::FIELDCOUNT);
+
+;
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGASGWORD)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGASGWORD) --> unsigned int", py::arg("field_name"));
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGASGWORD)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGASGWORD) --> unsigned int", py::arg("field_name"));
+
+  // FPGASFWORD manually added:
+	py::enum_<FPGASFWORD>(M("pystorm::bddriver"), "FPGASFWORD", "")
+		.value("STATE", FPGASFWORD::STATE)
+		.value("FILTIDX", FPGASFWORD::FILTIDX)
+		.value("FIELDCOUNT", FPGASFWORD::FIELDCOUNT);
+
+;
+	M("pystorm::bddriver").def("FieldWidth", (unsigned int (*)(pystorm::bddriver::FPGASFWORD)) &pystorm::bddriver::FieldWidth, "C++: pystorm::bddriver::FieldWidth(pystorm::bddriver::FPGASFWORD) --> unsigned int", py::arg("field_name"));
+	M("pystorm::bddriver").def("FieldHCVal", (unsigned int (*)(pystorm::bddriver::FPGASFWORD)) &pystorm::bddriver::FieldHCVal, "C++: pystorm::bddriver::FieldHCVal(pystorm::bddriver::FPGASFWORD) --> unsigned int", py::arg("field_name"));
+
 	// pystorm::bddriver::THREEFPGAREGS file: line:246
 	py::enum_<pystorm::bddriver::THREEFPGAREGS>(M("pystorm::bddriver"), "THREEFPGAREGS", "")
 		.value("W0", pystorm::bddriver::THREEFPGAREGS::W0)
@@ -1155,6 +1180,10 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
     M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::TWOFPGAPAYLOADS, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::TWOFPGAPAYLOADS>), "Pack TWOFPGAPAYLOADS BDWord fields");
 
     M("pystorm::bddriver").def("GetField", py::overload_cast<uint64_t, pystorm::bddriver::THREEFPGAREGS>(&pystorm::bddriver::GetField<pystorm::bddriver::THREEFPGAREGS>), "Get THREEFPGAREGS BDWord field");
+
+    // manually added
+    M("pystorm::bddriver").def("GetField", py::overload_cast<uint64_t, pystorm::bddriver::FPGASFWORD>(&pystorm::bddriver::GetField<pystorm::bddriver::FPGASFWORD>), "Get FPGASFWORD BDWord field");
+
 
     M("pystorm::bddriver").def("PackWord", (uint64_t (*) (std::vector<std::pair<pystorm::bddriver::THREEFPGAREGS, uint64_t>>))(&pystorm::bddriver::PackWordVectorized<pystorm::bddriver::THREEFPGAREGS>), "Pack THREEFPGAREGS BDWord fields");
 }

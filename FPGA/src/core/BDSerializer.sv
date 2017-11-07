@@ -14,7 +14,7 @@ module BDSerializer #(parameter Ncode = 8, parameter Ndata_out = 24) (
 // BDHornEP 12 : RO_TAT     : 32 bits
 
 localparam NBDpayload = 38; // width of DecodedBDWordChannel.payload (longest "data width")
-localparam Nfunnel = 13; // number of funnel leaves
+localparam Nfunnel = 14; // number of funnel leaves + INVALID
 
 // actually serialization - 1
 localparam logic serialization[0:Nfunnel-1] = '{
@@ -29,6 +29,7 @@ localparam logic serialization[0:Nfunnel-1] = '{
   0,
   0,
   0,
+  1,
   1,
   1};
 

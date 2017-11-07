@@ -76,10 +76,9 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
 
     // if it's a heartbeat, set last_HB_recvd
     if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
-
       // unpack current time MSB and LSB
       uint64_t curr_HB_msb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::MSB);
-      uint64_t curr_HB_lsb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::MSB);
+      uint64_t curr_HB_lsb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::LSB);
 
       // update last_HB_recvd_ LSB
       if (next_HB_significance_ == NextHBSignificance::LSB) {
@@ -97,6 +96,8 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       } else {
         assert(false && "something wrong with next_HB_significance_ enum");
       }
+      //cout << "got HB: " << payload << " curr_HB_ = " << last_HB_recvd_ << endl;
+
 
     // ignore nop
     } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
