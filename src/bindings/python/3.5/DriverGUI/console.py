@@ -111,19 +111,22 @@ class ConsoleInput(TextInput):
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
         '''Override of _keyboard_on_key_down.
         '''
+        Clock.schedule_once(self.validate_cursor_pos)
+
         if keycode[0] == 13:
             # Enter -> execute the command
-            self.validate_cursor_pos()
             text = self.text[self._cursor_pos:]
             if text.strip():
                 Clock.schedule_once(partial(self._run_cmd, text))
             else:
                 Clock.schedule_once(self.prompt)
-        elif keycode[0] in [8, 127]:
+        elif keycode[0] in [8, 37, 38]:
             self.cancel_selection()
-
+            if self.cursor_index() <= self._cursor_pos:
+                return False
         elif keycode[0] == 99 and modifiers == ['ctrl']:
-            self.shell.stop()
+            self.shell.dispatch('on_output', "\n")
+            Clock.schedule_once(self.prompt)
 
         if self.cursor_index() < self._cursor_pos:
             return False
