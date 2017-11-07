@@ -50,7 +50,7 @@ class HAL(object):
     def disable_output_recording(self):
         """Turns off recording from all outputs."""
         # XXX make some FPGA calls
-        pass 
+        pass
 
     def disable_spike_recording(self):
         """Turns off spike recording from all neurons."""
@@ -63,7 +63,7 @@ class HAL(object):
         get_outputs().
         """
         # XXX make some FPGA calls
-        pass 
+        pass
 
     def enable_spike_recording(self):
         """Turns on spike recording from all neurons.
@@ -172,7 +172,7 @@ class HAL(object):
             # input -> tags mapping
             if isinstance(resource, Source):
                 self.ng_input_to_tags[ng_obj] = resource.out_tags
-        
+
             # tags -> (output, dim) mapping
             elif isinstance(resource, Sink):
                 for dim_idx, tag in enumerate(resource.out_tags):
@@ -184,8 +184,15 @@ class HAL(object):
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0);
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0)
+        for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
+            self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
+        """
+        for each rectangle
+            # cut the diffusor around the periphery of the rectangle
+            self.driver.CloseDiffusorCut()
+        """

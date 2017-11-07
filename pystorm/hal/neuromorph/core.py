@@ -9,7 +9,8 @@ class Core(object):
 
     Parameters
     ----------
-    ps_pars: _PyStorm CorePars instance
+    ps_pars: dictionary of core parameters
+        core_pars CORE_PARAMETERS
     """
     def __init__(self, ps_pars):
         self.MM_height = ps_pars['MM_height']
@@ -21,8 +22,11 @@ class Core(object):
 
         self.NeuronArray_height = ps_pars['NeuronArray_height']
         self.NeuronArray_width  = ps_pars['NeuronArray_width']
-        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y'] # number of neurons that share each PAT entry
-        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x'] # number of neurons that share each PAT entry
+        self.NeuronArray_height_in_tiles = ps_pars['NeuronArray_height_in_tiles']
+        self.NeuronArray_width_in_tiles = ps_pars['NeuronArray_width_in_tiles']
+        # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y']
+        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x']
         self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
@@ -48,7 +52,8 @@ class Core(object):
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
         self.NeuronArray = NeuronArray(
-                self.NeuronArray_height, self.NeuronArray_width, self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
+            self.NeuronArray_height, self.NeuronArray_width,
+            self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
         # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
@@ -74,8 +79,18 @@ class Core(object):
         self.AM.WriteToFile(fname_pre, self)
 
 class NeuronAllocator(object):
-    """based on rectpack python module, works in pool-size-x/pool-size-y granularity"""
-
+    """Allocates neuron resources
+    
+    Based on rectpack python module
+    Works at minimum pool-sized granularity
+    
+    Parameters
+    ----------
+    size_py: int
+        number of pools available in y dimension
+    size_px: int
+        number of pools available in x dimension
+    """
     def __init__(self, size_py, size_px):
 
         self.packer = rectpack.newPacker(
@@ -88,16 +103,25 @@ class NeuronAllocator(object):
         self.alloc_results = {} # filled in after pack is called
 
     def AddPool(self, py, px, pid):
-        """Let the allocator know about a py-by-px size pool with pool id pid"""
+        """Prepare a pool for allocation
+        
+        Parameters
+        ----------
+        py: int
+            pool y size in units of minimum pool y size
+        px: int
+            pool x size in units of minimum pool y size
+        pid: int
+            id(pool)
+        """
         self.packer.add_rect(py, px, rid=pid)
 
     def Allocate(self, pid):
         """Get allocation result for pool id pid"""
-
         if not self.pack_called:
             self.packer.pack()
             for rect in self.packer.rect_list():
-                b, y, x, w, h, pid = rect
+                _, y, x, w, h, pid = rect
                 self.alloc_results[pid] = (y, x)
             self.pack_called = True
 
@@ -252,7 +276,9 @@ class Memory(object):
         assert len(self.shape) == 2
         assert len(mem.shape) == 2
         assert len(start) == 2
-        idx_slice = (slice(start[0], start[0] + mem.shape[0]), slice(start[1], start[1] + mem.shape[1]))
+        idx_slice = (
+            slice(start[0], start[0] + mem.shape[0]),
+            slice(start[1], start[1] + mem.shape[1]))
         self.M[idx_slice] = mem
 
 class StepMem(Memory):

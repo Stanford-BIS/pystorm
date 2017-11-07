@@ -1,8 +1,6 @@
 """This module defines the hardware resources of braindrop/brainstorm"""
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
-
-# for BDWord
 from pystorm.PyDriver import bddriver
 
 class ResourceConnection(object):
@@ -151,8 +149,9 @@ class Resource(ABC):
         pass
 
 class Neurons(Resource):
-    """a chunk of the neuron array needed to implement a logical pool of neurons
-    also includes the direct-mapped PAT memory needed to get to the accumulator
+    """A chunk of the physical neuron array that implements a logical neuron pool
+
+    Also includes the direct-mapped PAT memory needed to get to the accumulator
     """
     def __init__(self, y, x):
         super().__init__(
