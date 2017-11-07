@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <chrono>
 #include <functional>     // std::bind
 
 #include "comm/Comm.h"
@@ -121,7 +122,7 @@ class Driver {
   void SetTimeUnitLen(BDTime us_per_unit);
   /// Sets how long the FPGA waits between sending upstream HBs
   void SetTimePerUpHB(BDTime us_per_hb);
-  /// Sets FPGA clock to 0
+  /// Sets experiment time to 0, synchronizing internal time and FPGA clock to 0
   void ResetFPGATime();
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
@@ -442,7 +443,7 @@ class Driver {
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   std::pair<std::vector<BDWord>,
-            std::vector<BDTime>> RecvTags(unsigned int core_id);
+            std::vector<BDTime>> RecvTags(unsigned int core_id, unsigned int timeout_us=1000);
 
   //////////////////////////////////////////////////////////////////////////
   // FPGA tag IO
@@ -494,6 +495,20 @@ class Driver {
   }
 
   //////////////////////////////////////////////////////////////////////////
+  // Utility
+  //////////////////////////////////////////////////////////////////////////
+
+  /// Returns the total number of elements in each output queue
+  /// Useful for debugging FPGA issues
+  std::vector<std::pair<uint8_t, unsigned int>> GetOutputQueueCounts() {
+    std::vector<std::pair<uint8_t, unsigned int>> retvals;
+    for (auto& ep_buf : dec_bufs_out_) {
+      retvals.push_back({ep_buf.first, ep_buf.second->TotalSize()});
+    }
+    return retvals;
+  }
+
+  //////////////////////////////////////////////////////////////////////////
   // BDState queries
   //////////////////////////////////////////////////////////////////////////
 
@@ -522,10 +537,19 @@ class Driver {
   static const unsigned int clks_per_SF_ = 1; /// clock cycles per SF update
   static const unsigned int max_num_SG_  = 256; /// number of SG memory entries
   static const unsigned int clks_per_SG_ = 3; /// clock cycles per SG update
-  unsigned int clks_per_unit_     = 1000; /// FPGA default
-  unsigned int units_per_HB_      = 100000; /// FPGA default, 1s HB (really long!)
-  unsigned int us_per_unit_       = 10; /// FPGA default
-  unsigned int highest_us_sent_   = 0;
+  unsigned int clks_per_unit_         = 1000; /// FPGA default
+  unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
+  unsigned int us_per_unit_           = 10; /// FPGA default
+  unsigned int highest_us_sent_       = 0;
+
+  // basis of experiment time, set when ResetFPGAClock is called
+  std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
+
+  inline unsigned int GetCurrentTimeUs() const {
+    auto time_point_now = std::chrono::high_resolution_clock::now();
+    auto us_now = std::chrono::duration_cast<std::chrono::microseconds>(time_point_now - base_time_);
+    return us_now.count();
+  }
 
   /// array mapping SG generator idx -> enabled/disabled
   std::array<bool, max_num_SG_> SG_en_;
