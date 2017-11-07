@@ -106,6 +106,7 @@ BDPars::BDPars() {
   Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT1)]        = 29;
   Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_ACC)]           = 28;
   Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_TAT)]           = 32;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::INVALID)]          = 34;
 
   //////////////////////////////////////////////////////
   // FPGA outputs

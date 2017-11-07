@@ -1,9 +1,17 @@
+"""Programs TAT0[0] to send excitatory spikes to 
+all synapses in order. It then sends some tags in.
+"""
 from pystorm.PyDriver import bddriver as bd
 
 D = bd.Driver()
 
 D.Start() # starts driver threads
+
+print("* Resetting BD")
 D.ResetBD()
+
+print("* Init the FIFO (also turns on traffic)")
+D.InitFIFO(0)
 
 tag = 0
 # this programs tat0[tag] -> every tap point
@@ -44,6 +52,7 @@ D.SetTimeUnitLen(FPGA_unit)
 # set upstream HB time to .1 ms
 D.SetTimePerUpHB(100)
 
+print("* Reset FPGA clock")
 # set FPGA clock to 0 before we start sending timed tags
 D.ResetFPGATime()
 
@@ -59,8 +68,9 @@ N_tags = exp_duration * tag_rate
 times = [int(i * sec_to_FPGA_unit(1/tag_rate)) for i in range(N_tags)]
  
 print("* Sending tags")
+D.SetTagTrafficState(0, True) # have to turn on tags first
 D.SendTags(0, [tag]*N_tags, times, True)
 
-# now you want to call D.RecvSpikes probably, to measure some effect
+# now you want to call D.SetSpikeTrafficState, D.RecvSpikes probably, to measure some effect
 
 D.Stop()

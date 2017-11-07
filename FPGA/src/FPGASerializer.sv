@@ -22,8 +22,8 @@ module FPGASerializer #(
 
   input clk, reset);
 
-localparam logic [NPCcode-1:0] HB_code = 13;
-localparam logic [NPCcode-1:0] SF_code = 14;
+localparam logic [NPCcode-1:0] HB_code = 14;
+localparam logic [NPCcode-1:0] SF_code = 15;
 
 // 1. pack/convert inputs into Channels
 // 2. serialize, 

@@ -128,6 +128,8 @@ Driver::Driver() {
   // initialize FPGA stuff
   InitSGEn();
 
+  // OK appreciates a little sleep time?
+  std::this_thread::sleep_for(std::chrono::microseconds(100)); 
   cout << "Driver constructor done" << endl;
 
 
@@ -198,19 +200,31 @@ void Driver::SetTimePerUpHB(BDTime us_per_hb) {
 }
 
 void Driver::ResetBD() {
+  // XXX this is only guaranteed to work after bring-up. 
+  // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
 
     BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
 
-    unsigned int delay_us = 500; // hold reset states for half a second (probably very conservative)
+    unsigned int delay_us = 500; // hold reset states for half a ms (probably conservative)
 
-    SendToEP(i, bdpars::FPGARegEP::BD_RESET, 
-        {pReset_1_sReset_1             , pReset_0_sReset_1             , pReset_0_sReset_0},
-        {highest_us_sent_ + delay_us*0 , highest_us_sent_ + delay_us*1 , highest_us_sent_ + delay_us*2});
+    SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_1_sReset_1});
+    Flush();
+
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
+
+    SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_0_sReset_1});
+    Flush();
+
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
+
+    SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_0_sReset_0});
+    Flush();
+
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
   }
-  Flush();
 }
 
 void Driver::IssuePushWords() {
@@ -224,6 +238,8 @@ void Driver::IssuePushWords() {
 }
 
 void Driver::ResetFPGATime() {
+  base_time_ = std::chrono::high_resolution_clock::now(); // set time basis
+
   BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
   SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
@@ -303,11 +319,18 @@ void Driver::InitBD() {
 
 
 void Driver::InitFIFO(unsigned int core_id) {
-  // turn traffic off around FIFO (just kill everything to hijack the traffic drain timer in BDState)
+
   PauseTraffic(core_id);
+
+  // turn post-FIFO dumps on, in case you want to watch
+  //SetToggle(core_id , bdpars::BDHornEP::TOGGLE_POST_FIFO0 , false, true);
+  //SetToggle(core_id , bdpars::BDHornEP::TOGGLE_POST_FIFO1 , false, true);
+  //cout << "configured FIFO valves for dump" << endl;
 
   // make FIFO_HT head = tail (doesn't matter what you send)
   SendToEP(core_id, bdpars::BDHornEP::INIT_FIFO_HT, {0});
+  Flush();
+
 
   // send all tag values to DCT FIF0 to dirty them so they flush
   std::vector<BDWord> all_tag_vals;
@@ -315,9 +338,18 @@ void Driver::InitFIFO(unsigned int core_id) {
     all_tag_vals.push_back(PackWord<FIFOInputTag>({{FIFOInputTag::TAG, i}}));
   }
   SendToEP(core_id, bdpars::BDHornEP::INIT_FIFO_DCT, all_tag_vals);
+  Flush();
+  cout << "sent tags to push junk out of FIFO" << endl;
 
   // resume traffic will wait for the traffic drain timer before turning traffic regs back on
+  std::this_thread::sleep_for(std::chrono::microseconds(1000000)); 
+
   ResumeTraffic(core_id);
+
+  // turn traffic on, dumps off
+  //SetToggle(core_id , bdpars::BDHornEP::TOGGLE_POST_FIFO0 , true, true);
+  //SetToggle(core_id , bdpars::BDHornEP::TOGGLE_POST_FIFO1 , true, true);
+  //cout << "fifo valves configured to pass traffic"  << endl;
 }
 
 
@@ -404,9 +436,9 @@ void Driver::Flush() {
 bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  if ((en != traffic_en) || !reg_valid) {
+  //if ((en != traffic_en) || !reg_valid) {
     SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
-  }
+  //}
   return traffic_en;
 }
 
@@ -415,17 +447,24 @@ bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, boo
 bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  if ((en != dump_en) || !reg_valid) {
+  //if ((en != dump_en) || !reg_valid) {
     SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
-  }
+  //}
   return dump_en;
 }
 
 /// Turn on tag traffic in datapath (also calls Start/KillSpikes)
 void Driver::SetTagTrafficState(unsigned int core_id, bool en, bool flush) {
-  for (auto& it : kTrafficRegs) {
-    SetToggleTraffic(core_id, it, en, flush);
+
+  const std::vector<bdpars::BDHornEP> kTagRegs = {
+      bdpars::BDHornEP::TOGGLE_PRE_FIFO,
+      bdpars::BDHornEP::TOGGLE_POST_FIFO0,
+      bdpars::BDHornEP::TOGGLE_POST_FIFO1};
+
+  for (auto& it : kTagRegs) {
+    SetToggleTraffic(core_id, it, en, false);
   }
+  if (flush) Flush();
 }
 
 /// Turn on spike outputs for all neurons
@@ -454,6 +493,7 @@ void Driver::ResumeTraffic(unsigned int core_id) {
   unsigned int i = 0;
   for (auto& reg_id : kTrafficRegs) {
     SetToggleTraffic(core_id, reg_id, last_traffic_state_[core_id][i]);
+    i++;
   }
   last_traffic_state_[core_id] = {};
   Flush();
@@ -476,23 +516,21 @@ void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
 }
 
 std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {
-  return RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO).first;
+  return RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO, 1000).first;
 }
 
 std::pair<std::vector<BDWord>, std::vector<BDWord> > Driver::GetPostFIFODump(unsigned int core_id) {
   std::vector<BDWord> tags0, tags1;
 
-  while (tags0.size() == 0 && tags1.size() == 0) {
-    tags0 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0, 1000).first;
-    tags1 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1, 1000).first;
-  }
+  tags0 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO0, 1000).first;
+  tags1 = RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_POST_FIFO1, 1000).first;
 
   return std::make_pair(tags0, tags1);
 }
 
 std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int core_id) {
-  std::vector<BDWord> ovflw0 = RecvFromEP(core_id, bdpars::BDFunnelEP::OVFLW0).first;
-  std::vector<BDWord> ovflw1 = RecvFromEP(core_id, bdpars::BDFunnelEP::OVFLW1).first;
+  std::vector<BDWord> ovflw0 = RecvFromEP(core_id, bdpars::BDFunnelEP::OVFLW0, 1000).first;
+  std::vector<BDWord> ovflw1 = RecvFromEP(core_id, bdpars::BDFunnelEP::OVFLW1, 1000).first;
   return {ovflw0.size(), ovflw1.size()};
 }
 
@@ -1044,6 +1082,7 @@ void Driver::SetSpikeGeneratorRates(
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
+      cout << "enable" << en_word << endl;
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
@@ -1054,7 +1093,7 @@ void Driver::SetSpikeGeneratorRates(
 
 
 std::pair<std::vector<BDWord>,
-          std::vector<BDTime>> Driver::RecvTags(unsigned int core_id) {
+          std::vector<BDTime>> Driver::RecvTags(unsigned int core_id, unsigned int timeout_us) {
 
   typedef std::pair<std::vector<BDWord>, std::vector<BDTime>> RetType;
 
@@ -1062,10 +1101,8 @@ std::pair<std::vector<BDWord>,
   RetType acc_tags;
 
   // XXX need to have a timeout, otherwise we can hang even when we have something to send
-  while (tat_tags.first.size() == 0 && acc_tags.first.size() == 0) {
-    tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT, 1000);
-    acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC, 1000);
-  }
+  tat_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_TAT, timeout_us);
+  acc_tags = RecvFromEP(core_id, bdpars::BDFunnelEP::RO_ACC, timeout_us);
 
   // concatenate
   tat_tags.first.insert(tat_tags.first.end()   , acc_tags.first.begin()  , acc_tags.first.end());
@@ -1083,54 +1120,60 @@ void Driver::SendToEP(unsigned int core_id,
 
   bool timed = times.size() > 0;
 
-  const unsigned int FPGA_payload_width = FieldWidth(FPGAIO::PAYLOAD);
+  // slightly different serialization behaviors for BD vs FPGA EPs
+  // data width is 24 for BD EPs, 16 for FPGA EPs
+  const unsigned int FPGA_serialization_width = bd_pars_->DnEPCodeIsBDHornEP(ep_code) ? 
+      FieldWidth(FPGAIO::PAYLOAD)
+    : FieldWidth(THREEFPGAREGS::W0);
+
   const unsigned int ep_data_size = bd_pars_->Dn_EP_size_.at(ep_code);
-  const unsigned int D = ep_data_size % FPGA_payload_width == 0 ?
-      ep_data_size / FPGA_payload_width
-    : ep_data_size / FPGA_payload_width + 1;
+  const unsigned int D = ep_data_size % FPGA_serialization_width == 0 ?
+      ep_data_size / FPGA_serialization_width
+    : ep_data_size / FPGA_serialization_width + 1;
 
-  if (D > 1) {
-    // if the width of a single data object sent downstream ever
-    // exceeds 64 bits, we may need to rethink this
-    assert(D == 2); // only case to deal with for now
-    unsigned int i = 0;
-    for (auto& it : payload) {
-      EncInput to_push[2];
+  const unsigned int MaxD = 4;
+  assert(D <= MaxD);
 
-      // convert from us -> time units
-      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
+  unsigned int i = 0;
+  for (auto& it : payload) {
 
-      // lsb first, msb second
-      to_push[0].payload = GetField(it, TWOFPGAPAYLOADS::LSB);
-      to_push[0].time = time;
-      to_push[0].core_id = core_id;
-      to_push[0].FPGA_ep_code = ep_code;
+    // convert from us -> time units
+    BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
 
-      to_push[1].payload = GetField(it, TWOFPGAPAYLOADS::MSB);
-      to_push[1].time = time;
-      to_push[1].core_id = core_id;
-      to_push[1].FPGA_ep_code = ep_code;
+    BDWord payloads[MaxD];
 
-      serialized->push_back(to_push[0]);
-      serialized->push_back(to_push[1]);
-      i++;
+    // FPGA serialization scheme is lsbs first
+    if (bd_pars_->DnEPCodeIsBDHornEP(ep_code)) {
+      if (D == 1) {
+        payloads[0] = it;
+      } else if (D == 2) {
+        payloads[0] = GetField(it, TWOFPGAPAYLOADS::LSB);
+        payloads[1] = GetField(it, TWOFPGAPAYLOADS::MSB);
+      } else {
+        assert(false && "not implemented: no BD EP word has >2x FPGA serialization");
+      }
+    } else { // FPGA channel or register (all regs should be 1x, only channel is 4x)
+      if (D == 1) {
+        payloads[0] = it;
+      } else if (D == 4) {
+        payloads[0] = GetField(it, FOURFPGAREGS::W0);
+        payloads[1] = GetField(it, FOURFPGAREGS::W1);
+        payloads[2] = GetField(it, FOURFPGAREGS::W2);
+        payloads[3] = GetField(it, FOURFPGAREGS::W3);
+      } else {
+        assert(false && "not implemented: no FPGA EP word has FPGA serialization != 1x or 4x");
+      }
     }
-  } else {
-    unsigned int i = 0;
-    for (auto& it : payload) {
+
+    for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
-
-      // convert from us -> time units
-      BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
-
-      to_push.payload = it;
+      to_push.payload = payloads[j];
       to_push.time = time;
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
-
       serialized->push_back(to_push);
-      i++;
     }
+    i++;
   }
 
   if (timed) {

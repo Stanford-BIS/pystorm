@@ -167,6 +167,7 @@ enum class BDFunnelEP {
   OVFLW1,          // class 1 FIFO overflow warning
   RO_ACC,          // tag output from accumulator
   RO_TAT,          // tag output from TAT
+  INVALID,         // something unexpected
   COUNT
 };
 
@@ -175,8 +176,8 @@ enum class BDFunnelEP {
 
 // the enum value is the upstream code
 enum class FPGAOutputEP {
-  UPSTREAM_HB = 13, // Upstream report of FPGA clock
-  SF_OUTPUT   = 14, // SpikeFilter outputs
+  UPSTREAM_HB = 14, // Upstream report of FPGA clock
+  SF_OUTPUT   = 15, // SpikeFilter outputs
   NOP         = 64, // NOP, inserted to pad output pipe
   COUNT       = 3   // XXX hardcoded, be careful
 };
@@ -398,20 +399,23 @@ class BDPars {
 
         // determine 2-bit AER code to give to each AER node
         unsigned int yx = ((y % 2) << 1) | x % 2;
+
         uint16_t aer_node_addr;
-        switch (yx) {
-          case 0 : aer_node_addr = 0;
-          case 1 : aer_node_addr = 1;
-          case 2 : aer_node_addr = 3;
-          case 3 : aer_node_addr = 2;
+        if (yx == 0) {
+          aer_node_addr = 0;
+        } else if (yx == 1) {
+          aer_node_addr = 1;
+        } else if (yx == 2) {
+          aer_node_addr = 3;
+        } else if (yx == 3) {
+          aer_node_addr = 2;
+        } else {
+          assert(false);
         }
 
         // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
         unsigned int shift = 2 * aer_node_idx;
-        //cout << "D " << D << endl;
-        //cout << "shift " << shift << endl;
         aer_idx |= aer_node_addr << shift;
-        //cout << aer_idx << endl;
 
         // shift out x/y bits
         x = x >> 1;
@@ -423,6 +427,8 @@ class BDPars {
       assert(aer_idx < 1<<D && "aer_idx too big");
       xy_to_aer->at(xy_idx) = aer_idx;
       aer_to_xy->at(aer_idx) = xy_idx;
+      //cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
+
     }
   }
 
