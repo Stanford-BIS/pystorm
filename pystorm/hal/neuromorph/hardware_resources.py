@@ -192,11 +192,11 @@ class Neurons(Resource):
         self.px = int(np.ceil(self.x / core.NeuronArray_pool_size_x))
 
         # let the allocator know about it
-        core.NeuronArray.AddPool(self)
+        core.NeuronArray.add_pool(self)
 
     def allocate(self, core):
         """neuron array allocation"""
-        self.py_loc, self.px_loc = core.NeuronArray.Allocate(self)
+        self.py_loc, self.px_loc = core.NeuronArray.allocate(self)
         self.start_nrn_idx = (self.py_loc * core.NeuronArray.pools_x + self.px_loc) * core.NeuronArray_pool_size
 
     def posttranslate(self, core):
@@ -212,7 +212,7 @@ class Neurons(Resource):
             for px_idx in range(self.px):
 
                 nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size # first nrn idx in block
-                MMAY, MMAX = weights.InDimToMMA(nrn_idx)
+                MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
 
                 AMA = buckets.start_addr
 
@@ -223,7 +223,7 @@ class Neurons(Resource):
 
     def assign(self, core):
         """PAT assignment"""
-        core.PAT.Assign(self.PAT_contents, (self.py_loc, self.px_loc))
+        core.PAT.assign(self.PAT_contents, (self.py_loc, self.px_loc))
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -279,7 +279,6 @@ class MMWeights(Resource):
 
         return W
 
-
     def __init__(self, W):
         super().__init__(
             [Neurons, TATAccumulator], [AMBuckets],
@@ -307,8 +306,7 @@ class MMWeights(Resource):
         self.W_slices = []
         self.W_slices_BDWord = []
 
-
-    def InDimToMMA(self, dim):
+    def in_dim_to_mma(self, dim):
         """Calculate the max x and y coordinates in main memory associated with dim"""
         slice_width = self.dimensions_in
         slice_idx = dim // slice_width
@@ -349,7 +347,7 @@ class MMWeights(Resource):
         if self.is_dec:
             for W_slice_idx in self.W_slice_idxs: 
                 # actually doesn't matter what the slice is, always allocate 64xDO
-                start_addr = core.MM.AllocateDec(self.dimensions_out)
+                start_addr = core.MM.allocate_dec(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
 
     def allocate(self, core):
@@ -357,7 +355,7 @@ class MMWeights(Resource):
         if not self.is_dec:
             for W_slice_idx in self.W_slice_idxs:
                 # actually doesn't matter what the slice is, always allocate 1xDO
-                start_addr = core.MM.AllocateTrans(self.dimensions_out)
+                start_addr = core.MM.allocate_trans(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
 
     def posttranslate(self, core):
@@ -382,10 +380,10 @@ class MMWeights(Resource):
                 self.W_slices_BDWord, self.slice_start_addrs):
             if self.is_dec:
                 # transpose, the memory is flipped from linalg orientation
-                core.MM.AssignDec(W_slice.T, start_addr)
+                core.MM.assign_dec(W_slice.T, start_addr)
             else:
                 # 1D slices in trans row case
-                core.MM.AssignTrans(W_slice, start_addr)
+                core.MM.assign_trans(W_slice, start_addr)
 
 class AMBuckets(Resource):
     """Represents entries in accumulator memory
@@ -452,7 +450,7 @@ class AMBuckets(Resource):
         return self.D
 
     def allocate(self, core):
-        self.start_addr = core.AM.Allocate(self.dimensions_out)
+        self.start_addr = core.AM.allocate(self.dimensions_out)
 
     def posttranslate_early(self, core):
         """Determines the largest weight in each dimension feeding these buckets is.
@@ -486,7 +484,7 @@ class AMBuckets(Resource):
         self.AM_entries = np.array(self.AM_entries, dtype=object)
 
     def assign(self, core):
-        core.AM.Assign(self.AM_entries, self.start_addr)
+        core.AM.assign(self.AM_entries, self.start_addr)
 
 class TATAccumulator(Resource):
     """Represents entries in the Tag Action Table for the Accumulator
@@ -525,7 +523,7 @@ class TATAccumulator(Resource):
             range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT0.Allocate(self.size)
+        self.start_addr = core.TAT0.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets
 
     def posttranslate(self, core):
@@ -536,7 +534,7 @@ class TATAccumulator(Resource):
                 buckets = self.conns_out[t].tgt.conns_out[0].tgt
 
                 AMA = buckets.start_addr
-                MMAY, MMAX = weights.InDimToMMA(d)
+                MMAY, MMAX = weights.in_dim_to_mma(d)
                 MMA = MMAY * core.MM_width + MMAX
                 stop = 1 * (t == len(self.conns_out) - 1)
 
@@ -547,7 +545,7 @@ class TATAccumulator(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT0.Assign(self.contents, self.start_addr)
+        core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
     """XXX not supporting fanout to multiple pools (and therefore no output slicing).
@@ -601,7 +599,7 @@ class TATTapPoint(Resource):
             range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.Allocate(self.size)
+        self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
@@ -629,7 +627,7 @@ class TATTapPoint(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.Assign(self.contents, self.start_addr)
+        core.TAT1.assign(self.contents, self.start_addr)
 
 class TATFanout(Resource):
     """Represents a Tag Action Table entry for fanning out tags
@@ -667,7 +665,7 @@ class TATFanout(Resource):
             range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
-        self.start_addr = core.TAT1.Allocate(self.size)
+        self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
 
     def posttranslate(self, core):
@@ -686,7 +684,7 @@ class TATFanout(Resource):
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
-        core.TAT1.Assign(self.contents, self.start_addr)
+        core.TAT1.assign(self.contents, self.start_addr)
 
 class Sink(Resource):
     """Represents a sink"""
@@ -711,7 +709,7 @@ class Sink(Resource):
             "only dimensions_in is defined")
 
     def allocate(self, core):
-        self.in_tags = core.ExternalSinks.Allocate(self.D)
+        self.in_tags = core.ExternalSinks.allocate(self.D)
         # XXX this needs to propagate to the FPGA somehow
 
 class Source(Resource):

@@ -362,7 +362,7 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished allocate_early")
 
-    core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
+    core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
     for resource in hardware_resources:
         resource.allocate(core)
     if verbose:
