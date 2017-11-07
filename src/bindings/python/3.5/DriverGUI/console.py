@@ -4,7 +4,11 @@ from kivy.lang import Builder
 from kivy.properties import ObjectProperty, ListProperty, StringProperty, \
     NumericProperty, Clock, partial
 from kivy.uix.boxlayout import BoxLayout
+from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
+from kivy.uix.widget import Widget
+from kivy.uix.label import Label
+from kivy.metrics import sp
 import os
 import threading
 import queue
@@ -15,26 +19,15 @@ import numpy as np
 
 EQ = queue.Queue(1)
 
-Builder.load_string('''
-<KivyConsole>:
-    console_input: console_input
-    scroll_view: scroll_view
-    ScrollView:
-        id: scroll_view
-        size_hint: (1, None)
-        size: (root.width, root.height)
-        bar_width: 20
-        scroll_type: ['bars', 'content']
-        ConsoleInput:
-            id: console_input
-            shell: root
-            size_hint_y: None
-            font_name: root.font_name
-            font_size: root.font_size
-            foreground_color: root.foreground_color
-            background_color: root.background_color
-            height: max(scroll_view.height, self.minimum_height)
-''')
+def _truncate_pwd():
+    import re
+    _pwd = os.getcwd()
+    _home = os.path.expanduser('~')
+    _pwd = re.sub(_home, "~", _pwd)
+    _paths = _pwd.split('/')
+    if len(_paths) > 4:
+        _pwd = "%s/%s/.../%s/%s" % (_paths[0], _paths[1], _paths[-2], _paths[-1])
+    return _pwd
 
 
 class Shell(EventDispatcher):
@@ -100,38 +93,21 @@ class ConsoleInput(TextInput):
 
     def __init__(self, **kwargs):
         super(ConsoleInput, self).__init__(**kwargs)
-        self._cursor_pos = 0  # position of the cursor before after prompt
-        self.cursor_width = 16
-        self.__init_console()
-
-    def __init_console(self, *args):
-        '''Create initial values for the prompt and shows it
-        '''
-        Clock.schedule_once(self.prompt)
 
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
         '''Override of _keyboard_on_key_down.
         '''
-        Clock.schedule_once(self.validate_cursor_pos)
-
         if keycode[0] == 13:
             # Enter -> execute the command
-            text = self.text[self._cursor_pos:]
+            text = self.text
             if text.strip():
                 Clock.schedule_once(partial(self._run_cmd, text))
             else:
                 Clock.schedule_once(self.prompt)
-            self.parent.scroll_y = 0
         elif keycode[0] in [8, 37, 38]:
             self.cancel_selection()
-            if self.cursor_index() <= self._cursor_pos:
-                return False
         elif keycode[0] == 99 and modifiers == ['ctrl']:
-            self.shell.dispatch('on_output', "\n")
             Clock.schedule_once(self.prompt)
-
-        if self.cursor_index() < self._cursor_pos:
-            return False
 
         return super(ConsoleInput, self).keyboard_on_key_down(
             window, keycode, text, modifiers)
@@ -145,50 +121,38 @@ class ConsoleInput(TextInput):
                 EQ.put(commands[_idx])
                 _idx += 1
 
-
-    def validate_cursor_pos(self, *args):
-        if self.cursor_index() < self._cursor_pos:
-            self.cursor = self.get_cursor_from_index(self._cursor_pos)
-
-    @staticmethod
-    def _truncate_pwd():
-        import re
-        _pwd = os.getcwd()
-        _home = os.path.expanduser('~')
-        _pwd = re.sub(_home, "~", _pwd)
-        _paths = _pwd.split('/')
-        if len(_paths) > 4:
-            _pwd = "%s/%s/.../%s/%s" % (_paths[0], _paths[1], _paths[-2], _paths[-1])
-        return _pwd
-
     def prompt(self, *args):
         '''Show the PS1 variable
         '''
-        ps1 = "%s>>> " % self._truncate_pwd()
-        self._cursor_pos = self.cursor_index() + len(ps1)
-        self.text += ps1
+        self.shell.new_prompt()
 
-    def on_cursor(self, *args, **kwargs):
-        Clock.schedule_once(self.validate_cursor_pos)
-        super(ConsoleInput, self).on_cursor(*args, **kwargs)
+class ConsolePrompt(BoxLayout):
+    ps1_text = StringProperty('>')
+    font_name = StringProperty('droid-sans-mono.ttf')
+    font_size = NumericProperty(28)
 
-    def on_output(self, output):
-        self.text += output
-        # print(output)
+    prompt_ps1 = ObjectProperty(None)
+    prompt_input = ObjectProperty(None)
 
-    def on_complete(self, output):
-        self.prompt()
+    def __init__(self, **kwargs):
+        super(ConsolePrompt, self).__init__(**kwargs)
+
+    def init(self, *args, **kwargs):
+        self.prompt_ps1.width = (len(self.prompt_ps1.text) - 7) * self.prompt_ps1.texture_size[0]
+        self.prompt_input.width = self.width - self.prompt_ps1.width
+        self.prompt_input.shell = kwargs['shell']
+        self.prompt_input.focus = True
 
 class KivyConsole(BoxLayout, Shell):
 
     console_input = ObjectProperty(None)
-    '''Instance of ConsoleInput
-       :data:`console_input` is an :class:`~kivy.properties.ObjectProperty`
+    '''Instance of BoxLayout
+       :data:`console_input` is a :class:`~kivy.properties.ObjectProperty`
     '''
 
     scroll_view = ObjectProperty(None)
     '''Instance of :class:`~kivy.uix.scrollview.ScrollView`
-       :data:`scroll_view` is an :class:`~kivy.properties.ObjectProperty`
+       :data:`scroll_view` is a :class:`~kivy.properties.ObjectProperty`
     '''
 
     foreground_color = ListProperty((1, 1, 1, 1))
@@ -211,7 +175,7 @@ class KivyConsole(BoxLayout, Shell):
     Default to 'DroidSansMono'
     '''
 
-    font_size = NumericProperty(28)
+    font_size = NumericProperty(sp(28))
     '''Indicates the size of the font used for the console
 
     :data:`font_size` is a :class:`~kivy.properties.NumericProperty`,
@@ -220,23 +184,50 @@ class KivyConsole(BoxLayout, Shell):
 
     def __init__(self, **kwargs):
         super(KivyConsole, self).__init__(**kwargs)
-        # self.shell = Shell()
-        # self.run_command = self.shell.run_command
-        # self.shell.bind(on_output=self.console_input.on_output)
-        # self.shell.bind(on_complete=self.console_input.on_output)
         self.init()
+
+        self._prompt = ConsolePrompt()
+        self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
+        self._prompt.shell = self
+        self._spacer = Widget()
+
+        self.console_input.add_widget(self._prompt)
+        self.console_input.add_widget(self._spacer)
+
+        Clock.schedule_once(partial(self._prompt.init, shell=self))
 
     def on_output(self, output):
         '''Event handler to send output data
         '''
-        self.console_input.on_output(output)
+        _label = Label(size=(self.size[0], sp(28)), halign='left', valign='top', size_hint=(1, None), markup=True)
+        _label.color = (0.7, 0.7, 0.7, 1)
+        _label.text = '[i]' + output + '[/i]'
+        _label.font_name = self.font_name
+        _label.text_size = _label.size
 
+        self.append_widget(_label)
+
+    def append_widget(self, widget):
+        self.console_input.remove_widget(self._spacer)
+        self._spacer = Widget()
+        self.console_input.add_widget(widget)
+        self.console_input.add_widget(self._spacer)
+
+    def new_prompt(self):
+        self._prompt.prompt_input.readonly = True
+        self._prompt = ConsolePrompt()
+        self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
+        self._prompt.shell = self
+        self.append_widget(self._prompt)
+        Clock.schedule_once(partial(self._prompt.init, shell=self))
+        self.scroll_view.scroll_y = 0
+        
     def on_complete(self, output):
         '''Event handler to send output data
         '''
-        self.console_input.on_complete(output)
+        self.new_prompt()
 
-class GUIApp(App):
+class ConsoleApp(App):
     def build(self):
         self.root = KivyConsole()
         return self.root
@@ -248,5 +239,5 @@ class GUIApp(App):
         self.root.run_thread.join()
 
 if __name__ == '__main__':
-    _gui = GUIApp()
+    _gui = ConsoleApp()
     _gui.run()
