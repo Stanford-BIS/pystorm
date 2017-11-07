@@ -387,19 +387,17 @@ class BDPars {
   // D is binary tree depth, not 4-ary tree depth, must be even
   template <int D>
   void InitAERMappers(std::array<unsigned int, (1<<D)> * xy_to_aer, std::array<unsigned int, (1<<D)> * aer_to_xy) {
+    assert(D % 2 == 0); // D must be even
     for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
-      unsigned int tile_size = (1<<D) / 64;
-      unsigned int x = xy_idx % tile_size;
-      unsigned int y = xy_idx / tile_size;
+      unsigned int array_edge_length = (1<<D/2);
+      unsigned int x = xy_idx % array_edge_length;
+      unsigned int y = xy_idx / array_edge_length;
       
       // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
       uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
-      assert(D % 2 == 0); // D must be even
       for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
-
         // determine 2-bit AER code to give to each AER node
         unsigned int yx = ((y % 2) << 1) | x % 2;
-
         uint16_t aer_node_addr;
         if (yx == 0) {
           aer_node_addr = 0;
