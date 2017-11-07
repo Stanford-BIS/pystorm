@@ -167,6 +167,7 @@ enum class BDFunnelEP {
   OVFLW1,          // class 1 FIFO overflow warning
   RO_ACC,          // tag output from accumulator
   RO_TAT,          // tag output from TAT
+  INVALID,         // something unexpected
   COUNT
 };
 
@@ -175,8 +176,8 @@ enum class BDFunnelEP {
 
 // the enum value is the upstream code
 enum class FPGAOutputEP {
-  UPSTREAM_HB = 13, // Upstream report of FPGA clock
-  SF_OUTPUT   = 14, // SpikeFilter outputs
+  UPSTREAM_HB = 14, // Upstream report of FPGA clock
+  SF_OUTPUT   = 15, // SpikeFilter outputs
   NOP         = 64, // NOP, inserted to pad output pipe
   COUNT       = 3   // XXX hardcoded, be careful
 };
