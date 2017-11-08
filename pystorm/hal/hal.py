@@ -162,12 +162,11 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
-        print("inside map")
         ng_obj_to_hw, hardware_resources, core = map_network(network)
         hw_to_ng_obj = {v: k for k, v in ng_obj_to_hw.items()}
 
         # implement core objects, calling driver
-        implement_core(core)
+        self.implement_core(core)
 
         self.ng_input_to_tags = {}
         self.tags_to_ng_output = {}
@@ -190,11 +189,16 @@ class HAL(object):
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
-        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0)
-        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0)
-        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0)
-        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0)
-        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0)
+        self.driver.SetMem(
+            CORE_ID, bddriver.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(),  0)
+        self.driver.SetMem(
+            CORE_ID, bddriver.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
+        self.driver.SetMem(
+            CORE_ID, bddriver.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
+        self.driver.SetMem(
+            CORE_ID, bddriver.bdpars.BDMemId.MM,   np.array(core.MM.mem.M).flatten().tolist(),   0)
+        self.driver.SetMem(
+            CORE_ID, bddriver.bdpars.BDMemId.AM,   np.array(core.AM.mem.M).flatten().tolist(),   0)
 
         # open all diffusor cuts
         for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
