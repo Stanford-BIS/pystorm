@@ -139,11 +139,15 @@ class Driver {
   // AER Address <-> Y,X mapping static member fns
   ////////////////////////////////////////////////////////////////////////////
   
-  /// Given flat xy_addr (y msb, x lsb) memory (16-neuron tile) address, get AER address
+  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
   unsigned int GetMemAERAddr(unsigned int xy_addr) const { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
-  /// Given flat xy_addr (y msb, x lsb) synapse address, get AER address
+  /// Given x, y config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const { return GetMemAERAddr(x*16 + y); }
+  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
   unsigned int GetSynAERAddr(unsigned int xy_addr) const { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
-  /// Given AER synapse address, get flat xy_addr (y msb, x lsb)
+  /// Given x, y synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const { return GetSynAERAddr(x*32 + y); }
+  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
   unsigned int GetSomaXYAddr(unsigned int aer_addr) const { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
 
   ////////////////////////////////////////////////////////////////////////////

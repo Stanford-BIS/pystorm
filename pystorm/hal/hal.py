@@ -3,11 +3,13 @@ import numpy as np
 from pystorm.hal.neuromorph import map_network, remap_resources
 from pystorm.PyDriver import bddriver
 
+DIFFUSOR_NORTH_LEFT = bddriver.bdpars.DiffusorCutLocationId.NORTH_LEFT
+DIFFUSOR_NORTH_RIGHT = bddriver.bdpars.DiffusorCutLocationId.NORTH_RIGHT
+DIFFUSOR_WEST_TOP = bddriver.bdpars.DiffusorCutLocationId.WEST_TOP
+DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
+
 # notes that affect nengo BE:
 # set_weights -> remap_weights (set_weights should just modify network directly, call remap_weights() when done
-
-# notes that affect driver
-# need to expose some functionality to do (y,x) <-> AER encoding
 
 CORE_ID = 0 # hardcoded for now
 
@@ -35,6 +37,9 @@ class HAL(object):
 
         self.driver.InitBD()
 
+    def __del__(self):
+        self.stop_hardware()
+
     def start_hardware(self):
         """Starts the driver"""
         self.driver.Start()
@@ -50,7 +55,7 @@ class HAL(object):
     def disable_output_recording(self):
         """Turns off recording from all outputs."""
         # XXX make some FPGA calls
-        pass 
+        pass
 
     def disable_spike_recording(self):
         """Turns off spike recording from all neurons."""
@@ -63,7 +68,7 @@ class HAL(object):
         get_outputs().
         """
         # XXX make some FPGA calls
-        pass 
+        pass
 
     def enable_spike_recording(self):
         """Turns on spike recording from all neurons.
@@ -157,6 +162,7 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
+        print("inside map")
         ng_obj_to_hw, hardware_resources, core = map_network(network)
         hw_to_ng_obj = {v: k for k, v in ng_obj_to_hw.items()}
 
@@ -172,7 +178,7 @@ class HAL(object):
             # input -> tags mapping
             if isinstance(resource, Source):
                 self.ng_input_to_tags[ng_obj] = resource.out_tags
-        
+
             # tags -> (output, dim) mapping
             elif isinstance(resource, Sink):
                 for dim_idx, tag in enumerate(resource.out_tags):
@@ -184,8 +190,42 @@ class HAL(object):
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0);
-        driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0);
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.PAT,  core.PAT.m,  0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT0, core.TAT0.m, 0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.TAT1, core.TAT1.m, 0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.MM,   core.MM.m,   0)
+        self.driver.SetMem(CORE_ID, bddriver.bdpars.MemId.AM,   core.AM.m,   0)
+
+        # open all diffusor cuts
+        for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
+            self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
+
+        for pool_allocation in core.neuron_array.pool_allocations:
+            print(pool_allocation)
+            # convert minimum pool units into tile units
+            x_min = pool_allocation['px']*2
+            x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
+            y_min = pool_allocation['py']*2
+            y_max = pool_allocation['py']*2+pool_allocation['ph']*2-1
+            # cut top edge
+            for x_idx in range(x_min, x_max+1):
+                tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
+                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
+                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+            # cut left edge
+            for y_idx in range(y_min, y_max+1):
+                tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
+                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
+                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+            # cut bottom edge if not at edge of neuron array
+            if y_max < core.NeuronArray_height_in_tiles-1:
+                for x_idx in range(x_min, x_max+1):
+                    tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
+                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
+                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+            # cut right edge if not at edge of neuron array
+            if x_max < core.NeuronArray_width_in_tiles-1:
+                for y_idx in range(y_min, y_max+1):
+                    tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
+                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
+                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
