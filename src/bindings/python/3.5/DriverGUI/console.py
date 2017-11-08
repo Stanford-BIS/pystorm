@@ -134,7 +134,7 @@ class ConsoleOutput(Label):
 
 class ConsolePrompt(BoxLayout):
     ps1_text = StringProperty('>')
-    font_name = StringProperty('droid-sans-mono.ttf')
+    font_name = StringProperty('Inconsolata-Regular.ttf')
     font_size = NumericProperty(28)
 
     prompt_ps1 = ObjectProperty(None)
@@ -175,7 +175,7 @@ class KivyConsole(BoxLayout, Shell):
     :data:`foreground_color` is an :class:`~kivy.properties.ListProperty`,
     Default to '(0, 0, 0, 1)'''
 
-    font_name = StringProperty('droid-sans-mono.ttf')
+    font_name = StringProperty('Inconsolata-Regular.ttf')
     '''Indicates the font Style used in the console
 
     :data:`font` is a :class:`~kivy.properties.StringProperty`,
@@ -231,7 +231,7 @@ class KivyConsole(BoxLayout, Shell):
             self._prompt.prompt_input.readonly = True
             self._prompt.prompt_input.cursor_width = 0
         self._prompt = ConsolePrompt()
-        self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
+        self._prompt.prompt_ps1.text = '[b]' + _truncate_pwd() + '>>> [/b]'
         self._prompt.shell = self
         self.append_widget(widget=self._prompt)
         Clock.schedule_once(partial(self._prompt.init, shell=self))
