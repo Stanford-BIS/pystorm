@@ -26,12 +26,12 @@ class HAL(object):
     def __init__(self):
         self.driver = bddriver.BDModelDriver()
 
-        # maps between neuromorph graph Input/Output to tag (indices?)
-        self.ng_input_to_tags = None
-        self.tags_to_ng_output = None
-
-        # map between spike id and pool/neuron_idx
-        self.spk_to_pool_nrn = None
+        # neuromorph graph Input -> tags
+        self.ng_input_to_tags = {}
+        # tags -> neuromorph graph Output, dimension index
+        self.tags_to_ng_output_dim_idx = {}
+        # spike id -> pool/neuron_idx
+        self.spk_to_pool_nrn_idx = {}
 
         self.start_hardware()
 
@@ -89,7 +89,7 @@ class HAL(object):
         dims = []
         counts = []
         for tag in tags:
-            out, dim, count = self.tags_to_ng_output[tag]
+            out, dim, count = self.tags_to_ng_output_dim_idx[tag]
             outputs.append(out)
             dims.append(dim)
             counts.append(count)
@@ -103,12 +103,12 @@ class HAL(object):
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
         Timestamps are in microseconds
         """
-        spk_data = self.driver.RecvSpikes(CORE_ID)
+        spk_ids, spk_times = self.driver.RecvSpikes(CORE_ID)
         timestamps = []
         pool_ids = []
         nrn_idxs = []
-        for spk_id, spk_time in spk_data:
-            pool_id, nrn_idx = self.spk_to_pool_nrn[spk_id]
+        for spk_id, spk_time in zip(spk_ids, spk_times):
+            pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
             pool_ids.append(pool_id)
             nrn_idx.append(nrn_idx)
             timestamps.append(spk_time)
@@ -162,30 +162,31 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
-        ng_obj_to_hw, hardware_resources, core = map_network(network)
-        hw_to_ng_obj = {v: k for k, v in ng_obj_to_hw.items()}
+        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network)
+        ghw_mapper_to_ng_obj = {v: k for k, v in ng_obj_to_ghw_mapper.items()}
 
         # implement core objects, calling driver
         self.implement_core(core)
 
-        self.ng_input_to_tags = {}
-        self.tags_to_ng_output = {}
-        self.spk_to_pool_nrn = {}
-        for resource in hardware_resources:
-            ng_obj = hw_to_ng_obj[resource]
-
-            # input -> tags mapping
-            if isinstance(resource, Source):
-                self.ng_input_to_tags[ng_obj] = resource.out_tags
-
-            # tags -> (output, dim) mapping
-            elif isinstance(resource, Sink):
-                for dim_idx, tag in enumerate(resource.out_tags):
-                    self.tags_to_ng_output[tag] = (ng_obj, dim_idx)
-
-            # neuron (x,y) -> (pool, x, y)
-            elif isinstance(resource, Neurons):
-                pass
+        # neuromorph graph Input -> tags
+        for ng_inp in network.get_inputs():
+            hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
+            self.ng_input_to_tags[ng_inp] = hwr_source
+        # neuromorph graph Output -> tags
+        for ng_out in network.get_outputs():
+            hwr_sink = ng_obj_to_ghw_mapper[ng_out].get_resource()
+            for dim_idx, tag in enumerate(hwr_sink.in_tags):
+                self.tags_to_ng_output_dim_idx[tag] = (ng_out, dim_idx)
+        # spike id -> pool, neuron index
+        for ng_pool in network.get_pools():
+            hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()
+            xmin = hwr_neurons.px_loc * core.NeuronArray_pool_size_x
+            ymin = hwr_neurons.py_loc * core.NeuronArray_pool_size_y
+            for x in range(hwr_neurons.x):
+                for y in range(hwr_neurons.y):
+                    spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width 
+                    pool_nrn_idx = x + y*hwr_neurons.x
+                    self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
@@ -205,7 +206,6 @@ class HAL(object):
             self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
 
         for pool_allocation in core.neuron_array.pool_allocations:
-            print(pool_allocation)
             # convert minimum pool units into tile units
             x_min = pool_allocation['px']*2
             x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1

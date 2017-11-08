@@ -309,25 +309,24 @@ def create_network_resources(network):
 
     hardware_resources = []
     # A map from neuromorph graph objects to GraphHWMappers
-    # The map forms a graph of neuromorph graph.Network/Resource objects
-    ng_obj_hw_map = dict()
+    ng_obj_to_ghw_mapper = dict()
 
     # Populate the GraphHWMappers in the graph
     for inp in network.get_inputs():
-        ng_obj_hw_map[inp] = GraphHWMapper(inp)
-        hardware_resources.append(ng_obj_hw_map[inp].get_resource())
+        ng_obj_to_ghw_mapper[inp] = GraphHWMapper(inp)
+        hardware_resources.append(ng_obj_to_ghw_mapper[inp].get_resource())
 
     for out in network.get_outputs():
-        ng_obj_hw_map[out] = GraphHWMapper(out)
-        hardware_resources.append(ng_obj_hw_map[out].get_resource())
+        ng_obj_to_ghw_mapper[out] = GraphHWMapper(out)
+        hardware_resources.append(ng_obj_to_ghw_mapper[out].get_resource())
 
     for pool in network.get_pools():
-        ng_obj_hw_map[pool] = GraphHWMapper(pool)
-        hardware_resources.append(ng_obj_hw_map[pool].get_resource())
+        ng_obj_to_ghw_mapper[pool] = GraphHWMapper(pool)
+        hardware_resources.append(ng_obj_to_ghw_mapper[pool].get_resource())
 
     for bucket in network.get_buckets():
-        ng_obj_hw_map[bucket] = GraphHWMapper(bucket)
-        hardware_resources.append(ng_obj_hw_map[bucket].get_resource())
+        ng_obj_to_ghw_mapper[bucket] = GraphHWMapper(bucket)
+        hardware_resources.append(ng_obj_to_ghw_mapper[bucket].get_resource())
 
     # Connect source GraphHWMappers to their destination GraphHWMappers
     connections = network.get_connections()
@@ -335,13 +334,14 @@ def create_network_resources(network):
         source = conn.get_source()
         dest = conn.get_dest()
         weights = conn.get_weights()  # weights is either of type Weights or None
-        ng_obj_hw_map[source].connect_src_to_dest_mapper(ng_obj_hw_map[dest], weights)
+        ng_obj_to_ghw_mapper[source].connect_src_to_dest_mapper(
+            ng_obj_to_ghw_mapper[dest], weights)
 
     # Connect the adjacent nodes creating Resources relevant to each connection
-    for _, ng_obj_hw_mapper in ng_obj_hw_map.items():
+    for _, ng_obj_hw_mapper in ng_obj_to_ghw_mapper.items():
         ng_obj_hw_mapper.connect(hardware_resources)
 
-    return ng_obj_hw_map, hardware_resources
+    return ng_obj_to_ghw_mapper, hardware_resources
 
 def map_resources_to_core(hardware_resources, core, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
@@ -423,21 +423,18 @@ def map_network(network, verbose=False):
 
     Returns
     -------
-    ng_obj_to_hw: dictionary
+    ng_obj_to_ghw_mapper: dictionary
         keys: neuromorph graph objects in the input network
-        values: hardware resources used to implement neuromorph graph object
-    hardware_resources: list of total hardware resources allocated for the input network
-    core: a representation of the hardware core
+        values: GraphHWMapper object used to instantiate
+                hardware resource objects for neuromorph graph object connections
+    hardware_resources: list of all hardware resources allocated for the input network
+    core: Core object
+        Representats the hardware core
     """
-
-    ng_obj_to_hw, hardware_resources = create_network_resources(network)
-
-    # create new core
+    ng_obj_to_ghw_mapper, hardware_resources = create_network_resources(network)
     core = Core(CORE_PARAMETERS)
-
     map_resources_to_core(hardware_resources, core, verbose)
-
-    return ng_obj_to_hw, hardware_resources, core
+    return ng_obj_to_ghw_mapper, hardware_resources, core
 
 def remap_resources(hardware_resources, verbose=False):
     """Create a mapped core object given previously mapped resources objects list
