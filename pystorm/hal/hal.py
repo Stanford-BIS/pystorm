@@ -9,7 +9,8 @@ DIFFUSOR_WEST_TOP = bddriver.bdpars.DiffusorCutLocationId.WEST_TOP
 DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
-# set_weights -> remap_weights (set_weights should just modify network directly, call remap_weights() when done
+# set_weights -> remap_weights (set_weights should just modify network directly,
+# call remap_weights() when done
 
 CORE_ID = 0 # hardcoded for now
 
@@ -130,7 +131,8 @@ class HAL(object):
 
         tags = []
         for inp, dim, count in zip(inputs, dims, counts):
-            tags.append(self.ng_input_to_tags[inp]) # TODO: what is out_tags of a Source? what about count?
+            # TODO: what is out_tags of a Source? what about count?
+            tags.append(self.ng_input_to_tags[inp])
 
         self.driver.SendTags(CORE_ID, tags, times)
 
@@ -152,8 +154,8 @@ class HAL(object):
         # network is unused: hardware_resources references it
 
         # generate a new core based on the new allocation, but assigning the new weights
-        core = remap_resources(hardware_resource)
-        implement_core(core)
+        core = remap_resources(hardware_resources)
+        self.implement_core(core)
 
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
@@ -163,7 +165,6 @@ class HAL(object):
         network: pystorm.hal.neuromorph.graph Network object
         """
         ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network)
-        ghw_mapper_to_ng_obj = {v: k for k, v in ng_obj_to_ghw_mapper.items()}
 
         # implement core objects, calling driver
         self.implement_core(core)
@@ -184,22 +185,22 @@ class HAL(object):
             ymin = hwr_neurons.py_loc * core.NeuronArray_pool_size_y
             for x in range(hwr_neurons.x):
                 for y in range(hwr_neurons.y):
-                    spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width 
+                    spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width
                     pool_nrn_idx = x + y*hwr_neurons.x
                     self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(),  0)
+            CORE_ID, bddriver.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
             CORE_ID, bddriver.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
             CORE_ID, bddriver.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.MM,   np.array(core.MM.mem.M).flatten().tolist(),   0)
+            CORE_ID, bddriver.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.AM,   np.array(core.AM.mem.M).flatten().tolist(),   0)
+            CORE_ID, bddriver.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
 
         # open all diffusor cuts
         for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
