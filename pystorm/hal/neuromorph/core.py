@@ -1,7 +1,5 @@
 import numpy as np
 import rectpack # for NeuronAllocator
-
-# for BDWord
 from pystorm.PyDriver import bddriver
 
 class Core(object):
@@ -11,7 +9,8 @@ class Core(object):
 
     Parameters
     ----------
-    ps_pars: _PyStorm CorePars instance
+    ps_pars: dictionary of core parameters
+        core_pars CORE_PARAMETERS
     """
     def __init__(self, ps_pars):
         self.MM_height = ps_pars['MM_height']
@@ -23,8 +22,11 @@ class Core(object):
 
         self.NeuronArray_height = ps_pars['NeuronArray_height']
         self.NeuronArray_width  = ps_pars['NeuronArray_width']
-        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y'] # number of neurons that share each PAT entry
-        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x'] # number of neurons that share each PAT entry
+        self.NeuronArray_height_in_tiles = ps_pars['NeuronArray_height_in_tiles']
+        self.NeuronArray_width_in_tiles = ps_pars['NeuronArray_width_in_tiles']
+        # number of neurons that share each PAT entry
+        self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y']
+        self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x']
         self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
@@ -49,8 +51,9 @@ class Core(object):
         self.TAT0 = TAT(TAT0_shape)
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
-        self.NeuronArray = NeuronArray(
-                self.NeuronArray_height, self.NeuronArray_width, self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
+        self.neuron_array = NeuronArray(
+            self.NeuronArray_height, self.NeuronArray_width,
+            self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
         # FIXME this maybe doesn't belong in the core?
         self.ExternalSinks = ExternalSinks()
@@ -58,7 +61,7 @@ class Core(object):
     def Print(self):
         print("Printing Allocation maps")
         print("NeuronArray/PAT")
-        self.NeuronArray.alloc.Print()
+        self.neuron_array.alloc.Print()
         print("AM")
         self.AM.alloc.Print()
         print("MM")
@@ -68,39 +71,65 @@ class Core(object):
         print("TAT1")
         self.TAT1.alloc.Print()
 
-    def WriteMemsToFile(self, fname_pre):
-        self.PAT.WriteToFile(fname_pre, self)
-        self.TAT0.WriteToFile(fname_pre, self, 0)
-        self.TAT1.WriteToFile(fname_pre, self, 1)
-        self.MM.WriteToFile(fname_pre, self)
-        self.AM.WriteToFile(fname_pre, self)
+    def write_mems_to_file(self, fname_pre):
+        self.PAT.write_to_file(fname_pre, self)
+        self.TAT0.write_to_file(fname_pre, self, 0)
+        self.TAT1.write_to_file(fname_pre, self, 1)
+        self.MM.write_to_file(fname_pre, self)
+        self.AM.write_to_file(fname_pre, self)
 
 class NeuronAllocator(object):
-    """based on rectpack python module, works in pool-size-x/pool-size-y granularity"""
-
+    """Allocates neuron resources
+    
+    Based on rectpack python module
+    Works at minimum pool-sized granularity
+    
+    Parameters
+    ----------
+    size_py: int
+        number of pools available in y dimension
+    size_px: int
+        number of pools available in x dimension
+    """
     def __init__(self, size_py, size_px):
-
         self.packer = rectpack.newPacker(
                 mode=rectpack.PackingMode.Offline,
                 rotation=False)
-
         self.packer.add_bin(size_py, size_px)
-
         self.pack_called = False
         self.alloc_results = {} # filled in after pack is called
 
-    def AddPool(self, py, px, pid):
-        """Let the allocator know about a py-by-px size pool with pool id pid"""
+    def add_pool(self, py, px, pid):
+        """Prepare a pool for allocation
+        
+        Parameters
+        ----------
+        py: int
+            pool y size in units of minimum pool y size
+        px: int
+            pool x size in units of minimum pool y size
+        pid: int
+            id(pool)
+        """
         self.packer.add_rect(py, px, rid=pid)
 
-    def Allocate(self, pid):
-        """Get allocation result for pool id pid"""
+    def allocate(self, pid):
+        """Allocate neurons for a pool
 
+        On first call, peforms the allocation for all pools and
+        caches result for subsequent calls
+        
+        Returns (y, x, w, h), the start coordinates, width and height of the allocated pool
+
+        Parameters
+        ----------
+        pid: id(pool)
+        """
         if not self.pack_called:
             self.packer.pack()
             for rect in self.packer.rect_list():
-                b, y, x, w, h, pid = rect
-                self.alloc_results[pid] = (y, x)
+                _, y, x, w, h, pid = rect
+                self.alloc_results[pid] = (y, x, w, h)
             self.pack_called = True
 
         return self.alloc_results[pid]
@@ -113,7 +142,7 @@ class MemAllocator(object):
         self.shape = shape
         self.L = np.zeros(shape).astype(bool) # binary map of allocation
 
-    def CheckBlockUnallocated(self, idx_slice):
+    def check_block_unallocated(self, idx_slice):
         if isinstance(idx_slice, tuple):
             assert len(idx_slice) == 2
             assert isinstance(idx_slice[0], slice)
@@ -168,23 +197,23 @@ class StepMemAllocator(MemAllocator):
         super(StepMemAllocator, self).__init__(shape)
         self.pos = 0
 
-    def Allocate(self, alloc_size):
+    def allocate(self, alloc_size):
         try_slice = slice(self.pos, self.pos + alloc_size)
 
-        assert self.CheckBlockUnallocated(try_slice) # allocate
+        assert self.check_block_unallocated(try_slice) # allocate
 
         self.pos += alloc_size
         return try_slice.start
 
 class MMAllocator(MemAllocator):
     """we have to place the decoders carefully, but we have a lot of freedom with transforms"""
-    def __init__(self, shape, NPOOL):
+    def __init__(self, shape, neurons_per_pool):
         super(MMAllocator, self).__init__(shape)
         self.xpos = 0
         self.ypos = 0
-        self.NPOOL = NPOOL
+        self.neurons_per_pool = neurons_per_pool
 
-    def AllocatePoolDec(self, D):
+    def allocate_pool_dec(self, D):
 
         if D > self.shape[1]:
             print("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
@@ -192,37 +221,43 @@ class MMAllocator(MemAllocator):
 
         # can fit in the current mem row, just increment xpos when done
         elif self.xpos + D < self.shape[1]:
-            try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
-            assert self.CheckBlockUnallocated(try_slice) # allocate
+            try_slice = (
+                slice(self.ypos, self.ypos + self.neurons_per_pool),
+                slice(self.xpos, self.xpos + D))
+            assert self.check_block_unallocated(try_slice) # allocate
             self.xpos += D
 
         # can *barely* fit in the current mem row, move to the next pool row when done
         elif self.xpos + D == self.shape[1]:
-            try_slice = (slice(self.ypos, self.ypos + self.NPOOL), slice(self.xpos, self.xpos + D))
-            assert self.CheckBlockUnallocated(try_slice) # allocate
+            try_slice = (
+                slice(self.ypos, self.ypos + self.neurons_per_pool),
+                slice(self.xpos, self.xpos + D))
+            assert self.check_block_unallocated(try_slice) # allocate
             self.xpos = 0
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
 
         # can't fit in the current row, skip to the next one
         else:
-            try_slice = (slice(self.ypos + self.NPOOL, self.ypos + 2*self.NPOOL), slice(0, D))
-            assert self.CheckBlockUnallocated(try_slice) # allocate
+            try_slice = (
+                slice(self.ypos + self.neurons_per_pool, self.ypos + 2*self.neurons_per_pool),
+                slice(0, D))
+            assert self.check_block_unallocated(try_slice) # allocate
             self.xpos = D
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
         return (try_slice[0].start, try_slice[1].start)
 
-    def SwitchToTrans(self):
+    def switch_to_trans(self):
         """this is lazy, wastes a little space"""
         if self.xpos != 0:
-            self.ypos += self.NPOOL
+            self.ypos += self.neurons_per_pool
         self.xpos = 0
 
-    def AllocateTransRow(self, D):
+    def allocate_trans_row(self, D):
         """very similar to StepMemAllocator Allocate"""
         dcurr = 0
         flat_pos = self.ypos * self.shape[1] + self.xpos
         try_slice = slice(flat_pos, flat_pos + D)
-        assert self.CheckBlockUnallocated(try_slice)
+        assert self.check_block_unallocated(try_slice)
         self.ypos = (flat_pos + D) // self.shape[1]
         self.xpos = (flat_pos + D) % self.shape[1]
         start_y = try_slice.start // self.shape[1]
@@ -238,17 +273,19 @@ class Memory(object):
             self.M = [[0 for i in range(self.shape[0])] for j in range(self.shape[1])]
         self.M = np.array(self.M, dtype=object)
 
-    def Assign1DBlock(self, mem, start):
+    def assign_1d_block(self, mem, start):
         if len(self.shape) == 2 and isinstance(start, tuple):
             start = start[0] * self.shape[1] + start[1]
         idx_slice = slice(start, start + mem.shape[0])
         self.M.flat[idx_slice] = mem
 
-    def Assign2DBlock(self, mem, start):
+    def assign_2d_block(self, mem, start):
         assert len(self.shape) == 2
         assert len(mem.shape) == 2
         assert len(start) == 2
-        idx_slice = (slice(start[0], start[0] + mem.shape[0]), slice(start[1], start[1] + mem.shape[1]))
+        idx_slice = (
+            slice(start[0], start[0] + mem.shape[0]),
+            slice(start[1], start[1] + mem.shape[1]))
         self.M[idx_slice] = mem
 
 class StepMem(Memory):
@@ -261,23 +298,24 @@ class PATMem(Memory):
         super(PATMem, self).__init__(shape)
 
 class MM(object):
-    def __init__(self, shape, NPOOL):
+    """Represents a Core's main memory"""
+    def __init__(self, shape, neurons_per_pool):
         self.mem = StepMem(shape)
-        self.alloc = MMAllocator(shape, NPOOL)
+        self.alloc = MMAllocator(shape, neurons_per_pool)
 
-    def AllocateDec(self, D):
-        return self.alloc.AllocatePoolDec(D)
+    def allocate_dec(self, D):
+        return self.alloc.allocate_pool_dec(D)
 
-    def AllocateTrans(self, D):
-        return self.alloc.AllocateTransRow(D)
+    def allocate_trans(self, D):
+        return self.alloc.allocate_trans_row(D)
 
-    def AssignDec(self, data, start):
-        self.mem.Assign2DBlock(data, start)
+    def assign_dec(self, data, start):
+        self.mem.assign_2d_block(data, start)
 
-    def AssignTrans(self, data, start):
-        self.mem.Assign1DBlock(data, start)
+    def assign_trans(self, data, start):
+        self.mem.assign_1d_block(data, start)
 
-    def WriteToFile(self, fname_pre, core):
+    def write_to_file(self, fname_pre, core):
         f = open(fname_pre + "MM.txt", 'w')
         for y in range(self.mem.shape[0]):
             for x in range(self.mem.shape[1]):
@@ -299,13 +337,13 @@ class AM(object):
         self.mem = StepMem(shape)
         self.alloc = StepMemAllocator(shape)
 
-    def Allocate(self, size):
-        return self.alloc.Allocate(size)
+    def allocate(self, size):
+        return self.alloc.allocate(size)
 
-    def Assign(self, data, start):
-        self.mem.Assign1DBlock(data, start)
+    def assign(self, data, start):
+        self.mem.assign_1d_block(data, start)
 
-    def WriteToFile(self, fname_pre, core):
+    def write_to_file(self, fname_pre, core):
         f = open(fname_pre + "AM.txt", 'w')
         f.write("AM: [ val | thr | stop | na ]\n")
         for idx in range(self.mem.shape[0]):
@@ -322,13 +360,13 @@ class TAT(object):
         self.mem = StepMem(shape)
         self.alloc = StepMemAllocator(shape)
 
-    def Allocate(self, size):
-        return self.alloc.Allocate(size)
+    def allocate(self, size):
+        return self.alloc.allocate(size)
 
-    def Assign(self, data, start):
-        self.mem.Assign1DBlock(data, start)
+    def assign(self, data, start):
+        self.mem.assign_1d_block(data, start)
 
-    def WriteToFile(self, fname_pre, core, tat_idx):
+    def write_to_file(self, fname_pre, core, tat_idx):
         f = open(fname_pre + "TAT" + str(tat_idx) + ".txt", 'w')
         f.write("TAT" + str(tat_idx) + ": acc : [ stop | type | ama | mmax | mmay ]\n")
         f.write("      nrn : [ stop | type | tap | sign | tap | sign | X ]\n")
@@ -369,10 +407,10 @@ class PAT(object):
     def __init__(self, shape):
         self.mem = PATMem(shape)
 
-    def Assign(self, data, start):
-        self.mem.Assign2DBlock(data, start)
+    def assign(self, data, start):
+        self.mem.assign_2d_block(data, start)
 
-    def WriteToFile(self, fname_pre, core):
+    def write_to_file(self, fname_pre, core):
         f = open(fname_pre + "PAT.txt", 'w')
         f.write("PAT : [ ama | mmax | mmay_base ]\n")
         for idx in range(self.mem.shape[0]):
@@ -385,6 +423,19 @@ class PAT(object):
         f.close()
 
 class NeuronArray(object):
+    """Represents a Core's neuron array
+    
+    Parameters
+    ----------
+    y: int
+        array y dimension ; y*x = n_neurons
+    x: int
+        array x dimension; y*x = n_neurons
+    pool_size_y: int
+        minimum pool y size in number of neurons
+    pool_size_x: int
+        minimum pool x size in number of neurons
+    """
     def __init__(self, y, x, pool_size_y, pool_size_x):
         self.y = y
         self.x = x
@@ -396,16 +447,25 @@ class NeuronArray(object):
         self.pools_x = self.x // self.pool_size_x
 
         self.N = y * x # total neurons
-        self.NPOOL = self.pool_size_x * self.pool_size_y # neurons per pool
+        self.neurons_per_pool = self.pool_size_x * self.pool_size_y
 
         shape = (self.y, self.x)
         self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
+        self.pool_allocations = [] # store pool allocation results
 
-    def AddPool(self, pool):
-        self.alloc.AddPool(pool.py, pool.px, id(pool))
+    def add_pool(self, pool):
+        self.alloc.add_pool(pool.py, pool.px, id(pool))
 
-    def Allocate(self, pool):
-        return self.alloc.Allocate(id(pool))
+    def allocate(self, pool):
+        """Allocate neuron array area for a pool
+        
+        Returns the start coordinates of the pool in units of minimum pool size
+        """
+        # coordinates and dimensions in units of minimum pool size
+        py, px, pw, ph = self.alloc.allocate(id(pool))
+        self.pool_allocations.append(dict(
+            pool=pool, py=py, px=px, pw=pw, ph=ph))
+        return (py, px)
 
 class ExternalSinks(object):
     curr_idx = 0
@@ -413,7 +473,7 @@ class ExternalSinks(object):
     def __init__(self):
         pass
 
-    def Allocate(self, D):
+    def allocate(self, D):
         base_idx = ExternalSinks.curr_idx
         ExternalSinks.curr_idx += D
         return np.array(range(base_idx, base_idx + D))

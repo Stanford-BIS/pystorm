@@ -8,7 +8,7 @@ import numpy as np
 #from hardware_resources import (
 #    AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
 
-from . import core_pars
+from .core_pars import CORE_PARAMETERS
 from .graph import (Bucket, Input, Output, Pool)
 from .core import Core
 from .hardware_resources import (
@@ -362,7 +362,7 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished allocate_early")
 
-    core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
+    core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
     for resource in hardware_resources:
         resource.allocate(core)
     if verbose:
@@ -433,8 +433,7 @@ def map_network(network, verbose=False):
     ng_obj_to_hw, hardware_resources = create_network_resources(network)
 
     # create new core
-    pars = core_pars.get_core_pars()
-    core = Core(pars)
+    core = Core(CORE_PARAMETERS)
 
     map_resources_to_core(hardware_resources, core, verbose)
 
@@ -458,8 +457,7 @@ def remap_resources(hardware_resources, verbose=False):
     """
 
     # create new core
-    pars = core_pars.get_core_pars()
-    core = Core(pars)
+    core = Core(CORE_PARAMETERS)
 
     reassign_resources_to_core(hardware_resources, core, verbose)
 
