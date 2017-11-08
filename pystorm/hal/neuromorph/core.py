@@ -51,7 +51,7 @@ class Core(object):
         self.TAT0 = TAT(TAT0_shape)
         self.TAT1 = TAT(TAT1_shape)
         self.PAT = PAT(PAT_shape)
-        self.NeuronArray = NeuronArray(
+        self.neuron_array = NeuronArray(
             self.NeuronArray_height, self.NeuronArray_width,
             self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
@@ -61,7 +61,7 @@ class Core(object):
     def Print(self):
         print("Printing Allocation maps")
         print("NeuronArray/PAT")
-        self.NeuronArray.alloc.Print()
+        self.neuron_array.alloc.Print()
         print("AM")
         self.AM.alloc.Print()
         print("MM")
@@ -92,13 +92,10 @@ class NeuronAllocator(object):
         number of pools available in x dimension
     """
     def __init__(self, size_py, size_px):
-
         self.packer = rectpack.newPacker(
                 mode=rectpack.PackingMode.Offline,
                 rotation=False)
-
         self.packer.add_bin(size_py, size_px)
-
         self.pack_called = False
         self.alloc_results = {} # filled in after pack is called
 
@@ -117,12 +114,22 @@ class NeuronAllocator(object):
         self.packer.add_rect(py, px, rid=pid)
 
     def allocate(self, pid):
-        """Get allocation result for pool id pid"""
+        """Allocate neurons for a pool
+
+        On first call, peforms the allocation for all pools and
+        caches result for subsequent calls
+        
+        Returns (y, x, w, h), the start coordinates, width and height of the allocated pool
+
+        Parameters
+        ----------
+        pid: id(pool)
+        """
         if not self.pack_called:
             self.packer.pack()
             for rect in self.packer.rect_list():
                 _, y, x, w, h, pid = rect
-                self.alloc_results[pid] = (y, x)
+                self.alloc_results[pid] = (y, x, w, h)
             self.pack_called = True
 
         return self.alloc_results[pid]
@@ -444,12 +451,21 @@ class NeuronArray(object):
 
         shape = (self.y, self.x)
         self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
+        self.pool_allocations = [] # store pool allocation results
 
     def add_pool(self, pool):
         self.alloc.add_pool(pool.py, pool.px, id(pool))
 
     def allocate(self, pool):
-        return self.alloc.allocate(id(pool))
+        """Allocate neuron array area for a pool
+        
+        Returns the start coordinates of the pool in units of minimum pool size
+        """
+        # coordinates and dimensions in units of minimum pool size
+        py, px, pw, ph = self.alloc.allocate(id(pool))
+        self.pool_allocations.append(dict(
+            pool=pool, py=py, px=px, pw=pw, ph=ph))
+        return (py, px)
 
 class ExternalSinks(object):
     curr_idx = 0

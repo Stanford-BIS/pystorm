@@ -192,16 +192,18 @@ class Neurons(Resource):
         self.px = int(np.ceil(self.x / core.NeuronArray_pool_size_x))
 
         # let the allocator know about it
-        core.NeuronArray.add_pool(self)
+        core.neuron_array.add_pool(self)
 
     def allocate(self, core):
         """neuron array allocation"""
-        self.py_loc, self.px_loc = core.NeuronArray.allocate(self)
-        self.start_nrn_idx = (self.py_loc * core.NeuronArray.pools_x + self.px_loc) * core.NeuronArray_pool_size
+        self.py_loc, self.px_loc = core.neuron_array.allocate(self)
+        self.start_nrn_idx = (
+            (self.py_loc * core.neuron_array.pools_x + self.px_loc) * core.NeuronArray_pool_size)
 
     def posttranslate(self, core):
         """PAT assignment setup"""
-        assert(len(self.conns_out) == 1) # assert no more than one connection (only one decoder allowed)
+        # assert no more than one connection (only one decoder allowed)
+        assert(len(self.conns_out) == 1)
 
         weights = self.conns_out[0].tgt
         buckets = self.conns_out[0].tgt.conns_out[0].tgt
@@ -210,8 +212,8 @@ class Neurons(Resource):
 
         for py_idx in range(self.py):
             for px_idx in range(self.px):
-
-                nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size # first nrn idx in block
+                # first nrn idx in block
+                nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
                 MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
 
                 AMA = buckets.start_addr
