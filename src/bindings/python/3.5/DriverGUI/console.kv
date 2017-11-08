@@ -3,6 +3,13 @@
     cursor_width: 16
     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
 
+<ConsoleOutput>:
+    markup: True
+    text_size: (None, None)
+    size_hint: (1, None)
+    color: (0.7, 0.7, 0.7, 1)
+    size: self.texture_size
+
 <ConsolePrompt>:
     orientation: 'horizontal'
     prompt_ps1: prompt_ps1
@@ -32,8 +39,6 @@
         height: root.size[1] + sp(8)
         text_size: self.size
         size_hint: None, None
-        halign: 'left'
-        valign: 'middle'
 
 <KivyConsole>:
     console_input: console_input

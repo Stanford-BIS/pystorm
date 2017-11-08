@@ -61,7 +61,7 @@ class Shell(EventDispatcher):
             for line in _redirected_error.getvalue().splitlines(True):
                 output += line
                 if show_output:
-                    self.dispatch('on_output', line)
+                    self.dispatch('on_output', line, False)
         self.dispatch('on_complete', output)
 
     def stop(self, *args):
@@ -129,6 +129,9 @@ class ConsoleInput(TextInput):
         '''
         self.shell.new_prompt()
 
+class ConsoleOutput(Label):
+    pass
+
 class ConsolePrompt(BoxLayout):
     ps1_text = StringProperty('>')
     font_name = StringProperty('droid-sans-mono.ttf')
@@ -192,22 +195,31 @@ class KivyConsole(BoxLayout, Shell):
 
         self._prompt = None
         self._spacer = None
+        self._output = None
+        self._output_text = ""
+        self._last_success = True
         self.new_prompt()
 
         Clock.schedule_once(partial(self._prompt.init, shell=self))
 
-    def on_output(self, output):
+    def on_output(self, output, success=True):
         '''Event handler to send output data
         '''
-        _label = Label(size=(self.size[0], sp(20)), halign='left', valign='top', size_hint=(1, None), markup=True)
-        _label.color = (0.7, 0.7, 0.7, 1)
-        _label.text = '[i]' + output + '[/i]'
-        _label.font_name = self.font_name
-        _label.text_size = _label.size
 
-        self.append_widget(_label)
+        self._output_text += output
+        self._last_success = success
+        #Clock.schedule_once(partial(self.append_widget, widget=self._output))
 
-    def append_widget(self, widget):
+        #_label = Label(size=(self.size[0], sp(20)), halign='left', valign='top', size_hint=(1, None), markup=True)
+        #_label.color = (0.7, 0.7, 0.7, 1)
+        #_label.text = '[i]' + output + '[/i]'
+        #_label.font_name = self.font_name
+        #_label.text_size = _label.size
+
+        #self.append_widget(_label)
+
+    def append_widget(self, *args,  **kwargs):
+        widget = kwargs['widget']
         if self._spacer is not None:
             self.console_input.remove_widget(self._spacer)
         self._spacer = Widget()
@@ -221,13 +233,33 @@ class KivyConsole(BoxLayout, Shell):
         self._prompt = ConsolePrompt()
         self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
         self._prompt.shell = self
-        self.append_widget(self._prompt)
+        self.append_widget(widget=self._prompt)
         Clock.schedule_once(partial(self._prompt.init, shell=self))
         self.scroll_view.scroll_y = 0
-        
+        self._output = None
+
+    def _parse_output(self):
+        import re
+        _lines = self._output_text.splitlines(True)
+        if self._last_success is False:
+            _lines[-1] = str(re.sub(r'^(\S+Error)', r'[color=ff0000]\1[/color]', _lines[-1]))
+            return (_lines[0] + ''.join(_lines[3:])).strip()
+        else:
+            return self._output_text.strip()
+
     def on_complete(self, output):
         '''Event handler to send output data
         '''
+        if self._output_text != "":
+            self._output_text = self._parse_output()
+            self._output = ConsoleOutput(
+                text=self._output_text,
+                font_name=self.font_name,
+                text_size=(self.width, None)
+            )
+            self.append_widget(widget=self._output)
+            self._output_text = ""
+
         self.new_prompt()
 
 class ConsoleApp(App):
