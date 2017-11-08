@@ -106,9 +106,9 @@ int CommOK::WriteToDevice() {
     if (deserialized_.size() > 0) {
       assert(deserialized_.size() == WRITE_SIZE);
 
-      cout << "comm about to write" << endl;
+      //cout << "comm about to write" << endl;
       int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized_[0]);
-      cout << "comm wrote " << last_status << " words" << endl;
+      //cout << "comm wrote " << last_status << " words" << endl;
 
       if (last_status == WRITE_SIZE) {
         deserialized_.clear();
