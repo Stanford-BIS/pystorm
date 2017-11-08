@@ -37,6 +37,9 @@ class HAL(object):
 
         self.driver.InitBD()
 
+    def __del__(self):
+        self.stop_hardware()
+
     def start_hardware(self):
         """Starts the driver"""
         self.driver.Start()
