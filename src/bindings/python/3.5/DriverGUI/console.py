@@ -90,6 +90,9 @@ class ConsoleInput(TextInput):
     shell = ObjectProperty(None)
     '''Instance of KivyConsole(parent) widget
     '''
+    current_prompt = ObjectProperty(None)
+    '''Active prompt
+    '''
 
     def __init__(self, **kwargs):
         super(ConsoleInput, self).__init__(**kwargs)
@@ -133,6 +136,7 @@ class ConsolePrompt(BoxLayout):
 
     prompt_ps1 = ObjectProperty(None)
     prompt_input = ObjectProperty(None)
+    prompt_height = NumericProperty(sp(20))
 
     def __init__(self, **kwargs):
         super(ConsolePrompt, self).__init__(**kwargs)
@@ -186,20 +190,16 @@ class KivyConsole(BoxLayout, Shell):
         super(KivyConsole, self).__init__(**kwargs)
         self.init()
 
-        self._prompt = ConsolePrompt()
-        self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
-        self._prompt.shell = self
-        self._spacer = Widget()
-
-        self.console_input.add_widget(self._prompt)
-        self.console_input.add_widget(self._spacer)
+        self._prompt = None
+        self._spacer = None
+        self.new_prompt()
 
         Clock.schedule_once(partial(self._prompt.init, shell=self))
 
     def on_output(self, output):
         '''Event handler to send output data
         '''
-        _label = Label(size=(self.size[0], sp(28)), halign='left', valign='top', size_hint=(1, None), markup=True)
+        _label = Label(size=(self.size[0], sp(20)), halign='left', valign='top', size_hint=(1, None), markup=True)
         _label.color = (0.7, 0.7, 0.7, 1)
         _label.text = '[i]' + output + '[/i]'
         _label.font_name = self.font_name
@@ -208,13 +208,16 @@ class KivyConsole(BoxLayout, Shell):
         self.append_widget(_label)
 
     def append_widget(self, widget):
-        self.console_input.remove_widget(self._spacer)
+        if self._spacer is not None:
+            self.console_input.remove_widget(self._spacer)
         self._spacer = Widget()
         self.console_input.add_widget(widget)
         self.console_input.add_widget(self._spacer)
 
     def new_prompt(self):
-        self._prompt.prompt_input.readonly = True
+        if self._prompt is not None:
+            self._prompt.prompt_input.readonly = True
+            self._prompt.prompt_input.cursor_width = 0
         self._prompt = ConsolePrompt()
         self._prompt.prompt_ps1.text = '[i]' + _truncate_pwd() + '>>> [/i]'
         self._prompt.shell = self

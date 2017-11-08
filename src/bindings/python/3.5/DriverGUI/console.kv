@@ -1,37 +1,39 @@
 <ConsoleInput>:
     multiline: False
     cursor_width: 16
+    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
 
 <ConsolePrompt>:
     orientation: 'horizontal'
     prompt_ps1: prompt_ps1
     prompt_input: prompt_input
-    size: self.width, sp(28)
+    size: self.width, self.prompt_height
     size_hint: 1, None
     Label:
         id: prompt_ps1
-        text: root.ps1_text
-        color: (0, 1, 0, 1)
         markup: True
-        halign: 'left'
-        valign: 'middle'
+        color: (0, 1, 0, 1)
         font_name: root.font_name
         font_size: root.font_size
-        text_size: None, None
-        size_hint: None, None
+        text: root.ps1_text
         width: self.texture_size[0]
         height: root.size[1]
         text_size: self.size
+        size_hint: None, None
+        halign: 'left'
+        valign: 'middle'
     ConsoleInput:
         id: prompt_input
+        foreground_color: (1, 1, 1, 1)
+        background_color: (0, 0, 0, 0)
         font_name: root.font_name
         font_size: root.font_size
-        foreground_color: (1, 1, 1, 1)
-        background_color: (0, 0, 0, 1)
-        height: root.size[1]
         width: root.size[0] - prompt_ps1.width
-        size_hint: None, None
+        height: root.size[1] + sp(8)
         text_size: self.size
+        size_hint: None, None
+        halign: 'left'
+        valign: 'middle'
 
 <KivyConsole>:
     console_input: console_input
