@@ -41,7 +41,7 @@
         size_hint: None, None
 
 <KivyConsole>:
-    console_input: console_input
+    console_area: console_area
     scroll_view: scroll_view
     ScrollView:
         id: scroll_view
@@ -51,7 +51,7 @@
         scroll_type: ['bars', 'content']
         BoxLayout:
             orientation: 'vertical'
-            id: console_input
+            id: console_area
             size_hint_y: None
             height: max(scroll_view.height, self.minimum_height)
             font_name: root.font_name

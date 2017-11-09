@@ -1,10 +1,8 @@
 from kivy.app import App
 from kivy.event import EventDispatcher
-from kivy.lang import Builder
 from kivy.properties import ObjectProperty, ListProperty, StringProperty, \
     NumericProperty, Clock, partial
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.stacklayout import StackLayout
 from kivy.uix.textinput import TextInput
 from kivy.uix.widget import Widget
 from kivy.uix.label import Label
@@ -15,9 +13,11 @@ import queue
 from io import StringIO
 import sys
 import traceback
-import numpy as np
 
+# message queue for REPL
 EQ = queue.Queue(1)
+# namespace for the console interpreter
+NS = {}
 
 def _truncate_pwd():
     import re
@@ -31,7 +31,6 @@ def _truncate_pwd():
 
 
 class Shell(EventDispatcher):
-    # , 'on_stop', 'on_start', 'on_complete', 'on_error'
     __events__ = ('on_output', 'on_complete')
 
     def run_command(self, command, show_output=True, *args):
@@ -41,7 +40,7 @@ class Shell(EventDispatcher):
         _redirected_error = sys.stderr = StringIO()
         _success = True
         try:
-            eval(compile(command, '<string>', 'single'))
+            eval(compile(command, '<string>', 'single'), None, NS)
         except:
             try:
                 _exc_info = sys.exc_info()
@@ -106,11 +105,11 @@ class ConsoleInput(TextInput):
             if text.strip():
                 Clock.schedule_once(partial(self._run_cmd, text))
             else:
-                Clock.schedule_once(self.prompt)
+                Clock.schedule_once(self.shell.new_prompt)
         elif keycode[0] in [8, 37, 38]:
             self.cancel_selection()
         elif keycode[0] == 99 and modifiers == ['ctrl']:
-            Clock.schedule_once(self.prompt)
+            Clock.schedule_once(self.shell.new_prompt)
 
         return super(ConsoleInput, self).keyboard_on_key_down(
             window, keycode, text, modifiers)
@@ -123,11 +122,6 @@ class ConsoleInput(TextInput):
             if not EQ.full():
                 EQ.put(commands[_idx])
                 _idx += 1
-
-    def prompt(self, *args):
-        '''Show the PS1 variable
-        '''
-        self.shell.new_prompt()
 
 class ConsoleOutput(Label):
     pass
@@ -152,7 +146,7 @@ class ConsolePrompt(BoxLayout):
 
 class KivyConsole(BoxLayout, Shell):
 
-    console_input = ObjectProperty(None)
+    console_area = ObjectProperty(None)
     '''Instance of BoxLayout
        :data:`console_input` is a :class:`~kivy.properties.ObjectProperty`
     '''
@@ -221,12 +215,12 @@ class KivyConsole(BoxLayout, Shell):
     def append_widget(self, *args,  **kwargs):
         widget = kwargs['widget']
         if self._spacer is not None:
-            self.console_input.remove_widget(self._spacer)
+            self.console_area.remove_widget(self._spacer)
         self._spacer = Widget()
-        self.console_input.add_widget(widget)
-        self.console_input.add_widget(self._spacer)
+        self.console_area.add_widget(widget)
+        self.console_area.add_widget(self._spacer)
 
-    def new_prompt(self):
+    def new_prompt(self, *args):
         if self._prompt is not None:
             self._prompt.prompt_input.readonly = True
             self._prompt.prompt_input.cursor_width = 0
