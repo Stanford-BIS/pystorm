@@ -209,7 +209,7 @@ void Driver::ResetBD() {
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
 
-    unsigned int delay_us = 500; // hold reset states for half a ms (probably conservative)
+    unsigned int delay_us = 5000; // hold reset states for 5 ms (probably conservative)
 
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_1_sReset_1});
     Flush();
@@ -1042,7 +1042,7 @@ void Driver::SetSpikeGeneratorRates(
 
   std::vector<BDWord> SG_prog_words;
 
-  unsigned int clks_per_sec = 1e9 / ns_per_clk_;
+  unsigned int units_per_sec = 1e6 / us_per_unit_;
 
   // program periods/tag output idxs
   for (unsigned int i = 0; i < tags.size(); i++) {
@@ -1050,11 +1050,12 @@ void Driver::SetSpikeGeneratorRates(
     unsigned int gen_idx = gen_idxs.at(i);
     unsigned int tag = tags.at(i);
     
-    // (period in clks) = (clks/sec) / (rate in 1/sec)
+    // (period in time units) = (units/sec) / (rate in 1/sec)
     const unsigned int max_period = (1 << FieldWidth(FPGASGWORD::PERIOD)) - 1;
     unsigned int rate = rates.at(i);
-    unsigned int period = rate > 0 ? clks_per_sec / rate : max_period;
+    unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
+    cout << "programming SG " << gen_idx << " to target tag " << tag << " with period " << period << " time units. There are " << us_per_unit_ << " us per time unit" << endl;
 
     SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}}));
   }
