@@ -40,7 +40,7 @@ void CommOK::CommController() {
   while (CommStreamState::STARTED == GetStreamState()) {
     ReadFromDevice();
     WriteToDevice();
-    std::this_thread::sleep_for(1us);
+    //std::this_thread::sleep_for(1us);
   }
 }
 
@@ -107,7 +107,7 @@ int CommOK::WriteToDevice() {
       assert(deserialized_.size() == WRITE_SIZE);
 
       //cout << "comm about to write" << endl;
-      int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_SIZE, WRITE_SIZE, &deserialized_[0]);
+      int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_BLOCK_SIZE, WRITE_SIZE, &deserialized_[0]);
       //cout << "comm wrote " << last_status << " words" << endl;
 
       if (last_status == WRITE_SIZE) {

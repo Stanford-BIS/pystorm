@@ -57,6 +57,9 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
 
   std::unique_ptr<std::vector<EncOutput>> output (new std::vector<EncOutput>);
 
+  static unsigned int n0 = 0;
+  static unsigned int n1 = 0;
+
   for (auto& it : *inputs) {
     // unpack data
     unsigned int core_id      = it.core_id;
@@ -94,6 +97,13 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
       for (unsigned int i = 0; i < 3; i++) {
         PushWord(output, PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
       }
+    }
+
+    if (FPGA_ep_code == bd_pars_->DnEPCodeFor(bdpars::BDHornEP::RI)) {
+      unsigned int bit = payload % 2;
+      if (bit == 0) n0++;
+      if (bit == 1) n1++;
+      cout << "p[0] = " << bit << ", n0 = " << n0 << ", n1 = " << n1 << ", p = " << payload << endl;
     }
 
     // serialize to bytes 
