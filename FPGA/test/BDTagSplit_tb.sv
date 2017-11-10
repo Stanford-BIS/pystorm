@@ -11,6 +11,7 @@ parameter Ntag = 11;
 parameter Nct = 9;
 
 TagCtChannel tag_out();
+GlobalTagCtChannel global_tag_out();
 DecodedBDWordChannel other_out();
 DecodedBDWordChannel BD_in();
 TagSplitConf conf();

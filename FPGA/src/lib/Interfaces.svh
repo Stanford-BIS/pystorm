@@ -39,6 +39,14 @@ interface TagCtChannel #(parameter Ntag = 11, parameter Nct = 9);
   logic a;
 endinterface
 
+interface GlobalTagCtChannel #(parameter Nglobal = 12, parameter Ntag = 11, parameter Nct = 9);
+  logic [Nglobal-1:0] global_tag;
+  logic [Ntag-1:0] tag;
+  logic [Nct-1:0] ct;
+  logic v;
+  logic a;
+endinterface
+
 interface SpikeFilterOutputChannel #(parameter Nfilts = 10, parameter Nstate = 27);
   logic [Nfilts-1:0] filt_idx;
   logic [Nstate-1:0] filt_state;
@@ -72,6 +80,14 @@ endinterface
 interface SerializedPCWordChannel;
   logic [7:0] code;
   logic [23:0] payload;
+  logic v;
+  logic a;
+endinterface
+
+interface SerializedPCWordChannelwithRoute;
+  logic [7:0] code;
+  logic [23:0] payload;
+  logic [10:0] route;
   logic v;
   logic a;
 endinterface
