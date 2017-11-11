@@ -6,7 +6,7 @@
 // the BD traffic, and the SpikeGeneratorArray traffic,
 // and inserts heartbeat events signalsed by the TimeMgr
 
-module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 11) (
+module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10) (
   Channel PC_out,
 
   // BDSerializer inputs

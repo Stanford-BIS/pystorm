@@ -87,7 +87,7 @@ endinterface
 interface SerializedPCWordChannelwithRoute;
   logic [7:0] code;
   logic [23:0] payload;
-  logic [10:0] route;
+  logic [9:0] route;
   logic v;
   logic a;
 endinterface
