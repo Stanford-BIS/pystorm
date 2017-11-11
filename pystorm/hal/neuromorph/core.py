@@ -456,7 +456,18 @@ class NeuronArray(object):
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)
 
-class ExternalSinks(object):
+class FPGASpikeFilters(object):
+    curr_idx = 0
+
+    def __init__(self):
+        pass
+
+    def allocate(self, D):
+        base_idx = ExternalSinks.curr_idx
+        ExternalSinks.curr_idx += D
+        return np.array(range(base_idx, base_idx + D))
+
+class FPGASpikeGenerators(object):
     curr_idx = 0
 
     def __init__(self):

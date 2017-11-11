@@ -743,7 +743,7 @@ class TATFanout(Resource):
         core.TAT1.assign(self.contents, self.start_addr)
 
 class Sink(Resource):
-    """Represents a sink"""
+    """Represents an FPGA SpikeFilter (tag filter)"""
     def __init__(self, D):
         super().__init__([Neurons, TATFanout, AMBuckets], [],
                          sliceable_in=True, sliceable_out=False, max_conns_out=0)
@@ -752,7 +752,7 @@ class Sink(Resource):
         self.D = D
 
         # allocate
-        self.in_tags = None
+        self.filter_idxs = None
 
     @property
     def dimensions_in(self):
@@ -765,15 +765,17 @@ class Sink(Resource):
             "only dimensions_in is defined")
 
     def allocate(self, core):
-        self.in_tags = core.ExternalSinks.allocate(self.D)
-        # XXX this needs to propagate to the FPGA somehow
+        self.filter_idxs = core.FPGASpikeFilters.allocate(self.D)
 
 class Source(Resource):
-    """Represents a source"""
+    """Represents an FPGA SpikeGenerator (tag generator)"""
     def __init__(self, D):
         super().__init__([], [TATTapPoint, TATAccumulator, TATFanout],
-                         sliceable_in=False, sliceable_out=True, max_conns_in=0)
+                         sliceable_in=False, sliceable_out=True, max_conns_in=0, max_conns_out=1)
         self.D = D
+
+        # allocate
+        self.genrator_idxs = None
 
         # posttranslate
         self.out_tags = None
@@ -788,9 +790,9 @@ class Source(Resource):
     def dimensions_out(self):
         return self.D
 
-    def posttranslate(self, core):
-        self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
-
     def allocate(self, core):
-        # XXX eventually, allocate something on FPGA
-        pass
+        self.generator_idxs = core.FPGASpikeGenerators.allocate(self.D)
+
+    def posttranslate(self, core):
+        self.out_tags = conns_out[0].tgt.in_tags
+
