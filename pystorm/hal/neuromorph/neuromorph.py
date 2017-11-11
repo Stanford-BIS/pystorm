@@ -353,6 +353,11 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     """
 
     for resource in hardware_resources:
+        resource.pretranslate_early(core)
+    if verbose:
+        print("finished pretranslate_early")
+
+    for resource in hardware_resources:
         resource.pretranslate(core)
     if verbose:
         print("finished pretranslate")
@@ -368,6 +373,8 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished allocate")
 
+    #core.Print()
+
     for resource in hardware_resources:
         resource.posttranslate_early(core)
     if verbose:
@@ -382,6 +389,10 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
         resource.assign(core)
     if verbose:
         print("finished assign")
+
+    if verbose:
+        print("results")
+        print(str(core))
 
 def reassign_resources_to_core(hardware_resources, core, verbose=False):
     """given a set of resources that has already been mapped,

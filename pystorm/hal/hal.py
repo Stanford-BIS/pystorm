@@ -38,6 +38,8 @@ class HAL(object):
 
         self.driver.InitBD()
 
+        self.last_mapped_core = None
+
     def __del__(self):
         self.stop_hardware()
 
@@ -157,6 +159,8 @@ class HAL(object):
         core = remap_resources(hardware_resources)
         self.implement_core(core)
 
+        self.last_mapped_core = core
+
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
@@ -164,7 +168,7 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
-        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network)
+        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
         # implement core objects, calling driver
         self.implement_core(core)
@@ -188,6 +192,8 @@ class HAL(object):
                     spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width
                     pool_nrn_idx = x + y*hwr_neurons.x
                     self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
+
+        self.last_mapped_core = core
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
