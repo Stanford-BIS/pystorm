@@ -521,7 +521,13 @@ class AMBuckets(Resource):
         thr_idx, self.thr = AMBuckets.thr_idxs_vals(self.max_abs_row_weights, core)
 
         if len(self.conns_out) > 0:
-            NAs = self.conns_out[0].tgt.in_tags
+            if isinstance(self.conns_out[0].tgt, Sink):
+                # if we target a sink, we're targetting a SF on the FPGA
+                # tag is the filter idx, give it a global route of 1
+                NAs = self.conns_out[0].tgt.filter_idxs + 2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG)
+            else:
+                # otherwise, we're going to the TAT
+                NAs = self.conns_out[0].tgt.in_tags
         else:
             NAs = np.zeros_like(thr_idx)
 
@@ -794,5 +800,5 @@ class Source(Resource):
         self.generator_idxs = core.FPGASpikeGenerators.allocate(self.D)
 
     def posttranslate(self, core):
-        self.out_tags = conns_out[0].tgt.in_tags
+        self.out_tags = self.conns_out[0].tgt.in_tags
 

@@ -9,7 +9,7 @@ DIFFUSOR_WEST_TOP = bddriver.bdpars.DiffusorCutLocationId.WEST_TOP
 DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
-# send_inputs/get_outputs are different (SpikeFilter/Generator now used)
+# send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
 
 CORE_ID = 0 # hardcoded for now
 
@@ -113,8 +113,8 @@ class HAL(object):
         ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
         return ret_data
 
-    def send_inputs(self, inputs, dims, rates, time=0):
-        """Controls tag stream generators on the FPGA
+    def set_inputs(self, inputs, dims, rates, time=0):
+        """Controls tag stream generators rates (on the FPGA)
 
         on startup, all rates are 0
 

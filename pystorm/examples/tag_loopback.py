@@ -51,9 +51,14 @@ tag_times = []
 
 print("NOW")
 time.sleep(2)
-D.SendTags(CORE, tag_words[:50], tag_times[:50])
-D.SendTags(CORE, tag_words[50:], tag_times[50:])
-#D.SendTags(CORE, tag_words, tag_times)
+#D.SendTags(CORE, tag_words[:25], tag_times[:50])
+#D.SendTags(CORE, tag_words[25:50], tag_times[:50])
+#D.SendTags(CORE, tag_words[50:75], tag_times[50:])
+#D.SendTags(CORE, tag_words[75:], tag_times[50:])
+D.SendTags(CORE, tag_words, tag_times)
+
+D.SetMem(CORE, bd.bdpars.BDMemId.TAT0, lb_entries, tag_in_start)
+D.SetMem(CORE, bd.bdpars.BDMemId.TAT0, lb_entries, tag_in_start)
 
 time.sleep(.5)
 
@@ -68,19 +73,23 @@ print(len(tags))
 rec_output_tags = []
 rec_output_cts = []
 for tag in tags:
+    print("{0:032b}".format(tag))
     ltag = bd.GetField(tag, bd.TATOutputTag.TAG)
     gtag = bd.GetField(tag, bd.TATOutputTag.GLOBAL_ROUTE)
     count = bd.GetField(tag, bd.TATOutputTag.COUNT)
-    #print("ltag :", "{0:011b}".format(ltag))
-    #print("gtag :", "{0:012b}".format(gtag))
-    #print("ct   :", "{0:09b}".format(count))
+    print("  ltag :", "{0:011b}".format(ltag))
+    print("  gtag :", "{0:012b}".format(gtag))
+    print("  ct   :", "{0:09b}".format(count))
     rec_output_tags.append(ltag)
     rec_output_cts.append(count)
 
 # discard initial all-zero-words
+discard = 0
 while rec_output_cts[0] != exp_output_cts[0]:
     rec_output_tags = rec_output_tags[1:]
     rec_output_cts = rec_output_cts[1:]
+    discard += 1
+print ("discarded", discard, "junk words")
 
 #for rec, exp in zip(rec_output_tags, exp_output_tags):
 #    if rec == exp:
