@@ -781,7 +781,7 @@ class Source(Resource):
         self.D = D
 
         # allocate
-        self.genrator_idxs = None
+        self.generator_idxs = None
 
         # posttranslate
         self.out_tags = None

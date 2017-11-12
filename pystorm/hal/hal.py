@@ -10,6 +10,7 @@ DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
 # send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
+# arguments for remap_core/implement_core have changed (use the self.last_mapped objects now)
 
 CORE_ID = 0 # hardcoded for now
 
@@ -28,6 +29,8 @@ class HAL(object):
 
         # neuromorph graph Input -> tags
         self.ng_input_to_tags = {}
+        # neuromorph graph Input -> spike generator idx
+        self.ng_input_to_SG_idxs_and_tags = {}
         # spike filter idx -> Output/dim
         self.spike_filter_idx_to_output = {}
         # spike id -> pool/neuron_idx
@@ -37,6 +40,7 @@ class HAL(object):
 
         self.driver.InitBD()
 
+        self.last_mapped_resources = None
         self.last_mapped_core = None
 
     def __del__(self):
@@ -113,7 +117,28 @@ class HAL(object):
         ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
         return ret_data
 
-    def set_inputs(self, inputs, dims, rates, time=0):
+    def set_input_rate(self, inp, dim, rate, time=0, flush=True):
+        """Controls a single tag stream generator's rate (on the FPGA)
+
+        on startup, all rates are 0
+
+        inp: Input object
+        dim : ints
+            dimensions within each Input object to send to
+        rate: ints
+            desired tag rate for each Input/dimension in Hz
+        time: int (default=0)
+            time to send inputs, in microseconds. 0 means immediately
+        flush: bool (default true)
+            whether or not to flush the inputs through the driver immediately.
+            If you're making several calls, it may be advantageous to only flush
+            the last one
+        """
+        gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
+        out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
+        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, flush)
+
+    def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
         """Controls tag stream generators rates (on the FPGA)
 
         on startup, all rates are 0
@@ -125,19 +150,23 @@ class HAL(object):
             desired tag rate for each Input/dimension in Hz
         time: int (default=0)
             time to send inputs, in microseconds. 0 means immediately
+        flush: bool (default true)
+            whether or not to flush the inputs through the driver immediately.
+            If you're making several calls, it may be advantageous to only flush
+            the last one
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        gen_idxs = [inp.generators_idxs[dim] for inp, dim in zip(inputs, dims)]
-        out_tags = [inp.out_tags[dim] for inp, dim in zip(inputs, dims)]
-        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time)
+        gen_idxs = [self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
+        out_tags = [self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
+        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
 
     ##############################################################################
     #                           Mapping functions                                #
     ##############################################################################
 
-    def remap_weights(self, network, hardware_resources):
+    def remap_weights(self, network):
         """Call a subset of map()'s functionality to reprogram weights
         that have been modified in the network objects
 
@@ -150,7 +179,7 @@ class HAL(object):
         # network is unused: hardware_resources references it
 
         # generate a new core based on the new allocation, but assigning the new weights
-        core = remap_resources(hardware_resources)
+        core = remap_resources(core.last_mapped_resources)
         self.implement_core(core)
 
         self.last_mapped_core = core
@@ -170,7 +199,7 @@ class HAL(object):
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
-            self.ng_input_to_tags[ng_inp] = hwr_source
+            self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
         # spike filter idx -> Output/dim
         for ng_out in network.get_outputs():
             hwr_sink = ng_obj_to_ghw_mapper[ng_out].get_resource()
@@ -186,10 +215,13 @@ class HAL(object):
                     pool_nrn_idx = x + y*hwr_neurons.x
                     self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
 
+        self.last_mapped_resources = hardware_resources
         self.last_mapped_core = core
 
-    def implement_core(self, core):
+    def implement_core(self):
         """Implements a supplied core to BD"""
+
+        core = self.last_mapped_core
 
         # datapath memory programming 
 
