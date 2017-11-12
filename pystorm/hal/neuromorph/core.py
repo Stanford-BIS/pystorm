@@ -56,8 +56,8 @@ class Core(object):
             self.NeuronArray_height, self.NeuronArray_width,
             self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
-        # FIXME this maybe doesn't belong in the core?
-        self.ExternalSinks = ExternalSinks()
+        self.FPGASpikeFilters = FPGASpikeFilters()
+        self.FPGASpikeGenerators = FPGASpikeGenerators()
 
     def Print(self):
         np.set_printoptions(threshold=np.nan)
@@ -457,23 +457,23 @@ class NeuronArray(object):
         return (py, px)
 
 class FPGASpikeFilters(object):
-    curr_idx = 0
+    filters_used = 0
 
     def __init__(self):
         pass
 
     def allocate(self, D):
-        base_idx = ExternalSinks.curr_idx
-        ExternalSinks.curr_idx += D
+        base_idx = FPGASpikeFilters.filters_used
+        FPGASpikeFilters.filters_used += D
         return np.array(range(base_idx, base_idx + D))
 
 class FPGASpikeGenerators(object):
-    curr_idx = 0
+    gens_used = 0
 
     def __init__(self):
         pass
 
     def allocate(self, D):
-        base_idx = ExternalSinks.curr_idx
-        ExternalSinks.curr_idx += D
+        base_idx = FPGASpikeGenerators.gens_used
+        FPGASpikeGenerators.gens_used += D
         return np.array(range(base_idx, base_idx + D))

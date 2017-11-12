@@ -9,8 +9,7 @@ DIFFUSOR_WEST_TOP = bddriver.bdpars.DiffusorCutLocationId.WEST_TOP
 DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
-# set_weights -> remap_weights (set_weights should just modify network directly,
-# call remap_weights() when done
+# send_inputs/get_outputs are different (SpikeFilter/Generator now used)
 
 CORE_ID = 0 # hardcoded for now
 
@@ -29,8 +28,8 @@ class HAL(object):
 
         # neuromorph graph Input -> tags
         self.ng_input_to_tags = {}
-        # tags -> neuromorph graph Output, dimension index
-        self.tags_to_ng_output_dim_idx = {}
+        # spike filter idx -> Output/dim
+        self.spike_filter_idx_to_output = {}
         # spike id -> pool/neuron_idx
         self.spk_to_pool_nrn_idx = {}
 
@@ -57,8 +56,7 @@ class HAL(object):
 
     def disable_output_recording(self):
         """Turns off recording from all outputs."""
-        # XXX make some FPGA calls
-        pass
+        self.driver.SetNumSpikeFilters(CORE_ID, 0)
 
     def disable_spike_recording(self):
         """Turns off spike recording from all neurons."""
@@ -70,8 +68,8 @@ class HAL(object):
         These output values will go into a buffer that can be drained by calling
         get_outputs().
         """
-        # XXX make some FPGA calls
-        pass
+        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
+        self.driver.SetNumSpikeFilters(CORE_ID, N_SF)
 
     def enable_spike_recording(self):
         """Turns on spike recording from all neurons.
@@ -81,24 +79,21 @@ class HAL(object):
         """
         self.driver.SetSpikeDumpState(CORE_ID, en=True)
 
-    def get_outputs(self):
+    def get_outputs(self, timeout=1000):
         """Returns all pending output values gathered since this was last called.
 
         Data format: a numpy array of : [(output, dim, counts, time), ...]
         Timestamps are in microseconds
         """
-        tags, times = self.driver.RecvTags(CORE_ID)
-        outputs = []
-        dims = []
-        counts = []
-        for tag in tags:
-            out, dim, count = self.tags_to_ng_output_dim_idx[tag]
-            outputs.append(out)
-            dims.append(dim)
-            counts.append(count)
+        words, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
+        
+        filt_idxs = [bddriver.GetField(w, bddriver.SFWORD.FILTIDX) for w in words]
+        counts = [bddriver.GetField(w, bddriver.SFWORD.STATE) for w in words]
 
-        ret_data = np.array([outputs, dims, counts, times]).T
-        return ret_data
+        outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
+        dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
+
+        return np.array([outputs, dims, counts, times]).T
 
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
@@ -118,25 +113,24 @@ class HAL(object):
         ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
         return ret_data
 
-    def send_inputs(self, inputs, dims, counts, times):
-        """Sends pregenerated tags to the given target
+    def send_inputs(self, inputs, dims, rates, time=0):
+        """Controls tag stream generators on the FPGA
 
-        inputss: list of Input object
+        on startup, all rates are 0
+
+        inputs: list of Input object
         dims : list of ints
-            dimensions within eacn Input object to send to
-        counts: list of ints
-            number of spikes for each time
-        times: list of ints
-            times to send each entry in counts
+            dimensions within each Input object to send to
+        rates: list of ints
+            desired tag rate for each Input/dimension in Hz
+        time: int (default=0)
+            time to send inputs, in microseconds. 0 means immediately
         """
-        assert len(inputs) == len(dims) == len(counts) == len(times)
+        assert len(inputs) == len(dims) == len(rates)
 
-        tags = []
-        for inp, dim, count in zip(inputs, dims, counts):
-            # TODO: what is out_tags of a Source? what about count?
-            tags.append(self.ng_input_to_tags[inp])
-
-        self.driver.SendTags(CORE_ID, tags, times)
+        gen_idxs = [inp.generators_idxs[dim] for inp, dim in zip(inputs, dims)]
+        out_tags = [inp.out_tags[dim] for inp, dim in zip(inputs, dims)]
+        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time)
 
 
     ##############################################################################
@@ -177,12 +171,11 @@ class HAL(object):
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
             self.ng_input_to_tags[ng_inp] = hwr_source
-        # neuromorph graph Output -> tags
+        # spike filter idx -> Output/dim
         for ng_out in network.get_outputs():
             hwr_sink = ng_obj_to_ghw_mapper[ng_out].get_resource()
-            for dim_idx, tag in enumerate(hwr_sink.in_tags):
-                self.tags_to_ng_output_dim_idx[tag] = (ng_out, dim_idx)
-        # spike id -> pool, neuron index
+            for dim_idx, filt_idx in enumerate(hwr_sink.filter_idxs):
+                self.spike_filter_idx_to_output[filt_idx] = (ng_out, dim_idx)
         for ng_pool in network.get_pools():
             hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()
             xmin = hwr_neurons.px_loc * core.NeuronArray_pool_size_x
@@ -197,6 +190,9 @@ class HAL(object):
 
     def implement_core(self, core):
         """Implements a supplied core to BD"""
+
+        # datapath memory programming 
+
         self.driver.SetMem(
             CORE_ID, bddriver.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
@@ -208,7 +204,8 @@ class HAL(object):
         self.driver.SetMem(
             CORE_ID, bddriver.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
 
-        # open all diffusor cuts
+        # neuron tile config SRAM: open diffusor cuts
+
         for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
             self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
 
@@ -240,3 +237,9 @@ class HAL(object):
                     tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
                     self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
                     self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+
+        # set spike filter decay constant 
+        # the following sets the filters to "count mode"
+        # exponential decay is also possible
+        self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
+        self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
