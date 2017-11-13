@@ -450,8 +450,6 @@ class RootLayout(BoxLayout):
     def reset_sparkle(self):
         self.sparkle_scatter.scale = 1
         self.sparkle_scatter.pos = self.sparkle_stencil.pos
-        self.raster_scatter.scale = 1
-        self.raster_scatter.pos = self.raster_stencil.pos
 
     def update_fader(self, *args):
         self.sparkle_widget.__update_fade_vals__(args[0])
