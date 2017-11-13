@@ -16,10 +16,17 @@ import traceback
 
 # message queue for REPL
 EQ = queue.Queue(1)
+
 # namespace for the console interpreter
 NS = {}
 
+
 def _truncate_pwd():
+    """
+    Truncate path if it is more than 4 directories
+
+    :return:
+    """
     import re
     _pwd = os.getcwd()
     _home = os.path.expanduser('~')
@@ -82,23 +89,23 @@ class Shell(EventDispatcher):
 
 
 class ConsoleInput(TextInput):
-    '''Displays Output and sends input to Shell. Emits 'on_ready_to_input'
-       when it is ready to get input from user.
-    '''
+    """
+    Displays Output and sends input to Shell. Emits 'on_ready_to_input'
+    when it is ready to get input from user.
+    """
 
+    # Instance of KivyConsole(parent) widget
     shell = ObjectProperty(None)
-    '''Instance of KivyConsole(parent) widget
-    '''
+
+    # Active prompt
     current_prompt = ObjectProperty(None)
-    '''Active prompt
-    '''
 
     def __init__(self, **kwargs):
         super(ConsoleInput, self).__init__(**kwargs)
 
     def keyboard_on_key_down(self, window, keycode, text, modifiers):
-        '''Override of _keyboard_on_key_down.
-        '''
+        # Override of _keyboard_on_key_down.
+
         if keycode[0] == 13:
             # Enter -> execute the command
             text = self.text
@@ -146,42 +153,44 @@ class ConsolePrompt(BoxLayout):
 
 class KivyConsole(BoxLayout, Shell):
 
-    console_area = ObjectProperty(None)
-    '''Instance of BoxLayout
+    """Instance of BoxLayout
        :data:`console_input` is a :class:`~kivy.properties.ObjectProperty`
-    '''
+    """
+    console_area = ObjectProperty(None)
 
-    scroll_view = ObjectProperty(None)
-    '''Instance of :class:`~kivy.uix.scrollview.ScrollView`
+    """Instance of :class:`~kivy.uix.scrollview.ScrollView`
        :data:`scroll_view` is a :class:`~kivy.properties.ObjectProperty`
-    '''
+    """
+    scroll_view = ObjectProperty(None)
 
-    foreground_color = ListProperty((1, 1, 1, 1))
-    '''This defines the color of the text in the console
+    """
+    This defines the color of the text in the console
 
     :data:`foreground_color` is an :class:`~kivy.properties.ListProperty`,
     Default to '(.5, .5, .5, .93)'
-    '''
+    """
+    foreground_color = ListProperty((1, 1, 1, 1))
 
-    background_color = ListProperty((0, 0, 0, 1))
-    '''This defines the color of the text in the console
+    """This defines the color of the text in the console
 
     :data:`foreground_color` is an :class:`~kivy.properties.ListProperty`,
-    Default to '(0, 0, 0, 1)'''
+    Default to '(0, 0, 0, 1)
+    """
+    background_color = ListProperty((0, 0, 0, 1))
 
-    font_name = StringProperty('Inconsolata-Regular.ttf')
-    '''Indicates the font Style used in the console
+    """Indicates the font Style used in the console
 
     :data:`font` is a :class:`~kivy.properties.StringProperty`,
-    Default to 'DroidSansMono'
-    '''
+    Default to 'Inconsolata'
+    """
+    font_name = StringProperty('Inconsolata-Regular.ttf')
 
-    font_size = NumericProperty(sp(28))
-    '''Indicates the size of the font used for the console
+    """Indicates the size of the font used for the console
 
     :data:`font_size` is a :class:`~kivy.properties.NumericProperty`,
     Default to '9'
-    '''
+    """
+    font_size = NumericProperty(sp(28))
 
     def __init__(self, **kwargs):
         super(KivyConsole, self).__init__(**kwargs)
@@ -197,20 +206,12 @@ class KivyConsole(BoxLayout, Shell):
         Clock.schedule_once(partial(self._prompt.init, shell=self))
 
     def on_output(self, output, success=True):
-        '''Event handler to send output data
-        '''
+        """
+        Event handler to send output data
+        """
 
         self._output_text += output
         self._last_success = success
-        #Clock.schedule_once(partial(self.append_widget, widget=self._output))
-
-        #_label = Label(size=(self.size[0], sp(20)), halign='left', valign='top', size_hint=(1, None), markup=True)
-        #_label.color = (0.7, 0.7, 0.7, 1)
-        #_label.text = '[i]' + output + '[/i]'
-        #_label.font_name = self.font_name
-        #_label.text_size = _label.size
-
-        #self.append_widget(_label)
 
     def append_widget(self, *args,  **kwargs):
         widget = kwargs['widget']
@@ -242,8 +243,12 @@ class KivyConsole(BoxLayout, Shell):
             return self._output_text.strip()
 
     def on_complete(self, output):
-        '''Event handler to send output data
-        '''
+        """
+        Event handler to send output data
+
+        :param output: Interpreter output
+        :return:
+        """
         if self._output_text != "":
             self._output_text = self._parse_output()
             self._output = ConsoleOutput(
@@ -262,8 +267,13 @@ class ConsoleApp(App):
         return self.root
     
     def on_stop(self, *args, **kwargs):
-        '''Event handler to clean-up
-        '''
+        """
+        Event handler to clean-up
+
+        :param args:
+        :param kwargs:
+        :return:
+        """
         self.root.stop()
         self.root.run_thread.join()
 
