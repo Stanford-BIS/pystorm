@@ -209,7 +209,7 @@ void Driver::ResetBD() {
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
 
-    unsigned int delay_us = 5000; // hold reset states for 5 ms (probably conservative)
+    unsigned int delay_us = 500000; // hold reset states for 5 ms (probably conservative)
 
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_1_sReset_1});
     Flush();
@@ -1023,7 +1023,7 @@ void Driver::SendSpikes(unsigned int core_id, const std::vector<BDWord>& spikes,
 }
 
 void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, const std::vector<BDTime> times, bool flush) {
-  assert(tags.size() == times.size());
+  assert(times.size() == 0 || tags.size() == times.size());
 
   // do something with times
   SendToEP(core_id, bdpars::BDHornEP::RI, tags, times);
@@ -1183,6 +1183,7 @@ void Driver::SendToEP(unsigned int core_id,
     for (auto& it : *serialized) {
       timed_queue_.push_back(it);
     }
+
     std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
 
     // update highest_us_sent_

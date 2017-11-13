@@ -2,6 +2,7 @@
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
+from pystorm import hal
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -110,6 +111,13 @@ class Resource(ABC):
 
     # The mapping process is divided into phases
 
+    def pretranslate_early(self, core):
+        """Perform any bookeeping that's needed before allocation
+        This might include things like determining how to break up matrices or pools
+        into the chunks that go into the allocator.
+        """
+        pass
+
     def pretranslate(self, core):
         """Perform any bookeeping that's needed before allocation
         This might include things like determining how to break up matrices or pools
@@ -162,7 +170,7 @@ class Neurons(Resource):
         self.x = x
         self.N = y * x
 
-        # pretranslate
+        # pretranslate_early
         # y and x sizes in units of minimum pool x and y dimensions
         self.py = None
         self.px = None
@@ -184,7 +192,11 @@ class Neurons(Resource):
     def dimensions_out(self):
         return self.N
 
-    def pretranslate(self, core):
+    @property
+    def N_slices(self):
+        return self.py * self.px
+
+    def pretranslate_early(self, core):
         """neuron array allocation prep"""
 
         # round size y/x up to the number of pools needed
@@ -193,6 +205,7 @@ class Neurons(Resource):
 
         # let the allocator know about it
         core.neuron_array.add_pool(self)
+
 
     def allocate(self, core):
         """neuron array allocation"""
@@ -241,6 +254,8 @@ class MMWeights(Resource):
     forward_cache = {}
     # keep track of unique ids for combined matrices -> list(MMWeights)
     reverse_cache = {}
+
+    yx_to_aer = None
 
     @staticmethod
     def weight_to_mem(user_W, max_abs_row_weights, core):
@@ -297,7 +312,8 @@ class MMWeights(Resource):
             MMWeights.reverse_cache[id(W)] = [id(self)]
 
         # pretranslate
-        self.W_slice_idxs = []
+        self.slice_width = None
+        self.N_slices = None
         self.is_dec = None
 
         # allocate (by AMBuckets)
@@ -310,9 +326,8 @@ class MMWeights(Resource):
 
     def in_dim_to_mma(self, dim):
         """Calculate the max x and y coordinates in main memory associated with dim"""
-        slice_width = self.dimensions_in
-        slice_idx = dim // slice_width
-        slice_offset = dim % slice_width
+        slice_idx = dim // self.slice_width
+        slice_offset = dim % self.slice_width
         MM_start_addr = self.slice_start_addrs[slice_idx]
         MMAY = MM_start_addr[0] + slice_offset
         MMAX = MM_start_addr[1]
@@ -338,16 +353,16 @@ class MMWeights(Resource):
 
         # generate slice indexing
         if self.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
-            slice_width = core.NeuronArray_pool_size
+            self.slice_width = core.NeuronArray_pool_size
+            self.N_slices = self.conns_in[0].src.N_slices
         else: # can chop up transforms by single columns
-            slice_width = 1
-        
-        self.W_slice_idxs = [(i, min(self.user_W.shape[1], i+slice_width)) for i in range(0, self.user_W.shape[1], slice_width)]
+            self.slice_width = 1
+            self.N_slices = self.dimensions_in
 
     def allocate_early(self, core):
         """allocate decoders (big slices) first"""
         if self.is_dec:
-            for W_slice_idx in self.W_slice_idxs: 
+            for slice_idx in range(self.N_slices):
                 # actually doesn't matter what the slice is, always allocate 64xDO
                 start_addr = core.MM.allocate_dec(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
@@ -355,7 +370,7 @@ class MMWeights(Resource):
     def allocate(self, core):
         """allocate transforms (small slices) after"""
         if not self.is_dec:
-            for W_slice_idx in self.W_slice_idxs:
+            for slice_idx in range(self.N_slices):
                 # actually doesn't matter what the slice is, always allocate 1xDO
                 start_addr = core.MM.allocate_trans(self.dimensions_out)
                 self.slice_start_addrs += [start_addr]
@@ -366,8 +381,42 @@ class MMWeights(Resource):
         self.programmed_W = MMWeights.weight_to_mem(self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
 
         # slice up W according to slice indexing
-        for W_slice_idx in self.W_slice_idxs:
-            self.W_slices += [self.programmed_W[:, W_slice_idx[0]:W_slice_idx[1]]]
+
+        # this is kind of ugly for decoders (and this code could definitely be optimized)
+        if self.is_dec:
+
+            # fill in yx_to_AER if not done already
+            if MMWeights.yx_to_aer is None:
+                MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x)).astype(int)
+                for aer_sub_addr in range(core.NeuronArray_pool_size):
+                    yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr)
+                    #print("sub_addr", aer_sub_addr, "yx", yx)
+                    y = yx // core.NeuronArray_width
+                    x = yx  % core.NeuronArray_width
+                    MMWeights.yx_to_aer[y, x] = aer_sub_addr
+
+            # init with zeros, there are potentially unused entries for the "edge" neurons
+            self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int) for i in range(self.N_slices)]
+
+            # iterate over neurons in y,x address order (matrix indexing order)
+            yx_nrn_idx = 0
+            for y in range(self.conns_in[0].src.y):
+                for x in range(self.conns_in[0].src.x):
+                    # slices are stored in y,x pool address order
+                    py = y // core.NeuronArray_pool_size_y
+                    px = x // core.NeuronArray_pool_size_x
+                    slice_idx = py * self.conns_in[0].src.px + px
+
+                    # use AER address 
+                    suby = y % core.NeuronArray_pool_size_y
+                    subx = x % core.NeuronArray_pool_size_x
+                    aer_sub_idx = MMWeights.yx_to_aer[suby, subx]
+
+                    self.W_slices[slice_idx][:, aer_sub_idx] = self.programmed_W[:, yx_nrn_idx]
+                    yx_nrn_idx += 1
+
+        else:
+            self.W_slices = [self.programmed_W[:,i] for i in range(self.N_slices)]
 
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:
@@ -472,7 +521,13 @@ class AMBuckets(Resource):
         thr_idx, self.thr = AMBuckets.thr_idxs_vals(self.max_abs_row_weights, core)
 
         if len(self.conns_out) > 0:
-            NAs = self.conns_out[0].tgt.in_tags
+            if isinstance(self.conns_out[0].tgt, Sink):
+                # if we target a sink, we're targetting a SF on the FPGA
+                # tag is the filter idx, give it a global route of 1
+                NAs = self.conns_out[0].tgt.filter_idxs + 2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG)
+            else:
+                # otherwise, we're going to the TAT
+                NAs = self.conns_out[0].tgt.in_tags
         else:
             NAs = np.zeros_like(thr_idx)
 
@@ -560,6 +615,7 @@ class TATTapPoint(Resource):
         self.N = N
         self.D = taps.shape[1]
         self.K = taps.shape[0]
+        
         self.taps = taps
         self.signs = signs
 
@@ -590,9 +646,10 @@ class TATTapPoint(Resource):
     def tap_map(self, tap):
         """allow user to specify tap points at neuron granularity
         but actually there are fewer synapses than neurons
-        XXX FIXME need to talk about this
         """
-        return tap // self.nrn_per_syn
+        yx_tap = tap // self.nrn_per_syn
+        aer_tap = hal.HAL.driver.GetSynAERAddr(yx_tap)
+        return aer_tap
 
     def pretranslate(self, core):
         self.nrn_per_syn = core.NeuronArray_neurons_per_tap
@@ -609,7 +666,10 @@ class TATTapPoint(Resource):
         def bin_sign(sign):
             return (sign + 1) // 2
 
-        self.mapped_taps = self.tap_map(self.conns_out[0].tgt.start_nrn_idx + self.taps)
+        self.mapped_taps = np.zeros_like(self.taps)
+        for d in range(self.D):
+            for k in range(0, self.K, 2):
+                self.mapped_taps[k, d] = self.tap_map(self.conns_out[0].tgt.start_nrn_idx + self.taps[k,d])
 
         self.contents = []
         for d in range(self.D):
@@ -689,7 +749,7 @@ class TATFanout(Resource):
         core.TAT1.assign(self.contents, self.start_addr)
 
 class Sink(Resource):
-    """Represents a sink"""
+    """Represents an FPGA SpikeFilter (tag filter)"""
     def __init__(self, D):
         super().__init__([Neurons, TATFanout, AMBuckets], [],
                          sliceable_in=True, sliceable_out=False, max_conns_out=0)
@@ -698,7 +758,7 @@ class Sink(Resource):
         self.D = D
 
         # allocate
-        self.in_tags = None
+        self.filter_idxs = None
 
     @property
     def dimensions_in(self):
@@ -711,15 +771,17 @@ class Sink(Resource):
             "only dimensions_in is defined")
 
     def allocate(self, core):
-        self.in_tags = core.ExternalSinks.allocate(self.D)
-        # XXX this needs to propagate to the FPGA somehow
+        self.filter_idxs = core.FPGASpikeFilters.allocate(self.D)
 
 class Source(Resource):
-    """Represents a source"""
+    """Represents an FPGA SpikeGenerator (tag generator)"""
     def __init__(self, D):
         super().__init__([], [TATTapPoint, TATAccumulator, TATFanout],
-                         sliceable_in=False, sliceable_out=True, max_conns_in=0)
+                         sliceable_in=False, sliceable_out=True, max_conns_in=0, max_conns_out=1)
         self.D = D
+
+        # allocate
+        self.generator_idxs = None
 
         # posttranslate
         self.out_tags = None
@@ -734,9 +796,9 @@ class Source(Resource):
     def dimensions_out(self):
         return self.D
 
-    def posttranslate(self, core):
-        self.out_tags = [conn.tgt.in_tags for conn in self.conns_out]
-
     def allocate(self, core):
-        # XXX eventually, allocate something on FPGA
-        pass
+        self.generator_idxs = core.FPGASpikeGenerators.allocate(self.D)
+
+    def posttranslate(self, core):
+        self.out_tags = self.conns_out[0].tgt.in_tags
+

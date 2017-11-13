@@ -441,7 +441,7 @@ class Driver {
   void SendTags(
       unsigned int core_id,
       const std::vector<BDWord>& tags,
-      const std::vector<BDTime> times,
+      const std::vector<BDTime> times={},
       bool flush=true);
 
   /// Receive a stream of tags

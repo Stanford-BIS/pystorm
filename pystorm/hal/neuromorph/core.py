@@ -1,6 +1,7 @@
 import numpy as np
 import rectpack # for NeuronAllocator
 from pystorm.PyDriver import bddriver
+import sys
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -55,28 +56,34 @@ class Core(object):
             self.NeuronArray_height, self.NeuronArray_width,
             self.NeuronArray_pool_size_y, self.NeuronArray_pool_size_x)
 
-        # FIXME this maybe doesn't belong in the core?
-        self.ExternalSinks = ExternalSinks()
+        self.FPGASpikeFilters = FPGASpikeFilters()
+        self.FPGASpikeGenerators = FPGASpikeGenerators()
 
     def Print(self):
+        np.set_printoptions(threshold=np.nan)
         print("Printing Allocation maps")
         print("NeuronArray/PAT")
         self.neuron_array.alloc.Print()
         print("AM")
         self.AM.alloc.Print()
-        print("MM")
-        self.MM.alloc.Print()
         print("TAT0")
         self.TAT0.alloc.Print()
         print("TAT1")
         self.TAT1.alloc.Print()
+        print("MM")
+        self.MM.alloc.Print()
 
-    def write_mems_to_file(self, fname_pre):
-        self.PAT.write_to_file(fname_pre, self)
-        self.TAT0.write_to_file(fname_pre, self, 0)
-        self.TAT1.write_to_file(fname_pre, self, 1)
-        self.MM.write_to_file(fname_pre, self)
-        self.AM.write_to_file(fname_pre, self)
+    def __str__(self):
+        return ("===== PAT =====\n"  + str(self.PAT)  +
+                "===== TAT0 =====\n" + str(self.TAT0) +
+                "===== TAT1 =====\n" + str(self.TAT1) +
+                "===== MM =====\n"   + str(self.MM)   +
+                "===== AM =====\n"   + str(self.MM))
+
+    def write_mems_to_file(self, fname):
+        f = open(fname, 'w')
+        f.write(str(self))
+        f.close()
 
 class NeuronAllocator(object):
     """Allocates neuron resources
@@ -315,22 +322,9 @@ class MM(object):
     def assign_trans(self, data, start):
         self.mem.assign_1d_block(data, start)
 
-    def write_to_file(self, fname_pre, core):
-        f = open(fname_pre + "MM.txt", 'w')
-        for y in range(self.mem.shape[0]):
-            for x in range(self.mem.shape[1]):
-                numstr = str(bddriver.GetField(self.mem.M[y,x], MMWord.WEIGHT))
-                spaces = ' ' * max(1, 4 - len(numstr))
-                if x == 0:
-                    f.write('[' + spaces)
-                else:
-                    f.write(spaces)
-                f.write(numstr)
-                if x == self.mem.shape[1] - 1:
-                    f.write(' ]\n')
-                else:
-                    f.write(' |')
-        f.close()
+    def __str__(self):
+        s = "MM : entries are one's complement weights\n"
+        return(s +str(self.mem.M))
 
 class AM(object):
     def __init__(self, shape):
@@ -343,17 +337,16 @@ class AM(object):
     def assign(self, data, start):
         self.mem.assign_1d_block(data, start)
 
-    def write_to_file(self, fname_pre, core):
-        f = open(fname_pre + "AM.txt", 'w')
-        f.write("AM: [ val | thr | stop | na ]\n")
+    def __str__(self):
+        s = "AM: [ val | thr | stop | na ]\n"
         for idx in range(self.mem.shape[0]):
             m    = self.mem.M[idx]
             val  = bddriver.GetField(m, bddriver.AMWord.ACCUMULATOR_VALUE)
             thr  = bddriver.GetField(m, bddriver.AMWord.THRESHOLD)
             stop = bddriver.GetField(m, bddriver.AMWord.STOP)
             na   = bddriver.GetField(m, bddriver.AMWord.NEXT_ADDRESS)
-            f.write("[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n")
-        f.close()
+            s += "[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n"
+        return s
 
 class TAT(object):
     def __init__(self, shape):
@@ -366,42 +359,39 @@ class TAT(object):
     def assign(self, data, start):
         self.mem.assign_1d_block(data, start)
 
-    def write_to_file(self, fname_pre, core, tat_idx):
-        f = open(fname_pre + "TAT" + str(tat_idx) + ".txt", 'w')
-        f.write("TAT" + str(tat_idx) + ": acc : [ stop | type | ama | mmax | mmay ]\n")
-        f.write("      nrn : [ stop | type | tap | sign | tap | sign | X ]\n")
-        f.write("      fo  : [ stop | type | tag | gtag | X ]\n")
+    def __str__(self):
+        s  = "TAT : acc : [ stop | type | ama | mma ]\n"
+        s += "      nrn : [ stop | type | tap | sign | tap | sign | X ]\n"
+        s += "      fo  : [ stop | type | tag | gtag | X ]\n"
         for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
 
             if bddriver.GetField(m, bddriver.TATTagWord.FIXED_2) == 2:
-                ty  = 2
-                s   = bddriver.GetField(m, bddriver.TATTagWord.STOP)
-                tag = bddriver.GetField(m, bddriver.TATTagWord.TAG)
-                grt = bddriver.GetField(m, bddriver.TATTagWord.GLOBAL_ROUTE)
-                X   = bddriver.GetField(m, bddriver.TATTagWord.UNUSED)
-                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n")
+                ty   = 2
+                stop = bddriver.GetField(m, bddriver.TATTagWord.STOP)
+                tag  = bddriver.GetField(m, bddriver.TATTagWord.TAG)
+                grt  = bddriver.GetField(m, bddriver.TATTagWord.GLOBAL_ROUTE)
+                X    = bddriver.GetField(m, bddriver.TATTagWord.UNUSED)
+                s += "[ " + str(stop) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n"
 
-            elif bddriver.GetField(m, TATSpikeWord.FIXED_1) == 1:
+            elif bddriver.GetField(m, bddriver.TATSpikeWord.FIXED_1) == 1:
                 ty   = 1
-                s    = bddriver.GetField(m, bddriver.TATSpikeWord.STOP)
+                stop = bddriver.GetField(m, bddriver.TATSpikeWord.STOP)
                 tap0 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0)
                 s0   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_0)
                 tap1 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1)
                 s1   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_1)
                 X    = bddriver.GetField(m, bddriver.TATSpikeWord.UNUSED)
-                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n")
+                s += "[ " + str(stop) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n"
 
             else:
-                ty  = 0
-                s   = bddriver.GetField(m, bddriver.TATAccWord.STOP)
-                ama = bddriver.GetField(m, bddriver.TATAccWord.AM_ADDRESS)
-                mma = bddriver.GetField(m, bddriver.TATAccWord.MM_ADDRESS)
-                mmay = mma / core.MM_width
-                mmax = mma % core.MM_width
-                f.write("[ " + str(s) + " | " + str(ty) + " | " + str(ama) + " | " + str(mmax) + " | " + str(mmay) + " ]\n")
+                ty   = 0
+                stop = bddriver.GetField(m, bddriver.TATAccWord.STOP)
+                ama  = bddriver.GetField(m, bddriver.TATAccWord.AM_ADDRESS)
+                mma  = bddriver.GetField(m, bddriver.TATAccWord.MM_ADDRESS)
+                s += "[ " + str(stop) + " | " + str(ty) + " | " + str(ama) + " | " + str(mma) + " ]\n"
 
-        f.close()
+        return s
 
 class PAT(object):
     def __init__(self, shape):
@@ -410,17 +400,16 @@ class PAT(object):
     def assign(self, data, start):
         self.mem.assign_2d_block(data, start)
 
-    def write_to_file(self, fname_pre, core):
-        f = open(fname_pre + "PAT.txt", 'w')
-        f.write("PAT : [ ama | mmax | mmay_base ]\n")
+    def __str__(self):
+        s = "PAT : [ ama | mmax | mmay_base ]\n"
         for idx in range(self.mem.shape[0]):
             for jdx in range(self.mem.shape[1]):
                 m         = self.mem.M[idx, jdx]
                 ama       = bddriver.GetField(m, bddriver.PATWord.AM_ADDRESS)
                 mmax      = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_LO)
                 mmay_base = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_HI)
-                f.write("[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n")
-        f.close()
+                s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
+        return s
 
 class NeuronArray(object):
     """Represents a Core's neuron array
@@ -467,13 +456,24 @@ class NeuronArray(object):
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)
 
-class ExternalSinks(object):
-    curr_idx = 0
+class FPGASpikeFilters(object):
+    filters_used = 0
 
     def __init__(self):
         pass
 
     def allocate(self, D):
-        base_idx = ExternalSinks.curr_idx
-        ExternalSinks.curr_idx += D
+        base_idx = FPGASpikeFilters.filters_used
+        FPGASpikeFilters.filters_used += D
+        return np.array(range(base_idx, base_idx + D))
+
+class FPGASpikeGenerators(object):
+    gens_used = 0
+
+    def __init__(self):
+        pass
+
+    def allocate(self, D):
+        base_idx = FPGASpikeGenerators.gens_used
+        FPGASpikeGenerators.gens_used += D
         return np.array(range(base_idx, base_idx + D))

@@ -132,9 +132,9 @@ D.ResetBD()
 print("* Sent reset")
 
 #TestMem(D, bd.bdpars.BDMemId.PAT, "ones")
-TestMem(D, bd.bdpars.BDMemId.PAT, "ones_after_zeros")
+#TestMem(D, bd.bdpars.BDMemId.PAT, "ones_after_zeros")
 #TestMem(D, bd.bdpars.BDMemId.PAT, "zero_flip")
-#TestMem(D, bd.bdpars.BDMemId.PAT)
+TestMem(D, bd.bdpars.BDMemId.PAT)
 
 
 #TestMem(D, bd.bdpars.BDMemId.TAT0)

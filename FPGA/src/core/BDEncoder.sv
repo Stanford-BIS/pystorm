@@ -168,20 +168,20 @@ assign PROG_deser[PAT].a = PAT_rearr.a;
 localparam TAT0_N = 8;
 Channel #(4*TAT0_N) TAT0_rearr();
 assign TAT0_rearr.d = {
-  1'b0, PROG_deser[TAT0].d[3*TAT0_N-1 +: TAT0_N-1], // 0 inserted!
-        PROG_deser[TAT0].d[2*TAT0_N-1 +: TAT0_N  ],
-  1'b0, PROG_deser[TAT0].d[1*TAT0_N   +: TAT0_N-1], // 0 inserted!
-        PROG_deser[TAT0].d[0*TAT0_N   +: TAT0_N  ]};
+  1'b0, PROG_deser[TAT0].d[3*TAT0_N +: TAT0_N-1], // 0 inserted!
+        PROG_deser[TAT0].d[2*TAT0_N +: TAT0_N  ],
+        PROG_deser[TAT0].d[1*TAT0_N +: TAT0_N  ], 
+        PROG_deser[TAT0].d[0*TAT0_N +: TAT0_N  ]};
 assign TAT0_rearr.v = PROG_deser[TAT0].v;
 assign PROG_deser[TAT0].a = TAT0_rearr.a;
 
 localparam TAT1_N = 8;
 Channel #(4*TAT1_N) TAT1_rearr();
 assign TAT1_rearr.d = {
-  1'b0, PROG_deser[TAT1].d[3*TAT1_N-1 +: TAT1_N-1], // 0 inserted!
-        PROG_deser[TAT1].d[2*TAT1_N-1 +: TAT1_N  ],
-  1'b0, PROG_deser[TAT1].d[1*TAT1_N   +: TAT1_N-1], // 0 inserted!
-        PROG_deser[TAT1].d[0*TAT1_N   +: TAT1_N  ]};
+  1'b0, PROG_deser[TAT1].d[3*TAT1_N +: TAT1_N-1], // 0 inserted!
+        PROG_deser[TAT1].d[2*TAT1_N +: TAT1_N  ],
+        PROG_deser[TAT1].d[1*TAT1_N +: TAT1_N  ],
+        PROG_deser[TAT1].d[0*TAT1_N +: TAT1_N  ]};
 assign TAT1_rearr.v = PROG_deser[TAT1].v;
 assign PROG_deser[TAT1].a = TAT1_rearr.a;
 
