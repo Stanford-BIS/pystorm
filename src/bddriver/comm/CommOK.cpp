@@ -39,7 +39,11 @@ int CommOK::Init(const std::string bitfile, const std::string serial) {
 void CommOK::CommController() {
   while (CommStreamState::STARTED == GetStreamState()) {
     ReadFromDevice();
-    WriteToDevice();
+    int last_write_status = WriteToDevice();
+    if (last_write_status < 0) {
+      cout << "CommOK: write failed, with code " << last_write_status << ". Stopping thread" << endl;
+      StopStreaming();
+    }
     //std::this_thread::sleep_for(1us);
   }
 }
@@ -82,17 +86,12 @@ int CommOK::WriteToDevice() {
     // potentially blocks for 1 us
     std::vector<std::unique_ptr<std::vector<COMMWord>>> popped_vect = m_write_buffer->PopAll(1);
 
-    if (popped_vect.size() > 0) 
-      cout << "popped this many vects: " << popped_vect.size() << endl;
     // use the deserializer to build up blocks of WRITE_SIZE elements
     int size = 0;
     for (unsigned int i = 0; i < popped_vect.size(); i++) {
       size += popped_vect.at(i)->size();
       deserializer_->NewInput(std::move(popped_vect.at(i)));
     }
-    if (popped_vect.size() > 0) 
-      cout << "  total size " << size << endl;
-
 
     if (deserialized_.size() == 0) {
       deserializer_->GetOneOutput(&deserialized_);
@@ -118,7 +117,7 @@ int CommOK::WriteToDevice() {
 
       return last_status;
     } else {
-      return -1;
+      return 0;
     }
 
 }

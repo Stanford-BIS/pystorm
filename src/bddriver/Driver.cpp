@@ -872,11 +872,11 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
       }
     }
     num_pushs_pending_ -= pushs_absorbed;
-    cout << "possibly discarding initial PAT words" << endl;
-    cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
+    //cout << "possibly discarding initial PAT words" << endl;
+    //cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
   }
 
-  cout << "num pending before: " << num_pushs_pending_ << endl;
+  //cout << "num pushs pending before: " << num_pushs_pending_ << endl;
 
   // we might have received more words than we expected
   // if this is the PAT, and there are <2, they're probably just the pushes we just sent
@@ -902,7 +902,7 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
     cout << "WARNING! didn't get the full dump size we requested" << endl;
   }
 
-  cout << "num pending after: " << num_pushs_pending_ << endl;
+  //cout << "num pushs pending after: " << num_pushs_pending_ << endl;
 
   return payloads;
 }
@@ -915,8 +915,6 @@ std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId m
 
   // issue an additional two PAT reads to push out the last two words
   IssuePushWords();
-
-  cout << "sent words, waiting" << endl;
 
   auto to_return = DumpMemRecv(core_id, mem_id, end - start, 2000000); // wait 2s
 
