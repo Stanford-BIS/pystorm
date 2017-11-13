@@ -261,22 +261,22 @@ class KivyConsole(BoxLayout, Shell):
 
         self.new_prompt()
 
-class ConsoleApp(App):
-    def build(self):
-        self.root = KivyConsole()
-        return self.root
-    
-    def on_stop(self, *args, **kwargs):
-        """
-        Event handler to clean-up
-
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        self.root.stop()
-        self.root.run_thread.join()
-
 if __name__ == '__main__':
+    class ConsoleApp(App):
+        def build(self):
+            self.root = KivyConsole()
+            return self.root
+
+        def on_stop(self, *args, **kwargs):
+            """
+            Event handler to clean-up
+
+            :param args:
+            :param kwargs:
+            :return:
+            """
+            self.root.stop()
+            self.root.run_thread.join()
+
     _gui = ConsoleApp()
     _gui.run()
