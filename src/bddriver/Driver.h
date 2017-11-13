@@ -114,7 +114,8 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
 
   /// starts child workers, e.g. encoder and decoder
-  void Start();
+  /// returns 0 if successful, -1 if comm init fails
+  int Start();
   /// stops the child workers
   void Stop();
 

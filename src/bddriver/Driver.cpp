@@ -231,9 +231,21 @@ void Driver::ResetBD() {
 void Driver::IssuePushWords() {
   // we need to send something that will elicit an output, PAT read is the simplest
   // thing we can request
+  
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
   }
+  
+  //// XXX try using writes instead, theory is that there's input slack, not output slack
+  //for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  //  const std::vector<BDWord> * curr_entries = bd_state_[i].GetMem(bdpars::BDMemId::PAT);
+  //  std::vector<BDWord> last_two;
+  //  const unsigned int PAT_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
+  //  last_two.push_back(curr_entries->at(PAT_size-2));
+  //  last_two.push_back(curr_entries->at(PAT_size-1));
+  //  SetMem(i, bdpars::BDMemId::PAT, last_two, PAT_size-2);
+  //}
+  
   num_pushs_pending_ += 2;
   // we have to do something special when dumping the PAT to skip the push words
 }
@@ -354,21 +366,24 @@ void Driver::InitFIFO(unsigned int core_id) {
 }
 
 
-void Driver::Start() {
+int Driver::Start() {
   // start all worker threads
   enc_->Start();
   dec_->Start();
   cout << "enc and dec started" << endl;
 
-  // Initialize Opal Kelly Board
+  int comm_state = 0; 
  
 #ifdef BD_COMM_TYPE_OPALKELLY
-  static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
-  cout << "init'd OK" << endl;
+  // Initialize Opal Kelly Board
+  comm_state = static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
 #endif
 
-  comm_->StartStreaming();
-  cout << "comm started" << endl;
+  if (comm_state >= 0) {
+    comm_->StartStreaming();
+  }
+
+  return comm_state;
 }
 
 void Driver::Stop() {
@@ -757,11 +772,15 @@ void Driver::SetMem(
   PauseTraffic(core_id);
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
   SendToEP(core_id, horn_ep, encapsulated_words);
+  ResumeTraffic(core_id);
 
   Flush();
 
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
+
+    // pop out the last two words
+    IssuePushWords();
 
     unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
 
@@ -775,7 +794,6 @@ void Driver::SetMem(
       cout << "WARNING! LOST SOME AM WORDS" << endl;
     }
   }
-  ResumeTraffic(core_id);
 }
 
 /// helper for DumpMem

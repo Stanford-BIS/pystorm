@@ -15,21 +15,21 @@ int CommOK::Init(const std::string bitfile, const std::string serial) {
     char lib_date[32], lib_time[32];
 
     if (FALSE == okFrontPanelDLL_LoadLib(NULL)) {
-        std::cout << "FrontPanel library could not be loaded" << std::endl;
+        cout << "FrontPanel library could not be loaded" << endl;
         return -1;
     }
 
     okFrontPanelDLL_GetVersion(lib_date, lib_time);
-    std::cout << "FrontPanel library loaded\n"
-        << "Built: " << lib_date << ", " << lib_time << std::endl;
+    cout << "FrontPanel library loaded\n"
+        << "Built: " << lib_date << ", " << lib_time << endl;
 
-	if (false == InitializeFPGA(bitfile, serial)) {
-        std::cout << "FPGA could not be initialized" << std::endl;
-        return -1;
-	}
+    if (false == InitializeFPGA(bitfile, serial)) {
+          cout << "FPGA could not be initialized" << endl;
+          return -1;
+    }
 
     if (false == InitializeUSB()) {
-        std::cout << "USB3 interface not available." << std::endl;
+        cout << "Could not open USB connection" << endl;
         return -1;
     }
 
@@ -143,32 +143,32 @@ int CommOK::ReadFromDevice() {
 
 bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial) {
     if (okCFrontPanel::NoError != dev.OpenBySerial(serial)) {
-        std::cout << "Device could not be opened.  Is one connected?" << std::endl;
+        cout << "Device could not be opened.  Is one connected?" << endl;
         return(false);
     }
 
     dev.GetDeviceInfo(&m_devInfo);
-    std::cout << "Found a device: " << m_devInfo.productName << std::endl;
+    cout << "Found a device: " << m_devInfo.productName << endl;
 
     dev.LoadDefaultPLLConfiguration();    
 
     // Get some general information about the XEM.
-    std::cout << "Device firmware version: " 
-        << m_devInfo.deviceMajorVersion << "." << m_devInfo.deviceMinorVersion << std::endl;
-    std::cout << "Device serial number: " << m_devInfo.serialNumber << std::endl;
-    std::cout << "Device device ID: " << m_devInfo.productID << std::endl;
+    cout << "Device firmware version: " 
+        << m_devInfo.deviceMajorVersion << "." << m_devInfo.deviceMinorVersion << endl;
+    cout << "Device serial number: " << m_devInfo.serialNumber << endl;
+    cout << "Device device ID: " << m_devInfo.productID << endl;
 
     // Download the configuration file.
     if (okCFrontPanel::NoError != dev.ConfigureFPGA(bitfile)) {
-        std::cout << "FPGA configuration failed." << std::endl;
+        cout << "FPGA configuration failed." << endl;
         return(false);
     }
 
     // Check for FrontPanel support in the FPGA configuration.
     if (dev.IsFrontPanelEnabled()){
-        std::cout << "FrontPanel support is enabled." << std::endl;
+        cout << "FrontPanel support is enabled." << endl;
     } else {
-        std::cout << "FrontPanel support is not enabled." << std::endl;
+        cout << "FrontPanel support is not enabled." << endl;
         return(false);
     }
 
@@ -180,9 +180,14 @@ bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial)
 }
 
 bool CommOK::InitializeUSB() {
-    if (!(OK_INTERFACE_USB3 == m_devInfo.deviceInterface)) {
-        return false;
+    auto ifc = m_devInfo.deviceInterface;
+    if (ifc == OK_INTERFACE_USB3) {
+        return true;
+    } else if (ifc == OK_INTERFACE_USB2) {
+        cout << "USB3 interface not available. Using USB2" << endl;
+        return true;
     }
+    return false;
 }
 
 }

@@ -342,7 +342,9 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("GetDriverPars", (const class pystorm::bddriver::driverpars::DriverPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetDriverPars, "C++: pystorm::bddriver::Driver::GetDriverPars() --> const class pystorm::bddriver::driverpars::DriverPars *", py::return_value_policy::automatic);
 		cl.def("GetState", (const class pystorm::bddriver::BDState * (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetState, "C++: pystorm::bddriver::Driver::GetState(unsigned int) --> const class pystorm::bddriver::BDState *", py::return_value_policy::automatic, py::arg("core_id"));
 		cl.def("testcall", (void (pystorm::bddriver::Driver::*)(const std::string &)) &pystorm::bddriver::Driver::testcall, "C++: pystorm::bddriver::Driver::testcall(const class std::__cxx11::basic_string<char> &) --> void", py::arg("msg"));
-		cl.def("Start", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Start, "starts child workers, e.g. encoder and decoder\n\nC++: pystorm::bddriver::Driver::Start() --> void");
+
+    // manually edited
+		cl.def("Start", &Driver::Start, "starts child workers, e.g. encoder and decoder\n\nC++: pystorm::bddriver::Driver::Start() --> int");
 		cl.def("Stop", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Stop, "stops the child workers\n\nC++: pystorm::bddriver::Driver::Stop() --> void");
 
     // manually added
