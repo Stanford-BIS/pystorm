@@ -1275,6 +1275,7 @@ void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord
 }
 
 void Driver::SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_en, bool dump_en, bool flush) {
+  cout << "setting toggle at BDHornEP " << int(toggle_id) << " to traffic_en: " << int(traffic_en) << ", dump_en: " << int(dump_en) << endl;
   SetBDRegister(core_id, toggle_id, PackWord<ToggleWord>(
         {{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}}), flush);
 }

@@ -5,7 +5,10 @@ from pystorm.PyDriver import bddriver as bd
 
 D = bd.Driver()
 
-D.Start() # starts driver threads
+comm_state = D.Start()
+if (comm_state < 0):
+    print("* Driver failed to start!")
+    exit(-1)
 
 print("* Resetting BD")
 D.ResetBD()

@@ -32,7 +32,7 @@ end
 
 // unit_pulse
 parameter ClksPerUnit = 32;
-logic unit_pulse;
+logic unit_pulse = 0;
 initial begin
   forever begin
     #(ClksPerUnit*Tclk) @(posedge clk) unit_pulse <= 1;

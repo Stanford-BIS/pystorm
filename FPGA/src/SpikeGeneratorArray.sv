@@ -146,7 +146,7 @@ logic [Nmem-1:0] mem_writeback;
 // the output of the memory is registered, 
 // so we see this TWO cycles after we assert rd_en
 // the SAME cycle that we are writing back
-assign {rd_tick, period, tag} = mem_rd_data;
+assign {tag, period, rd_tick} = mem_rd_data;
 
 logic emit_output;
 always_comb
