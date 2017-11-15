@@ -452,9 +452,7 @@ void Driver::Flush() {
 bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  //if ((en != traffic_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
-  //}
+  SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
   return traffic_en;
 }
 
@@ -463,9 +461,7 @@ bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, boo
 bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  //if ((en != dump_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
-  //}
+  SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
   return dump_en;
 }
 
@@ -1090,13 +1086,17 @@ void Driver::SetSpikeGeneratorRates(
 
   // set all SG enables, regardless of which ones we actually modified
   uint16_t en_word;
+  unsigned int highest_used = 0;
   for (unsigned int gen_idx = 0; gen_idx < SG_en_.size(); gen_idx++) {
     unsigned int bit_idx = gen_idx % 16;
     uint16_t bit_sel = 1 << bit_idx;
 
     if (bit_idx == 0) en_word = 0;
 
-    if (SG_en_[gen_idx]) en_word |= bit_sel;
+    if (SG_en_[gen_idx]) {
+      en_word |= bit_sel;
+      highest_used = gen_idx;
+    }
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
@@ -1104,6 +1104,10 @@ void Driver::SetSpikeGeneratorRates(
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+
+  // set number of SGs used
+  
 
   if (flush) Flush(); 
 

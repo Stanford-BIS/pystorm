@@ -269,7 +269,7 @@ class BDPars {
   const unsigned int DnEPFPGABitsPerChannel = 16;
 
   const unsigned int DnWordsPerFrame        = 256; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
-  const unsigned int DnTimeUnitsPerHB       = 10; // Send FPGA downstream heartbeat every <this many time units>
+  const unsigned int DnTimeUnitsPerHB       = 1; // Send FPGA downstream heartbeat every <this many time units>
 
   // downstream endpoint info
   std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;
