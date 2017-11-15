@@ -33,7 +33,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	Channel PC_out_channel, //output channel for the Core
 	input isempty, //isempty signal for the fifo feeding us packets
 	input [10:0] data_in, //data from the fifo
-	output rdreq, //read request for fifo
+	output reg rdreq, //read request for fifo
 	input clk, reset);
 
 	//reg for tail bit
@@ -53,7 +53,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			3'd3: next_state = PC_out_channel.a ? (tail_bit ? 3'd4 : 3'd5) : state;
 			3'd4: next_state = isempty ? state : 3'd0;
 			3'd5: next_state = isempty ? state : 3'd1;
-			default: next_state = 3'd4 //default to idling for header
+			default: next_state = 3'd4; //default to idling for header
 		endcase
 
 	always @(posedge clk) begin
@@ -66,11 +66,14 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	end
 
 	reg [31:0] to_transmit;
+	assign to_transmit[31:30] = 2'b0; //first 2 bits are always zero
+	
 	always_comb
-		to_transmit[31:30] <= 2'b0; //first 2 bits are always zero
-
 		case(state)
-			3'd0: rdreq = !isempty; PC_out_channel.v = 0;//just ignore the header data
+			3'd0: begin
+				rdreq = !isempty; 
+				PC_out_channel.v = 0;
+			end//just ignore the header data
 
 			3'd1: begin
 				to_transmit[29:20] <= data_in[10:1];
@@ -91,6 +94,11 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 				PC_out_channel.v = !isempty; //pull valid high once we have a full word
 			end
 
-			3'd4, 3'd5: rdreq = !isempty; PC_out_channel.v = 0;//no data here, just asserting read high to get next packet
+			3'd4, 3'd5: begin
+				rdreq = !isempty; 
+				PC_out_channel.v = 0;
+			end//no data here, just asserting read high to get next packet
 
 		endcase
+
+endmodule // BZ_deserializer
