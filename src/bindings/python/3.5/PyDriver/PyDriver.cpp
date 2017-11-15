@@ -373,6 +373,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
         cl.def("GetMemAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const) &pystorm::bddriver::Driver::GetMemAERAddr, "Given x, y config memory (16-neuron tile) address, get AER address", py::arg("x"), py::arg("y"));
         cl.def("GetSynAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int) const) &pystorm::bddriver::Driver::GetSynAERAddr, "Given flat xy_addr (addr scan along x then y) synapse address, get AER address", py::arg("xy_addr"));
         cl.def("GetSynAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const)&pystorm::bddriver::Driver::GetSynAERAddr, "Given x, y synapse address, get AER address", py::arg("x"), py::arg("y"));
+        cl.def("GetSomaAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int) const) &pystorm::bddriver::Driver::GetSomaAERAddr, "Given flat xy_addr (addr scan along x then y) soma address, get AER address", py::arg("xy_addr"));
+        cl.def("GetSomaAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const)&pystorm::bddriver::Driver::GetSomaAERAddr, "Given x, y soma address, get AER address", py::arg("x"), py::arg("y"));
         cl.def("GetSomaXYAddr", &pystorm::bddriver::Driver::GetSomaXYAddr, "Given AER synapse address, get flat xy_addr (y msb, x lsb)", py::arg("aer_addr"));
         cl.def("GetDACScaling", &pystorm::bddriver::Driver::GetDACScaling, "", py::arg("dac_signal_id"));
         cl.def("GetDACUnitCurrent", &pystorm::bddriver::Driver::GetDACUnitCurrent, "", py::arg("dac_signal_id"));

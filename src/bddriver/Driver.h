@@ -145,15 +145,19 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   
   /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int xy_addr) const { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
+  unsigned int GetMemAERAddr(unsigned int xy_addr) const                             { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
   /// Given x, y config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const { return GetMemAERAddr(x*16 + y); }
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const                   { return GetMemAERAddr(y*16 + x); }
   /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int xy_addr) const { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
+  unsigned int GetSynAERAddr(unsigned int xy_addr) const                             { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
   /// Given x, y synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const { return GetSynAERAddr(x*32 + y); }
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const                   { return GetSynAERAddr(y*32 + x); }
+  /// Given flat xy_addr soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int xy_addr) const                            { return bd_pars_->soma_xy_to_aer_.at(xy_addr); }
+  /// Given x, y soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const                  { return GetSomaAERAddr(y*64 + x); }
   /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
-  unsigned int GetSomaXYAddr(unsigned int aer_addr) const { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
+  unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control

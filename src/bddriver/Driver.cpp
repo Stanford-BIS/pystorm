@@ -188,6 +188,8 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
+  
+  if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
@@ -1291,7 +1293,7 @@ void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord
 }
 
 void Driver::SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_en, bool dump_en, bool flush) {
-  cout << "setting toggle at BDHornEP " << int(toggle_id) << " to traffic_en: " << int(traffic_en) << ", dump_en: " << int(dump_en) << endl;
+  //cout << "setting toggle at BDHornEP " << int(toggle_id) << " to traffic_en: " << int(traffic_en) << ", dump_en: " << int(dump_en) << endl;
   SetBDRegister(core_id, toggle_id, PackWord<ToggleWord>(
         {{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}}), flush);
 }

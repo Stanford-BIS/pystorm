@@ -114,6 +114,9 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
 
   }
 
+  //if (inputs->size() > 0)
+  //  cout << "encoder working" << endl;
+
   return output;
 }
 
