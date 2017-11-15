@@ -155,26 +155,26 @@ Driver::~Driver() {
 // XXX get rid of this, it's used in some test
 void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
 
-void Driver::SetTimeUnitLen(BDTime us_per_unit) {
+void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 
   // update FPGA state
-  us_per_unit_ = us_per_unit;
-  clks_per_unit_ = us_per_unit * (1000 / ns_per_clk_);
-  cout << "setting FPGA time unit to " << us_per_unit << " us = " << clks_per_unit_ << " clocks per unit" << endl;
+  ns_per_unit_ = ns_per_unit;
+  clks_per_unit_ = ns_per_unit / ns_per_clk_;
+  cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
   
   const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
   if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
-    cout << "WARNING: us_per_unit too small: FPGA Spike Generator updates might not complete" << endl;
+    cout << "WARNING: ns_per_unit is very small: FPGA Spike Generator updates might not complete" << endl;
     cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
     cout << "  Spike Generator requires " << clks_per_SG_ << " cycles per operation" << endl;
     cout << "  Max Spike Generators: " << max_num_SG_ << endl;
   }
 
   if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_) {
-    cout << "WARNING: us_per_unit too small: FPGA Spike Filter updates might not complete" << endl;
+    cout << "WARNING: ns_per_unit is very small: FPGA Spike Filter updates might not complete" << endl;
     cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
     cout << "  Spike Filter requires " << clks_per_SF_ << " cycles per operation" << endl;
     cout << "  Max Spike Filters: " << max_num_SG_ << endl;
@@ -185,9 +185,9 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
   Flush();
 }
 
-void Driver::SetTimePerUpHB(BDTime us_per_hb) {
-  units_per_HB_ = UsToUnits(us_per_hb);
-  cout << "setting HB reporting period to " << us_per_hb << " us = " << units_per_HB_ << " FPGA time units" << endl;
+void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
+  units_per_HB_ = NsToUnits(ns_per_hb);
+  cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
@@ -262,6 +262,12 @@ BDTime Driver::GetFPGATime() {
   // the Decoder already decoded the times, ignore the payload and just use the last timestamp
   std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB, 1000).second;
   return times.back();
+}
+
+BDTime Driver::GetDriverTime() const {
+  auto time_point_now = std::chrono::high_resolution_clock::now();
+  auto ns_now = std::chrono::duration_cast<std::chrono::nanoseconds>(time_point_now - base_time_);
+  return ns_now.count();
 }
 
 void Driver::InitBD() {
@@ -1060,7 +1066,7 @@ void Driver::SetSpikeGeneratorRates(
 
   std::vector<BDWord> SG_prog_words;
 
-  unsigned int units_per_sec = 1e6 / us_per_unit_;
+  unsigned int units_per_sec = 1e6 / ns_per_unit_;
 
   // program periods/tag output idxs
   for (unsigned int i = 0; i < tags.size(); i++) {
@@ -1073,7 +1079,7 @@ void Driver::SetSpikeGeneratorRates(
     unsigned int rate = rates.at(i);
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << " with period " << period << " time units. There are " << us_per_unit_ << " us per time unit" << endl;
+    cout << "programming SG " << gen_idx << " to target tag " << tag << " with period " << period << " time units. There are " << ns_per_unit_ << " us per time unit" << endl;
 
     SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}}));
   }
@@ -1166,7 +1172,7 @@ void Driver::SendToEP(unsigned int core_id,
   for (auto& it : payload) {
 
     // convert from us -> time units
-    BDTime time = !timed ? 0 : UsToUnits(times.at(i)); // time 0 is never held up by the FPGA
+    BDTime time = !timed ? 0 : NsToUnits(times.at(i)); // time 0 is never held up by the FPGA
 
     BDWord payloads[MaxD];
 
@@ -1212,9 +1218,9 @@ void Driver::SendToEP(unsigned int core_id,
 
     std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
 
-    // update highest_us_sent_
-    unsigned int new_highest_us = timed_queue_.back().time * us_per_unit_;
-    highest_us_sent_ = new_highest_us > highest_us_sent_ ? new_highest_us : highest_us_sent_; // max()
+    // update highest_ns_sent_
+    BDTime new_highest_ns = timed_queue_.back().time * ns_per_unit_;
+    highest_ns_sent_ = new_highest_ns > highest_ns_sent_ ? new_highest_ns : highest_ns_sent_; // max()
 
   } else {
     sequenced_queue_.push(std::move(serialized));
@@ -1256,7 +1262,7 @@ std::pair<std::vector<BDWord>,
         // concatenate lsb and msb to make output word
         BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
         words.push_back(payload_all);
-        times.push_back(UnitsToUs(time));
+        times.push_back(UnitsToNs(time));
 
         deserializer->GetOneOutput(&deserialized);
       }
@@ -1268,7 +1274,7 @@ std::pair<std::vector<BDWord>,
         BDTime   time    = it.time; // take time on second word
 
         words.push_back(payload);
-        times.push_back(UnitsToUs(time));
+        times.push_back(UnitsToNs(time));
       }
     }
   }

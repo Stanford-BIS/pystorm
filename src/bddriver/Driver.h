@@ -119,14 +119,16 @@ class Driver {
   /// stops the child workers
   void Stop();
 
-  /// Sets the time unit (also is the interval that FPGA reports/updates SG/SF values)
-  void SetTimeUnitLen(BDTime us_per_unit);
+  /// Sets the FPGA time resolution (also is the interval that FPGA reports/updates SG/SF values)
+  void SetTimeUnitLen(BDTime ns_per_unit);
   /// Sets how long the FPGA waits between sending upstream HBs
-  void SetTimePerUpHB(BDTime us_per_hb);
-  /// Sets the FPGA's clock to 0
+  void SetTimePerUpHB(BDTime ns_per_hb);
+  /// Sets the FPGA's clock to 0, also resets driver time
   void ResetFPGATime();
   /// Get the most recently received upstream FPGA clock value
   BDTime GetFPGATime();
+  /// Returns driver (PC) time in ns
+  BDTime GetDriverTime() const;
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();
@@ -546,17 +548,12 @@ class Driver {
   static const unsigned int clks_per_SG_ = 3; /// clock cycles per SG update
   unsigned int clks_per_unit_         = 1000; /// FPGA default
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
-  unsigned int us_per_unit_           = 10; /// FPGA default
-  unsigned int highest_us_sent_       = 0;
+  BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
+  BDTime highest_ns_sent_             = 0;
 
   // basis of experiment time, set when ResetFPGAClock is called
   std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
 
-  inline unsigned int GetCurrentTimeUs() const {
-    auto time_point_now = std::chrono::high_resolution_clock::now();
-    auto us_now = std::chrono::duration_cast<std::chrono::microseconds>(time_point_now - base_time_);
-    return us_now.count();
-  }
 
   /// array mapping SG generator idx -> enabled/disabled
   std::array<bool, max_num_SG_> SG_en_;
@@ -567,8 +564,8 @@ class Driver {
   }
 
   /// FPGA time units per microsecond
-  inline unsigned int UsToUnits(unsigned int us   ) { return us / us_per_unit_; }
-  inline unsigned int UnitsToUs(unsigned int units) { return us_per_unit_ * units; }
+  inline uint64_t NsToUnits(BDTime   ns)    { return ns / ns_per_unit_; }
+  inline BDTime   UnitsToNs(uint64_t units) { return ns_per_unit_ * units; }
 
   /// FPGA SG_en_ max bit assigned helper
   inline unsigned int GetHighestSGEn() const {

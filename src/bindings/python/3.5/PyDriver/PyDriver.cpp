@@ -348,8 +348,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("Stop", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Stop, "stops the child workers\n\nC++: pystorm::bddriver::Driver::Stop() --> void");
 
     // manually added
-		cl.def("SetTimePerUpHB", &Driver::SetTimePerUpHB, "sets number of us per upstream HB", py::arg("us_per_hb"));
-		cl.def("SetTimeUnitLen", &Driver::SetTimeUnitLen, "sets number of clock cycles per time unit", py::arg("us_per_unit"));
+		cl.def("SetTimePerUpHB", &Driver::SetTimePerUpHB, "sets number of ns per upstream HB", py::arg("ns_per_hb"));
+		cl.def("SetTimeUnitLen", &Driver::SetTimeUnitLen, "sets the FPGA time resolution (sets number of clock cycles per time unit). Also determines SG/SF update interval", py::arg("ns_per_unit"));
 		cl.def("ResetFPGATime", &Driver::ResetFPGATime, "resets FPGA clock to 0");
 		cl.def("GetFPGATime", &Driver::GetFPGATime, "get last received FPGA clock value");
 
