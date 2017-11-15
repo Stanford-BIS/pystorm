@@ -5,7 +5,7 @@ import queue
 from io import StringIO
 import traceback
 from math import ceil
-import time
+
 #os.environ['KIVY_DPI'] = '227'
 #os.environ['KIVY_METRICS_DENSITY'] = '1'
 from kivy.app import App
@@ -17,24 +17,15 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.graphics.texture import Texture
 from kivy.graphics import Rectangle
 from kivy.uix.widget import Widget
-from kivy.uix.gridlayout import GridLayout
-from kivy.uix.anchorlayout import AnchorLayout
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.stacklayout import StackLayout
 from kivy.uix.label import Label
-from kivy.uix.slider import Slider
-from kivy.properties import ObjectProperty
-from kivy.properties import NumericProperty
-from kivy.config import Config
-from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
-from kivy.uix.tabbedpanel import TabbedPanel
-from kivy.uix.scatter import Scatter
-from kivy.uix.stencilview import StencilView
 from kivy.core.window import Window
 from kivy.metrics import sp
 
 import numpy as np
+
+from pystorm.PyDriver import bddriver as bd
 
 Window.size = (800, 640)
 
@@ -43,6 +34,15 @@ EQ = queue.Queue(1)
 
 # namespace for the console interpreter
 NS = {}
+
+# BD driver
+BDDriver = bd.Driver()
+
+
+def load(file_name):
+    with open(file_name) as f:
+        code = compile(f.read(), file_name, 'exec')
+        exec(code, globals())
 
 
 def _truncate_pwd():
@@ -65,6 +65,13 @@ class Shell(EventDispatcher):
     __events__ = ('on_output', 'on_complete')
 
     def run_command(self, command, show_output=True, *args):
+        #import re
+        #_ext_match = re.match(r'load\([\'"]([\w/.]+)[\'"]\)', command)
+        #if _ext_match is not None:
+        #    load(_ext_match.groups(0)[0])
+        #    self.dispatch('on_complete', "")
+        #    return
+
         _old_stdout = sys.stdout
         _old_stderr = sys.stderr
         _redirected_output = sys.stdout = StringIO()
@@ -329,6 +336,7 @@ class Sparkle(Widget):
         self.sparkle = Rectangle()
 
     def poll_data(self, *args):
+        #TODO: Read spikes using driver
         np.greater(np.random.rand(4096), 0.9, self._mask1)
         np.copyto(self.arr_data, self.MAX_MAT, where=self._mask1)
 
@@ -477,6 +485,17 @@ class SettingsScreen(Screen):
     def init_children(self):
         self.settings_area.init_children()
 
+
+def InitBD():
+    print("[INFO] Starting BD")
+    BDDriver.Start() # starts BDDriver threads
+    print("[INFO] Resetting BD")
+    BDDriver.ResetBD()
+    print("[INFO] Init the FIFO (also turns on traffic)")
+    BDDriver.InitFIFO(0)
+    print("[INFO] BDDriver available as '[color=ffffff]BDDriver[/color]'")
+
+
 class GUIApp(App):
 
     def build(self):
@@ -506,6 +525,8 @@ class GUIApp(App):
 
     def on_start(self):
         self.scr_main.init_children()
+        Clock.schedule_once(partial(self.console.run_command, "InitBD()"))
+
 
     def on_stop(self, *args, **kwargs):
         """
