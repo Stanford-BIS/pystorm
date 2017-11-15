@@ -130,6 +130,8 @@ BDIfc BD_ifc(
   .core_clk(okClk),
   .BD_in_clk_int(BD_in_clk_int),
   .BD_out_clk_int(BD_out_clk_int),
+  .BD_in_clk_ext(BD_in_clk),
+  .BD_out_clk_ext(BD_out_clk),
   .reset(reset_BDIO));
 
 endmodule
