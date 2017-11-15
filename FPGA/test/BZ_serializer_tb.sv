@@ -38,6 +38,23 @@ initial begin
 			PC_in_channel.d <= PC_in_channel.d + 40'b10000000000000000000000000000000000; //check non-wormholes
 		end
 	end
+
+	PC_in_channel.v = 0; //test valid low
+	#40
+	PC_in_channel.v = 1;
+	#50
+	is_full = 1;//test short fulls
+	#10
+	is_full = 0;
+	#10
+	is_full = 1;
+	#10
+	is_full = 0;
+	#20
+	is_full = 1;//test long full
+	#60
+	is_full = 0;
+	
 end
 
 BZ_serializer #(8, 24, 10) doot(.*); //doot doot
