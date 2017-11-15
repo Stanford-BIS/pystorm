@@ -123,8 +123,10 @@ class Driver {
   void SetTimeUnitLen(BDTime us_per_unit);
   /// Sets how long the FPGA waits between sending upstream HBs
   void SetTimePerUpHB(BDTime us_per_hb);
-  /// Sets experiment time to 0, synchronizing internal time and FPGA clock to 0
+  /// Sets the FPGA's clock to 0
   void ResetFPGATime();
+  /// Get the most recently received upstream FPGA clock value
+  BDTime GetFPGATime();
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();
@@ -565,7 +567,8 @@ class Driver {
   }
 
   /// FPGA time units per microsecond
-  inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
+  inline unsigned int UsToUnits(unsigned int us   ) { return us / us_per_unit_; }
+  inline unsigned int UnitsToUs(unsigned int units) { return us_per_unit_ * units; }
 
   /// FPGA SG_en_ max bit assigned helper
   inline unsigned int GetHighestSGEn() const {

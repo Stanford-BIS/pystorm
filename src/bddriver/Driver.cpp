@@ -186,7 +186,7 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
 }
 
 void Driver::SetTimePerUpHB(BDTime us_per_hb) {
-  units_per_HB_ = UnitsPerUs(us_per_hb);
+  units_per_HB_ = UsToUnits(us_per_hb);
   cout << "setting HB reporting period to " << us_per_hb << " us = " << units_per_HB_ << " FPGA time units" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
@@ -256,6 +256,12 @@ void Driver::ResetFPGATime() {
   BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
   SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
+}
+
+BDTime Driver::GetFPGATime() {
+  // the Decoder already decoded the times, ignore the payload and just use the last timestamp
+  std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB, 1000).second;
+  return times.back();
 }
 
 void Driver::InitBD() {
@@ -1160,7 +1166,7 @@ void Driver::SendToEP(unsigned int core_id,
   for (auto& it : payload) {
 
     // convert from us -> time units
-    BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
+    BDTime time = !timed ? 0 : UsToUnits(times.at(i)); // time 0 is never held up by the FPGA
 
     BDWord payloads[MaxD];
 
@@ -1250,7 +1256,7 @@ std::pair<std::vector<BDWord>,
         // concatenate lsb and msb to make output word
         BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
         words.push_back(payload_all);
-        times.push_back(time);
+        times.push_back(UnitsToUs(time));
 
         deserializer->GetOneOutput(&deserialized);
       }
@@ -1262,7 +1268,7 @@ std::pair<std::vector<BDWord>,
         BDTime   time    = it.time; // take time on second word
 
         words.push_back(payload);
-        times.push_back(time);
+        times.push_back(UnitsToUs(time));
       }
     }
   }

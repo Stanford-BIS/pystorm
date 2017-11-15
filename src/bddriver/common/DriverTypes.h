@@ -12,7 +12,7 @@ namespace bddriver {
 ////////////////////////////////////////
 // decoder/encoder
 
-typedef unsigned int BDTime;
+typedef uint64_t BDTime;
 
 // decoder
 struct DecOutput {

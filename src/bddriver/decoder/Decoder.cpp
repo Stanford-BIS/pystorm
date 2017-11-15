@@ -97,11 +97,13 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         assert(false && "something wrong with next_HB_significance_ enum");
       }
       //cout << "got HB: " << payload << " curr_HB_ = " << last_HB_recvd_ << endl;
-
+      // we send the HBs to the driver too, so it knows the time
+    }
 
     // ignore nop
-    } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+    if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
       // do nothing
+      
     // otherwise, forward to Driver
     } else {
       //cout << "decoder got something that wasn't a HB" << endl;
@@ -111,8 +113,9 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       to_push.payload = payload;
 
       // update times for "push" output problem
-      to_push.time       = word_i_min_2_time_;
-      word_i_min_2_time_ = word_i_min_1_time_;
+      // edit: I think we're actually only 1 word behind
+      to_push.time       = word_i_min_1_time_;
+      //word_i_min_2_time_ = word_i_min_1_time_;
       word_i_min_1_time_ = last_HB_recvd_;
 
       if (outputs.count(ep_code) == 0) {
