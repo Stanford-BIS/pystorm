@@ -67,6 +67,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 
 	reg [31:0] to_transmit;
 	assign to_transmit[31:30] = 2'b0; //first 2 bits are always zero
+	assign PC_out_channel.d = to_transmit;
 	
 	always_comb
 		case(state)
