@@ -30,7 +30,9 @@ end
 
 initial begin
 	isempty = 0;
-	data_in = 0;
+	data_in = 11'b01011011100; //test wormholes
+	#105
+	data_in = 11'b01110110101; //test non wormholes (we can just put the tail bit high on all of them
 end
 
 BZ_deserializer #(8, 24, 10) doot(.*); //thank mr skeletal
