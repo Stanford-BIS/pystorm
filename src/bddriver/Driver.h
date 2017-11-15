@@ -469,12 +469,12 @@ class Driver {
   /// This call allows multiple generators to be set simultaneously.
   /// <time> specifies when the SGs will be programmed (updating the output rates)
   void SetSpikeGeneratorRates(
-      unsigned int core_id,
-      std::vector<unsigned int> gen_idxs, 
-      std::vector<unsigned int> tags, 
-      std::vector<unsigned int> rates, 
-      BDTime time = 0,
-      bool flush=true);
+    unsigned int core_id,
+    const std::vector<unsigned int>& gen_idxs, 
+    const std::vector<unsigned int>& tags, 
+    const std::vector<int>& rates, 
+    BDTime time = 0,
+    bool flush = true);
 
   /// Set spike filter increment constant
   void SetSpikeFilterIncrementConst(unsigned int core_id, unsigned int increment, bool flush=true) {

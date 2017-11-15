@@ -409,7 +409,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
 
     // manually added
-    cl.def("SetSpikeGeneratorRates", &Driver::SetSpikeGeneratorRates, "Set input rates (in Hz) for Spike Generators.", 
+    cl.def("SetSpikeGeneratorRates", &Driver::SetSpikeGeneratorRates, "Set input rates (in +/- Hz) for Spike Generators.", 
         py::arg("core_id"), py::arg("gen_idxs"), py::arg("tags"), py::arg("rates"), py::arg("time") = 0, py::arg("flush") = true);
 
     cl.def("SetSpikeFilterIncrementConst", &Driver::SetSpikeFilterIncrementConst, "Set Spike Filter increment constant",
@@ -1014,6 +1014,7 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
 		.value("TICKS", FPGASGWORD::TICKS)
 		.value("PERIOD", FPGASGWORD::PERIOD)
 		.value("GENIDX", FPGASGWORD::GENIDX)
+		.value("SIGN", FPGASGWORD::SIGN)
 		.value("FIELDCOUNT", FPGASGWORD::FIELDCOUNT);
 
 ;

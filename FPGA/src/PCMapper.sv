@@ -136,7 +136,7 @@ localparam Nchans_used = 1;
 // pack channel so we can use deserializer
 localparam N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;
 Channel #(N_SG_program_mem) SG_program_mem_flat();
-assign {SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_program_mem.tag} = SG_program_mem_flat.d;
+assign {SG_program_mem.sign, SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_program_mem.tag} = SG_program_mem_flat.d;
 assign SG_program_mem.v = SG_program_mem_flat.v;
 assign SG_program_mem_flat.a = SG_program_mem.a;
 
