@@ -82,16 +82,20 @@ int CommOK::WriteToDevice() {
     // potentially blocks for 1 us
     std::vector<std::unique_ptr<std::vector<COMMWord>>> popped_vect = m_write_buffer->PopAll(1);
 
+#ifndef __OPTIMIZE__
     if (popped_vect.size() > 0) 
       cout << "popped this many vects: " << popped_vect.size() << endl;
+#endif
     // use the deserializer to build up blocks of WRITE_SIZE elements
     int size = 0;
     for (unsigned int i = 0; i < popped_vect.size(); i++) {
       size += popped_vect.at(i)->size();
       deserializer_->NewInput(std::move(popped_vect.at(i)));
     }
+#ifndef __OPTIMIZE__
     if (popped_vect.size() > 0) 
       cout << "  total size " << size << endl;
+#endif
 
 
     if (deserialized_.size() == 0) {
@@ -113,7 +117,9 @@ int CommOK::WriteToDevice() {
       if (last_status == WRITE_SIZE) {
         deserialized_.clear();
       } else {
+     #ifndef __OPTIMIZE__
         printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
+     #endif
       }
 
       return last_status;
