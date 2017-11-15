@@ -30,8 +30,10 @@ end
 
 initial begin
 	isempty = 0;
+	data_in = 0; //wait a bit
+	#95
 	data_in = 11'b01011011100; //test wormholes
-	#105
+	#100
 	data_in = 11'b01110110101; //test non wormholes (we can just put the tail bit high on all of them
 end
 
