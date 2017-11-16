@@ -161,6 +161,15 @@ class Driver {
   /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
   unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
 
+  /// Utility function to process spikes a little more quickly
+  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+    std::vector<unsigned int> to_return;
+    for (auto& it : aer_addrs) {
+      to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+    }
+    return to_return;
+  }
+
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
   ////////////////////////////////////////////////////////////////////////////

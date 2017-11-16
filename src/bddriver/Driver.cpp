@@ -292,7 +292,7 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
   // Set them to default values defined in BDPars
   for(auto& dac_id: dac_list){
     unsigned int dac_count = GetDACDefaultCount(dac_id);
-    SetDACValue(core_id, dac_id, dac_count);
+    SetDACValue(core_id, dac_id, dac_count, false);
   }
   if (flush) Flush();
 }
