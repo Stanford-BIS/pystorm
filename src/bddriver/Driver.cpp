@@ -272,6 +272,32 @@ BDTime Driver::GetDriverTime() const {
   return ns_now.count();
 }
 
+void Driver::InitDAC(unsigned int core_id, bool flush) {
+  // List of DAC
+  std::array<bdpars::BDHornEP, 12> dac_list {
+    bdpars::BDHornEP::DAC_ADC_BIAS_1,
+    bdpars::BDHornEP::DAC_ADC_BIAS_2,
+    bdpars::BDHornEP::DAC_DIFF_G,
+    bdpars::BDHornEP::DAC_DIFF_R,
+    bdpars::BDHornEP::DAC_SOMA_OFFSET,
+    bdpars::BDHornEP::DAC_SOMA_REF,
+    bdpars::BDHornEP::DAC_SYN_EXC,
+    bdpars::BDHornEP::DAC_SYN_DC,
+    bdpars::BDHornEP::DAC_SYN_INH,
+    bdpars::BDHornEP::DAC_SYN_LK,
+    bdpars::BDHornEP::DAC_SYN_PD,
+    bdpars::BDHornEP::DAC_SYN_PU
+  };
+
+  // Set them to default values defined in BDPars
+  for(auto& dac_id: dac_list){
+    unsigned int dac_count = GetDACDefaultCount(dac_id);
+    SetDACValue(core_id, dac_id, dac_count);
+  }
+  if (flush) Flush();
+}
+
+
 void Driver::InitBD() {
   
   // BD hard reset
@@ -299,27 +325,7 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
 
     // Initialize neurons
-    // List of DACs
-    std::array<bdpars::BDHornEP, 12> dac_list {
-      bdpars::BDHornEP::DAC_ADC_BIAS_1,
-      bdpars::BDHornEP::DAC_ADC_BIAS_2,
-      bdpars::BDHornEP::DAC_DIFF_G,
-      bdpars::BDHornEP::DAC_DIFF_R,
-      bdpars::BDHornEP::DAC_SOMA_OFFSET,
-      bdpars::BDHornEP::DAC_SOMA_REF,
-      bdpars::BDHornEP::DAC_SYN_EXC,
-      bdpars::BDHornEP::DAC_SYN_DC,
-      bdpars::BDHornEP::DAC_SYN_INH,
-      bdpars::BDHornEP::DAC_SYN_LK,
-      bdpars::BDHornEP::DAC_SYN_PD,
-      bdpars::BDHornEP::DAC_SYN_PU
-    };
-
-    // Set them to default values defined in BDPars
-    for(auto& dac_id: dac_list){
-      unsigned int dac_count = GetDACDefaultCount(dac_id);
-      SetDACValue(i, dac_id, dac_count);
-    }
+    InitDAC(i, false);
 
     // Disable all Somas
     for(unsigned int idx = 0; idx < 4096; ++idx){

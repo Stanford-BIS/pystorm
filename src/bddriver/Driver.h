@@ -135,6 +135,8 @@ class Driver {
   /// Clears BD FIFOs
   /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
+  /// Inits the DACs to default values
+  void InitDAC(unsigned int core_id, bool flush=true);
   /// Initializes hardware state
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
