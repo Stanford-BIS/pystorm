@@ -137,7 +137,7 @@ int CommOK::ReadFromDevice() {
     int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_BLOCK_SIZE, READ_SIZE, raw_data);
 
     //cout << "Comm reading words:" << endl;
-    cout << "comm read: " << num_bytes << endl;
+    //cout << "comm read: " << num_bytes << endl;
     //for (unsigned int i = 0; i < 16; i++) {
     //  PrintBinaryAsStr(raw_data[i], 8);
     //}

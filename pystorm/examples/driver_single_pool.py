@@ -15,7 +15,7 @@ num_neurons = pool_height * pool_width
 
 fmax = 10000
 num_training_points = 20
-training_hold_time = .2 # seconds
+training_hold_time = 4 # seconds
 
 input_tag = 0
 
@@ -31,6 +31,7 @@ for xsyn in range(0, pool_width//2, tap_point_syn_stride):
 
 downstream_time_res = 10 * 1000 # ns
 upstream_time_res = downstream_time_res * 10 # ns
+
 
 #########################################
 
