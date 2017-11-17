@@ -18,7 +18,8 @@ module Core #(
   // common parameters (in/out names relative to FPGA)
   parameter NPCcode = 8,
   parameter NPCdata = 24,
-  parameter NPCout = NPCcode + NPCdata,
+  parameter NPCroute = 10,
+  parameter NPCout = NPCcode + NPCdata + NPCroute,
   parameter NPCin = NPCcode + NPCdata,
 
   // parameters for SpikeFilterArray
@@ -55,6 +56,7 @@ module Core #(
 // common parameters (in/out names relative to FPGA)
 localparam Ntag = 11;
 localparam Nct = 9;
+localparam Nglobal = 12;
 
 localparam NBDdata_in = 34;
 localparam NBDdata_out = 21;
@@ -71,6 +73,8 @@ localparam N_SG_ct = Nct;
 // FIFO depth
 localparam FIFOdepth = 4;
 
+// **THIS NEEDS TO BE EDITED TO ADD GLOBAL ROUTE STUFF**
+//s
 // Core includes all the components that are agnostic to both BD handshaking
 // and the IO mechanism (e.g. Opal Kelly USB host module or USB IP core).
 //
@@ -123,8 +127,8 @@ localparam FIFOdepth = 4;
 // PC_out <--|FIFO|--| PCPacker |                    ||||||          +----------+      |BDTagSplit |<--|FIFO|-----| BDDecoder |<--|FIFO|-- BD_in
 //  32b      ||||||  |          |<--+                                |          |<-----|           |   ||||||     |           |   ||||||    34b
 //                   +----------+   |                                |  BDSer.  |   ^  +-----------+              +-----------+  
-//                                  +--------------------------------|          |   ^                        
-//                                               BDSerializer_out    +----------+  BDTagSplit_
+//                                  +--------------------------------|          |   ^                    
+//                                               BDSerializer_out    +----------+  BDTagSplit_  
 //                                                                                 out_other  
 //
 
@@ -169,11 +173,13 @@ UnencodedBDWordChannel BDTagMerge_out();
 DecodedBDWordChannel BDDecoder_out();
 DecodedBDWordChannel BDDecoder_out_post_FIFO();
 DecodedBDWordChannel BDTagSplit_out_other();
+GlobalTagCtChannel  #(Nglobal, Ntag, Nct) BDTagSplit_out_global();
 TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags();
 TagCtChannel #(Ntag, Nct) BDTagSplit_out_tags_post_FIFO();
 SpikeFilterOutputChannel SF_tags_out();
 SerializedPCWordChannel BDSerializer_out();
 SerializedPCWordChannel FPGASerializer_out();
+SerializedPCWordChannelwithRoute Global_tag_parser_out();
 
 /////////////////////////////////////////////
 // reset
@@ -306,10 +312,12 @@ assign BDDecoder_out_post_FIFO_flat.a = BDDecoder_out_post_FIFO.a;
 // BDTagSplit
 BDTagSplit #(
   NBDdata_in, 
+  Nglobal,
   Ntag, 
   Nct) 
 BD_tag_split(
   BDTagSplit_out_tags,
+  BDTagSplit_out_global,
   BDTagSplit_out_other,
   BDDecoder_out_post_FIFO,
   TS_conf,
@@ -322,6 +330,21 @@ BDSerializer #(
 BD_serializer(
   BDSerializer_out,
   BDTagSplit_out_other,
+  clk, reset);
+
+// GlobalTagParser
+GlobalTagParser #(
+  NBDdata_in, 
+  Nglobal,
+  Ntag, 
+  Nct,
+  NPCcode,
+  NPCdata,
+  NPCroute
+  )
+Global_tag_parser(
+  BDTagSplit_out_global,
+  Global_tag_parser_out,
   clk, reset);
 
 // FIFO
@@ -366,11 +389,13 @@ FPGA_serializer(
 // PCPacker
 PCPacker #(
   .NPCcode(NPCcode),
-  .NPCdata(NPCdata))
+  .NPCdata(NPCdata),
+  .NPCroute(NPCroute))
 PC_packer(
   PC_out_pre_FIFO,
   BDSerializer_out,
   FPGASerializer_out,
+  Global_tag_parser_out,
   clk, reset);
 
 endmodule

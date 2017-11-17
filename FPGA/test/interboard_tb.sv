@@ -65,18 +65,18 @@ initial begin
 	reset = 0;
 	//should begin sending data here
 
-	#70
+	#80
 	receive_board_fifo_wrusedw = 8'd255;
 	//we've filled up, should stop transmitting
 
-	#70
+	#80
 	receive_board_fifo_wrusedw = 8'd254;
 	//have a spot, should start transmitting
 end
 
 //delay signals
 always begin
-	#5
+	#2
 	interboard_data_del = interboard_data;
 	interboard_clk_del = interboard_clk;
 	valid_del = valid;
