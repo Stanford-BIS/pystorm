@@ -1,5 +1,11 @@
 `include "Channel.svh"
 
+`ifdef SIMULATION
+  `define DELAY_VAL 16
+`else
+  `define DELAY_VAL '1
+`endif
+
 `define NUM_BITS_PIN2CORE 21
 `define NUM_BITS_CORE2PIN 34
 
@@ -117,10 +123,7 @@ module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
   input channel.a   // At reset 0, asserted if channel.d is latched
   output ready;     // BD sends data if ready is asserted (sync)
   input valid;      // If asserted, data is valid (sync)
-  input data;       // Registered data from BD (sync)
-  input reset;      // Global reset (async)
-  input clk;        // Global clock
-  */
+  input data;       // Registered data from BD (sync) input reset;      // Global reset (async) input clk;        // Global clock */
 
 
 
@@ -140,7 +143,7 @@ module BD_TO_FPGA #(parameter NUM_BITS = `NUM_BITS_CORE2PIN)
       state <= READY_HIGH; 
       data_int <= '0;
       clk_slow_toggle <= 0;
-      delay_reg <= '1;
+      delay_reg <= `DELAY_VAL;
     end
     else begin
       state <= next_state;

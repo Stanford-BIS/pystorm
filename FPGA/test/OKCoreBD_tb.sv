@@ -199,7 +199,7 @@ initial begin
 
   forever begin
     #(1000)
-    ReadFromPipeOut(8'ha0, pipeOutSize);
+    ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
   end
 
 end
