@@ -165,7 +165,11 @@ class Driver {
   std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
     std::vector<unsigned int> to_return;
     for (auto& it : aer_addrs) {
-      to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+      if (it < 4096) {
+        to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+      } else {
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << it << endl;
+      }
     }
     return to_return;
   }

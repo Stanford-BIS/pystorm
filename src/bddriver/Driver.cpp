@@ -263,7 +263,12 @@ void Driver::ResetFPGATime() {
 BDTime Driver::GetFPGATime() {
   // the Decoder already decoded the times, ignore the payload and just use the last timestamp
   std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB, 1000).second;
-  return times.back();
+  if (times.size() > 0) {
+    return times.back();
+  } else {
+    cout << "WARNING: GetFPGATime: haven't received any upstream HBs! Returning 0" << endl;
+    return 0;
+  }
 }
 
 BDTime Driver::GetDriverTime() const {
@@ -1074,7 +1079,7 @@ void Driver::SetSpikeGeneratorRates(
 
   std::vector<BDWord> SG_prog_words;
 
-  unsigned int units_per_sec = 1e6 / ns_per_unit_;
+  unsigned int units_per_sec = 1e9 / ns_per_unit_;
 
   // program periods/tag output idxs
   for (unsigned int i = 0; i < tags.size(); i++) {
@@ -1097,7 +1102,10 @@ void Driver::SetSpikeGeneratorRates(
 
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << " with period " << period << " time units. There are " << ns_per_unit_ << " us per time unit" << endl;
+    cout << "programming SG " << gen_idx << " to target tag " << tag << endl;
+    cout << "  period : " << period << " time units" << endl;
+    cout << "  sign : " << sign << endl;
+    cout << "  starting at : " << time << " ns. There are " << ns_per_unit_ << " us per time unit" << endl;
 
     SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}, {FPGASGWORD::SIGN, sign}}));
   }
@@ -1130,7 +1138,7 @@ void Driver::SetSpikeGeneratorRates(
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      cout << "enable" << en_word << endl;
+      //cout << "enable" << en_word << endl;
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
@@ -1189,7 +1197,7 @@ void Driver::SendToEP(unsigned int core_id,
   unsigned int i = 0;
   for (auto& it : payload) {
 
-    // convert from us -> time units
+    // convert from ns -> time units
     BDTime time = !timed ? 0 : NsToUnits(times.at(i)); // time 0 is never held up by the FPGA
 
     BDWord payloads[MaxD];
