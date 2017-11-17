@@ -47,12 +47,21 @@ begin
 	#200
 	empty=0;
 	
+	#500
+	ready_0=0;
+	
+	#300
+	ready_0=1;
+	
 	#200
 	data_in[10]=1;
 	
 	
 	#100
 	data_in[10]=0;
+	
+	
+	#500
 	ready_0=0;
 	
 	#100
@@ -78,7 +87,7 @@ always
 	#50 clk = !clk;
 	
 always @ (posedge clk)
-	if (read)
+	if (read && ~empty)
 		data_in[9:0]=data_in[9:0]+1;
 
 endmodule

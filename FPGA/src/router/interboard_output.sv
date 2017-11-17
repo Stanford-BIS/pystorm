@@ -3,33 +3,45 @@
 module interboard_output(
 	input [10:0] fifo_data, //data we're reading from the fifo (q port)
 	input read_input, //read signal from the board we're transmitting to
-	input rdempty, //if read is empty
-	input input_clk, //clock from the board we're transmitting to
+	input empty, //if read is empty
+	input input_clk, //faster clock from this board
 	input reset,
 	output reg valid, //valid signal, sent to the board we're transmitting to
 	output reg [10:0] send_data, //data sent to next board
-	output reg rdreq, //read request for dual clock fifo
-	output wire rdclk //clock for fifo
+	output reg rdreq //read request for dual clock fifo
 	);
 
-//send clock signal to fifo
-assign rdclk = input_clk;
+reg valid_ff=0;
 
-//send words to output
-assign send_data = fifo_data;
+always @(posedge input_clk)
+begin: valid_flipflop
+	if(~empty)
+		valid <= valid_ff;
+	else
+		valid <= 0;
+end
+
+
 
 //signals latched on rdclk
-always @(posedge rdclk) begin
+always @(posedge input_clk) begin
 	if (reset == 1) begin
 		rdreq <= 1'b0;
-		valid <= 1'b0;
+		valid_ff <= 1'b0;
+		send_data <=0;
 	end
 	else begin
-		//if asking to read, read (no issue with reading from empty fifo)
-		rdreq <= read_input;
-
-		//valid signal is high if read input is high and fifo is not empty
-		valid <= (~rdempty) & read_input;
+		send_data <= fifo_data;
+		if(~empty & read_input)begin
+			//
+			rdreq <= 1;
+			//valid signal is high if read input is high
+			valid_ff <= 1;
+		end
+		else begin
+			rdreq <= 0;
+			valid_ff <= 0;
+		end
 	end
 end
 
