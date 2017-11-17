@@ -38,12 +38,21 @@ int CommOK::Init(const std::string bitfile, const std::string serial) {
 
 void CommOK::CommController() {
   while (CommStreamState::STARTED == GetStreamState()) {
-    ReadFromDevice();
+    int last_read_status = ReadFromDevice();
     int last_write_status = WriteToDevice();
+
     if (last_write_status < 0) {
-      cout << "CommOK: write failed, with code " << last_write_status << ". Stopping thread" << endl;
+      cout << "ERROR: CommOK: write failed, with code " << last_write_status << ". Stopping thread" << endl;
       StopStreaming();
     }
+
+    if (last_read_status < 0) {
+      cout << "ERROR: CommOK: read failed. Got code " << last_read_status << ". Stopping." << endl;
+      StopStreaming();
+    } else if (last_read_status != READ_SIZE) {
+      cout << "WARNING: CommOK: didn't read " << READ_SIZE << " bytes. Instead got " << last_read_status << endl;
+    }
+
     //std::this_thread::sleep_for(1us);
   }
 }
@@ -124,16 +133,17 @@ int CommOK::WriteToDevice() {
 
 int CommOK::ReadFromDevice() {
     std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(READ_SIZE, 0));
-    COMMWord * raw_data = &(*read_buffer)[0];
-    int num_bytes = dev.ReadFromPipeOut(PIPE_OUT_ADDR, READ_SIZE, raw_data);
+    COMMWord * raw_data = read_buffer->data();
+    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_BLOCK_SIZE, READ_SIZE, raw_data);
 
     //cout << "Comm reading words:" << endl;
-    //for (unsigned int i = 0; i < READ_SIZE; i++) {
+    cout << "comm read: " << num_bytes << endl;
+    //for (unsigned int i = 0; i < 16; i++) {
     //  PrintBinaryAsStr(raw_data[i], 8);
     //}
 
     //assert(num_bytes == READ_SIZE);
-    //cout << "comm read: " << num_bytes << endl;
+
     if (num_bytes > 0) {
       m_read_buffer->Push(std::move(read_buffer));
     }
@@ -172,7 +182,7 @@ bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial)
     }
 
     // If the BTPipeIn (downstream) isn't ready, we want to return ASAP
-    dev.SetTimeout(1);
+    //dev.SetTimeout(1);
     dev.SetBTPipePollingInterval(1);
 
     return(true);

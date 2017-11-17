@@ -103,7 +103,7 @@ std::unique_ptr<std::vector<EncOutput>> Encoder::Encode(const std::unique_ptr<st
       unsigned int bit = payload % 2;
       if (bit == 0) n0++;
       if (bit == 1) n1++;
-      cout << "p[0] = " << bit << ", n0 = " << n0 << ", n1 = " << n1 << ", p = " << payload << endl;
+      //cout << "p[0] = " << bit << ", n0 = " << n0 << ", n1 = " << n1 << ", p = " << payload << endl;
     }
 
     // serialize to bytes 
