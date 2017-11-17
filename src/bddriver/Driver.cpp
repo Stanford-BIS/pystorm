@@ -418,6 +418,9 @@ void Driver::Stop() {
 }
 
 void Driver::Flush() {
+
+  // pushes a special ep_code
+
   // XXX note that the order that the user makes timed vs sequenced downstream calls is lost!
   //
   // If I call:
@@ -445,7 +448,6 @@ void Driver::Flush() {
   from_queue->swap(timed_queue_);
   enc_buf_in_->Push(std::move(from_queue));
 
-
   // then send the sequenced traffic
   while (!sequenced_queue_.empty()) {
     num_words += sequenced_queue_.front()->size();
@@ -453,22 +455,14 @@ void Driver::Flush() {
     sequenced_queue_.pop();
   }
 
-  unsigned int words_per_frame = bd_pars_->DnWordsPerFrame;
-  // XXX the Encoder inserts heartbeats, which can mess up this count
-  //unsigned int nops_to_send = num_words % words_per_frame == 0 ? 0 : words_per_frame - num_words % words_per_frame;
-  // instead, just send a frame's worth of NOPs
-  unsigned int nops_to_send = words_per_frame;
-  if (nops_to_send > 0) {
+  EncInput flush;
+  flush.FPGA_ep_code = EncInput::kFlushCode;
+  flush.core_id = 0; // don't care about the other fields
+  flush.payload = 0;
+  flush.time = 0;
 
-    EncInput nop;
-    nop.core_id = 0;
-    nop.FPGA_ep_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
-    nop.payload = 0;
-    nop.time = 0;
-
-    auto nop_vect = std::make_unique<std::vector<EncInput>>(nops_to_send, nop);
-    enc_buf_in_->Push(std::move(nop_vect));
-  }
+  auto flush_vect = std::make_unique<std::vector<EncInput>>(1, flush);
+  enc_buf_in_->Push(std::move(flush_vect));
 
 }
 

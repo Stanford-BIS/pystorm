@@ -91,44 +91,24 @@ void PrintBinaryAsStr(uint32_t b, unsigned int N) {
 
 int CommOK::WriteToDevice() {
 
-    // Pop one vector of COMMWords from the MutexBuffer
-    // potentially blocks for 1 us
-    std::vector<std::unique_ptr<std::vector<COMMWord>>> popped_vect = m_write_buffer->PopAll(1);
+  // potentially blocks for 1 us
+  std::unique_ptr<std::vector<COMMWord>> blocks = m_write_buffer->Pop(1);
 
-    // use the deserializer to build up blocks of WRITE_SIZE elements
-    int size = 0;
-    for (unsigned int i = 0; i < popped_vect.size(); i++) {
-      size += popped_vect.at(i)->size();
-      deserializer_->NewInput(std::move(popped_vect.at(i)));
-    }
+  // each block should be WRITE_BLOCK_SIZE * N elements long
+  // nothing gets through the driver and encoder without a flush, 
+  // encoder flush pads to the correct length
 
-    if (deserialized_.size() == 0) {
-      deserializer_->GetOneOutput(&deserialized_);
-    }
+  assert(blocks->size() % WRITE_BLOCK_SIZE == 0);
 
-    //cout << "Comm writing words:" << endl;
-    //for (unsigned int i = 0; i < WRITE_SIZE; i++) {
-    //  PrintBinaryAsStr(deserialized[i], 8);
-    //}
+  //cout << "comm about to write" << endl;
+  int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_BLOCK_SIZE, blocks->size(), blocks->data());
+  //cout << "comm wrote " << last_status << " words" << endl;
 
-    if (deserialized_.size() > 0) {
-      assert(deserialized_.size() == WRITE_SIZE);
+  if (last_status > 0 && static_cast<unsigned int>(last_status) != blocks->size()) {
+    cout << "WARNING: CommOK::WriteToDevice: tried writing " << blocks->size() << " but only wrote " << last_status << ". Lost data!" << endl;
+  }
 
-      //cout << "comm about to write" << endl;
-      int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_BLOCK_SIZE, WRITE_SIZE, &deserialized_[0]);
-      //cout << "comm wrote " << last_status << " words" << endl;
-
-      if (last_status == WRITE_SIZE) {
-        deserialized_.clear();
-      } else {
-        printf("*WARNING*: Read from MB: %d, Written to OK: %d", WRITE_SIZE, last_status);
-      }
-
-      return last_status;
-    } else {
-      return 0;
-    }
-
+  return last_status;
 }
 
 int CommOK::ReadFromDevice() {

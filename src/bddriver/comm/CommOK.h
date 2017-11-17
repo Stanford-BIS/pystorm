@@ -14,9 +14,8 @@ namespace comm {
 static const int PIPE_IN_ADDR = 0x80;  /// Endpoint to send to FPGA
 static const int PIPE_OUT_ADDR = 0xa0; /// Endpoint to read from FPGA
 
-static const unsigned int WRITE_BLOCK_SIZE       = 1024;
-static const unsigned int WRITE_SIZE             = 1024;
-static const unsigned int READ_BLOCK_SIZE        = 1024;
+static const unsigned int WRITE_BLOCK_SIZE       = 512; // there's no WRITE_SIZE, it's as big as it needs to be
+static const unsigned int READ_BLOCK_SIZE        = 512;
 static const unsigned int READ_SIZE              = READ_BLOCK_SIZE * 1024; // 1 MB gives good performance
 static const unsigned int DEFAULT_BUFFER_TIMEOUT = 1;
 
@@ -24,7 +23,7 @@ class CommOK : public Comm {
 public:
     /// Constructor
     CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
-        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED), deserializer_(new VectorDeserializer<COMMWord>(WRITE_SIZE)) {};
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) {};
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
@@ -34,7 +33,7 @@ public:
     /// Default move assignment
     CommOK& operator=(CommOK&&) = delete;
     /// Default destructor
-    ~CommOK() { delete deserializer_; }
+    ~CommOK() {}
 
     /// Initialization
     int Init(const std::string bitfile, const std::string serial);
@@ -54,8 +53,6 @@ protected:
   MutexBuffer<COMMWord>* m_write_buffer;
   std::atomic<CommStreamState> m_state;
   std::thread m_control_thread;
-  VectorDeserializer<COMMWord> * deserializer_; 
-  std::vector<COMMWord> deserialized_; // continuosly write into here
 
   void CommController();
 

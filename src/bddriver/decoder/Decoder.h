@@ -33,10 +33,9 @@ class Decoder : public Xcoder {
     out_bufs_(out_bufs),
     bd_pars_(bd_pars),
     last_HB_recvd_(0),
-    next_HB_significance_(NextHBSignificance::LSB),
-    deserializer_(new VectorDeserializer<DecInput>(bytesPerInput)) {};
+    next_HB_significance_(NextHBSignificance::LSB) {};
 
-  ~Decoder() { delete deserializer_; };
+  ~Decoder() {};
 
  private:
 
@@ -56,10 +55,7 @@ class Decoder : public Xcoder {
 
   NextHBSignificance next_HB_significance_; // whether the next upstream HB has LSBs or MSBs
 
-  VectorDeserializer<DecInput> * deserializer_;
-
   void RunOnce();
-  std::vector<uint32_t> PackBytes(std::unique_ptr<std::vector<DecInput>> input);
   std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decode(std::unique_ptr<std::vector<DecInput>> input);
 
 };

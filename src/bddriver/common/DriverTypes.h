@@ -16,17 +16,21 @@ typedef uint64_t BDTime;
 
 // decoder
 struct DecOutput {
-     uint32_t     payload;
-     BDTime       time;
+  uint32_t     payload;
+  BDTime       time;
 };
 typedef uint8_t DecInput;
 
 // encoder
 struct EncInput {
-     unsigned int core_id;
-     uint8_t      FPGA_ep_code;
-     uint32_t     payload;
-     BDTime       time;
+
+  // if the encoder gets this, it finishes the block it's on
+  const static unsigned int kFlushCode = UINT8_MAX;
+
+  unsigned int core_id;
+  uint8_t      FPGA_ep_code;
+  uint32_t     payload;
+  BDTime       time;
 };
 typedef uint8_t EncOutput;
 
