@@ -68,8 +68,8 @@ Channel #(NBDout) BD_upstream();
 logic [3:0] led_in;
 assign led_in[0] = PC_downstream.v;
 assign led_in[1] = BD_out_valid;
-assign led_in[3] = BD_in_valid;
-assign led_in[2] = PC_upstream.v;
+assign led_in[2] = BD_in_valid;
+assign led_in[3] = PC_upstream.v;
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
