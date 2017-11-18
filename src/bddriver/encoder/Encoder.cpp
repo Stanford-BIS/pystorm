@@ -95,6 +95,9 @@ inline void Encoder::FlushWords() {
 
 void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
+  // if multiple flushes are in the same set of inputs, just flush once
+  bool flush_pending = false;
+
   for (auto& it : *inputs) {
     // unpack data
     unsigned int core_id      = it.core_id;
@@ -103,8 +106,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
     BDTime       time         = it.time;
 
     if (FPGA_ep_code == EncInput::kFlushCode) {
-      // pad frame to block size multiple and send to comm
-      PadNopsAndFlush();
+      flush_pending = true;
 
     } else {
       (void)core_id; // XXX this is where you would do something with core_id
@@ -144,8 +146,12 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
       //if (FPGA_ep_code != bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP))
       //  PrintBinaryAsStr(FPGA_encoded, 32);
-
     }
+  }
+
+  if (flush_pending) {
+    // pad frame to block size multiple and send to comm
+    PadNopsAndFlush();
   }
 }
 
