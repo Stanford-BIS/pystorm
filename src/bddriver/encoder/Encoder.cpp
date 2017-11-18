@@ -17,7 +17,7 @@ namespace pystorm {
 namespace bddriver {
 
 static const unsigned int WORDS_PER_BLOCK = 512; // XXX should get from comm
-static const unsigned int MAX_BLOCKS = 16; // break up blocks at this boundary
+static const unsigned int MAX_BLOCKS = 64; // break up blocks at this boundary
 
 void PrintBinaryAsStr(uint32_t b, unsigned int N) {
   std::vector<bool> bits;
