@@ -41,7 +41,7 @@ void CommOK::CommController() {
     int last_read_status = ReadFromDevice();
 
     // determine if downstream queue is almost full, if it isn't write
-    if (FIFO_DEPTH - DS_queue_count_ * 4 > MAX_WRITE_BLOCKS * WRITE_BLOCK_SIZE){
+    if ((FIFO_DEPTH - DS_queue_count_) * 4 > MAX_WRITE_BLOCKS * WRITE_BLOCK_SIZE){
       int last_write_status = WriteToDevice();
 
       if (last_write_status < 0) {
@@ -105,10 +105,12 @@ int CommOK::WriteToDevice() {
 
     assert(blocks->size() % WRITE_BLOCK_SIZE == 0);
 
-    auto start = std::chrono::high_resolution_clock::now();
+    //auto start = std::chrono::high_resolution_clock::now();
+    
     int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_BLOCK_SIZE, blocks->size(), blocks->data());
-    auto end = std::chrono::high_resolution_clock::now();
-    cout << "CommOK::WriteToDevice : write took " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " us" << endl;
+
+    //auto end = std::chrono::high_resolution_clock::now();
+    //cout << "CommOK::WriteToDevice : write took " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " us" << endl;
 
     if (last_status < 0) {
       cout << "WARNING: CommOK::WriteToDevice: tried writing " << blocks->size() << " got error code " << last_status << endl;
