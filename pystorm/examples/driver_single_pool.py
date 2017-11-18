@@ -9,24 +9,25 @@ from pystorm.PyDriver import bddriver as bd
 import driver_util
 import time
 
-pool_width = 16
+pool_width = 8
 pool_height = pool_width
 num_neurons = pool_height * pool_width
 
-fmax = 20000
-num_training_points = 20
-training_hold_time = .2 # seconds
+fmax = 1000
+num_training_points = 4
+training_hold_time = 1 # seconds
 
 input_tag = 0
 
 # tap points are + on the left half, - on the right half
-tap_point_syn_stride = 2
+tap_point_syn_stride = 1
 tap_points = {}
 for xsyn in range(0, pool_width//2, tap_point_syn_stride):
     for ysyn in range(0, pool_width//2, tap_point_syn_stride):
         if xsyn < pool_width//4:
-            tap_points[ysyn, xsyn] = 0 # 0 sign means pos
+            tap_points[ysyn, xsyn] = 1 # 0 sign means pos
         else:
+            #tap_points[ysyn, xsyn] = 1 # 1 sign means neg
             tap_points[ysyn, xsyn] = 1 # 1 sign means neg
 
 downstream_time_res = 10 * 1000 # ns
@@ -56,12 +57,13 @@ print("* Configuring neuron array")
 # first, disable everything
 for i in range(4096):
     D.DisableSoma(CORE, i)
-#    D.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE);
-#    D.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE);
-#    D.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.ZERO);
+    D.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE);
+    D.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.NEGATIVE);
+    D.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.ONE);
 
 for i in range(1024):
-    D.DisableSynapse(CORE, i);
+    #D.DisableSynapse(CORE, i);
+    D.EnableSynapse(CORE, i);
     D.DisableSynapseADC(CORE, i);
 
 #for i in range(256):
@@ -92,55 +94,69 @@ for xsyn in range(pool_width//2):
 
 for xtile in range(pool_width//4):
     for ytile in range(pool_width//4):
-        mem_aer_idx = D.GetSynAERAddr(xtile, ytile)
-        #D.CloseDiffusorAllCuts(CORE, mem_aer_idx);
-        D.OpenDiffusorAllCuts(CORE, mem_aer_idx);
+        mem_aer_idx = D.GetMemAERAddr(xtile, ytile)
+        D.CloseDiffusorAllCuts(CORE, mem_aer_idx);
+        #D.OpenDiffusorAllCuts(CORE, mem_aer_idx);
 D.Flush() 
 
 # set up the TAT
 print("* Programming TAT for tap points")
-tat_entries = []
-for tap_idx, tap in enumerate(tap_points):
+#tat_entries = []
+#for tap_idx, tap in enumerate(tap_points):
+#
+#    # two tap points per entry
+#    if tap_idx % 2 == 1:
+#
+#        if tap_idx == len(tap_points) - 1:
+#            stop = 1
+#        else:
+#            stop = 0
+#
+#        y0, x0 = last_tap
+#        sign0  = last_sign
+#        sign1  = tap_points[tap]
+#        y1, x1 = tap
+#
+#        addr0 = D.GetSynAERAddr(x0, y0)
+#        addr1 = D.GetSynAERAddr(x1, y1)
+#
+#        print("tat entry: stop", stop, "addr0", addr0, "addr1", addr1, "sign0", sign0, "sign1", sign1)
+#        tat_entry = bd.PackWord([
+#            (bd.TATSpikeWord.STOP              , stop)  ,
+#            (bd.TATSpikeWord.SYNAPSE_ADDRESS_0 , addr0) ,
+#            (bd.TATSpikeWord.SYNAPSE_SIGN_0    , sign0) ,
+#            (bd.TATSpikeWord.SYNAPSE_ADDRESS_1 , addr1) ,
+#            (bd.TATSpikeWord.SYNAPSE_SIGN_1    , sign1) ])
+#
+#        tat_entries.append(tat_entry)
+#
+#    last_tap = tap
+#    last_sign = tap_points[tap]
 
-    last_tap = tap
-    last_sign = tap_points[tap]
-
-    # two tap points per entry
-    if tap_idx % 2 == 0:
-
-        if tap_idx == len(tap_points) - 1:
-            stop = 1
-        else:
-            stop = 0
-
-        y0, x0 = last_tap
-        sign0  = last_sign
-        sign1  = tap_points[tap]
-        y1, x1 = tap
-
-        addr0 = D.GetSynAERAddr(x0, y0)
-        addr1 = D.GetSynAERAddr(x1, y1)
-
-        tat_entry = bd.PackWord([
-            (bd.TATSpikeWord.STOP              , stop)  ,
-            (bd.TATSpikeWord.SYNAPSE_ADDRESS_0 , addr0) ,
-            (bd.TATSpikeWord.SYNAPSE_SIGN_0    , sign0) ,
-            (bd.TATSpikeWord.SYNAPSE_ADDRESS_1 , addr1) ,
-            (bd.TATSpikeWord.SYNAPSE_SIGN_1    , sign1) ])
-
-        tat_entries.append(tat_entry)
+tat_entries = [bd.PackWord([
+            (bd.TATSpikeWord.STOP              , 0)  ,
+            (bd.TATSpikeWord.SYNAPSE_ADDRESS_0 , 0) ,
+            (bd.TATSpikeWord.SYNAPSE_SIGN_0    , 0) ,
+            (bd.TATSpikeWord.SYNAPSE_ADDRESS_1 , 1) ,
+            (bd.TATSpikeWord.SYNAPSE_SIGN_1    , 0) ]),
+            bd.PackWord([
+            (bd.TATSpikeWord.STOP              , 1)  ,
+            (bd.TATSpikeWord.SYNAPSE_ADDRESS_0 , 2) ,
+            (bd.TATSpikeWord.SYNAPSE_SIGN_0    , 0) ,
+            (bd.TATSpikeWord.SYNAPSE_ADDRESS_1 , 3) ,
+            (bd.TATSpikeWord.SYNAPSE_SIGN_1    , 0) ])]
 
 D.SetMem(CORE, bd.bdpars.BDMemId.TAT0, tat_entries, input_tag)
 
 # we won't flush the neuron config stuff until here. Wait a while (it's really slow, the CommOK code needs serious work)
 time.sleep(1)
 
-#print("* Reading TAT")
-#dumped_tat = D.DumpMem(CORE, bd.bdpars.BDMemId.TAT0)
-#
-#if driver_util.compare_TAT_words(tat_entries, dumped_tat) == -1:
-#    D.Stop()
-#    sys.exit(-1)
+print("* Reading TAT")
+dumped_tat = D.DumpMem(CORE, bd.bdpars.BDMemId.TAT0)
+
+if driver_util.compare_TAT_words(tat_entries, dumped_tat) == -1:
+    D.Stop()
+    sys.exit(-1)
 
 
 # for some reason, you have to do this a couple times (maybe there's input slack?)
@@ -149,7 +165,7 @@ D.SetSpikeDumpState(CORE, True, True)
 D.SetSpikeDumpState(CORE, True, True)
 D.SetSpikeDumpState(CORE, True, True)
 
-start_time = ns_to_s(D.GetFPGATime()) + 1 # s
+start_time = ns_to_s(D.GetFPGATime()) + .5 # s
 end_time = start_time + num_training_points * training_hold_time # s
 times = np.linspace(start_time, end_time, num_training_points)
 
@@ -170,14 +186,29 @@ for r, t in zip(rates, times):
     #    count = 1
     #else:
     #    count = 511
-    count = 1
+    count = 511
     tags = [bd.PackWord([(bd.InputTag.TAG, 0), (bd.InputTag.COUNT, count)])] * num_spikes_in_bin
     D.SendTags(CORE, tags, tag_times)
-    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, D.GetSynAERAddr(0,0)), (bd.InputSpike.SYNAPSE_SIGN, 0)])] * num_spikes_in_bin
-    #D.SendSpikes(CORE, spikes, tag_times)
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, 0), (bd.InputSpike.SYNAPSE_SIGN, 1)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times, False)
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, 1), (bd.InputSpike.SYNAPSE_SIGN, 1)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times, False)
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, 2), (bd.InputSpike.SYNAPSE_SIGN, 1)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times, False)
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, 3), (bd.InputSpike.SYNAPSE_SIGN, 1)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times, True)
+
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, D.GetSynAERAddr(0,0)), (bd.InputSpike.SYNAPSE_SIGN, 1)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times, False)
+
     print("this many tags", len(tags))
 
-time.sleep(end_time - start_time + .5)
+print("this should be 2:", D.GetSynAERAddr(1,1))
+for x in range(4):
+    for y in range(4):
+        print(x, ",", y, ":", D.GetSynAERAddr(x,y))
+
+time.sleep(end_time - start_time + 2)
 
 print(D.GetOutputQueueCounts())
 spikes, spike_times = D.RecvSpikes(CORE)
@@ -204,7 +235,7 @@ print(times)
 events_per_bin = [0 for c in counts]
 
 for y, x, t in zip(ys, xs, ns_to_s(np.array(spike_times))):
-    if t > start_time:
+    if t > start_time and t < end_time + training_hold_time:
         if bin_idx+1 < len(times) and t > times[bin_idx + 1]:
             bin_idx += 1
             print("bin boundary at", t)
@@ -231,7 +262,8 @@ for train_idx, c in enumerate(counts):
     A[:, train_idx] = c.flatten()
 
 plt.figure()
-plt.plot(A[0,:])
+#plt.plot(A[17,:])
+plt.plot(A.T)
 plt.savefig("tuning_curves.pdf")
 print(A.shape)
 

@@ -102,7 +102,7 @@ DEFHCWORD(TATAccWord,
 
 DEFHCWORD(TATSpikeWord,
     FIELDS(STOP , FIXED_1 , SYNAPSE_ADDRESS_0 , SYNAPSE_SIGN_0 , SYNAPSE_ADDRESS_1 , SYNAPSE_SIGN_1 , UNUSED ) ,
-    WIDTHS(1    , 2       , 11                , 1              , 11                , 1              , 2      ) ,
+    WIDTHS(1    , 2       , 10                , 1              , 10                , 1              , 2      ) ,
     HCVALS(0    , 1       , 0                 , 0              , 0                 , 0              , 0      )   )
 
 DEFHCWORD(TATTagWord,
