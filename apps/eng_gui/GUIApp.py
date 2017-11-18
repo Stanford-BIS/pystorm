@@ -1,10 +1,13 @@
 import sys
 import os
 import threading
+from multiprocessing import Process, Queue, Array
 import queue
 from io import StringIO
 import traceback
-from math import ceil
+from math import ceil, floor
+import ctypes
+import time
 
 #os.environ['KIVY_DPI'] = '227'
 #os.environ['KIVY_METRICS_DENSITY'] = '1'
@@ -29,8 +32,22 @@ from pystorm.PyDriver import bddriver as bd
 
 Window.size = (800, 640)
 
+__g_refresh_period__ = 1./60.
+
 # message queue for REPL
 EQ = queue.Queue(1)
+
+# message queue for IPC commands
+CMDQ = Queue(1)
+
+# message queue for IPC results
+RESQ = Queue(1)
+
+# message queue for IPC errors
+ERRQ = Queue(1)
+
+# message queue for IPC control
+CTRLQ = Queue(1)
 
 # namespace for the console interpreter
 NS = {}
@@ -38,12 +55,116 @@ NS = {}
 # BD driver
 BDDriver = bd.Driver()
 
+# Shared Sparkle plot data
+__shared_arr__ = Array(ctypes.c_float, 4096)
 
 def load(file_name):
     with open(file_name) as f:
         code = compile(f.read(), file_name, 'exec')
         exec(code, globals())
 
+
+def __driver_process__(cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
+    _do_run = True
+    REFRESH_PERIOD = __g_refresh_period__
+    #POLL_PERIOD = 0.001
+    POLL_PERIOD = 1./60.
+
+    DECAY_PERIOD = 0.1
+    DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / POLL_PERIOD
+    DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
+
+    ZERO_MAT = np.zeros(4096, dtype=np.float32)
+    #ARR_DATA = np.zeros(4096, dtype=np.float32)
+    ARR_DATA = np.frombuffer(__shared_arr__.get_obj(), dtype=np.float32)
+    MAX_MAT = np.full(4096, 1.0, dtype=np.float32)
+    ZERO_MASK = np.full(4096, False, dtype=bool)
+    DECAY_MASK = np.full(4096, False, dtype=bool)
+
+
+    def __cmd_loop__():
+        nonlocal _do_run
+        nonlocal DECAY_PERIOD, DECAY_AMOUNT, DECAY_MAT
+        _cntrl = ""
+        while _do_run:
+            # Buffer to capture output and errors
+            #_redirected_output = sys.stdout = StringIO()
+            #_redirected_error = sys.stderr = StringIO()
+
+            _redirected_output = StringIO()
+            _redirected_error = StringIO()
+
+            # Check the control queue
+            try:
+                _cntrl = cntrl_q.get(False, 0)
+            except queue.Empty:
+                _cntrl = (None, )
+            # If control signal says exit, kill the loop
+            if _cntrl[0] == "__exit__":
+                _do_run = False
+                continue
+            elif _cntrl[0] == "__decay_T__":
+                DECAY_PERIOD = _cntrl[1]
+                DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / POLL_PERIOD
+                DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
+
+            # Check command queue
+            try:
+                _cmd = cmd_q.get(False, 1)
+            except queue.Empty:
+                continue
+
+            try:
+                eval(compile(_cmd, '<string>', 'single'), g_dict, l_dict)
+            except:
+                try:
+                    _exc_info = sys.exc_info()
+                finally:
+                    traceback.print_exception(*_exc_info, file=_redirected_error)
+                    del _exc_info
+
+            #res_q.put(_redirected_output.getvalue())
+            #err_q.put(_redirected_error.getvalue())
+
+            res_q.put("")
+            err_q.put("")
+
+    def __data_loop__():
+        _mask1 = np.full(4096, False, dtype=np.bool)
+        _cnt = 0
+        while _do_run:
+            #spike_data = BDDriver.RecvXYSpikesMasked(0)
+            #spike_idx = spike_data[0]
+            #spike_t = spike_data[1]
+
+            t_min = _cnt * POLL_PERIOD
+            t_max = t_min + POLL_PERIOD
+            spike_idx = np.zeros(4096, dtype=np.uint8)
+            spike_t = np.zeros(4096, dtype=np.float)
+            _rand = np.random.rand(4096)
+            _valid_idx = np.where(_rand > 0.9)[0]
+            spike_idx[_valid_idx] = 1
+            spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
+
+            _decay = MAX_MAT - DECAY_AMOUNT * (t_max - spike_t) / POLL_PERIOD
+
+            np.subtract(ARR_DATA, DECAY_MAT, ARR_DATA)
+            np.less(ARR_DATA, DECAY_MAT, ZERO_MASK)
+
+            np.copyto(ARR_DATA, ZERO_MAT, where=ZERO_MASK)
+            np.copyto(ARR_DATA, _decay, where=spike_idx.astype(bool))
+
+            time.sleep(POLL_PERIOD)
+            _cnt += 1
+
+    cmd_thread = threading.Thread(target=__cmd_loop__)
+    data_thread = threading.Thread(target=__data_loop__)
+
+    cmd_thread.start()
+    data_thread.start()
+
+    cmd_thread.join()
+    data_thread.join()
 
 def _truncate_pwd():
     """
@@ -63,46 +184,41 @@ def _truncate_pwd():
 
 class Shell(EventDispatcher):
     __events__ = ('on_output', 'on_complete')
+    __cmd_hist__ = []
+    __hist_item__ = 1
+
 
     def run_command(self, command, show_output=True, *args):
-        #import re
-        #_ext_match = re.match(r'load\([\'"]([\w/.]+)[\'"]\)', command)
-        #if _ext_match is not None:
-        #    load(_ext_match.groups(0)[0])
-        #    self.dispatch('on_complete', "")
-        #    return
+        CMDQ.put(command)
+        self.__cmd_hist__.append(command)
+        self.__hist_item__ = len(self.__cmd_hist__)
+        _res = RESQ.get(True)
+        _err = ERRQ.get(True)
 
-        _old_stdout = sys.stdout
-        _old_stderr = sys.stderr
-        _redirected_output = sys.stdout = StringIO()
-        _redirected_error = sys.stderr = StringIO()
         _success = True
-        try:
-            eval(compile(command, '<string>', 'single'), None, NS)
-        except:
-            try:
-                _exc_info = sys.exc_info()
-            finally:
-                _success = False
-                traceback.print_exception(*_exc_info, file=_redirected_error)
-                del _exc_info
-        sys.stdout = _old_stdout
-        sys.stderr = _old_stderr
+        if _err != '':
+            _success = False
 
         output = ""
-        for line in _redirected_output.getvalue().splitlines(True):
+        for line in _res.splitlines(True):
             output += line
             if show_output:
                 self.dispatch('on_output', line)
         if not _success:
-            for line in _redirected_error.getvalue().splitlines(True):
+            for line in _err.splitlines(True):
                 output += line
                 if show_output:
                     self.dispatch('on_output', line, False)
         self.dispatch('on_complete', output)
 
+
     def stop(self, *args):
         self._do_run = False
+        CMDQ.put("__exit__()")
+        CTRLQ.put(("__exit__", ), True)
+
+        self.driver_proc.join()
+        self.run_thread.join()
 
     def main_loop(self, *args, **kwargs):
         """
@@ -114,10 +230,16 @@ class Shell(EventDispatcher):
                 self.run_command(_item)
 
     def init(self, *args, **kwargs):
+        self.driver_proc = Process(target=__driver_process__, args=(CMDQ, RESQ, ERRQ, CTRLQ, globals(), NS))
+
         self._do_run = True
         self.run_thread = threading.Thread(target=self.main_loop, args=args, kwargs=kwargs)
+        self.driver_proc.start()
         self.run_thread.start()
 
+
+    def new_prompt(self, *args):
+        self.__hist_item__ = len(self.__cmd_hist__)
 
 class ConsoleInput(TextInput):
     """
@@ -148,6 +270,16 @@ class ConsoleInput(TextInput):
             self.cancel_selection()
         elif keycode[0] == 99 and modifiers == ['ctrl']:
             Clock.schedule_once(self.shell.new_prompt)
+        elif keycode[0] in [273, 38]:  # up arrow searches history, latest to oldest
+            if self.shell.__hist_item__ > 1:
+                self.shell.__hist_item__ -= 1
+            if len(self.shell.__cmd_hist__) > self.shell.__hist_item__:
+                self.text = self.shell.__cmd_hist__[self.shell.__hist_item__]
+        elif keycode[0] in [274, 40]:  # down arrow searches history, oldest to latest
+            if self.shell.__hist_item__ < (len(self.shell.__cmd_hist__) - 1):
+                self.shell.__hist_item__ += 1
+            if len(self.shell.__cmd_hist__) > self.shell.__hist_item__:
+                self.text = self.shell.__cmd_hist__[self.shell.__hist_item__]
 
         return super(ConsoleInput, self).keyboard_on_key_down(
             window, keycode, text, modifiers)
@@ -264,6 +396,8 @@ class KivyConsole(BoxLayout, Shell):
         self.scroll_view.scroll_y = 0
         self._output = None
 
+        super(KivyConsole, self).new_prompt()
+
     def _parse_output(self):
         import re
         _lines = self._output_text.splitlines(True)
@@ -310,50 +444,25 @@ class SliderRow(BoxLayout):
         inst_t.text = str(_val)
 
 class Sparkle(Widget):
-    DECAY_PERIOD   = 0.1  # seconds
-    REFRESH_PERIOD = 1./60.  # seconds
-    DECAY_AMOUNT   = int(255 / DECAY_PERIOD * REFRESH_PERIOD)
-    POLLING_PERIOD = 1e-3  # 100e-6
-    DECAY_MAT      = np.full(4096, DECAY_AMOUNT, dtype=np.uint8)
-    ZERO_MAT       = np.zeros(4096, dtype=np.uint8)
-    MAX_MAT        = np.full(4096, 255, dtype=np.uint8)
+    REFRESH_PERIOD = __g_refresh_period__
 
     # create numpy array to hold spike data
-    arr_data = np.zeros(4096, dtype=np.uint8)
-    _mask1 = np.full(4096, False, dtype=np.bool)
-    _mask2 = np.full(4096, False, dtype=np.bool)
-    _mask3 = np.full(4096, False, dtype=np.bool)
-
-    def __update_fade_vals__(self, decay_period):
-        self.DECAY_PERIOD = decay_period
-        self.DECAY_AMOUNT = int(255 / self.DECAY_PERIOD * self.REFRESH_PERIOD)
-        self.DECAY_MAT = np.full(4096, self.DECAY_AMOUNT, dtype=np.uint8)
+    arr_data = np.frombuffer(__shared_arr__.get_obj(), dtype=np.float32)
 
     def init(self):
         # create a 64x64 texture, defaults to rgb / ubyte
-        self.texture = Texture.create(size=(64, 64), colorfmt='luminance')
+        self.texture = Texture.create(size=(64, 64), colorfmt='luminance', bufferfmt='float')
         self.texture.mag_filter = 'nearest'
         self.sparkle = Rectangle()
 
-    def poll_data(self, *args):
-        #TODO: Read spikes using driver
-        np.greater(np.random.rand(4096), 0.9, self._mask1)
-        np.copyto(self.arr_data, self.MAX_MAT, where=self._mask1)
-
     def update(self, dt):
         # then blit the buffer
-        self.texture.blit_buffer(self.arr_data, colorfmt='luminance', bufferfmt='ubyte')
+        self.texture.blit_buffer(self.arr_data, colorfmt='luminance', bufferfmt='float')
         self.sparkle.pos = self.pos
         self.sparkle.size = self.size
         self.sparkle.texture = self.texture
         self.canvas.clear()
         self.canvas.add(self.sparkle)
-
-        np.less(self.arr_data, self.DECAY_MAT, self._mask2)
-        np.greater_equal(self.arr_data, self.DECAY_MAT, self._mask3)
-
-        np.copyto(self.arr_data, self.ZERO_MAT, where=self._mask2)
-        np.subtract(self.arr_data, self.DECAY_MAT, self.arr_data, where=self._mask3)
 
     def on_size(self, *args):
         self.canvas.clear()
@@ -364,7 +473,7 @@ class Sparkle(Widget):
 class Raster(Widget):
     NUM_X_PIXELS = 1000
     NUM_Y_PIXELS = 4096
-    REFRESH_PERIOD = 1./60.  # seconds
+    REFRESH_PERIOD = __g_refresh_period__ # seconds
     POLLING_PERIOD = 1e-3  # seconds
     ZERO_MAT       = np.zeros(4096, dtype=np.uint8)
     MAX_MAT        = np.full(4096, 255, dtype=np.uint8)
@@ -426,9 +535,6 @@ class RootLayout(BoxLayout):
         # Trigger animation
         self.sparkle_anim_event = Clock.schedule_interval(self.sparkle_widget.update, self.sparkle_widget.REFRESH_PERIOD)
 
-        # Trigger Polling
-        self.sparkle_poll_event = Clock.schedule_interval(self.sparkle_widget.poll_data, self.sparkle_widget.POLLING_PERIOD)
-
         # Trigger animation
         self.raster_anim_event = None
 
@@ -437,9 +543,6 @@ class RootLayout(BoxLayout):
 
     def select_plot(self, type_name):
         if type_name == 'sparkle':
-            if self.sparkle_poll_event is None:
-                self.sparkle_anim_event = Clock.schedule_interval(self.sparkle_widget.update, self.sparkle_widget.REFRESH_PERIOD)
-                self.sparkle_poll_event = Clock.schedule_interval(self.sparkle_widget.poll_data, self.sparkle_widget.POLLING_PERIOD)
             if self.raster_poll_event is not None:
                 self.raster_anim_event.cancel()
                 self.raster_poll_event.cancel()
@@ -449,18 +552,13 @@ class RootLayout(BoxLayout):
             if self.raster_poll_event is None:
                 self.raster_anim_event = Clock.schedule_interval(self.raster_widget.update, self.raster_widget.REFRESH_PERIOD)
                 self.raster_poll_event = Clock.schedule_interval(self.raster_widget.poll_data, self.raster_widget.POLLING_PERIOD)
-            if self.sparkle_poll_event is not None:
-                self.sparkle_anim_event.cancel()
-                self.sparkle_poll_event.cancel()
-                self.sparkle_anim_event = None
-                self.sparkle_poll_event = None
 
     def reset_sparkle(self):
         self.sparkle_scatter.scale = 1
         self.sparkle_scatter.pos = self.sparkle_stencil.pos
 
     def update_fader(self, *args):
-        self.sparkle_widget.__update_fade_vals__(args[0])
+        CTRLQ.put(("__decay_T__", args[0]))
 
     def update_rasterwin(self, *args):
         self.raster_widget.__update_win_period__(args[0])
@@ -537,7 +635,6 @@ class GUIApp(App):
         :return:
         """
         self.console.stop()
-        self.console.run_thread.join()
 
 if __name__ == '__main__':
     _gui = GUIApp()

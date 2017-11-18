@@ -430,12 +430,20 @@ class Driver {
       const std::vector<BDTime> times,
       bool flush=true);
 
-  /// Receive a stream of spikes
+  /// Receive a stream of spikes in AER address space
   std::pair<std::vector<BDWord>,
             std::vector<BDTime> > RecvSpikes(unsigned int core_id) {
     // Timeout of 1us
     return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
+
+  /// Receive spikes stream in X-Y flat space
+  std::pair<std::vector<unsigned int>,
+            std::vector<BDTime> > RecvXYSpikes(unsigned int core_id);
+
+  /// Receive spikes stream in X-Y flat space as masked boolean array
+  std::pair<std::vector<unsigned int>,
+            std::vector<BDTime> > RecvXYSpikesMasked(unsigned int core_id);
 
   /// Send a stream of tags
   void SendTags(

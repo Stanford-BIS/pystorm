@@ -1022,6 +1022,32 @@ void Driver::SendSpikes(unsigned int core_id, const std::vector<BDWord>& spikes,
   if (flush) Flush();
 }
 
+std::pair<std::vector<unsigned int>, std::vector<BDTime>> Driver::RecvXYSpikes(unsigned int core_id){
+    // Timeout of 1us
+    auto spikes = RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
+    auto aer_addresses = spikes.first;
+    std::vector<unsigned int> xy_addresses(aer_addresses.size());
+    for(unsigned int idx = 0; idx < aer_addresses.size(); ++idx){
+        xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+    }
+    return std::pair<std::vector<unsigned int>, std::vector<BDTime>>(xy_addresses, spikes.second);
+}
+
+std::pair<std::vector<unsigned int>, std::vector<BDTime>> Driver::RecvXYSpikesMasked(unsigned int core_id){
+    // Timeout of 1us
+    auto spikes = RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
+    auto aer_addresses = spikes.first;
+    auto aer_times = spikes.second;
+    std::vector<unsigned int> xy_addresses(4096, 0);
+    std::vector<BDTime> xy_times(4096, 0);
+    for(unsigned int idx = 0; idx < aer_addresses.size(); ++idx){
+        auto _xy = GetSomaXYAddr(aer_addresses[idx]);
+        xy_addresses[_xy] = 1;
+        xy_times[_xy] = aer_times[idx];
+    }
+    return std::pair<std::vector<unsigned int>, std::vector<BDTime>>(xy_addresses, xy_times);
+}
+
 void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, const std::vector<BDTime> times, bool flush) {
   assert(times.size() == 0 || tags.size() == times.size());
 
