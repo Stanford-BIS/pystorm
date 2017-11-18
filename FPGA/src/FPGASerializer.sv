@@ -22,8 +22,9 @@ module FPGASerializer #(
 
   input clk, reset);
 
-localparam logic [NPCcode-1:0] HB_code = 14;
-localparam logic [NPCcode-1:0] SF_code = 15;
+localparam logic [NPCcode-1:0] SF_code = 14;
+localparam logic [NPCcode-1:0] HB_lsb_code = 15;
+localparam logic [NPCcode-1:0] HB_msb_code = 16;
 
 // 1. pack/convert inputs into Channels
 // 2. serialize, 
@@ -35,9 +36,10 @@ localparam logic [NPCcode-1:0] SF_code = 15;
 // for now there are only 2 inputs, though
 
 Channel #(Ntime) HB_packed();
+Channel #(Ntime+2) HB_packed_with_lsb_msb();
 Channel #(N_SF_filts + N_SF_state) SF_packed();
 
-Channel #(NPCdata) HB_serialized();
+Channel #(NPCdata+1) HB_serialized(); // hiding lsb/msb in the extra bit
 Channel #(NPCdata) SF_serialized();
 
 Channel #(NPCcode + NPCdata) HB_coded();
@@ -49,11 +51,20 @@ Channel #(NPCcode + NPCdata) SF_coded();
 // pulse -> channel
 PulseToChannel #(Ntime) HB_pulse_to_channel(HB_packed, time_elapsed, send_HB_up_pulse, clk, reset);
 
+// pack in lsb/msb bit
+assign HB_packed_with_lsb_msb.v = HB_packed.v;
+assign HB_packed_with_lsb_msb.d = {1'b1, HB_packed.d[Ntime-1:Ntime/2], 1'b0, HB_packed.d[Ntime/2-1:0]};
+assign HB_packed.a = HB_packed_with_lsb_msb.a;
+
 // serialize
-Serializer #(.Nin(Ntime), .Nout(NPCdata)) HB_serializer(HB_serialized, HB_packed, clk, reset);
+Serializer #(.Nin(Ntime+2), .Nout(NPCdata+1)) HB_serializer(HB_serialized, HB_packed_with_lsb_msb, clk, reset);
 
 // append code
-assign HB_coded.d = {HB_code, HB_serialized.d}; // will 0-extend
+always_comb
+  if (HB_serialized.d[NPCdata] == 1) 
+    HB_coded.d = {HB_msb_code, HB_serialized.d[NPCdata-1:0]}; // time msb
+  else
+    HB_coded.d = {HB_lsb_code, HB_serialized.d[NPCdata-1:0]}; // time lsb
 assign HB_coded.v = HB_serialized.v;
 assign HB_serialized.a = HB_coded.a;
 

@@ -63,7 +63,7 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
 // [ code=15 |  time_bits[23:0] ]
 //
 //      8             24
-// [ code=15 |  time_bits[47:24] ]
+// [ code=16 |  time_bits[47:24] ]
 
 // pack bits, then merge
 Channel #(NPCcode + NPCdata) BD_packed();

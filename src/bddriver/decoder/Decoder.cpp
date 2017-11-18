@@ -86,29 +86,14 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
       // if it's a heartbeat, set last_HB_recvd
-      if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
-        // unpack current time MSB and LSB
-        uint64_t curr_HB_msb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::MSB);
-        uint64_t curr_HB_lsb = GetField(last_HB_recvd_, TWOFPGAPAYLOADS::LSB);
-
-        // update last_HB_recvd_ LSB
-        if (next_HB_significance_ == NextHBSignificance::LSB) {
-          last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
-              {{TWOFPGAPAYLOADS::MSB, curr_HB_msb}, 
-               {TWOFPGAPAYLOADS::LSB, payload}});
-          next_HB_significance_ = NextHBSignificance::MSB;
-
-        // update last_HB_recvd_ MSB
-        } else if (next_HB_significance_ == NextHBSignificance::MSB) {
-          last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
-              {{TWOFPGAPAYLOADS::MSB, payload},
-               {TWOFPGAPAYLOADS::LSB, curr_HB_lsb}});
-          next_HB_significance_ = NextHBSignificance::LSB;
-        } else {
-          assert(false && "something wrong with next_HB_significance_ enum");
-        }
+      // we send the HBs to the driver too, so it knows the time
+      if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_LSB)) {
+        last_HB_LSB_recvd_ = payload;
+      } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_MSB)) {
+        last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
+            {{TWOFPGAPAYLOADS::MSB, payload},
+             {TWOFPGAPAYLOADS::LSB, last_HB_LSB_recvd_}});
         //cout << "got HB: " << payload << " curr_HB_ = " << last_HB_recvd_ << endl;
-        // we send the HBs to the driver too, so it knows the time
       }
 
       // ignore queue counts (first word of each block)

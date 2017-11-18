@@ -122,7 +122,8 @@ void bind_unknown_unknown(std::function< py::module &(std::string const &namespa
 
 	// pystorm::bddriver::bdpars::FPGAOutputEP file: line:175
 	py::enum_<pystorm::bddriver::bdpars::FPGAOutputEP>(M("pystorm::bddriver::bdpars"), "FPGAOutputEP", "///////////////////////////////////////////")
-		.value("UPSTREAM_HB", pystorm::bddriver::bdpars::FPGAOutputEP::UPSTREAM_HB)
+		.value("UPSTREAM_HB_LSB", pystorm::bddriver::bdpars::FPGAOutputEP::UPSTREAM_HB_LSB)
+		.value("UPSTREAM_HB_MSB", pystorm::bddriver::bdpars::FPGAOutputEP::UPSTREAM_HB_MSB)
 		.value("SF_OUTPUT", pystorm::bddriver::bdpars::FPGAOutputEP::SF_OUTPUT)
 		.value("NOP", pystorm::bddriver::bdpars::FPGAOutputEP::NOP)
 		.value("COUNT", pystorm::bddriver::bdpars::FPGAOutputEP::COUNT);

@@ -262,7 +262,7 @@ void Driver::ResetFPGATime() {
 
 BDTime Driver::GetFPGATime() {
   // the Decoder already decoded the times, ignore the payload and just use the last timestamp
-  std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB, 1000).second;
+  std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
   if (times.size() > 0) {
     return times.back();
   } else {

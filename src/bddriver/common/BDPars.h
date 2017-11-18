@@ -176,11 +176,12 @@ enum class BDFunnelEP {
 
 // the enum value is the upstream code
 enum class FPGAOutputEP {
-  UPSTREAM_HB = 14,  // Upstream report of FPGA clock
-  SF_OUTPUT   = 15,  // SpikeFilter outputs
-  NOP         = 64,  // NOP, inserted to pad output pipe
-  DS_QUEUE_CT = 128, // first word of each block
-  COUNT       = 4    // XXX hardcoded, be careful
+  SF_OUTPUT       = 14,  // SpikeFilter outputs
+  UPSTREAM_HB_LSB = 15,  // Upstream report of FPGA clock
+  UPSTREAM_HB_MSB = 16,  // Upstream report of FPGA clock
+  NOP             = 64,  // NOP, inserted to pad output pipe
+  DS_QUEUE_CT     = 128, // first word of each block
+  COUNT           = 4    // XXX hardcoded, be careful
 };
 
 

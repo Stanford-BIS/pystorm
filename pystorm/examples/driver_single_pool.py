@@ -13,9 +13,9 @@ pool_width = 16
 pool_height = pool_width
 num_neurons = pool_height * pool_width
 
-fmax = 10000
+fmax = 20000
 num_training_points = 20
-training_hold_time = 1 # seconds
+training_hold_time = .2 # seconds
 
 input_tag = 0
 
@@ -75,7 +75,7 @@ for xsyn in range(pool_width//2):
         # un-kill the synapse, if it's a tap
         syn_aer_idx = D.GetSynAERAddr(xsyn, ysyn)
         if (ysyn, xsyn) in tap_points:
-            pass
+            print("enabling synapse", ysyn, xsyn)
             D.EnableSynapse(CORE, syn_aer_idx)
 
         for xnrn_off in range(2):
@@ -172,12 +172,12 @@ for r, t in zip(rates, times):
     #    count = 511
     count = 1
     tags = [bd.PackWord([(bd.InputTag.TAG, 0), (bd.InputTag.COUNT, count)])] * num_spikes_in_bin
-    #D.SendTags(CORE, tags, tag_times)
-    spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, D.GetSomaAERAddr(4,4)), (bd.InputSpike.SYNAPSE_SIGN, 0)])] * num_spikes_in_bin
-    D.SendSpikes(CORE, spikes, tag_times)
+    D.SendTags(CORE, tags, tag_times)
+    #spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, D.GetSynAERAddr(0,0)), (bd.InputSpike.SYNAPSE_SIGN, 0)])] * num_spikes_in_bin
+    #D.SendSpikes(CORE, spikes, tag_times)
     print("this many tags", len(tags))
 
-time.sleep(end_time - start_time + 2)
+time.sleep(end_time - start_time + .5)
 
 print(D.GetOutputQueueCounts())
 spikes, spike_times = D.RecvSpikes(CORE)
@@ -199,22 +199,21 @@ ys = yxs // 64
 xs = yxs % 64
 
 bin_idx = 0
-idx = 0
 in_bin = 0
+print(times)
 events_per_bin = [0 for c in counts]
-for y, x, t in zip(ys, xs, ns_to_s(np.array(spike_times))):
-    #if idx % print_every == 0:
-    #    print(y,x)
-    if bin_idx+1 < len(times) and t > times[bin_idx + 1]:
-        bin_idx += 1
-        print("bin boundary at", t)
-        print(" ", in_bin, " in bin")
-        in_bin = 0
-    counts[bin_idx][y, x] += 1
-    idx += 1
-    in_bin += 1
 
-n_to_plot = 10
+for y, x, t in zip(ys, xs, ns_to_s(np.array(spike_times))):
+    if t > start_time:
+        if bin_idx+1 < len(times) and t > times[bin_idx + 1]:
+            bin_idx += 1
+            print("bin boundary at", t)
+            print(" ", in_bin, " in bin")
+            in_bin = 0
+        counts[bin_idx][y, x] += 1
+        in_bin += 1
+
+n_to_plot = 4
 plt.figure(figsize=(4*n_to_plot, 4))
 for pidx in range(n_to_plot):
     plt.subplot(1, n_to_plot, pidx+1)

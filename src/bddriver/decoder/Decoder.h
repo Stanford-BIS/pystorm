@@ -32,20 +32,19 @@ class Decoder : public Xcoder {
     in_buf_(in_buf),
     out_bufs_(out_bufs),
     bd_pars_(bd_pars),
-    last_HB_recvd_(0),
-    next_HB_significance_(NextHBSignificance::LSB) {};
+    last_HB_LSB_recvd_(0),
+    last_HB_recvd_(0) {};
 
   ~Decoder() {};
 
  private:
-
-  enum class NextHBSignificance {LSB, MSB};
 
   const unsigned int timeout_us_;
   MutexBuffer<DecInput> * in_buf_;
   std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> out_bufs_;
   const bdpars::BDPars * bd_pars_;
 
+  uint32_t last_HB_LSB_recvd_;
   BDTime last_HB_recvd_;
 
   // because of the "push" output problem, we have to shift how we label times by
@@ -53,7 +52,6 @@ class Decoder : public Xcoder {
   BDTime word_i_min_2_time_ = 0;
   BDTime word_i_min_1_time_ = 0;
 
-  NextHBSignificance next_HB_significance_; // whether the next upstream HB has LSBs or MSBs
 
   void RunOnce();
   std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decode(std::unique_ptr<std::vector<DecInput>> input);
