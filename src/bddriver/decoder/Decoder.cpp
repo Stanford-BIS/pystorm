@@ -19,7 +19,7 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
-static const unsigned int READ_SIZE = 512 * 1024;
+static const unsigned int READ_SIZE = 512 * 256;
 
 void Decoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
@@ -111,8 +111,11 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         // we send the HBs to the driver too, so it knows the time
       }
 
-      // ignore nop
-      if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+      // ignore queue counts (first word of each block)
+      if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::DS_QUEUE_CT)) {
+        // pass
+      // break on nop
+      } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
         had_nop = true;
         break; // all further words in the block are guaranteed to be nops!
         

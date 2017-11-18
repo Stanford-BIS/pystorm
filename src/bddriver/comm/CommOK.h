@@ -14,16 +14,18 @@ namespace comm {
 static const int PIPE_IN_ADDR = 0x80;  /// Endpoint to send to FPGA
 static const int PIPE_OUT_ADDR = 0xa0; /// Endpoint to read from FPGA
 
+static const unsigned int FIFO_DEPTH             = 16 * 1024; // this is in 32b wors, in bytes = 64 * 1024
 static const unsigned int WRITE_BLOCK_SIZE       = 512; // there's no WRITE_SIZE, it's as big as it needs to be
-static const unsigned int READ_BLOCK_SIZE        = 512;
-static const unsigned int READ_SIZE              = READ_BLOCK_SIZE * 1024; // 1 MB gives good performance
+static const unsigned int MAX_WRITE_BLOCKS       = 16; // we don't need that much downstream throughput, max_write size = 8 * 1024
+static const unsigned int READ_BLOCK_SIZE        = 512; 
+static const unsigned int READ_SIZE              = READ_BLOCK_SIZE * 256; 
 static const unsigned int DEFAULT_BUFFER_TIMEOUT = 1;
 
 class CommOK : public Comm {
 public:
     /// Constructor
     CommOK(MutexBuffer<COMMWord>* read_buffer, MutexBuffer<COMMWord>* write_buffer) :
-        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) {};
+        m_read_buffer(read_buffer), m_write_buffer(write_buffer), m_state(CommStreamState::STOPPED) , DS_queue_count_(0) {};
     /// Default copy constructor
     CommOK(const CommOK&) = delete;
     /// Default move constructor
@@ -59,6 +61,8 @@ protected:
 private:
     bool InitializeFPGA(const std::string bitfile, const std::string serial);
     bool InitializeUSB();
+
+    unsigned int DS_queue_count_;
 
     // Variables
     okCFrontPanel dev;

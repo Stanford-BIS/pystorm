@@ -17,6 +17,7 @@ namespace pystorm {
 namespace bddriver {
 
 static const unsigned int WORDS_PER_BLOCK = 512; // XXX should get from comm
+static const unsigned int MAX_BLOCKS = 16; // break up blocks at this boundary
 
 void PrintBinaryAsStr(uint32_t b, unsigned int N) {
   std::vector<bool> bits;
@@ -54,13 +55,14 @@ inline void Encoder::PushWord(uint32_t word) {
   working_block_->push_back(b1);
   working_block_->push_back(b2);
   working_block_->push_back(b3);
+
+  // if we've got a lot of blocks, break it up
+  if (working_block_->size() == MAX_BLOCKS * WORDS_PER_BLOCK) {
+    FlushWords();
+  }
 }
 
-// flush code, pad nops to complete block
-inline void Encoder::FlushWords() {
-
-  assert(WORDS_PER_BLOCK % 4 == 0);
-
+inline void Encoder::PadNopsAndFlush() {
   // figure out how man nops are needed to pad
   unsigned int curr_size_in_frame = working_block_->size() % WORDS_PER_BLOCK;
   unsigned int to_complete_block = (WORDS_PER_BLOCK - curr_size_in_frame) % WORDS_PER_BLOCK;
@@ -70,11 +72,18 @@ inline void Encoder::FlushWords() {
   BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}});
 
   // push nops
-  for (unsigned int i = 0; i < to_complete_block; i++) {
+  for (unsigned int i = 0; i < to_complete_block / 4; i++) { // 4 words per nop, so / 4
     PushWord(nop);
   }
 
-  // flush to comm
+  // and flush
+  FlushWords();
+}
+
+// flush code, pad nops to complete block
+inline void Encoder::FlushWords() {
+
+  assert(WORDS_PER_BLOCK % 4 == 0);
   assert(working_block_->size() % WORDS_PER_BLOCK == 0);
 
   // move working_block_
@@ -95,7 +104,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
     if (FPGA_ep_code == EncInput::kFlushCode) {
       // pad frame to block size multiple and send to comm
-      FlushWords();
+      PadNopsAndFlush();
 
     } else {
       (void)core_id; // XXX this is where you would do something with core_id

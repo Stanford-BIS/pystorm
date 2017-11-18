@@ -18,7 +18,8 @@
 
 module OKIfc #(
   parameter NPCcode = 8,
-  parameter logic [NPCcode-1:0] NOPcode = 64) // upstream nop code
+  parameter logic [NPCcode-1:0] NOPcode = 64, // upstream nop code
+  parameter logic [NPCcode-1:0] DSQueueCode = 128) // upstream nop code
 (
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,
@@ -164,7 +165,12 @@ PipeOutFIFO fifo_out(
 // to save SW bandwidth, we transmit only NOPs after we drain the buffer once
 // even if the HW puts additional words in after this point
 // this way, the decoder can detect the first NOP in the block and process no further words
-enum {SEND_DATA, SEND_NOPS} state, next_state;
+// in SEND_DS_QUEUE_STATE we report how full the downstream queue is
+// this is used by comm to determine whether to execute a write
+// if comm attempts to write when the downstream traffic is blocked (easily
+// happens with wait events), it will take a long time for the call to
+// complete and rob upstream bandwidth
+enum {SEND_DS_QUEUE_STATE, SEND_DATA, SEND_NOPS} state, next_state;
 
 always_ff @(posedge okClk, posedge user_reset)
   if (user_reset == 1)
@@ -175,13 +181,20 @@ always_ff @(posedge okClk, posedge user_reset)
 always_comb
   unique case (state)
     SEND_NOPS:
-      if (pipe_out_blockstrobe == 1 && FIFO_out_empty == 0)
-        next_state = SEND_DATA; // beginning of a block, have data
+      if (pipe_out_blockstrobe == 1)
+        next_state = SEND_DS_QUEUE_STATE; // beginning of a block, send DS queue state
       else
-        next_state = SEND_NOPS; // beginning of a block, still no data
-    SEND_DATA:
+        next_state = SEND_NOPS; // keep sending nops
+    SEND_DS_QUEUE_STATE:
       if (FIFO_out_empty == 0)
-        next_state = SEND_DATA; // still have data, keep sending
+        next_state = SEND_DATA; // have data, send it
+      else
+        next_state = SEND_NOPS; // no data to send
+    SEND_DATA:
+      if (pipe_out_blockstrobe == 1)
+        next_state = SEND_DS_QUEUE_STATE; // beginning of a block, send DS queue state
+      else if (FIFO_out_empty == 0)
+        next_state = SEND_DATA; // keep sending
       else
         next_state = SEND_NOPS; // out of data, done sending until the next block
   endcase
@@ -198,12 +211,16 @@ always_ff @(posedge okClk, posedge user_reset)
 // FIFO -> pipe
 always_comb
   if (pipe_out_read == 1) // pipe needs data next cycle
-    if (state == SEND_NOPS) begin // make an entire block of NOPS
+    if (state == SEND_DS_QUEUE_STATE) begin
+      next_pipe_out_data = {DSQueueCode, {(NPCdata-Nfifo_in){1'b0}}, FIFO_in_count}; // downstream fifo queue occupancy
+      FIFO_out_rd_ack = 0;
+    end
+    else if (state == SEND_NOPS) begin // make an entire block of NOPS
       next_pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
       FIFO_out_rd_ack = 0;
     end
     else begin // state == SEND_DATA
-      if (FIFO_out_empty == 0) begin // use data from FPGA
+      if (FIFO_out_empty == 0) begin // last cycle won't have data, so check
         next_pipe_out_data = FIFO_out_data_out;
         FIFO_out_rd_ack = 1;
       end

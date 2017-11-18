@@ -15,7 +15,7 @@ num_neurons = pool_height * pool_width
 
 fmax = 10000
 num_training_points = 20
-training_hold_time = 4 # seconds
+training_hold_time = 1 # seconds
 
 input_tag = 0
 

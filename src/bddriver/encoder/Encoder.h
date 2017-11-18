@@ -44,6 +44,7 @@ class Encoder : public Xcoder {
 
   void RunOnce();
   inline void PushWord(uint32_t word); // helper for Encode, does serialization into working_block_
+  inline void PadNopsAndFlush(); // pushes nops until the working_block_ is a multiple of WORDS_PER_BLOCK
   inline void FlushWords(); // flushes words to comm, padding to complete the current block
   void Encode(const std::unique_ptr<std::vector<EncInput>> inputs);
 };
