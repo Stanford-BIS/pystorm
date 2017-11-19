@@ -14,8 +14,8 @@ pool_height = pool_width
 num_neurons = pool_height * pool_width
 
 fmax = 1000
-num_training_points = 6
-training_hold_time = 4 # seconds
+num_training_points = 10
+training_hold_time = .5 # seconds
 
 input_tag = 0
 
@@ -185,33 +185,34 @@ print("* Running training for", end_time - start_time, "seconds")
 rates = np.linspace(-fmax, fmax, num_training_points).astype(int)
 #rates = np.linspace(0, fmax, num_training_points).astype(int)
 
-#for rate, time_ns in zip(rates, s_to_ns(times)):
-#    D.SetSpikeGeneratorRates(CORE, [0], [input_tag], [rate], time_ns, False)
-#D.Flush()
-for r, t in zip(rates, times):
-    num_spikes_in_bin = int(abs(r) * training_hold_time)
-    bin_start = t
-    bin_end = t + training_hold_time
-    tag_times = np.array(s_to_ns(np.linspace(bin_start, bin_end, num_spikes_in_bin)))
-    if r > 0:
-        count = 1
-        sign = 0
-    else:
-        count = 511
-        sign = 1
-    tags = [bd.PackWord([(bd.InputTag.TAG, 0), (bd.InputTag.COUNT, count)])] * num_spikes_in_bin
-    D.SendTags(CORE, tags, tag_times, False)
+for rate, time_ns in zip(rates, s_to_ns(times)):
+    D.SetSpikeGeneratorRates(CORE, [0], [input_tag], [rate], time_ns, False)
+D.Flush()
 
-    ## inject spikes directly instead
-    #for tap in tap_points:
-    #    tap_sign = tap_points[tap]
-    #    ysyn, xsyn = tap
-    #    syn_sign = sign ^ tap_sign
-    #    syn_addr = D.GetSynAERAddr(xsyn, ysyn)
-    #    spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, syn_addr), (bd.InputSpike.SYNAPSE_SIGN, syn_sign)])] * num_spikes_in_bin
-    #    D.SendSpikes(CORE, spikes, tag_times, False)
-
-    print("this many tags", len(tags))
+#for r, t in zip(rates, times):
+#    num_spikes_in_bin = int(abs(r) * training_hold_time)
+#    bin_start = t
+#    bin_end = t + training_hold_time
+#    tag_times = np.array(s_to_ns(np.linspace(bin_start, bin_end, num_spikes_in_bin)))
+#    if r > 0:
+#        count = 1
+#        sign = 0
+#    else:
+#        count = 511
+#        sign = 1
+#    tags = [bd.PackWord([(bd.InputTag.TAG, 0), (bd.InputTag.COUNT, count)])] * num_spikes_in_bin
+#    D.SendTags(CORE, tags, tag_times, False)
+#
+#    ## inject spikes directly instead
+#    #for tap in tap_points:
+#    #    tap_sign = tap_points[tap]
+#    #    ysyn, xsyn = tap
+#    #    syn_sign = sign ^ tap_sign
+#    #    syn_addr = D.GetSynAERAddr(xsyn, ysyn)
+#    #    spikes = [bd.PackWord([(bd.InputSpike.SYNAPSE_ADDRESS, syn_addr), (bd.InputSpike.SYNAPSE_SIGN, syn_sign)])] * num_spikes_in_bin
+#    #    D.SendSpikes(CORE, spikes, tag_times, False)
+#
+#    print("this many tags", len(tags))
 
 D.Flush()
 

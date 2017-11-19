@@ -1096,7 +1096,7 @@ void Driver::SetSpikeGeneratorRates(
 
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << endl;
+    cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << endl;
     cout << "  period : " << period << " time units" << endl;
     cout << "  sign : " << sign << endl;
     cout << "  starting at : " << time << " ns. There are " << ns_per_unit_ << " us per time unit" << endl;
@@ -1222,7 +1222,9 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
-      to_push.time = time;
+
+      to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
+                               // XXX the right way to fix this is to serialize AFTER sorting
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
       serialized->push_back(to_push);

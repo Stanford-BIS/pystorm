@@ -21,7 +21,7 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input clk,
   input reset);
 
-localparam Nmem = Nperiod * 2 + Ntag;
+localparam Nmem = Nperiod * 2 + Ntag + 1;
 localparam Nmem_bytes = 6;
 localparam Nmem_full = Nmem_bytes * 8;
 
