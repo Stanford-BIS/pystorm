@@ -4,10 +4,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
 import sys
+import time
 
 from pystorm.PyDriver import bddriver as bd
 import driver_util
-import time
 
 pool_width = 8
 pool_height = pool_width
@@ -163,9 +163,9 @@ time.sleep(1)
 print("* Reading TAT")
 dumped_tat = D.DumpMem(CORE, bd.bdpars.BDMemId.TAT0)
 
-if driver_util.compare_TAT_words(tat_entries, dumped_tat) == -1:
-    D.Stop()
-    sys.exit(-1)
+#if driver_util.compare_TAT_words(tat_entries, dumped_tat) == -1:
+#    D.Stop()
+#    sys.exit(-1)
 
 
 # for some reason, you have to do this a couple times (maybe there's input slack?)

@@ -1,6 +1,6 @@
 from pystorm.PyDriver import bddriver as bd
 
-def standard_startup(time_unit_ns, upstream_hb_ns):
+def standard_startup(time_unit_ns=10000, upstream_hb_ns=100000):
     CORE = 0
 
     D = bd.Driver()
@@ -35,7 +35,7 @@ def compare_TAT_words(progged, dumped):
         if len(dumped) == 0:
             print("we read nothing!")
         for entry, progged_entry in zip(dumped[:len(progged)], progged):
-            print("we proggedrammed:")
+            print("we programmed:")
             print("{0:b}".format(progged_entry))
             print("we read:")
             print("{0:b}".format(entry))
@@ -43,3 +43,9 @@ def compare_TAT_words(progged, dumped):
             print("groute", bd.GetField(entry, bd.TATTagWord.GLOBAL_ROUTE))
             print("tag", bd.GetField(entry, bd.TATTagWord.TAG))
         return -1
+
+def s_to_ns(s):
+    return (1e9 * s).astype(int)
+
+def ns_to_s(ns):
+    return ns / 1e9
