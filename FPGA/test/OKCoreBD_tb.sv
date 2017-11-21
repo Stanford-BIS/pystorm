@@ -151,7 +151,8 @@ task SendToAllBD(int start, int num_words);
   end
 endtask
 
-const logic [7:0] gen_idx = 0;
+const logic [7:0] gen_idx_fast = 0;
+const logic [7:0] gen_idx_slow = 1;
 const logic [15:0] period_fast = 1;
 const logic [15:0] period_slow = 4;
 const logic [15:0] ticks = 0;
@@ -159,8 +160,8 @@ const logic [10:0] tag = 0;
 const logic sign_fast = 0;
 const logic sign_slow = 1;
 
-const logic [63:0] SG_word_fast = {sign_fast, gen_idx, period_fast, ticks, tag};
-const logic [63:0] SG_word_slow = {sign_slow, gen_idx, period_slow, ticks, tag};
+const logic [63:0] SG_word_fast = {sign_fast, gen_idx_fast, period_fast, ticks, tag};
+const logic [63:0] SG_word_slow = {sign_slow, gen_idx_slow, period_slow, ticks, tag};
 
 const logic [3:0][15:0] SG_word_fast_pieces = SG_word_fast;
 const logic [3:0][15:0] SG_word_slow_pieces = SG_word_slow;
@@ -207,6 +208,8 @@ initial begin
 
   #(4000)
 
+  SendToEP(8'd133, {8'd0, 16'd2}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd3}); // enable
   SendToEP(8'd192, {8'd0, SG_word_slow_pieces[0]});
   SendToEP(8'd192, {8'd0, SG_word_slow_pieces[1]});
   SendToEP(8'd192, {8'd0, SG_word_slow_pieces[2]});

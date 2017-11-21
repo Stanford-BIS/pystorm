@@ -109,8 +109,7 @@ D.EnableSoma(CORE, 1)
 D.Flush()
 
 ###########################
-# program a positive and a negative decoder
-# one neuron emits positive tags, the other negative tags
+# program a positive and a negative decoder, and one that should cancel
 
 print("* Programming AM")
 acc_entries = [
@@ -119,14 +118,18 @@ acc_entries = [
       (bd.AMWord.THRESHOLD, 2),
       (bd.AMWord.NEXT_ADDRESS, 2**11)]),
     bd.PackWord([
+      (bd.AMWord.STOP, 0),
+      (bd.AMWord.THRESHOLD, 2),
+      (bd.AMWord.NEXT_ADDRESS, 2**11+1)]),
+    bd.PackWord([
       (bd.AMWord.STOP, 1),
       (bd.AMWord.THRESHOLD, 2),
-      (bd.AMWord.NEXT_ADDRESS, 2**11+1)])]
+      (bd.AMWord.NEXT_ADDRESS, 2**11+2)])]
 D.SetMem(CORE, bd.bdpars.BDMemId.AM, acc_entries, 0)
 
 print("* Programming MM")
-D.SetMem(CORE, bd.bdpars.BDMemId.MM, [64,     0], 0)
-D.SetMem(CORE, bd.bdpars.BDMemId.MM, [0, 255-64], 256)
+D.SetMem(CORE, bd.bdpars.BDMemId.MM, [64,     0,     64], 0)
+D.SetMem(CORE, bd.bdpars.BDMemId.MM, [0, 255-64, 255-64], 256)
 
 print("* Programming PAT")
 PAT_entry = bd.PackWord([
@@ -186,7 +189,8 @@ for spike in spikes:
 
 print("spikes by neuron")
 print(spk_cts)
-print("tag cts, neuron 0 is .5, neuron 1 is -.5")
+print("tag cts, neuron 0 is .5, neuron 1 is -.5. tag 2 should be the sum of the two")
+print("it might not be because of output clobbering")
 print(cts)
 
 print("* Done")
