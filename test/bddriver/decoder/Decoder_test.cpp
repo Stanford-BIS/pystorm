@@ -46,6 +46,8 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
   static BDTime last_time_p2 = 0;
   static bool last_time_lsb_msb = false;
 
+  static unsigned int last_HB_LSB_recvd;
+
   for (unsigned int i = 0; i < N; i++) {
     // make random input data
     uint8_t b[4];
@@ -83,35 +85,27 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
     // update time if necessary 
     // (no guarantee that time ascends in this test, 
     // so sequence may be unusual)
-    if (code == pars->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB)) {
-      uint64_t curr_time_msb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
-      uint64_t curr_time_lsb = GetField(last_time, TWOFPGAPAYLOADS::MSB);
-      if (!last_time_lsb_msb) { // lsb
-        last_time = PackWord<TWOFPGAPAYLOADS>(
-            {{TWOFPGAPAYLOADS::MSB, curr_time_msb}, 
-             {TWOFPGAPAYLOADS::LSB, payload}});
-      } else { // msb
-        last_time = PackWord<TWOFPGAPAYLOADS>(
-            {{TWOFPGAPAYLOADS::MSB, payload},
-             {TWOFPGAPAYLOADS::LSB, curr_time_lsb}});
-      }
-      last_time_lsb_msb = !last_time_lsb_msb;
-    // only append output for non-time, non-nop input word
-    } else {
-      if (code != pars->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
-        DecOutput to_push;
-        to_push.payload = payload;
-        to_push.time = last_time_p2;
-        last_time_p2 = last_time_p1;
-        last_time_p1 = last_time;
+    if (code == pars->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_LSB)) {
+      last_HB_LSB_recvd = payload;
+    } else if (code == pars->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_MSB)) {
+      last_time = PackWord<TWOFPGAPAYLOADS>(
+          {{TWOFPGAPAYLOADS::MSB, payload},
+           {TWOFPGAPAYLOADS::LSB, last_HB_LSB_recvd}});
+    }
 
-        if (dec_outputs.count(code) == 0) {
-          cout << int(code) << endl;
-          assert(false);
-        }
+    if (code != pars->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
+      DecOutput to_push;
+      to_push.payload = payload;
+      to_push.time = last_time_p2;
+      last_time_p2 = last_time_p1;
+      last_time_p1 = last_time;
 
-        dec_outputs.at(code).push_back(to_push);
+      if (dec_outputs.count(code) == 0) {
+        cout << int(code) << endl;
+        assert(false);
       }
+
+      dec_outputs.at(code).push_back(to_push);
     }
 
   }

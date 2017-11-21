@@ -98,22 +98,24 @@ BDPars::BDPars() {
 
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDFunnelEP::COUNT); i++) {
-    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))] = 24; // don't care, shorter than 24b
+    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))]  = 24; // don't care, shorter than 24b
   }
   // serialization is 2 for a few others
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_AM)]          = 38;
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT0)]        = 29;
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT1)]        = 29;
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_ACC)]           = 28;
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_TAT)]           = 32;
-  Up_EP_size_[UpEPCodeFor(BDFunnelEP::INVALID)]          = 34;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_AM)]           = 38;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT0)]         = 29;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_TAT1)]         = 29;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_ACC)]            = 28;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::RO_TAT)]            = 32;
+  Up_EP_size_[UpEPCodeFor(BDFunnelEP::INVALID)]           = 34;
 
   //////////////////////////////////////////////////////
   // FPGA outputs
 
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB)]    = 48;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::SF_OUTPUT)]      = 48;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::NOP)]            = 24;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_LSB)] = 24;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_MSB)] = 24;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::SF_OUTPUT)]       = 48;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::NOP)]             = 24;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::DS_QUEUE_CT)]     = 24;
 
   //////////////////////////////////////////////////////
   // memory info
@@ -130,18 +132,18 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {25 , 1};
   dac_info_[BDHornEP::DAC_ADC_BIAS_2]  = {25 , 1};
   // DAC output is scaled by 8/16/128.
-  // Then LPF input multiplies by 2X to get 4/8/64.
-  dac_info_[BDHornEP::DAC_SYN_EXC]     = {8  , (34 + 30) * 8};
-  dac_info_[BDHornEP::DAC_SYN_DC]      = {16 , 34 * 16};
-  dac_info_[BDHornEP::DAC_SYN_INH]     = {128, (34 - 30) * 128};
-  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1024};
+  // Then LPF input multiplies by 2X to get 4/8/64.        
+  dac_info_[BDHornEP::DAC_SYN_EXC]     = {8  , (34 + 30) * 8};   // (34 + 30) * 8 = 512
+  dac_info_[BDHornEP::DAC_SYN_DC]      = {16 , 920};             // 34 * 16 = 544
+  dac_info_[BDHornEP::DAC_SYN_INH]     = {128, (34 - 30) * 128}; // (34 - 30) * 128 = 512
+  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1023}; 
   dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 22};
   // DAC output is scaled by 160.
   // Then LPF leak multiplies by 8X to get 20.
   dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10};
-  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024};
+  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1023}; 
   dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512};
-  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1};
+  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10};
 
   // init AER address translation tables

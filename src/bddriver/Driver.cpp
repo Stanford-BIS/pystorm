@@ -155,26 +155,26 @@ Driver::~Driver() {
 // XXX get rid of this, it's used in some test
 void Driver::testcall(const std::string& msg) { std::cout << msg << std::endl; }
 
-void Driver::SetTimeUnitLen(BDTime us_per_unit) {
+void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 
   // update FPGA state
-  us_per_unit_ = us_per_unit;
-  clks_per_unit_ = us_per_unit * (1000 / ns_per_clk_);
-  cout << "setting FPGA time unit to " << us_per_unit << " us = " << clks_per_unit_ << " clocks per unit" << endl;
+  ns_per_unit_ = ns_per_unit;
+  clks_per_unit_ = ns_per_unit / ns_per_clk_;
+  cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
   
   const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
   if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
-    cout << "WARNING: us_per_unit too small: FPGA Spike Generator updates might not complete" << endl;
+    cout << "WARNING: ns_per_unit is very small: FPGA Spike Generator updates might not complete" << endl;
     cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
     cout << "  Spike Generator requires " << clks_per_SG_ << " cycles per operation" << endl;
     cout << "  Max Spike Generators: " << max_num_SG_ << endl;
   }
 
   if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_) {
-    cout << "WARNING: us_per_unit too small: FPGA Spike Filter updates might not complete" << endl;
+    cout << "WARNING: ns_per_unit is very small: FPGA Spike Filter updates might not complete" << endl;
     cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
     cout << "  Spike Filter requires " << clks_per_SF_ << " cycles per operation" << endl;
     cout << "  Max Spike Filters: " << max_num_SG_ << endl;
@@ -185,9 +185,11 @@ void Driver::SetTimeUnitLen(BDTime us_per_unit) {
   Flush();
 }
 
-void Driver::SetTimePerUpHB(BDTime us_per_hb) {
-  units_per_HB_ = UnitsPerUs(us_per_hb);
-  cout << "setting HB reporting period to " << us_per_hb << " us = " << units_per_HB_ << " FPGA time units" << endl;
+void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
+  units_per_HB_ = NsToUnits(ns_per_hb);
+  cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
+  
+  if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
@@ -231,9 +233,21 @@ void Driver::ResetBD() {
 void Driver::IssuePushWords() {
   // we need to send something that will elicit an output, PAT read is the simplest
   // thing we can request
+  
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
   }
+  
+  //// XXX try using writes instead, theory is that there's input slack, not output slack
+  //for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  //  const std::vector<BDWord> * curr_entries = bd_state_[i].GetMem(bdpars::BDMemId::PAT);
+  //  std::vector<BDWord> last_two;
+  //  const unsigned int PAT_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
+  //  last_two.push_back(curr_entries->at(PAT_size-2));
+  //  last_two.push_back(curr_entries->at(PAT_size-1));
+  //  SetMem(i, bdpars::BDMemId::PAT, last_two, PAT_size-2);
+  //}
+  
   num_pushs_pending_ += 2;
   // we have to do something special when dumping the PAT to skip the push words
 }
@@ -245,6 +259,49 @@ void Driver::ResetFPGATime() {
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
   SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
 }
+
+BDTime Driver::GetFPGATime() {
+  // the Decoder already decoded the times, ignore the payload and just use the last timestamp
+  std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
+  if (times.size() > 0) {
+    return times.back();
+  } else {
+    cout << "WARNING: GetFPGATime: haven't received any upstream HBs! Returning 0" << endl;
+    return 0;
+  }
+}
+
+BDTime Driver::GetDriverTime() const {
+  auto time_point_now = std::chrono::high_resolution_clock::now();
+  auto ns_now = std::chrono::duration_cast<std::chrono::nanoseconds>(time_point_now - base_time_);
+  return ns_now.count();
+}
+
+void Driver::InitDAC(unsigned int core_id, bool flush) {
+  // List of DAC
+  std::array<bdpars::BDHornEP, 12> dac_list {
+    bdpars::BDHornEP::DAC_ADC_BIAS_1,
+    bdpars::BDHornEP::DAC_ADC_BIAS_2,
+    bdpars::BDHornEP::DAC_DIFF_G,
+    bdpars::BDHornEP::DAC_DIFF_R,
+    bdpars::BDHornEP::DAC_SOMA_OFFSET,
+    bdpars::BDHornEP::DAC_SOMA_REF,
+    bdpars::BDHornEP::DAC_SYN_EXC,
+    bdpars::BDHornEP::DAC_SYN_DC,
+    bdpars::BDHornEP::DAC_SYN_INH,
+    bdpars::BDHornEP::DAC_SYN_LK,
+    bdpars::BDHornEP::DAC_SYN_PD,
+    bdpars::BDHornEP::DAC_SYN_PU
+  };
+
+  // Set them to default values defined in BDPars
+  for(auto& dac_id: dac_list){
+    unsigned int dac_count = GetDACDefaultCount(dac_id);
+    SetDACValue(core_id, dac_id, dac_count, false);
+  }
+  if (flush) Flush();
+}
+
 
 void Driver::InitBD() {
   
@@ -273,27 +330,7 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
 
     // Initialize neurons
-    // List of DACs
-    std::array<bdpars::BDHornEP, 12> dac_list {
-      bdpars::BDHornEP::DAC_ADC_BIAS_1,
-      bdpars::BDHornEP::DAC_ADC_BIAS_2,
-      bdpars::BDHornEP::DAC_DIFF_G,
-      bdpars::BDHornEP::DAC_DIFF_R,
-      bdpars::BDHornEP::DAC_SOMA_OFFSET,
-      bdpars::BDHornEP::DAC_SOMA_REF,
-      bdpars::BDHornEP::DAC_SYN_EXC,
-      bdpars::BDHornEP::DAC_SYN_DC,
-      bdpars::BDHornEP::DAC_SYN_INH,
-      bdpars::BDHornEP::DAC_SYN_LK,
-      bdpars::BDHornEP::DAC_SYN_PD,
-      bdpars::BDHornEP::DAC_SYN_PU
-    };
-
-    // Set them to default values defined in BDPars
-    for(auto& dac_id: dac_list){
-      unsigned int dac_count = GetDACDefaultCount(dac_id);
-      SetDACValue(i, dac_id, dac_count);
-    }
+    InitDAC(i, false);
 
     // Disable all Somas
     for(unsigned int idx = 0; idx < 4096; ++idx){
@@ -354,21 +391,24 @@ void Driver::InitFIFO(unsigned int core_id) {
 }
 
 
-void Driver::Start() {
+int Driver::Start() {
   // start all worker threads
   enc_->Start();
   dec_->Start();
   cout << "enc and dec started" << endl;
 
-  // Initialize Opal Kelly Board
+  int comm_state = 0; 
  
 #ifdef BD_COMM_TYPE_OPALKELLY
-  static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
-  cout << "init'd OK" << endl;
+  // Initialize Opal Kelly Board
+  comm_state = static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
 #endif
 
-  comm_->StartStreaming();
-  cout << "comm started" << endl;
+  if (comm_state >= 0) {
+    comm_->StartStreaming();
+  }
+
+  return comm_state;
 }
 
 void Driver::Stop() {
@@ -378,6 +418,9 @@ void Driver::Stop() {
 }
 
 void Driver::Flush() {
+
+  // pushes a special ep_code
+
   // XXX note that the order that the user makes timed vs sequenced downstream calls is lost!
   //
   // If I call:
@@ -405,7 +448,6 @@ void Driver::Flush() {
   from_queue->swap(timed_queue_);
   enc_buf_in_->Push(std::move(from_queue));
 
-
   // then send the sequenced traffic
   while (!sequenced_queue_.empty()) {
     num_words += sequenced_queue_.front()->size();
@@ -413,22 +455,14 @@ void Driver::Flush() {
     sequenced_queue_.pop();
   }
 
-  unsigned int words_per_frame = bd_pars_->DnWordsPerFrame;
-  // XXX the Encoder inserts heartbeats, which can mess up this count
-  //unsigned int nops_to_send = num_words % words_per_frame == 0 ? 0 : words_per_frame - num_words % words_per_frame;
-  // instead, just send a frame's worth of NOPs
-  unsigned int nops_to_send = words_per_frame;
-  if (nops_to_send > 0) {
+  EncInput flush;
+  flush.FPGA_ep_code = EncInput::kFlushCode;
+  flush.core_id = 0; // don't care about the other fields
+  flush.payload = 0;
+  flush.time = 0;
 
-    EncInput nop;
-    nop.core_id = 0;
-    nop.FPGA_ep_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
-    nop.payload = 0;
-    nop.time = 0;
-
-    auto nop_vect = std::make_unique<std::vector<EncInput>>(nops_to_send, nop);
-    enc_buf_in_->Push(std::move(nop_vect));
-  }
+  auto flush_vect = std::make_unique<std::vector<EncInput>>(1, flush);
+  enc_buf_in_->Push(std::move(flush_vect));
 
 }
 
@@ -437,9 +471,7 @@ void Driver::Flush() {
 bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  //if ((en != traffic_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
-  //}
+  SetToggle(core_id, reg_id, en, dump_en & reg_valid, flush);
   return traffic_en;
 }
 
@@ -448,9 +480,7 @@ bool Driver::SetToggleTraffic(unsigned int core_id, bdpars::BDHornEP reg_id, boo
 bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool en, bool flush) {
   bool traffic_en, dump_en, reg_valid;
   std::tie(traffic_en, dump_en, reg_valid) = bd_state_[core_id].GetToggle(reg_id);
-  //if ((en != dump_en) || !reg_valid) {
-    SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
-  //}
+  SetToggle(core_id, reg_id, traffic_en & reg_valid, en, flush);
   return dump_en;
 }
 
@@ -757,11 +787,15 @@ void Driver::SetMem(
   PauseTraffic(core_id);
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
   SendToEP(core_id, horn_ep, encapsulated_words);
+  ResumeTraffic(core_id);
 
   Flush();
 
   if (mem_id == bdpars::BDMemId::AM) { // if we're programming the AM, we're also dumping the AM, need to sink what comes back
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
+
+    // pop out the last two words
+    IssuePushWords();
 
     unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
 
@@ -775,7 +809,6 @@ void Driver::SetMem(
       cout << "WARNING! LOST SOME AM WORDS" << endl;
     }
   }
-  ResumeTraffic(core_id);
 }
 
 /// helper for DumpMem
@@ -854,11 +887,11 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
       }
     }
     num_pushs_pending_ -= pushs_absorbed;
-    cout << "possibly discarding initial PAT words" << endl;
-    cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
+    //cout << "possibly discarding initial PAT words" << endl;
+    //cout << payloads_tmp.size() << " -> " << payloads.size() << endl;
   }
 
-  cout << "num pending before: " << num_pushs_pending_ << endl;
+  //cout << "num pushs pending before: " << num_pushs_pending_ << endl;
 
   // we might have received more words than we expected
   // if this is the PAT, and there are <2, they're probably just the pushes we just sent
@@ -884,7 +917,7 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
     cout << "WARNING! didn't get the full dump size we requested" << endl;
   }
 
-  cout << "num pending after: " << num_pushs_pending_ << endl;
+  //cout << "num pushs pending after: " << num_pushs_pending_ << endl;
 
   return payloads;
 }
@@ -897,8 +930,6 @@ std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId m
 
   // issue an additional two PAT reads to push out the last two words
   IssuePushWords();
-
-  cout << "sent words, waiting" << endl;
 
   auto to_return = DumpMemRecv(core_id, mem_id, end - start, 2000000); // wait 2s
 
@@ -1058,9 +1089,9 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
 
 void Driver::SetSpikeGeneratorRates(
     unsigned int core_id,
-    std::vector<unsigned int> gen_idxs, 
-    std::vector<unsigned int> tags, 
-    std::vector<unsigned int> rates, 
+    const std::vector<unsigned int>& gen_idxs, 
+    const std::vector<unsigned int>& tags, 
+    const std::vector<int>& rates, 
     BDTime time,
     bool flush) {
   
@@ -1068,7 +1099,7 @@ void Driver::SetSpikeGeneratorRates(
 
   std::vector<BDWord> SG_prog_words;
 
-  unsigned int units_per_sec = 1e6 / us_per_unit_;
+  unsigned int units_per_sec = 1e9 / ns_per_unit_;
 
   // program periods/tag output idxs
   for (unsigned int i = 0; i < tags.size(); i++) {
@@ -1078,12 +1109,25 @@ void Driver::SetSpikeGeneratorRates(
     
     // (period in time units) = (units/sec) / (rate in 1/sec)
     const unsigned int max_period = (1 << FieldWidth(FPGASGWORD::PERIOD)) - 1;
-    unsigned int rate = rates.at(i);
+
+    unsigned int rate;
+    unsigned int sign;
+    if(rates.at(i) >= 0) {
+      rate = rates.at(i);
+      sign = 0;
+    } else {
+      rate = -rates.at(i);
+      sign = 1;
+    }
+
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << " with period " << period << " time units. There are " << us_per_unit_ << " us per time unit" << endl;
+    cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << endl;
+    cout << "  period : " << period << " time units" << endl;
+    cout << "  sign : " << sign << endl;
+    cout << "  starting at : " << time << " ns. There are " << ns_per_unit_ << " us per time unit" << endl;
 
-    SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}}));
+    SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}, {FPGASGWORD::SIGN, sign}}));
   }
   std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
@@ -1100,20 +1144,28 @@ void Driver::SetSpikeGeneratorRates(
 
   // set all SG enables, regardless of which ones we actually modified
   uint16_t en_word;
+  unsigned int highest_used = 0;
   for (unsigned int gen_idx = 0; gen_idx < SG_en_.size(); gen_idx++) {
     unsigned int bit_idx = gen_idx % 16;
     uint16_t bit_sel = 1 << bit_idx;
 
     if (bit_idx == 0) en_word = 0;
 
-    if (SG_en_[gen_idx]) en_word |= bit_sel;
+    if (SG_en_[gen_idx]) {
+      en_word |= bit_sel;
+      highest_used = gen_idx;
+    }
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      cout << "enable" << en_word << endl;
+      //cout << "enable" << en_word << endl;
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+
+  // set number of SGs used
+  
 
   if (flush) Flush(); 
 
@@ -1165,8 +1217,8 @@ void Driver::SendToEP(unsigned int core_id,
   unsigned int i = 0;
   for (auto& it : payload) {
 
-    // convert from us -> time units
-    BDTime time = !timed ? 0 : UnitsPerUs(times.at(i)); // time 0 is never held up by the FPGA
+    // convert from ns -> time units
+    BDTime time = !timed ? 0 : NsToUnits(times.at(i)); // time 0 is never held up by the FPGA
 
     BDWord payloads[MaxD];
 
@@ -1196,7 +1248,9 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
-      to_push.time = time;
+
+      to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
+                               // XXX the right way to fix this is to serialize AFTER sorting
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
       serialized->push_back(to_push);
@@ -1212,9 +1266,9 @@ void Driver::SendToEP(unsigned int core_id,
 
     std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
 
-    // update highest_us_sent_
-    unsigned int new_highest_us = timed_queue_.back().time * us_per_unit_;
-    highest_us_sent_ = new_highest_us > highest_us_sent_ ? new_highest_us : highest_us_sent_; // max()
+    // update highest_ns_sent_
+    BDTime new_highest_ns = timed_queue_.back().time * ns_per_unit_;
+    highest_ns_sent_ = new_highest_ns > highest_ns_sent_ ? new_highest_ns : highest_ns_sent_; // max()
 
   } else {
     sequenced_queue_.push(std::move(serialized));
@@ -1256,7 +1310,7 @@ std::pair<std::vector<BDWord>,
         // concatenate lsb and msb to make output word
         BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
         words.push_back(payload_all);
-        times.push_back(time);
+        times.push_back(UnitsToNs(time));
 
         deserializer->GetOneOutput(&deserialized);
       }
@@ -1268,7 +1322,7 @@ std::pair<std::vector<BDWord>,
         BDTime   time    = it.time; // take time on second word
 
         words.push_back(payload);
-        times.push_back(time);
+        times.push_back(UnitsToNs(time));
       }
     }
   }
@@ -1285,6 +1339,7 @@ void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord
 }
 
 void Driver::SetToggle(unsigned int core_id, bdpars::BDHornEP toggle_id, bool traffic_en, bool dump_en, bool flush) {
+  //cout << "setting toggle at BDHornEP " << int(toggle_id) << " to traffic_en: " << int(traffic_en) << ", dump_en: " << int(dump_en) << endl;
   SetBDRegister(core_id, toggle_id, PackWord<ToggleWord>(
         {{ToggleWord::TRAFFIC_ENABLE, traffic_en}, {ToggleWord::DUMP_ENABLE, dump_en}}), flush);
 }

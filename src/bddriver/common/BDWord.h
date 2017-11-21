@@ -102,7 +102,7 @@ DEFHCWORD(TATAccWord,
 
 DEFHCWORD(TATSpikeWord,
     FIELDS(STOP , FIXED_1 , SYNAPSE_ADDRESS_0 , SYNAPSE_SIGN_0 , SYNAPSE_ADDRESS_1 , SYNAPSE_SIGN_1 , UNUSED ) ,
-    WIDTHS(1    , 2       , 11                , 1              , 11                , 1              , 2      ) ,
+    WIDTHS(1    , 2       , 10                , 1              , 10                , 1              , 2      ) ,
     HCVALS(0    , 1       , 0                 , 0              , 0                 , 0              , 0      )   )
 
 DEFHCWORD(TATTagWord,
@@ -242,9 +242,9 @@ DEFWORD(FPGASFWORD,
     WIDTHS(27    , 9       )   )
 
 DEFHCWORD(FPGASGWORD,
-    FIELDS(TAG , TICKS , PERIOD , GENIDX ) ,
-    WIDTHS(11  , 16    , 16     , 8      ) ,
-    HCVALS(0   , 0     , 0      , 0      )   )
+    FIELDS(TAG , TICKS , PERIOD , GENIDX, SIGN ) ,
+    WIDTHS(11  , 16    , 16     , 8     , 1    ) ,
+    HCVALS(0   , 0     , 0      , 0     , 0    )   )
 
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,

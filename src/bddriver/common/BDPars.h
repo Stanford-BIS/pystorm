@@ -176,10 +176,12 @@ enum class BDFunnelEP {
 
 // the enum value is the upstream code
 enum class FPGAOutputEP {
-  UPSTREAM_HB = 14, // Upstream report of FPGA clock
-  SF_OUTPUT   = 15, // SpikeFilter outputs
-  NOP         = 64, // NOP, inserted to pad output pipe
-  COUNT       = 3   // XXX hardcoded, be careful
+  SF_OUTPUT       = 14,  // SpikeFilter outputs
+  UPSTREAM_HB_LSB = 15,  // Upstream report of FPGA clock
+  UPSTREAM_HB_MSB = 16,  // Upstream report of FPGA clock
+  NOP             = 64,  // NOP, inserted to pad output pipe
+  DS_QUEUE_CT     = 128, // first word of each block
+  COUNT           = 4    // XXX hardcoded, be careful
 };
 
 
@@ -269,7 +271,7 @@ class BDPars {
   const unsigned int DnEPFPGABitsPerChannel = 16;
 
   const unsigned int DnWordsPerFrame        = 256; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
-  const unsigned int DnTimeUnitsPerHB       = 10; // Send FPGA downstream heartbeat every <this many time units>
+  const unsigned int DnTimeUnitsPerHB       = 1; // Send FPGA downstream heartbeat every <this many time units>
 
   // downstream endpoint info
   std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;

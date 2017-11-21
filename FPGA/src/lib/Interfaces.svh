@@ -51,6 +51,7 @@ interface SpikeGeneratorProgChannel #(parameter Ngens = 8, parameter Nperiod = 1
   logic [Nperiod-1:0] period;
   logic [Nperiod-1:0] ticks;
   logic [Ntag-1:0] tag;
+  logic sign;
   logic v;
   logic a;
 endinterface

@@ -5,7 +5,10 @@ from pystorm.PyDriver import bddriver as bd
 
 D = bd.Driver()
 
-D.Start() # starts driver threads
+comm_state = D.Start()
+if (comm_state < 0):
+    print("* Driver failed to start!")
+    exit(-1)
 
 print("* Resetting BD")
 D.ResetBD()
@@ -45,12 +48,11 @@ for y in range(0, N, 1):
 print("* Programming memory")
 D.SetMem(0, bd.bdpars.BDMemId.TAT0, tat_tap_entries, tag)
 
-# set time unit to 10 us
 print("* Setting FPGA time units")
-FPGA_unit = 10 # us
+FPGA_unit = 10000 # ns
 D.SetTimeUnitLen(FPGA_unit)
 # set upstream HB time to .1 ms
-D.SetTimePerUpHB(100)
+D.SetTimePerUpHB(100000) # ns
 
 print("* Reset FPGA clock")
 # set FPGA clock to 0 before we start sending timed tags

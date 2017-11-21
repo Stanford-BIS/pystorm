@@ -46,9 +46,18 @@ class HAL(object):
     def __del__(self):
         self.stop_hardware()
 
+    def get_time(self):
+        return self.driver.GetFPGATime()
+
+    def reset_time(self):
+        self.driver.ResetFPGATime()
+
     def start_hardware(self):
         """Starts the driver"""
-        self.driver.Start()
+        comm_state = self.driver.Start()
+        if comm_state != 0:
+            print("Comm failed to init fully, exiting")
+            exit(0)
 
     def stop_hardware(self):
         """Stops the driver"""

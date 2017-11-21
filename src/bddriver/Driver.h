@@ -114,22 +114,29 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
 
   /// starts child workers, e.g. encoder and decoder
-  void Start();
+  /// returns 0 if successful, -1 if comm init fails
+  int Start();
   /// stops the child workers
   void Stop();
 
-  /// Sets the time unit (also is the interval that FPGA reports/updates SG/SF values)
-  void SetTimeUnitLen(BDTime us_per_unit);
+  /// Sets the FPGA time resolution (also is the interval that FPGA reports/updates SG/SF values)
+  void SetTimeUnitLen(BDTime ns_per_unit);
   /// Sets how long the FPGA waits between sending upstream HBs
-  void SetTimePerUpHB(BDTime us_per_hb);
-  /// Sets experiment time to 0, synchronizing internal time and FPGA clock to 0
+  void SetTimePerUpHB(BDTime ns_per_hb);
+  /// Sets the FPGA's clock to 0, also resets driver time
   void ResetFPGATime();
+  /// Get the most recently received upstream FPGA clock value
+  BDTime GetFPGATime();
+  /// Returns driver (PC) time in ns
+  BDTime GetDriverTime() const;
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();
   /// Clears BD FIFOs
   /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
+  /// Inits the DACs to default values
+  void InitDAC(unsigned int core_id, bool flush=true);
   /// Initializes hardware state
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
@@ -140,15 +147,32 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   
   /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int xy_addr) const { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
+  unsigned int GetMemAERAddr(unsigned int xy_addr) const                             { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
   /// Given x, y config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const { return GetMemAERAddr(x*16 + y); }
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const                   { return GetMemAERAddr(y*16 + x); }
   /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int xy_addr) const { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
+  unsigned int GetSynAERAddr(unsigned int xy_addr) const                             { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
   /// Given x, y synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const { return GetSynAERAddr(x*32 + y); }
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const                   { return GetSynAERAddr(y*32 + x); }
+  /// Given flat xy_addr soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int xy_addr) const                            { return bd_pars_->soma_xy_to_aer_.at(xy_addr); }
+  /// Given x, y soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const                  { return GetSomaAERAddr(y*64 + x); }
   /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
-  unsigned int GetSomaXYAddr(unsigned int aer_addr) const { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
+  unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
+
+  /// Utility function to process spikes a little more quickly
+  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+    std::vector<unsigned int> to_return;
+    for (auto& it : aer_addrs) {
+      if (it < 4096) {
+        to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+      } else {
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << it << endl;
+      }
+    }
+    return to_return;
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -468,12 +492,12 @@ class Driver {
   /// This call allows multiple generators to be set simultaneously.
   /// <time> specifies when the SGs will be programmed (updating the output rates)
   void SetSpikeGeneratorRates(
-      unsigned int core_id,
-      std::vector<unsigned int> gen_idxs, 
-      std::vector<unsigned int> tags, 
-      std::vector<unsigned int> rates, 
-      BDTime time = 0,
-      bool flush=true);
+    unsigned int core_id,
+    const std::vector<unsigned int>& gen_idxs, 
+    const std::vector<unsigned int>& tags, 
+    const std::vector<int>& rates, 
+    BDTime time = 0,
+    bool flush = true);
 
   /// Set spike filter increment constant
   void SetSpikeFilterIncrementConst(unsigned int core_id, unsigned int increment, bool flush=true) {
@@ -551,17 +575,12 @@ class Driver {
   static const unsigned int clks_per_SG_ = 3; /// clock cycles per SG update
   unsigned int clks_per_unit_         = 1000; /// FPGA default
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
-  unsigned int us_per_unit_           = 10; /// FPGA default
-  unsigned int highest_us_sent_       = 0;
+  BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
+  BDTime highest_ns_sent_             = 0;
 
   // basis of experiment time, set when ResetFPGAClock is called
   std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
 
-  inline unsigned int GetCurrentTimeUs() const {
-    auto time_point_now = std::chrono::high_resolution_clock::now();
-    auto us_now = std::chrono::duration_cast<std::chrono::microseconds>(time_point_now - base_time_);
-    return us_now.count();
-  }
 
   /// array mapping SG generator idx -> enabled/disabled
   std::array<bool, max_num_SG_> SG_en_;
@@ -572,7 +591,8 @@ class Driver {
   }
 
   /// FPGA time units per microsecond
-  inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
+  inline uint64_t NsToUnits(BDTime   ns)    { return ns / ns_per_unit_; }
+  inline BDTime   UnitsToNs(uint64_t units) { return ns_per_unit_ * units; }
 
   /// FPGA SG_en_ max bit assigned helper
   inline unsigned int GetHighestSGEn() const {

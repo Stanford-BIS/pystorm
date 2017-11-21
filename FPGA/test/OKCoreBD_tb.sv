@@ -69,9 +69,9 @@ parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer
                                   //           host interface checks for ready (0-255)
 parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
                                   //           check that the block transfer begins (0-255)
-parameter pipeInSize = 16;         // REQUIRED: byte (must be even) length of default
+parameter pipeInSize = 32;         // REQUIRED: byte (must be even) length of default
                                   //           PipeIn; Integer 0-2^32
-parameter pipeOutSize = 16;        // REQUIRED: byte (must be even) length of default
+parameter pipeOutSize = 32;        // REQUIRED: byte (must be even) length of default
                                   //           PipeOut; Integer 0-2^32
 
 integer k;
@@ -96,6 +96,12 @@ const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register,
 
 // index into PipeIn
 int i = 0;
+
+task SendToEP(logic [7:0] ep_id, logic[23:0] data);
+  pipeInFlat[i] = {ep_id, data};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
 
 task SetReg(logic [4:0] reg_id, logic[15:0] data);
   pipeInFlat[i] = {2'b10, 1'b0, reg_id, 8'b0, data};
@@ -145,6 +151,19 @@ task SendToAllBD(int start, int num_words);
   end
 endtask
 
+const logic [7:0] gen_idx = 0;
+const logic [15:0] period_fast = 1;
+const logic [15:0] period_slow = 4;
+const logic [15:0] ticks = 0;
+const logic [10:0] tag = 0;
+const logic sign_fast = 0;
+const logic sign_slow = 1;
+
+const logic [63:0] SG_word_fast = {sign_fast, gen_idx, period_fast, ticks, tag};
+const logic [63:0] SG_word_slow = {sign_slow, gen_idx, period_slow, ticks, tag};
+
+const logic [3:0][15:0] SG_word_fast_pieces = SG_word_fast;
+const logic [3:0][15:0] SG_word_slow_pieces = SG_word_slow;
 
 // OK program
 initial begin
@@ -177,6 +196,23 @@ initial begin
   SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
+  // program SG
+  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd1}); // enable
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  #(4000)
+
+  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[3]});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+  
   //SendToBD(0, 3'b101); // ADC 
   //SendToBD(1, 11'b10101010101); // DAC0
 
@@ -199,7 +235,7 @@ initial begin
 
   forever begin
     #(1000)
-    ReadFromPipeOut(8'ha0, pipeOutSize);
+    ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
   end
 
 end
