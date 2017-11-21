@@ -133,18 +133,18 @@ def __driver_process__(cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
         _mask1 = np.full(4096, False, dtype=np.bool)
         _cnt = 0
         while _do_run:
-            #spike_data = BDDriver.RecvXYSpikesMasked(0)
-            #spike_idx = spike_data[0]
-            #spike_t = spike_data[1]
+            spike_data = BDDriver.RecvXYSpikesMasked(0)
+            spike_idx = spike_data[0]
+            spike_t = spike_data[1]
 
             t_min = _cnt * POLL_PERIOD
             t_max = t_min + POLL_PERIOD
-            spike_idx = np.zeros(4096, dtype=np.uint8)
-            spike_t = np.zeros(4096, dtype=np.float)
-            _rand = np.random.rand(4096)
-            _valid_idx = np.where(_rand > 0.9)[0]
-            spike_idx[_valid_idx] = 1
-            spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
+            #spike_idx = np.zeros(4096, dtype=np.uint8)
+            #spike_t = np.zeros(4096, dtype=np.float)
+            #_rand = np.random.rand(4096)
+            #_valid_idx = np.where(_rand > 0.9)[0]
+            #spike_idx[_valid_idx] = 1
+            #spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
 
             _decay = MAX_MAT - DECAY_AMOUNT * (t_max - spike_t) / POLL_PERIOD
 
