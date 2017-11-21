@@ -88,11 +88,11 @@ def __driver_process__(cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
         _cntrl = ""
         while _do_run:
             # Buffer to capture output and errors
-            #_redirected_output = sys.stdout = StringIO()
-            #_redirected_error = sys.stderr = StringIO()
+            _redirected_output = sys.stdout = StringIO()
+            _redirected_error = sys.stderr = StringIO()
 
-            _redirected_output = StringIO()
-            _redirected_error = StringIO()
+            #_redirected_output = StringIO()
+            #_redirected_error = StringIO()
 
             # Check the control queue
             try:
@@ -123,11 +123,11 @@ def __driver_process__(cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
                     traceback.print_exception(*_exc_info, file=_redirected_error)
                     del _exc_info
 
-            #res_q.put(_redirected_output.getvalue())
-            #err_q.put(_redirected_error.getvalue())
+            res_q.put(_redirected_output.getvalue())
+            err_q.put(_redirected_error.getvalue())
 
-            res_q.put("")
-            err_q.put("")
+            #res_q.put("")
+            #err_q.put("")
 
     def __data_loop__():
         _mask1 = np.full(4096, False, dtype=np.bool)
