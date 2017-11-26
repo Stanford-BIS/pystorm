@@ -1122,14 +1122,22 @@ void Driver::SetSpikeGeneratorRates(
 
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << endl;
+    cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << " sign " << sign << endl;
     cout << "  period : " << period << " time units" << endl;
-    cout << "  sign : " << sign << endl;
-    cout << "  starting at : " << time << " ns. There are " << ns_per_unit_ << " us per time unit" << endl;
+    cout << "  starting at : " << time << " ns" << endl << endl;
 
     SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}, {FPGASGWORD::SIGN, sign}}));
   }
-  std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
+
+  //std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
+  
+  // XXX this is a hack to avoid misordering upon sorting
+  // we have the same problem here that the serializer does
+  std::vector<BDTime> SG_prog_times;
+  for (unsigned int i = 0; i < SG_prog_words.size(); i++) {
+    SG_prog_times.push_back(time + UnitsToNs(1)); 
+  }
+
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
 
   // update generator enable states
@@ -1162,6 +1170,7 @@ void Driver::SetSpikeGeneratorRates(
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
+  //cout << "number of generators: " << highest_used + 1 << endl;
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
 
   // set number of SGs used
