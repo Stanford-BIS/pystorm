@@ -40,9 +40,10 @@ initial begin
 	data_in = 11'b01111111111;
 	#20
 	isempty = 0;
+	data_in = 11'b01111001111;
 	#30
 	isempty = 1; //test empty idling
-	#20
+	#60
 	isempty = 0;
 end
 
