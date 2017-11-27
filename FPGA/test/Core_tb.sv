@@ -6,14 +6,21 @@ module Core_tb;
 
 parameter NPCcode = 8;
 parameter NPCdata = 24;
+parameter NPCroute = 10;
 
 parameter NBDdata_in = 34;
 parameter NBDdata_out = 21;
 
+reg pReset;
+reg sReset;
+
+reg adc0;
+reg adc1;
+
 
 // PC-side
 Channel #(NPCcode + NPCdata) PC_in();
-Channel #(NPCcode + NPCdata) PC_out();
+Channel #(NPCcode + NPCdata+NPCroute) PC_out();
 
 // BD-side
 Channel #(NBDdata_out) BD_out();

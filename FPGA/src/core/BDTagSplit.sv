@@ -79,7 +79,9 @@ always_comb
 
 // handshake input
 always_comb
-  if (send_to_tag_out == 1 && send_to_other_out == 1)
+  if (send_to_global_tag == 1)
+    BD_in.a = global_tag_out.a;
+  else if (send_to_tag_out == 1 && send_to_other_out == 1)
     BD_in.a = tag_out.a & other_out.a;
   else if (send_to_tag_out == 1 && send_to_other_out == 0)
     BD_in.a = tag_out.a;
