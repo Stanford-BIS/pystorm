@@ -1,46 +1,45 @@
 //BrainDrizzle Top
 `include "InputController.sv"
 `include "allocator.sv"
+`include "interboard_input.sv"
+`include "interboard_output.sv"
 `ifdef SIMULATION
 	`include "../../quartus/routerDCFIFO.v"
 `endif
 
 
 module BrainDrizzle(
-input clk, 
+input clk,
+input reset, 
 input top_in_clk,
 input bot_in_clk,
 input BD_in_clk,
-input valid_top,
-input valid_bot,
-input valid_BD,
+input top_valid_in,
+input bot_valid_in,
+input BD_valid_in,
+input top_ready_in,
+input BD_ready_in,
+input bot_ready_in,
 input [10:0] top_in,
 input [10:0] bot_in,
 input [10:0] BD_in,
-//Will be removed after Zach is finished with inter-board handshaking
-input top_out_read,
-input	BD_out_read,
-input bot_out_read,
-input top_in_wr,
-input BD_in_wr,
-input bot_in_wr,
-output top_in_full,
-output BD_in_full,
-output bot_in_full,
-output top_out_empty,
-output BD_out_empty,
-output bot_out_empty,
-////////////////////////////////
 output [10:0] top_out,
 output [10:0] bot_out,
 output [10:0] BD_out,
-output ready_top,
-output ready_bot,
-output ready_BD,
+output top_valid_out,
+output bot_valid_out,
+output BD_valid_out,
+output top_ready_out,
+output BD_ready_out,
+output bot_ready_out,
 output top_out_clk,
 output BD_out_clk,
 output bot_out_clk
 );
+
+assign top_out_clk=clk;
+assign BD_out_clk=clk;
+assign bot_out_clk=clk;
 
 //Signals which originate from allocators
 wire top_wr;
@@ -75,12 +74,35 @@ wire bot_in_FIFO_empty;
 wire [10:0] top_in_from_FIFO;
 wire [10:0] BD_in_from_FIFO;
 wire [10:0] bot_in_from_FIFO;
-
-
+wire [7:0] top_in_wrusedw;
+wire [7:0] BD_in_wrusedw;
+wire [7:0] bot_in_wrusedw;
 //Signals which originate from output FIFOs
 wire top_out_FIFO_full;
 wire bot_out_FIFO_full;
 wire BD_out_FIFO_full;
+wire top_out_FIFO_empty;
+wire BD_out_FIFO_empty;
+wire bot_out_FIFO_empty;
+wire [10:0] top_out_from_FIFO;
+wire [10:0] BD_out_from_FIFO;
+wire [10:0] bot_out_from_FIFO;
+wire [7:0] top_out_rdusedw;
+wire [7:0] BD_out_rdusedw;
+wire [7:0] bot_out_rdusedw;
+
+//Signals which originate from input handshaker
+wire [10:0] top_to_input_FIFO;
+wire [10:0] BD_to_input_FIFO;
+wire [10:0] bot_to_input_FIFO;
+wire top_in_wr;
+wire BD_in_wr;
+wire bot_in_wr;
+
+//Signals which originate from output handshaker
+wire top_out_read;
+wire BD_out_read;
+wire bot_out_read;
 
 //3 output allocators
 
@@ -199,83 +221,172 @@ bot_data
 //	wrusedw);
 
 routerDCFIFO top_in_FIFO (
-	top_in,
+	top_to_input_FIFO,
 	clk,
 	top_read,
 	top_in_clk,
-	top_in_wr,//FILL THIS IN
+	top_in_wr,
 	top_in_from_FIFO,
 	top_in_FIFO_empty,
 	,//rdusedw not used
-	top_in_full,
-	 //FILL THIS IN
+	,//full not used
+	top_in_wrusedw
 );
 
 routerDCFIFO BD_in_FIFO (
-	BD_in,
+	BD_to_input_FIFO,
 	clk,
 	BD_read,
-	BD_in_clk,//FILL THIS IN
-	BD_in_wr,//FILL THIS IN
+	BD_in_clk,
+	BD_in_wr,
 	BD_in_from_FIFO,
 	BD_in_FIFO_empty,
 	,//rdusedw not used
-	BD_in_full,
-	 //FILL THIS IN
+	,//full not used
+	BD_in_wrusedw
 );
 
 routerDCFIFO bot_in_FIFO (
-	bot_in,
+	bot_to_input_FIFO,
 	clk,
 	bot_read,
 	bot_in_clk,
-	bot_in_wr,//FILL THIS IN
+	bot_in_wr,
 	bot_in_from_FIFO,
 	bot_in_FIFO_empty,
 	,//rdusedw not used
-	bot_in_full,
-	 //FILL THIS IN
+	,//full not used
+	bot_in_wrusedw
 );
 
 //3 output FIFOs (Same DCFIFO IP)
 routerDCFIFO top_out_FIFO (
 	top_out_to_FIFO,
-	top_in_clk,//FILL THIS IN
-	top_out_read,//FILL THIS IN
+	clk,
+	top_out_read,
 	clk,
 	top_wr,
-	top_out,
-	top_out_empty,//FILL THIS IN
-	,//FILL THIS IN
+	top_out_from_FIFO,
+	top_out_FIFO_empty,
+	top_out_rdusedw,
 	top_out_FIFO_full,
 	//wrusedw not used
 );
 
 routerDCFIFO BD_out_FIFO (
 	BD_out_to_FIFO,
-	BD_in_clk,//FILL THIS IN
-	BD_out_read,//FILL THIS IN
+	clk,
+	BD_out_read,
 	clk,
 	BD_wr,
-	BD_out,
-	BD_out_empty,//FILL THIS IN
-	,//FILL THIS IN
+	BD_out_from_FIFO,
+	BD_out_FIFO_empty,
+	BD_out_rdusedw,
 	BD_out_FIFO_full,
 	//wrusedw not used
 );
 
 routerDCFIFO bot_out_FIFO (
 	bot_out_to_FIFO,
-	bot_in_clk,//FILL THIS IN
-	bot_out_read,//FILL THIS IN
+	clk,
+	bot_out_read,
 	clk,
 	bot_wr,
-	bot_out,
-	bot_out_empty,//FILL THIS IN
-	,//FILL THIS IN
+	bot_out_from_FIFO,
+	bot_out_FIFO_empty,
+	bot_out_rdusedw,
 	bot_out_FIFO_full,
 	//wrusedw not used
 );
 
+//module interboard_input(
+//	input transmit_clk, //clock from board we're receiving input from
+//	input valid, //valid signal from the board we're recieving data from
+//	input [10:0] recieve_data, //data recieved from the other board
+//	input [7:0] wrusedw, //fifo words remaining
+//	input reset,
+//	output reg [10:0] data, //data sent to the fifo
+//	output reg wrreq, //write request for fifo
+//	output reg read, //read request for next board
+//	);
+
+interboard_input top_in_handshaker (
+	top_in_clk,
+	top_valid_in,
+	top_in,
+	top_in_wrusedw,
+	reset,
+	top_to_input_FIFO,
+	top_in_wr,
+	top_ready_out
+);
+
+interboard_input BD_in_handshaker (
+	BD_in_clk,
+	BD_valid_in,
+	BD_in,
+	BD_in_wrusedw,
+	reset,
+	BD_to_input_FIFO,
+	BD_in_wr,
+	BD_ready_out
+);
+
+interboard_input bot_in_handshaker (
+	bot_in_clk,
+	bot_valid_in,
+	bot_in,
+	bot_in_wrusedw,
+	reset,
+	bot_to_input_FIFO,
+	bot_in_wr,
+	bot_ready_out
+);
+
+
+
+//module interboard_output(
+//	input [10:0] fifo_data, //data we're reading from the fifo (q port)
+//	input read_input, //read signal from the board we're transmitting to
+//	input empty, //if read is empty
+//	input input_clk, //faster clock from this board
+//	input reset,
+//	output reg valid, //valid signal, sent to the board we're transmitting to
+//	output reg [10:0] send_data, //data sent to next board
+//	output reg rdreq //read request for dual clock fifo
+//	);
+
+interboard_output top_out_handshaker (
+	top_out_from_FIFO,
+	top_ready_in,
+	top_out_FIFO_empty,
+	clk,
+	reset,
+	top_valid_out,
+	top_out,
+	top_out_read
+);
+
+interboard_output BD_out_handshaker (
+	BD_out_from_FIFO,
+	BD_ready_in,
+	BD_out_FIFO_empty,
+	clk,
+	reset,
+	BD_valid_out,
+	BD_out,
+	BD_out_read
+);
+
+interboard_output bot_out_handshaker (
+	bot_out_from_FIFO,
+	bot_ready_in,
+	bot_out_FIFO_empty,
+	clk,
+	reset,
+	bot_valid_out,
+	bot_out,
+	bot_out_read
+);
 endmodule
 

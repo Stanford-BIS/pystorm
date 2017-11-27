@@ -122,9 +122,3 @@ begin: output_logic
 end
 
 endmodule
-						
-						
-						
-						
-	
-

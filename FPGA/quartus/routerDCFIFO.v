@@ -94,10 +94,10 @@ module routerDCFIFO (
 		dcfifo_component.lpm_width = 11,
 		dcfifo_component.lpm_widthu = 8,
 		dcfifo_component.overflow_checking = "ON",
-		dcfifo_component.rdsync_delaypipe = 4,
+		dcfifo_component.rdsync_delaypipe = 5,
 		dcfifo_component.underflow_checking = "ON",
 		dcfifo_component.use_eab = "ON",
-		dcfifo_component.wrsync_delaypipe = 4;
+		dcfifo_component.wrsync_delaypipe = 5;
 
 
 endmodule
@@ -119,7 +119,7 @@ endmodule
 // Retrieval info: PRIVATE: LegacyRREQ NUMERIC "0"
 // Retrieval info: PRIVATE: MAX_DEPTH_BY_9 NUMERIC "0"
 // Retrieval info: PRIVATE: OVERFLOW_CHECKING NUMERIC "0"
-// Retrieval info: PRIVATE: Optimize NUMERIC "0"
+// Retrieval info: PRIVATE: Optimize NUMERIC "2"
 // Retrieval info: PRIVATE: RAM_BLOCK_TYPE NUMERIC "0"
 // Retrieval info: PRIVATE: SYNTH_WRAPPER_GEN_POSTFIX STRING "0"
 // Retrieval info: PRIVATE: UNDERFLOW_CHECKING NUMERIC "0"
@@ -145,10 +145,10 @@ endmodule
 // Retrieval info: CONSTANT: LPM_WIDTH NUMERIC "11"
 // Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "8"
 // Retrieval info: CONSTANT: OVERFLOW_CHECKING STRING "ON"
-// Retrieval info: CONSTANT: RDSYNC_DELAYPIPE NUMERIC "4"
+// Retrieval info: CONSTANT: RDSYNC_DELAYPIPE NUMERIC "5"
 // Retrieval info: CONSTANT: UNDERFLOW_CHECKING STRING "ON"
 // Retrieval info: CONSTANT: USE_EAB STRING "ON"
-// Retrieval info: CONSTANT: WRSYNC_DELAYPIPE NUMERIC "4"
+// Retrieval info: CONSTANT: WRSYNC_DELAYPIPE NUMERIC "5"
 // Retrieval info: USED_PORT: data 0 0 11 0 INPUT NODEFVAL "data[10..0]"
 // Retrieval info: USED_PORT: q 0 0 11 0 OUTPUT NODEFVAL "q[10..0]"
 // Retrieval info: USED_PORT: rdclk 0 0 0 0 INPUT NODEFVAL "rdclk"

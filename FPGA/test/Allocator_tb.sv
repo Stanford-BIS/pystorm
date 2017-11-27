@@ -46,12 +46,16 @@ begin
 	#300
 	req_0 = 0;
 	
+	#200
+	req_0 = 1;
+	
 	#100
 	data_in_0[10]=1;
 	
 	#100
 	data_in_0[10]=0;
 	req_1=1;
+	req_0=0;
 	
 	#300	  
 	req_1=0;
@@ -59,8 +63,13 @@ begin
 	#300
 	req_1=1;
 	
+	#500
+	out_FIFO_full = 1;
+	
+	#400
+	out_FIFO_full = 0;
+	
 	#300
-	req_1=0;
 	
 	#400
 	data_in_1[10]=1;
@@ -80,18 +89,14 @@ begin
 	
 	#100
 	data_in_0[10]=0;
+
 	
-	#200
-	req_1=0;
-	
-	#100
-	out_FIFO_full=1;
-	
-	#500
-	out_FIFO_full=0;
-	
-	#100
+	#300
 	data_in_1[10]=1;
+	
+	#100
+	data_in_1[10]=0;
+	req_1=0;
 	
 	//#600
 	
@@ -99,13 +104,13 @@ begin
 	
 end
   
-always @ (negedge clk)
+always @ (posedge clk)
 begin
-	if (ready_0)
+	if (ready_0 && req_0)
 	begin
 		data_in_0 ={data_in_0[10], data_in_0[9:0] + 1};
 	end
-	if (ready_1)
+	if (ready_1 && req_1)
 	begin
 		data_in_1 ={data_in_1[10], data_in_1[9:0] + 1};
 	end
