@@ -31,10 +31,19 @@ end
 initial begin
 	isempty = 0;
 	data_in = 0; //wait a bit
-	#95
+	#85
 	data_in = 11'b01011011100; //test wormholes
 	#100
 	data_in = 11'b01110110101; //test non wormholes (we can just put the tail bit high on all of them
+	#60
+	isempty = 1; //test empty idling
+	data_in = 11'b01111111111;
+	#20
+	isempty = 0;
+	#30
+	isempty = 1; //test empty idling
+	#20
+	isempty = 0;
 end
 
 BZ_deserializer #(8, 24, 10) doot(.*); //thank mr skeletal
