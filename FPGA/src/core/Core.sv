@@ -13,6 +13,7 @@
 `include "PCPacker.sv"
 `include "SpikeFilterArray.sv"
 `include "TimeMgr.sv"
+`include "GlobalTagParser.sv"
 
 module Core #(
   // common parameters (in/out names relative to FPGA)
