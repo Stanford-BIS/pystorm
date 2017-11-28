@@ -127,6 +127,10 @@ class Driver {
   void ResetFPGATime();
   /// Get the most recently received upstream FPGA clock value
   BDTime GetFPGATime();
+  /// Get the most recently received upstream FPGA clock value in seconds
+  float GetFPGATimeSec(){
+      return static_cast<float>(GetFPGATime() * ns_per_clk_) * 1e-9;
+  }
   /// Returns driver (PC) time in ns
   BDTime GetDriverTime() const;
   /// Cycles BD pReset/sReset
@@ -461,13 +465,13 @@ class Driver {
     return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
 
-  /// Receive spikes stream in X-Y flat space
-  std::pair<std::vector<unsigned int>,
-            std::vector<BDTime> > RecvXYSpikes(unsigned int core_id);
+  ///// Receive spikes stream in X-Y flat space
+  //std::pair<std::vector<unsigned int>,
+  //          std::vector<BDTime> > RecvXYSpikes(unsigned int core_id);
 
   /// Receive spikes stream in X-Y flat space as masked boolean array
   std::pair<std::vector<unsigned int>,
-            std::vector<BDTime> > RecvXYSpikesMasked(unsigned int core_id);
+            std::vector<float>> RecvXYSpikesMasked(unsigned int core_id);
 
   /// Send a stream of tags
   void SendTags(

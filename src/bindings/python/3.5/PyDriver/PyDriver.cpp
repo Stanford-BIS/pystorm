@@ -353,6 +353,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("SetTimeUnitLen", &Driver::SetTimeUnitLen, "sets the FPGA time resolution (sets number of clock cycles per time unit). Also determines SG/SF update interval", py::arg("ns_per_unit"));
 		cl.def("ResetFPGATime", &Driver::ResetFPGATime, "resets FPGA clock to 0");
 		cl.def("GetFPGATime", &Driver::GetFPGATime, "get last received FPGA clock value");
+		cl.def("GetFPGATimeSec", &Driver::GetFPGATimeSec, "get last received FPGA clock value in seconds");
 
 		cl.def("ResetBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::ResetBD, "Toggles pReset/sReset");
 		cl.def("InitBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::InitBD, "Initializes hardware state\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitBD() --> void");
@@ -416,7 +417,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("RecvSpikes", &pystorm::bddriver::Driver::RecvSpikes, "Receive a stream of spikes\n\nC++: pystorm::bddriver::Driver::RecvSpikes(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
         cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
 		cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
-		cl.def("RecvXYSpikes", &pystorm::bddriver::Driver::RecvXYSpikes, "Similar to `RecvSpikes`, except the address space is flat X-Y", py::arg("core_id"));
+		//cl.def("RecvXYSpikes", &pystorm::bddriver::Driver::RecvXYSpikes, "Similar to `RecvSpikes`, except the address space is flat X-Y", py::arg("core_id"));
 		cl.def("RecvXYSpikesMasked", &pystorm::bddriver::Driver::RecvXYSpikesMasked, "Similar to `RecvXYSpikes`, but provides masked data", py::arg("core_id"));
 
     // manually added

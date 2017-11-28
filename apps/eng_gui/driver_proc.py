@@ -81,21 +81,30 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
     def __data_loop__():
         _mask1 = np.full(4096, False, dtype=np.bool)
         _cnt = 0
+        _last_time = BDDriver.GetFPGATimeSec()
         while _do_run:
-            #spike_data = BDDriver.RecvXYSpikesMasked(0)
-            #spike_idx = spike_data[0]
-            #spike_t = spike_data[1]
+            _current_time = BDDriver.GetFPGATimeSec()
+            _delta_time = _current_time - _last_time
+            _last_time = _current_time * 1.0
 
-            t_min = _cnt * POLL_PERIOD
-            t_max = t_min + POLL_PERIOD
-            spike_idx = np.zeros(4096, dtype=np.uint8)
-            spike_t = np.zeros(4096, dtype=np.float)
-            _rand = np.random.rand(4096)
-            _valid_idx = np.where(_rand > 0.9)[0]
-            spike_idx[_valid_idx] = 1
-            spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
+            spike_data = BDDriver.RecvXYSpikesMasked(0)
+            spike_idx = spike_data[0]
+            spike_t = spike_data[1]
 
-            _decay = MAX_MAT - DECAY_AMOUNT * (t_max - spike_t) / POLL_PERIOD
+            #DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / _delta_time
+            DECAY_AMOUNT = 1.0 / DECAY_PERIOD * _delta_time
+            DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
+            _decay = MAX_MAT - DECAY_AMOUNT * (_current_time - spike_t) / _delta_time
+
+            #t_min = _cnt * POLL_PERIOD
+            #t_max = t_min + POLL_PERIOD
+            #spike_idx = np.zeros(4096, dtype=np.uint8)
+            #spike_t = np.zeros(4096, dtype=np.float)
+            #_rand = np.random.rand(4096)
+            #_valid_idx = np.where(_rand > 0.9)[0]
+            #spike_idx[_valid_idx] = 1
+            #spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
+            #_decay = MAX_MAT - DECAY_AMOUNT * (t_max - spike_t) / POLL_PERIOD
 
             np.subtract(ARR_DATA, DECAY_MAT, ARR_DATA)
             np.less(ARR_DATA, DECAY_MAT, ZERO_MASK)
