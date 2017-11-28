@@ -6,6 +6,10 @@
 //forces the input which has most recently been granted the output to wait,
 //while allocating the output to the other input.
 
+//The top output can be allocated to either the bottom or Braindrop input.
+//The Braindrop output can be allocated to either the top or bottom input.
+//The bottom output can be allocated to either the the top or Braindrop input.
+//In other words, a packet must either continue in its original direction or be diverted to the braindrop. It cannot turn around.
 module allocator (
 input clk,
 input req_0,

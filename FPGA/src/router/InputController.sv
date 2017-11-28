@@ -1,8 +1,8 @@
 //Input Controller
 
 //In each router node, there is one input controller per input.
-//In controls the input FIFOs and based on the destination field
-//of the input header, request the proper output.
+//Based on the destination field in a header, it reqeusts the proper output for a message.
+//When that output is ready, it reads from the FIFO and sends packets to the requested output allocator.
 
 module InputController (
 input clk,

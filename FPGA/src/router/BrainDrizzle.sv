@@ -1,4 +1,4 @@
-//BrainDrizzle Top
+//BrainDrizzle Router Node Top
 `include "InputController.sv"
 `include "allocator.sv"
 `include "interboard_input.sv"
@@ -103,6 +103,9 @@ wire bot_in_wr;
 wire top_out_read;
 wire BD_out_read;
 wire bot_out_read;
+
+
+
 
 //3 output allocators
 
