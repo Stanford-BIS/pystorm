@@ -30,7 +30,7 @@
 
 
 module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10)(
-	Channel PC_out_channel, //output channel for the Core
+	Channel PC_out_channel, //goes to the Core
 	input isempty, //isempty signal for the fifo feeding us packets
 	input [10:0] data_in, //data from the fifo
 	output reg rdreq, //read request for fifo
