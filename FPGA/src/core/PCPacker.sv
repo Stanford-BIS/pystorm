@@ -6,7 +6,7 @@
 // the BD traffic, and the SpikeGeneratorArray traffic,
 // and inserts heartbeat events signalsed by the TimeMgr
 
-module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10) (
+module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10, parameter GO_HOME_rt = -512) (
   Channel PC_out,
 
   // BDSerializer inputs
@@ -67,8 +67,6 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCro
 //
 //      8             24
 // [ code=14 |  time_bits[47:24] ]
-
-localparam logic [NPCroute - 1 : 0] GO_HOME_rt = 0; // ADD GO HOME ROUTE
 
 // pack bits, then merge
 Channel #(NPCcode + NPCdata + NPCroute) BD_packed();

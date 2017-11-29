@@ -25,6 +25,31 @@ endgenerate
 endmodule
 
 ////////////////////////////////////////////
+// Dual clock FIFO for 32 bit channels
+// Based on BDinFIFO (yeah it's a bit wide, but i didn't wanna generate more ip :P)
+module DCChannelFIFO(
+  Channel in,
+  Channel out,
+  input wrclk, rdclk, reset);
+
+  //handshake fifo input
+  wire [33:0] data = {2'b0, in.d};
+  reg wrfull;
+  wire wrreq = in.v & ~wrfull;
+  assign in.a = in.v & ~wrfull;
+
+  //handshake fifo output
+  reg [33:0] q;
+  assign out.d = q[31:0];
+  wire rdreq = out.a;
+  reg rdempty;
+  assign out.v = ~rdempty;
+
+  BDInFIFO fifo(.*);
+
+endmodule
+
+////////////////////////////////////////////
 // N-stage circular FIFO for Channels
 // Can be used to pipeline components that communicate
 // over Channels. Breaks up long delay paths.

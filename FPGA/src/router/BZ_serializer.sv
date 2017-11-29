@@ -29,7 +29,7 @@
 
 
 module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10)(
-	Channel PC_in_channel, //channel from the PC that has data for us
+	Channel PC_in_channel, //channel from the Core that has data for us
 	input is_full, //full signal for the fifo this places stuff into
 	output reg [10:0] data_out, //data to write to fifo
 	output reg wrreq, //fifo write request

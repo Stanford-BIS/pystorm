@@ -74,8 +74,11 @@ localparam N_SG_ct = Nct;
 // FIFO depth
 localparam FIFOdepth = 4;
 
+//GO_HOME route
+localparam GO_HOME_rt = -512;
+
 // **THIS NEEDS TO BE EDITED TO ADD GLOBAL ROUTE STUFF**
-//s
+//
 // Core includes all the components that are agnostic to both BD handshaking
 // and the IO mechanism (e.g. Opal Kelly USB host module or USB IP core).
 //

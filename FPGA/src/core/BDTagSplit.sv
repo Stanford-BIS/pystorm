@@ -6,7 +6,8 @@ module BDTagSplit #(
   parameter NBDdata_in = 34,
   parameter Nglobal = 12,
   parameter Ntag = 11,
-  parameter Nct = 9) (
+  parameter Nct = 9,
+  parameter GO_HOME_rt = -512) (
 
   TagCtChannel tag_out,
   GlobalTagCtChannel global_tag_out,
@@ -17,7 +18,6 @@ module BDTagSplit #(
 
 localparam unsigned RO_ACC_code = 11;
 localparam unsigned RO_TAT_code = 12;
-localparam unsigned GO_HOME_gt = 0; // ADD GO HOME ROUTE
 
 //get global tag kinda cleanly
 logic [Nglobal - 1:0] global_tag;
@@ -33,15 +33,15 @@ assign is_tag = (BD_in.leaf_code == RO_ACC_code) | (BD_in.leaf_code == RO_TAT_co
 
 //check global tag value for go home (also check valid)
 logic send_to_global_tag;
-assign send_to_global_tag = BD_in.v & is_tag & (global_tag != GO_HOME_gt);
+assign send_to_global_tag = BD_in.v & is_tag & (global_tag != GO_HOME_rt);
 
 //use settings to determine other_out behavior
 logic send_to_other_out;
-assign send_to_other_out = BD_in.v & (is_tag & (conf.report_tags == 1) | ~is_tag);
+assign send_to_other_out = ~send_to_global_tag & BD_in.v & (is_tag & (conf.report_tags == 1) | ~is_tag);
 
 //detemine tag sending
 logic send_to_tag_out;
-assign send_to_tag_out = BD_in.v & is_tag;
+assign send_to_tag_out = ~send_to_global_tag & BD_in.v & is_tag;
 
 //send global tag to global tag out iff global tag != home
 always_comb
