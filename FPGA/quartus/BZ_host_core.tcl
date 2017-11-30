@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: BZ_host_core.tcl
-# Generated on: Wed Nov 29 17:25:39 2017
+# Generated on: Wed Nov 29 17:43:53 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -52,8 +52,6 @@ if {$make_assignments} {
 	set_global_assignment -name DEVICE_FILTER_PACKAGE UFBGA
 	set_global_assignment -name DEVICE_FILTER_PIN_COUNT 169
 	set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
-	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/BZ_host_core.sv
-	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/stack_core.sv
 	set_global_assignment -name ENABLE_OCT_DONE OFF
 	set_global_assignment -name STRATIXV_CONFIGURATION_SCHEME "PASSIVE PARALLEL X16"
 	set_global_assignment -name USE_CONFIGURATION_DEVICE OFF
@@ -74,12 +72,12 @@ if {$make_assignments} {
 	set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 	set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 	set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/BZ_host_core.sv
 	set_global_assignment -name QIP_FILE SysClkBuf.qip
 	set_global_assignment -name VERILOG_FILE okLibrary.v
 	set_global_assignment -name VERILOG_FILE okHost.v
 	set_global_assignment -name SYSTEMVERILOG_FILE okHost.sv
 	set_global_assignment -name VERILOG_FILE okEndpoints.v
-	set_global_assignment -name SYSTEMVERILOG_FILE ../src/OKCoreBD.sv
 	set_global_assignment -name SDC_FILE sys_clk.sdc
 	set_global_assignment -name SDC_FILE okHost.sdc
 	set_global_assignment -name QIP_FILE BZ_host_core_PLL.qip

@@ -37,7 +37,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 
 	//current header
 	wire [10:0] current_header;
-	assign current_header = {PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata], 1'b0};
+	assign current_header = {1'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
 
 	//store header packet
 	reg [10:0] header_packet = 11'b0;
@@ -61,7 +61,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 
 	always @(posedge clk) begin
 		if((state == 3'd0 | state == 3'd4)  & !reset) begin
-			header_packet <= {PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata], 1'b0}; //assign header packet
+			header_packet <= {1'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
 			data <= PC_in_channel.d[29:0]; //assign data
 		end
 		else if (reset) begin
@@ -76,7 +76,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 		end
 	end
 
-	always_comb
+	always @ (*) begin
 		case(state)
 			3'd0: begin
 					wrreq = 1'b0; //if we're idle, don't send a write request
@@ -112,5 +112,6 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 					PC_in_channel.a = 1'b0;
 					end
 		endcase
+	end
 
 endmodule // BZ_serializer

@@ -29,7 +29,7 @@ input [10:0] top_in,
 output [10:0] top_out,
 output top_valid_out,
 output top_ready_out,
-output top_out_clk,
+output top_out_clk
 );
 
 wire router_clk;
@@ -44,19 +44,32 @@ wire bot_out_clk;
 localparam NPCcode = 8;
 localparam NPCdata = 24;
 localparam NPCinout = NPCcode + NPCdata;
+localparam NPCroute = 10;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
 // internal clocks
 wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest of the design
 wire sys_clk; // 100 MHz clock, send to PLL to generate 200MHz clock for router node
 
+//signals for reset
+reg r1,r2,r3,r4;
+wire tail_out_reset;
+wire [10:0] top_out_router;
+assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
+
 // channels between OK ifc and core design
-Channel #(NPCinout) PC_downstream();
+Channel #(NPCinout + NPCroute) PC_downstream();
 Channel #(NPCinout) PC_upstream();
 
 // get single-ended clock
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
 
+// led control. Flashes for handshakes.
+logic [3:0] led_in;
+assign led_in[0] = PC_downstream.v;
+assign led_in[1] = 0;
+assign led_in[3] = 0;
+assign led_in[2] = PC_upstream.v;
 //Generate 200 MHz Clock for router node
 BZ_host_core_PLL BZ_host_PLL(
 	.refclk(sys_clk),
@@ -86,7 +99,7 @@ ok_ifc(
 
 BrainDrizzle router_node (
  .clk				(router_clk),
- .reset			(reset),
+ .reset			(user_reset),
  .top_in_clk	(top_in_clk),
  .bot_in_clk	(router_clk),
  .BD_in_clk		(0),//No BD
@@ -99,7 +112,7 @@ BrainDrizzle router_node (
  .top_in			(top_in),
  .bot_in			(bot_in),
  .BD_in			(0),//No BD
- .top_out		(top_out),
+ .top_out		(top_out_router),
  .bot_out		(bot_out),
  .BD_out			(),//No BD
  .top_valid_out(top_valid_out),
@@ -119,7 +132,7 @@ BZ_deserializer deserializer (
 	.data_in(bot_out), //data from the fifo
 	.rdreq(bot_ready_in), //read request for fifo
 	.clk(bot_out_clk),
-	.reset(reset)
+	.reset(user_reset)
 );
 BZ_serializer serializer (
 	.PC_in_channel(PC_downstream), //channel from the PC that has data for us
@@ -127,5 +140,18 @@ BZ_serializer serializer (
 	.data_out(bot_in), //data to write to fifo
 	.wrreq(bot_valid_in), //fifo write request
 	.clk(router_clk),
-	.reset(reset)
+	.reset(user_reset)
 );
+
+
+//sending reset to boards above
+always @ (posedge router_clk) begin
+	r1<=user_reset;
+	r2<=r1;
+	r3<=r2;
+	r4<=r3;
+end
+
+assign tail_out_reset=r1|r2|r3|r4;
+
+endmodule

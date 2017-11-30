@@ -45,7 +45,7 @@ always @ (posedge clk) begin
 end
 
 //Next State combinational logic
-always @ (state or tail or empty or dest or ready_0 or ready_1)
+always @ (state or tail or empty_ff or dest or ready_0 or ready_1)
 begin : next_state_logic
 	next_state = state;
 	case(state)		

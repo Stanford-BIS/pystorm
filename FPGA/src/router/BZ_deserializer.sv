@@ -100,7 +100,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 		endcase
 	end
 
-	always_comb
+	always @ (*) begin
 		case(state)
 			3'd0: begin
 				rdreq = !isempty; 
@@ -120,7 +120,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			3'd3: begin
 				rdreq = 1;
 				PC_out_channel.v = 0;
-				tail_bit <= data_in[10]; //get tail bit
+				tail_bit = data_in[10]; //get tail bit
 			end
 
 			3'd4, 3'd5: begin
@@ -132,7 +132,13 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 				rdreq = 0;
 				PC_out_channel.v = 0;
 			end
+			
+			default: begin
+				rdreq = 0;
+				PC_out_channel.v = 0;
+			end
 
 		endcase
+	end
 	
 endmodule // BZ_deserializer

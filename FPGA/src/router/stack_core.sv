@@ -2,8 +2,9 @@
 `include "BrainDrizzle.sv"
 `include "BZ_deserializer.sv"
 `include "BZ_serializer.sv"
-`include "../core/core.sv"
+`include "../core/Core.sv"
 `include "tail_bit_reset.sv"
+`include "../BD/BDIfc.sv"
 `ifdef SIMULATION
 	`include "../../quartus/stack_BDIO_PLL.v"
 `endif
@@ -24,7 +25,7 @@ input [33:0]        BD_in_data,
 output logic        pReset,
 output logic        sReset,
 input               adc0,
-input               adc1
+input               adc1,
 //BrainDrizzle Router Signals
 input top_in_clk,
 input bot_in_clk,
@@ -65,6 +66,7 @@ assign BD_in_valid = ~_BD_in_valid;
 
 localparam NPCcode = 8;
 localparam NPCdata = 24;
+localparam NPCroute= 10;
 localparam NPCinout = NPCcode + NPCdata;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
@@ -87,7 +89,7 @@ assign BD_out_clk_ifc=skewed_BD_clk;
 
 // channels between OK ifc and core design
 Channel #(NPCinout) PC_downstream();
-Channel #(NPCinout) PC_upstream();
+Channel #(NPCinout + NPCroute) PC_upstream();
 
 // channels between core design and BD ifc
 Channel #(NBDin) BD_downstream();
@@ -170,7 +172,7 @@ Core core(
   );
 
 //ADD NEW BDCLKGEN WHICH TAKES IN 50 MHz and generates 200 MHz, 100MHz, and 2 BD clks
-stack_BDIO_PLL (
+stack_BDIO_PLL stack_clockgen(
 	.areset	(reset),//NEW RESET STUFF
 	.inclk0	(osc),
 	.c0		(base_BD_clk),
@@ -195,3 +197,5 @@ BDIfc BD_ifc(
   .BD_out_clk_int(BD_out_clk_int),
   .reset(reset)//NEW RESET STUFF
 );
+
+endmodule
