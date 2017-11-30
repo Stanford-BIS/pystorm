@@ -31,7 +31,7 @@ always @(posedge input_clk) begin
 		send_data <=0;
 	end
 	else begin
-		send_data <= fifo_data;
+		send_data <= fifo_data && valid_ff;
 		if(~empty & read_input)begin
 			//
 			rdreq <= 1;

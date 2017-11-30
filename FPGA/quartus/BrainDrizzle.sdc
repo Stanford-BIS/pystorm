@@ -39,10 +39,10 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
-create_clock -name {clk} -period 5.00 -waveform { 0.000 2.500 } [get_ports {clk}]
-create_clock -name {top_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {top_in_clk}]
-create_clock -name {BD_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {BD_in_clk}]
-create_clock -name {bot_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {bot_in_clk}]
+create_clock -name {clk} -period 4.9 -waveform { 0.000 2.4500 } [get_ports {clk}]
+create_clock -name {top_in_clk} -period 4.9 -waveform { 0.000 2.4500 } [get_ports {top_in_clk}]
+create_clock -name {BD_in_clk} -period 4.9 -waveform { 0.000 2.4500 } [get_ports {BD_in_clk}]
+create_clock -name {bot_in_clk} -period 4.9 -waveform { 0.000 2.450 } [get_ports {bot_in_clk}]
 
 
 #**************************************************************
