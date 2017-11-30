@@ -59,7 +59,7 @@ initial begin
   @(posedge clk) reset <= 0;
 end
 
-DCChannelFIFO input_channel_fifo(Des_out, PC_in, clk, clk, reset);
+DCChannelFIFO32 input_channel_fifo(Des_out, PC_in, clk, clk, reset);
 
 routerDCFIFO input_fifo (
 	.data	(data),
@@ -74,7 +74,7 @@ routerDCFIFO input_fifo (
 	.wrusedw	()
 	);
 
-DCChannelFIFO output_channel_fifo(PC_out, Ser_in, clk, clk, reset);
+DCChannelFIFO42 output_channel_fifo(PC_out, Ser_in, clk, clk, reset);
 
 routerDCFIFO output_fifo (
 	.data	(data_out),

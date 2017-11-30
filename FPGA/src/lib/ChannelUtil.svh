@@ -27,7 +27,7 @@ endmodule
 ////////////////////////////////////////////
 // Dual clock FIFO for 32 bit channels
 // Based on BDinFIFO (yeah it's a bit wide, but i didn't wanna generate more ip :P)
-module DCChannelFIFO(
+module DCChannelFIFO32(
   Channel in,
   Channel out,
   input wrclk, rdclk, reset);
@@ -46,6 +46,31 @@ module DCChannelFIFO(
   assign out.v = ~rdempty;
 
   BDInFIFO fifo(.*);
+
+endmodule
+
+////////////////////////////////////////////
+// Dual clock FIFO for 32 bit channels
+// Based on DCChannelFifo_internal
+module DCChannelFIFO42(
+  Channel in,
+  Channel out,
+  input wrclk, rdclk, reset);
+
+  //handshake fifo input
+  wire [47:0] data = {6'b0, in.d};
+  reg wrfull;
+  wire wrreq = in.v & ~wrfull;
+  assign in.a = in.v & ~wrfull;
+
+  //handshake fifo output
+  reg [47:0] q;
+  assign out.d = q[41:0];
+  wire rdreq = out.a;
+  reg rdempty;
+  assign out.v = ~rdempty;
+
+  Internal_DC_Channel_FIFO fifo(.*);
 
 endmodule
 
