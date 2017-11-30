@@ -69,7 +69,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 		case(state)
 			3'd1: begin
 				if (!isempty) begin
-					to_transmit[29:20] <= data_in[10:1];
+					to_transmit[29:20] <= data_in[9:0];
 				end
 				else begin
 					to_transmit[29:0] <= to_transmit[29:0];
@@ -78,7 +78,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 
 			3'd2: begin
 				if (!isempty) begin
-					to_transmit[19:10] <= data_in[10:1];
+					to_transmit[19:10] <= data_in[9:0];
 				end
 				else begin
 					to_transmit[29:0] <= to_transmit[29:0];
@@ -87,7 +87,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 
 			3'd3: begin
 				if (!isempty) begin
-					to_transmit[9:0] <= data_in[10:1];
+					to_transmit[9:0] <= data_in[9:0];
 				end
 				else begin
 					to_transmit[29:0] <= to_transmit[29:0];
@@ -120,7 +120,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			3'd3: begin
 				rdreq = 1;
 				PC_out_channel.v = 0;
-				tail_bit <= data_in[0]; //get tail bit
+				tail_bit <= data_in[10]; //get tail bit
 			end
 
 			3'd4, 3'd5: begin

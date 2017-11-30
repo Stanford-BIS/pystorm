@@ -91,23 +91,23 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 
 			3'd2: begin
 					wrreq = !is_full;
-					data_out = {data[29:20], 1'b0}; //data 1
+					data_out = {1'b0, data[29:20]}; //data 1
 					PC_in_channel.a = !is_full; //ack
 					end
 
 			3'd3: begin
 					wrreq = !is_full;
-					data_out = {data[19:10], 1'b0}; //data 2
+					data_out = {1'b0, data[19:10]}; //data 2
 					PC_in_channel.a = 1'b0;
 					end
 
 			3'd4: begin
 					wrreq = !is_full;
 					if (PC_in_channel.v & (header_packet == current_header)) begin
-						data_out = {data[9:0], 1'b0}; //data 3, no tail
+						data_out = {1'b0, data[9:0]}; //data 3, no tail
 					end
 					else begin
-						data_out = {data[9:0], 1'b1}; //data 3, yes tail
+						data_out = {1'b1, data[9:0]}; //data 3, yes tail
 					end
 					PC_in_channel.a = 1'b0;
 					end
