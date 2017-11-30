@@ -45,7 +45,14 @@ module DCChannelFIFO32(
   reg rdempty;
   assign out.v = ~rdempty;
 
-  BDInFIFO fifo(.*);
+  BDInFIFO fifo(
+    .data   (data),
+    .rdclk  (rdclk),
+    .rdreq  (rdreq),
+    .wrclk  (wrclk),
+    .wrreq  (wrreq),
+    .q      (q),
+    .rdempty(rdempty));
 
 endmodule
 
@@ -70,7 +77,14 @@ module DCChannelFIFO42(
   reg rdempty;
   assign out.v = ~rdempty;
 
-  Internal_DC_Channel_FIFO fifo(.*);
+  Internal_DC_Channel_FIFO fifo(
+    .data   (data),
+    .rdclk  (rdclk),
+    .rdreq  (rdreq),
+    .wrclk  (wrclk),
+    .wrreq  (wrreq),
+    .q      (q),
+    .rdempty(rdempty));
 
 endmodule
 
