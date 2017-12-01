@@ -1,0 +1,1110 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 d/home/me/brainstorm/pystorm/FPGA/quartus
+vBDDecoder
+Z1 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z2 !s110 1511814825
+!i10b 1
+!s100 @a93IS[igceY8izYDlz:_2
+IBG`_e:SS;1dQYe;4dNQ8E3
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+Z4 !s105 Core_sv_unit
+S1
+R0
+Z5 w1509516591
+Z6 8/home/me/brainstorm/pystorm/FPGA/src/core/BDDecoder.sv
+Z7 F/home/me/brainstorm/pystorm/FPGA/src/core/BDDecoder.sv
+L0 227
+Z8 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z9 !s108 1511814825.000000
+Z10 !s107 /home/me/brainstorm/pystorm/FPGA/src/core/GlobalTagParser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/TimeUnitPulser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/TimeMgr.sv|/home/me/brainstorm/pystorm/FPGA/src/core/SpikeFilterArray.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCPacker.sv|/home/me/brainstorm/pystorm/FPGA/src/core/FPGASerializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDTagMerge.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDDecoder.sv|/home/me/brainstorm/pystorm/FPGA/src/core/SpikeGeneratorArray.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCParser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/Deserializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCMapper.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDTagSplit.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDSerializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/Serializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDEncoder.sv|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Interfaces.svh|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/ChannelUtil.svh|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Channel.svh|/home/me/brainstorm/pystorm/FPGA/src/core/Core.sv|
+Z11 !s90 -reportprogress|300|-work|work|/home/me/brainstorm/pystorm/FPGA/src/core/Core.sv|
+!i113 1
+Z12 o-work work
+Z13 tCvgOpt 0
+n@b@d@decoder
+vBDEncoder
+R1
+R2
+!i10b 1
+!s100 ``FzbZIElXzdSMS?El:i?3
+IIlIXRfDiJV2>a?7jFzUQj2
+R3
+R4
+S1
+R0
+R5
+Z14 8/home/me/brainstorm/pystorm/FPGA/src/core/BDEncoder.sv
+Z15 F/home/me/brainstorm/pystorm/FPGA/src/core/BDEncoder.sv
+L0 422
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@encoder
+vBDFunnelEncoder
+R1
+R2
+!i10b 1
+!s100 XCoCCAOUW?EDgPfo`=S7S2
+I884CVH@[Ya?RamRi`iIdi3
+R3
+R4
+S1
+R0
+R5
+R14
+R15
+L0 272
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@funnel@encoder
+vBDFunnelSerializer
+R1
+R2
+!i10b 1
+!s100 UP:9>fV9m<HBQ<d_3fKe]0
+ITNXAhnb@9jCUV<J[Shk:83
+R3
+R4
+S1
+R0
+R5
+R14
+R15
+L0 54
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@funnel@serializer
+vBDHornDecoder
+R1
+R2
+!i10b 1
+!s100 d0Zkf0YD[Nc?IKTQX^ioj0
+Il<5=O:@6jQILk1m140moJ2
+R3
+R4
+S1
+R0
+R5
+R6
+R7
+L0 32
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@horn@decoder
+vBDHornDeserializer
+R1
+R2
+!i10b 1
+!s100 [lG1N8g=eD^PlM<ZKD2=:2
+I9LJgMcPPJOeRaOm5kn<101
+R3
+R4
+S1
+R0
+R5
+R6
+R7
+L0 161
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@horn@deserializer
+YBDIOConf
+R1
+R2
+!i10b 1
+!s100 :P:;UZg35>MCiVK?lDlfl3
+IjlUG0Eg3QMWUMH^3H<7C>1
+R3
+R4
+S1
+R0
+Z16 w1510358072
+Z17 8/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Interfaces.svh
+Z18 F/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Interfaces.svh
+L0 29
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@i@o@conf
+vBDSerializer
+R1
+R2
+!i10b 1
+!s100 fof`hcK7JAE;CZQA0zLfL3
+IDdb_2IXMeITPAfONn^DIF2
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/BDSerializer.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/BDSerializer.sv
+L0 4
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@serializer
+vBDTagMerge
+R1
+R2
+!i10b 1
+!s100 PnBVj=:O>PzQN=eX5fVX>1
+I8oFOX^NHhVIEL;<U3Edb00
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/BDTagMerge.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/BDTagMerge.sv
+L0 5
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@tag@merge
+vBDTagSplit
+R1
+R2
+!i10b 1
+!s100 dOEiUmJ@Ia_9kKQ4KMbMQ1
+IJjVC37[i=6]GNN^g2aKEl2
+R3
+R4
+S1
+R0
+w1510340742
+8/home/me/brainstorm/pystorm/FPGA/src/core/BDTagSplit.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/BDTagSplit.sv
+L0 5
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@b@d@tag@split
+YChannel
+R1
+R2
+!i10b 1
+!s100 RL4DB@Tho7bH4Yb^oLnEf0
+IQaomnaT9mWfoB?hL:TYH93
+R3
+R4
+S1
+R0
+R5
+Z19 8/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Channel.svh
+Z20 F/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Channel.svh
+L0 103
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel
+YChannelArray
+R1
+R2
+!i10b 1
+!s100 Hk9ePXgl>dfz93:?W_ZEA0
+IFU4<b32c<PE4@FcTgo;Ae2
+R3
+R4
+S1
+R0
+R5
+R19
+R20
+L0 112
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel@array
+vChannelFIFO
+R1
+R2
+!i10b 1
+!s100 HdjPg^FHEWg5YzGT`cW1J2
+I>;H9AS[cPT_X[=E3c_T:S3
+R3
+R4
+S1
+R0
+R5
+Z21 8/home/me/brainstorm/pystorm/FPGA/src/core/../lib/ChannelUtil.svh
+Z22 F/home/me/brainstorm/pystorm/FPGA/src/core/../lib/ChannelUtil.svh
+L0 31
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel@f@i@f@o
+vChannelMerge
+R1
+R2
+!i10b 1
+!s100 <[F;OoRAKO@NLaPzZ35?Q0
+I[8AdM0JLoRBW>GG0nK3N23
+R3
+R4
+S1
+R0
+R5
+R21
+R22
+L0 122
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel@merge
+vChannelSplit
+R1
+R2
+!i10b 1
+!s100 `WZGDY><BT:Y^nHC1H21^1
+I41VURgc<gd`K<MfJ^3b:_3
+R3
+R4
+S1
+R0
+R5
+R21
+R22
+L0 160
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel@split
+vChannelStaller
+R1
+R2
+!i10b 1
+!s100 KbbMc08jbjahcTS=HkVnI1
+I2<WVWzX:QV1=OSB[U>O_J1
+R3
+R4
+S1
+R0
+R5
+R21
+R22
+L0 106
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@channel@staller
+vCore
+R1
+R2
+!i10b 1
+!s100 dX0h;C_=OmRBIdMd03QE?0
+I3a4ZPO`G@>F4S=c@eZ=DQ1
+R3
+R4
+S1
+R0
+w1511813616
+8/home/me/brainstorm/pystorm/FPGA/src/core/Core.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/Core.sv
+Z23 L0 18
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@core
+vCoreTestHarness
+R1
+!s110 1511814813
+!i10b 1
+!s100 e1NdK7O_E^@HWkPT1::8O1
+I]K0GUHQYNYn7jjN4MN28W1
+R3
+!s105 CoreTestHarness_sv_unit
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/CoreTestHarness.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/CoreTestHarness.sv
+L0 5
+R8
+r1
+!s85 0
+31
+!s108 1511814813.000000
+!s107 /home/me/brainstorm/pystorm/FPGA/src/core/GlobalTagParser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/TimeUnitPulser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/TimeMgr.sv|/home/me/brainstorm/pystorm/FPGA/src/core/SpikeFilterArray.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCPacker.sv|/home/me/brainstorm/pystorm/FPGA/src/core/FPGASerializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDTagMerge.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDDecoder.sv|/home/me/brainstorm/pystorm/FPGA/src/core/SpikeGeneratorArray.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCParser.sv|/home/me/brainstorm/pystorm/FPGA/src/core/Deserializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/PCMapper.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDTagSplit.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDSerializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/Serializer.sv|/home/me/brainstorm/pystorm/FPGA/src/core/BDEncoder.sv|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Interfaces.svh|/home/me/brainstorm/pystorm/FPGA/src/core/Core.sv|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/ChannelUtil.svh|/home/me/brainstorm/pystorm/FPGA/src/core/../lib/Channel.svh|/home/me/brainstorm/pystorm/FPGA/src/core/CoreTestHarness.sv|
+!s90 -reportprogress|300|-work|work|/home/me/brainstorm/pystorm/FPGA/src/core/CoreTestHarness.sv|
+!i113 1
+R12
+R13
+n@core@test@harness
+YDatalessChannel
+R1
+R2
+!i10b 1
+!s100 A]f;3AK?<J6oWL4IgdATY2
+I:[ZVj9<KNcLU^YR[m?kPA1
+R3
+R4
+S1
+R0
+R5
+R19
+R20
+L0 120
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@dataless@channel
+YDecodedBDWordChannel
+R1
+R2
+!i10b 1
+!s100 [94;5FUWQeb05>WXF7^521
+IIGzecnm]dmK>2o@AWW2:n2
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 73
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@decoded@b@d@word@channel
+vDeserializer
+R1
+R2
+!i10b 1
+!s100 Kz^0ze2d99>z:4h3<32O`2
+IKZZDRZH>?kncODA@SfI<23
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/Deserializer.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/Deserializer.sv
+L0 6
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@deserializer
+vFPGASerializer
+R1
+R2
+!i10b 1
+!s100 8RaPGza2T>oD9XUa5lYz93
+IG?]b_e?if5S:56gDX6ccC1
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/FPGASerializer.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/FPGASerializer.sv
+L0 6
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@f@p@g@a@serializer
+YGlobalTagCtChannel
+R1
+R2
+!i10b 1
+!s100 I[Gh^gmCILMAOMf[Zf9Vi1
+IcCMN=B@RDjH5Uc5]Y<i1<1
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 42
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@global@tag@ct@channel
+vGlobalTagParser
+R1
+R2
+!i10b 1
+!s100 KiPX^II>=mUR2B6SI2lPo2
+II6mJ^NjQMTCBZ<8hn^BNG2
+R3
+R4
+S1
+R0
+w1510358126
+8/home/me/brainstorm/pystorm/FPGA/src/core/GlobalTagParser.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/GlobalTagParser.sv
+L0 6
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@global@tag@parser
+vPCMapper
+R1
+R2
+!i10b 1
+!s100 ]AO<Wzj9N45NMCc:zgaLB0
+IlEAf?@Xk6[^Ha?5GnXmER2
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/PCMapper.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/PCMapper.sv
+L0 6
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@p@c@mapper
+vPCPacker
+R1
+R2
+!i10b 1
+!s100 agX<GJfbjU;3SnBCIO42:0
+IPEzfFz3mhgj6EX3Me]2:03
+R3
+R4
+S1
+R0
+w1510358132
+8/home/me/brainstorm/pystorm/FPGA/src/core/PCPacker.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/PCPacker.sv
+L0 9
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@p@c@packer
+vPCParser
+R1
+R2
+!i10b 1
+!s100 jYn0g_S_0nmP5>aF08WgZ1
+I@OSi4I`m4UkQ41_We[Az@1
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/PCParser.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/PCParser.sv
+L0 5
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@p@c@parser
+vPulseToChannel
+R1
+R2
+!i10b 1
+!s100 nf?]zfOIeNl2_D[mezk5b2
+IdTW8`@fCYOXiBRaF;Mzha3
+R3
+R4
+S1
+R0
+R5
+R21
+R22
+L0 177
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@pulse@to@channel
+YSerializedPCWordChannel
+R1
+R2
+!i10b 1
+!s100 ^^jo[obGVXn<N^;_X@<Vb2
+IFK=CeH_S6dOdiG:b?jdVe2
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 80
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@serialized@p@c@word@channel
+YSerializedPCWordChannelwithRoute
+R1
+R2
+!i10b 1
+!s100 LZYUVe0F0NY3P90hAzX]X2
+IHzOjERoQbQVDc[>2TgaB@1
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 87
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@serialized@p@c@word@channelwith@route
+vSerializer
+R1
+R2
+!i10b 1
+!s100 1dkWOb4ML[`jVCC4zn?W61
+I7i@<DM_@P^@I2<OHPZ6>>3
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/Serializer.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/Serializer.sv
+L0 6
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@serializer
+vSpikeFilterArray
+R1
+R2
+!i10b 1
+!s100 a@@5IG[C_Z2^zgK`DRC011
+Il?^UIVJQMQ3g]7_gSM9ZX0
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/SpikeFilterArray.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/SpikeFilterArray.sv
+L0 11
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@filter@array
+YSpikeFilterConf
+R1
+R2
+!i10b 1
+!s100 7Gj?bg1:1LPEUA>4UeD:b2
+IOISoXEJ0cd692agH>Z?5J0
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 7
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@filter@conf
+YSpikeFilterOutputChannel
+R1
+R2
+!i10b 1
+!s100 gnaJk:c`MA[F7BA>e00z>2
+ILcg6>z0=TDO5]oNHP<[Ok3
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 50
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@filter@output@channel
+vSpikeGeneratorArray
+R1
+R2
+!i10b 1
+!s100 eN^?lNK[mZZ4NKzz9>4Z;1
+I<mm3UL82]F=j<ST^H@9G@1
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/SpikeGeneratorArray.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/SpikeGeneratorArray.sv
+Z24 L0 13
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@generator@array
+YSpikeGeneratorConf
+R1
+R2
+!i10b 1
+!s100 CX]1k^YhP_>?c]Za[kbeL3
+IY[33gh7WUmbd;k:IEWH6V1
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+R24
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@generator@conf
+YSpikeGeneratorProgChannel
+R1
+R2
+!i10b 1
+!s100 jNXmW0=N>1g[f?@bNX2V81
+Ib08_;mn]A6Cmd_83NmU452
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 57
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@spike@generator@prog@channel
+YTagCtChannel
+R1
+R2
+!i10b 1
+!s100 5lTNINFIzTVV3jNNVD0C10
+Im=]2eA`c<JjA=E[_ejadg3
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 35
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@tag@ct@channel
+YTagSplitConf
+R1
+R2
+!i10b 1
+!s100 Tn[A6]ZYBJkcHG=JCo_VM0
+IJXM6h3Z9JZ?A05zQRam<l1
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 25
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@tag@split@conf
+vTimeMgr
+R1
+R2
+!i10b 1
+!s100 b2zzJ`L4jQ5bzVXPDF1QP3
+ISdH@DF1ZC5z?NY9?_bFHi0
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/TimeMgr.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/TimeMgr.sv
+L0 10
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@time@mgr
+YTimeMgrConf
+R1
+R2
+!i10b 1
+!s100 PIQ5ICAZ=J9n1810[K=[X1
+IiBW[9ajbLcOQkOWje2[473
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+R23
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@time@mgr@conf
+vTimeUnitPulser
+R1
+R2
+!i10b 1
+!s100 828Y_OYlR4Xk[o=fc=MQ62
+IWS2GA:NIPG:6oB8njFCAO1
+R3
+R4
+S1
+R0
+R5
+8/home/me/brainstorm/pystorm/FPGA/src/core/TimeUnitPulser.sv
+F/home/me/brainstorm/pystorm/FPGA/src/core/TimeUnitPulser.sv
+L0 2
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@time@unit@pulser
+YUnencodedBDWordChannel
+R1
+R2
+!i10b 1
+!s100 TlOI5Dzd8=]RY?UP73XY^3
+I7U?`lVCZ6^@09Q:9zzZ<g2
+R3
+R4
+S1
+R0
+R16
+R17
+R18
+L0 66
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@unencoded@b@d@word@channel
+vUnpackChannelArray
+R1
+R2
+!i10b 1
+!s100 4mAZ2^OJ1CU@TU4SbF4g<1
+IUngMacPiiaGiSeFBn5MO>2
+R3
+R4
+S1
+R0
+R5
+R21
+R22
+L0 14
+R8
+r1
+!s85 0
+31
+R9
+R10
+R11
+!i113 1
+R12
+R13
+n@unpack@channel@array
