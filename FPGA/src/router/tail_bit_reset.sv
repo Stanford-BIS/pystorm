@@ -14,11 +14,12 @@ module tail_bit_reset(
 	);
 
 reg int1, int2, int3; //intermediate input signals
-assign mid = tail_bit & int1 & int2 & int3; //reset is high if all of these are high
+assign mid = int1 & int2 & int3; //reset is high if all of these are high
+
+reg sc1, sc2, sc3; //sync (totally not brute force, this is very nuanced)
 
 reg out1, out2, out3; //intermediate output signals
-assign next_tail_bit = mid | out1 | out2 | out3; //next tail bit is held high
-assign reset = next_tail_bit; //hold reset high too
+
 
 //input ffs
 always @(posedge below_clk) begin
@@ -29,9 +30,14 @@ end
 
 //output ffs
 always @(posedge our_clk) begin
-	out1 <= mid;
+	sc1 <= mid;
+	sc2 <= sc1;
+	sc3 <= sc2;
+	out1 <= sc3;
 	out2 <= out1;
 	out3 <= out2;
+	next_tail_bit <= out1 | out2 | out3; //next tail bit is held high
+	reset <= next_tail_bit; //hold reset high too
 end
 
 endmodule // tail_bit_reset
