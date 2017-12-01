@@ -36,8 +36,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	output reg rdreq, //read request for fifo
 	input clk, reset);
 
-	//reg for tail bit
-	reg tail_bit = 1'b0;
+	wire tail_bit = data_in[10]; //get tail bit
 
 	//FSM States: i'll write this up once i fix it
 	reg [2:0] state = 3'b0;
@@ -100,6 +99,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 		endcase
 	end
 
+
 	always @ (*) begin
 		case(state)
 			3'd0: begin
@@ -120,7 +120,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			3'd3: begin
 				rdreq = 1;
 				PC_out_channel.v = 0;
-				tail_bit = data_in[10]; //get tail bit
+				
 			end
 
 			3'd4, 3'd5: begin
