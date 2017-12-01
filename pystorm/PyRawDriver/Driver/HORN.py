@@ -63,7 +63,11 @@ def __create_input_word__(horn_route, payload):
     if _payload > int(''.join(['1' for idx in range(_payload_len)]), 2):
         raise AssertionError("Payload '%d' exceeds allowed bit length of '%d'" % (_payload, _payload_len))
 
-    input_word = ("{0:0%db}" % _x_len).format(0) + ("{0:0%db}" % _payload_len).format(_payload) + _route
+    if _x_len > 0:
+        input_word = ("{0:0%db}" % _x_len).format(0) + ("{0:0%db}" % _payload_len).format(_payload) + _route
+    else:
+        input_word = ("{0:0%db}" % _payload_len).format(_payload) + _route
+
     return input_word
 
 

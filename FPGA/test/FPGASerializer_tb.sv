@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/FPGASerializer.sv"
+`include "../src/core/FPGASerializer.sv"
 `include "ChannelSrcSink.sv"
 
 module FPGASerializer_tb;

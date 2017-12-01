@@ -1,8 +1,8 @@
-`include "Channel.svh"
-`include "Core.sv"
-`include "OKIfc.sv"
-`include "BDIfc.sv"
-`include "BDClkGen.sv"
+`include "lib/Channel.svh"
+`include "core/Core.sv"
+`include "OK/OKIfc.sv"
+`include "BD/BDIfc.sv"
+`include "BD/BDClkGen.sv"
 // for quartus, we add external IP to the project
 `ifdef SIMULATION
   `include "../quartus/SysClkBuf.v"

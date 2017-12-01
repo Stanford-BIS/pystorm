@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/TimeUnitPulser.sv"
+`include "../src/core/TimeUnitPulser.sv"
 `include "ChannelSrcSink.sv"
 
 module TimeUnitPulser_tb;

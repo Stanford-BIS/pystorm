@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/SpikeFilterArray.sv"
+`include "../src/core/SpikeFilterArray.sv"
 `include "ChannelSrcSink.sv"
 
 module SpikeFilterArray_tb;

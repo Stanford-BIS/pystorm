@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/BDIfc.sv"
+`include "../src/BD/BDIfc.sv"
 `include "ChannelSrcSink.sv"
 
 module BDIfc_tb;

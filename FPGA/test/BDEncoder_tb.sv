@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/BDEncoder.sv"
+`include "../src/core/BDEncoder.sv"
 `include "ChannelSrcSink.sv"
 
 `timescale 1ns / 1ps

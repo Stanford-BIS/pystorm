@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/BDSerializer.sv"
+`include "../src/core/BDSerializer.sv"
 `include "ChannelSrcSink.sv"
 
 module BDSerializer_tb;
