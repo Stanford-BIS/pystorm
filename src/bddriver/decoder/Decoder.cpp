@@ -19,8 +19,6 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
-static const unsigned int READ_SIZE = 512 * 256;
-
 void Decoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
@@ -44,19 +42,17 @@ void Decoder::RunOnce() {
 
 std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
-  const unsigned int BYTES_PER_WORD = 4;
-
   if (input->size() % BYTES_PER_WORD != 0) {
     cout << "ERROR: Decoder::Decode: received non-multiple of 4 number of inputs. Stopping." << endl;
     Stop();
   }
 
-  const unsigned int READ_BLOCK_SIZE = 1024; // XXX shouldn't hardcode this, should get from Comm
   unsigned int num_blocks = input->size() % READ_BLOCK_SIZE == 0 ? input->size() / READ_BLOCK_SIZE : input->size() / READ_BLOCK_SIZE + 1;
   assert(READ_BLOCK_SIZE % BYTES_PER_WORD == 0);
+  assert(input->size() % READ_BLOCK_SIZE == 0);
 
   bool had_nop = false; // we want to see some nops before the end, otherwise the USB may have held up BD
-  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> outputs;
+  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> outputs; // XXX I don't like that we create this every decode
 
   DecInput * raw_data = input->data();
 
@@ -64,7 +60,6 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
   for (unsigned int block_idx = 0; block_idx < num_blocks; block_idx++) {
     unsigned int start = block_idx * READ_BLOCK_SIZE;
     unsigned int end   = (block_idx + 1) * READ_BLOCK_SIZE;
-    end = end > input->size() ? end : input->size();
 
     for (unsigned int word_idx = start; word_idx < end; word_idx += BYTES_PER_WORD) { // iterating by 4!!
 
@@ -99,6 +94,7 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       // ignore queue counts (first word of each block)
       if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::DS_QUEUE_CT)) {
         // pass
+
       // break on nop
       } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
         had_nop = true;

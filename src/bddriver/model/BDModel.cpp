@@ -1,4 +1,5 @@
 #include "BDModel.h"
+#include "decoder/Decoder.h"
 
 #include <vector>
 #include <array>
@@ -23,6 +24,7 @@ BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* dr
 BDModel::~BDModel() { delete state_; }
 
 void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
+  //cout << "in ParseInput" << endl;
 
   std::unique_lock<std::mutex>(mutex_);
 
@@ -62,6 +64,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
 
 
 std::vector<uint8_t> BDModel::GenerateOutputs() {
+  //cout << "in GenerateOutputs" << endl;
 
   std::unique_lock<std::mutex>(mutex_);
 
@@ -87,6 +90,16 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
     }
   }
 
+  const unsigned int kWordsPerBlock = Decoder::READ_BLOCK_SIZE/Decoder::BYTES_PER_WORD;
+  const unsigned int words_in_block = FPGA_words.size() % kWordsPerBlock;
+  const unsigned int to_complete_block = (kWordsPerBlock - words_in_block) % kWordsPerBlock;
+  //cout << "size " << FPGA_words.size() << endl;
+  //cout << "to_complete " << to_complete_block << endl;
+  uint32_t nop = PackWord<FPGAIO>({{FPGAIO::EP_CODE, bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)}, {FPGAIO::PAYLOAD, 0}});
+  for (unsigned int i = 0; i < to_complete_block; i++) {
+    FPGA_words.push_back(nop);
+  }
+
   // then FPGA-byte-pack them
   std::vector<uint8_t> FPGA_output = FPGAOutput(FPGA_words, bd_pars_);
 
@@ -95,6 +108,7 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
     it.second.clear();
   }
 
+  //cout << "leaving GenerateOutputs" << endl;
   return FPGA_output;
 }
 

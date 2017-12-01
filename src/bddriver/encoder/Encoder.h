@@ -17,6 +17,8 @@ namespace bddriver {
 class Encoder : public Xcoder {
  public:
   const static unsigned int bytesPerOutput = 4;  
+  const static unsigned int WORDS_PER_BLOCK = 512; // XXX should get from comm
+  const static unsigned int MAX_BLOCKS = 64; // break up blocks at this boundary
 
   Encoder(
       MutexBuffer<EncInput>* in_buf,
