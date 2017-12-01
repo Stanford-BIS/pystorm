@@ -17,6 +17,8 @@ namespace bddriver {
 class Encoder : public Xcoder {
  public:
   const static unsigned int bytesPerOutput = 4;  
+  const static unsigned int WORDS_PER_BLOCK = 512; // XXX should get from comm
+  const static unsigned int MAX_BLOCKS = 64; // break up blocks at this boundary
 
   Encoder(
       MutexBuffer<EncInput>* in_buf,
@@ -28,7 +30,8 @@ class Encoder : public Xcoder {
     in_buf_(in_buf),
     out_buf_(out_buf),
     bd_pars_(bd_pars),
-    last_HB_sent_at_(0) {};
+    last_HB_sent_at_(0),
+    working_block_(std::make_unique<std::vector<EncOutput>>()) {};
 
   ~Encoder(){};
 
@@ -39,8 +42,13 @@ class Encoder : public Xcoder {
   const bdpars::BDPars * bd_pars_;
   BDTime last_HB_sent_at_;
 
+  std::unique_ptr<std::vector<EncOutput>> working_block_; // encoder builds up one set of blocks at a time
+
   void RunOnce();
-  std::unique_ptr<std::vector<EncOutput>> Encode(const std::unique_ptr<std::vector<EncInput>> inputs);
+  inline void PushWord(uint32_t word); // helper for Encode, does serialization into working_block_
+  inline void PadNopsAndFlush(); // pushes nops until the working_block_ is a multiple of WORDS_PER_BLOCK
+  inline void FlushWords(); // flushes words to comm, padding to complete the current block
+  void Encode(const std::unique_ptr<std::vector<EncInput>> inputs);
 };
 
 }  // bddriver

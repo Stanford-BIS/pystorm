@@ -3,6 +3,14 @@
 `include "../lib/Interfaces.svh"
 `include "Deserializer.sv"
 
+`ifdef SIMULATION
+  `define TIME_UNIT_DEFAULT 20
+  `define HB_DEFAULT 10
+`else
+  `define TIME_UNIT_DEFAULT 10000
+  `define HB_DEFAULT 10
+`endif
+
 module PCMapper #(
   // parameters of PCParser output
   parameter Nconf = 16,
@@ -114,9 +122,9 @@ assign conf_reg_reset_vals[SF_decay_constant_idx    +:N_SF_state_chunks]   = 0;
 assign conf_reg_reset_vals[SG_gens_used_idx         +:N_SG_gens_chunks]    = 0; // all generators disabled
 assign conf_reg_reset_vals[SG_gens_en_idx           +:N_SG_gens_en_chunks] = 0;
 
-assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = 10000; // N clocks per time unit (for 100 MHz clk, 1000 -> 10 us time resolution)
+assign conf_reg_reset_vals[TM_unit_len_idx          +:N_TM_unit_chunks]    = `TIME_UNIT_DEFAULT; // N clocks per time unit (for 100 MHz clk, 1000 -> 10 us time resolution)
 assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
-assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = 10000; // send HB every N time units
+assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = `HB_DEFAULT; // send HB every N time units
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
 assign conf_reg_reset_vals[TS_report_tags_idx]                             = 1; // report tags by default
@@ -134,9 +142,9 @@ UnpackChannelArray #(Nchan) conf_channel_unpacker(conf_channel_out, conf_channel
 localparam Nchans_used = 1;
 
 // pack channel so we can use deserializer
-localparam N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag;
+localparam N_SG_program_mem = N_SG_gens + 2 * N_SG_period + N_SG_tag + 1;
 Channel #(N_SG_program_mem) SG_program_mem_flat();
-assign {SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_program_mem.tag} = SG_program_mem_flat.d;
+assign {SG_program_mem.sign, SG_program_mem.gen_idx, SG_program_mem.period, SG_program_mem.ticks, SG_program_mem.tag} = SG_program_mem_flat.d;
 assign SG_program_mem.v = SG_program_mem_flat.v;
 assign SG_program_mem_flat.a = SG_program_mem.a;
 

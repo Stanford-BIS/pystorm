@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <chrono>
 #include <functional>     // std::bind
 
 #include "comm/Comm.h"
@@ -113,26 +114,65 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
 
   /// starts child workers, e.g. encoder and decoder
-  void Start();
+  /// returns 0 if successful, -1 if comm init fails
+  int Start();
   /// stops the child workers
   void Stop();
 
-  /// Sets the time unit
-  void SetTimeUnitLen(BDTime us_per_unit);
+  /// Sets the FPGA time resolution (also is the interval that FPGA reports/updates SG/SF values)
+  void SetTimeUnitLen(BDTime ns_per_unit);
   /// Sets how long the FPGA waits between sending upstream HBs
-  void SetTimePerUpHB(BDTime us_per_hb);
-  /// Sets FPGA clock to 0
+  void SetTimePerUpHB(BDTime ns_per_hb);
+  /// Sets the FPGA's clock to 0, also resets driver time
   void ResetFPGATime();
+  /// Get the most recently received upstream FPGA clock value
+  BDTime GetFPGATime();
+  /// Returns driver (PC) time in ns
+  BDTime GetDriverTime() const;
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();
   /// Clears BD FIFOs
   /// Calls Flush immediately
   void InitFIFO(unsigned int core_id);
+  /// Inits the DACs to default values
+  void InitDAC(unsigned int core_id, bool flush=true);
   /// Initializes hardware state
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
   void InitBD();
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // AER Address <-> Y,X mapping static member fns
+  ////////////////////////////////////////////////////////////////////////////
+  
+  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int xy_addr) const                             { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
+  /// Given x, y config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const                   { return GetMemAERAddr(y*16 + x); }
+  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int xy_addr) const                             { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
+  /// Given x, y synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const                   { return GetSynAERAddr(y*32 + x); }
+  /// Given flat xy_addr soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int xy_addr) const                            { return bd_pars_->soma_xy_to_aer_.at(xy_addr); }
+  /// Given x, y soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const                  { return GetSomaAERAddr(y*64 + x); }
+  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
+  unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
+
+  /// Utility function to process spikes a little more quickly
+  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+    std::vector<unsigned int> to_return;
+    for (auto& it : aer_addrs) {
+      if (it < 4096) {
+        to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+      } else {
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << it << endl;
+      }
+    }
+    return to_return;
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -404,6 +444,8 @@ class Driver {
   //////////////////////////////////////////////////////////////////////////
   // Spike/Tag Streams
   //////////////////////////////////////////////////////////////////////////
+  // only RecvSpikes is meant to be used, and only for training
+  // otherwise, for tag IO, the FPGA calls should be used
 
   /// Send a stream of spikes to neurons
   void SendSpikes(
@@ -423,13 +465,76 @@ class Driver {
   void SendTags(
       unsigned int core_id,
       const std::vector<BDWord>& tags,
-      const std::vector<BDTime> times,
+      const std::vector<BDTime> times={},
       bool flush=true);
 
   /// Receive a stream of tags
   /// receive from both tag output leaves, the Acc and TAT
   std::pair<std::vector<BDWord>,
-            std::vector<BDTime>> RecvTags(unsigned int core_id);
+            std::vector<BDTime>> RecvTags(unsigned int core_id, unsigned int timeout_us=1000);
+
+  //////////////////////////////////////////////////////////////////////////
+  // FPGA tag IO
+  //////////////////////////////////////////////////////////////////////////
+
+  /// Set input rates (in Hz) for Spike Generators.
+  /// The SGs are organized as an array, each entry outputting one tag stream
+  /// A programming packet specifies the array index of the generator being programmed,
+  /// the tag id that it is supposed to output to BD, and the rate that it outputs those tags.
+  /// This call allows multiple generators to be set simultaneously.
+  /// <time> specifies when the SGs will be programmed (updating the output rates)
+  void SetSpikeGeneratorRates(
+    unsigned int core_id,
+    const std::vector<unsigned int>& gen_idxs, 
+    const std::vector<unsigned int>& tags, 
+    const std::vector<int>& rates, 
+    BDTime time = 0,
+    bool flush = true);
+
+  /// Set spike filter increment constant
+  void SetSpikeFilterIncrementConst(unsigned int core_id, unsigned int increment, bool flush=true) {
+    uint16_t inc_lo = GetField(increment, THREEFPGAREGS::W0);
+    uint16_t inc_hi = GetField(increment, THREEFPGAREGS::W1);
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT0), {inc_lo});
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT1), {inc_hi});
+    if (flush) Flush();
+  }
+
+  /// Set spike filter decay constant
+  void SetSpikeFilterDecayConst(unsigned int core_id, unsigned int decay, bool flush=true) {
+    uint16_t dec_lo = GetField(decay, THREEFPGAREGS::W0);
+    uint16_t dec_hi = GetField(decay, THREEFPGAREGS::W1);
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT0), {dec_lo});
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT1), {dec_hi});
+    if (flush) Flush();
+  }
+  
+  /// Set number of spike filters to report
+  void SetNumSpikeFilters(unsigned int core_id, unsigned int num, bool flush=true) {
+    assert(num <= max_num_SF_);
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_FILTS_USED), {num});
+    if (flush) Flush();
+  }
+
+  /// Get FPGA SpikeFilter outputs
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime>> RecvSpikeFilterStates(unsigned int core_id, unsigned int timeout_us) {
+    return RecvFromEP(core_id, bdpars::FPGAOutputEP::SF_OUTPUT, timeout_us);
+  }
+
+  //////////////////////////////////////////////////////////////////////////
+  // Utility
+  //////////////////////////////////////////////////////////////////////////
+
+  /// Returns the total number of elements in each output queue
+  /// Useful for debugging FPGA issues
+  std::vector<std::pair<uint8_t, unsigned int>> GetOutputQueueCounts() {
+    std::vector<std::pair<uint8_t, unsigned int>> retvals;
+    for (auto& ep_buf : dec_bufs_out_) {
+      retvals.push_back({ep_buf.first, ep_buf.second->TotalSize()});
+    }
+    return retvals;
+  }
 
   //////////////////////////////////////////////////////////////////////////
   // BDState queries
@@ -455,14 +560,39 @@ class Driver {
   // data members
   
   // FPGA state (XXX perhaps should move to its own object)
-  const unsigned int ns_per_clk_  = 10; // 100 MHz FPGA clock
-  unsigned int clks_per_unit_     = 1000; // FPGA default
-  unsigned int units_per_HB_      = 100000; // FPGA default, 1s HB (really long!)
-  unsigned int us_per_unit_       = 10; // FPGA default
-  unsigned int highest_us_sent_   = 0;
+  static const unsigned int ns_per_clk_  = 10; /// 100 MHz FPGA clock
+  static const unsigned int max_num_SF_  = 512; /// number of SF memory entries
+  static const unsigned int clks_per_SF_ = 1; /// clock cycles per SF update
+  static const unsigned int max_num_SG_  = 256; /// number of SG memory entries
+  static const unsigned int clks_per_SG_ = 3; /// clock cycles per SG update
+  unsigned int clks_per_unit_         = 1000; /// FPGA default
+  unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
+  BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
+  BDTime highest_ns_sent_             = 0;
 
-  // time helper
-  inline unsigned int UnitsPerUs(unsigned int delay_us) { return delay_us / us_per_unit_; }
+  // basis of experiment time, set when ResetFPGAClock is called
+  std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
+
+
+  /// array mapping SG generator idx -> enabled/disabled
+  std::array<bool, max_num_SG_> SG_en_;
+  void InitSGEn() {
+    for (auto& it : SG_en_) {
+      it = false;
+    } 
+  }
+
+  /// FPGA time units per microsecond
+  inline uint64_t NsToUnits(BDTime   ns)    { return ns / ns_per_unit_; }
+  inline BDTime   UnitsToNs(uint64_t units) { return ns_per_unit_ * units; }
+
+  /// FPGA SG_en_ max bit assigned helper
+  inline unsigned int GetHighestSGEn() const {
+    for (unsigned int i = SG_en_.size(); i > 0; i++) {
+      if (SG_en_.at(i)) return i;
+    }
+    return 0;
+  }
 
   /// Number of upstream "push"s sent.
   /// There's a hardware bug where every upstream word has to be "pushed" out of the 

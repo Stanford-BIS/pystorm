@@ -50,11 +50,15 @@ std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned 
   std::vector<BDWord> words;
 
   // read first word
-  if (D > 1) {
+  if (D == 1) {
+    // have to cast
+    for (auto& it : inputs) {
+      words.push_back(it);
+    }
+  } else if (D == 2) {
     // we shouldn't have to worry about remainders with BDModel
     // use a VectorDeserializer anyway so we can copy-paste from RecvFromEP
     // XXX should maybe figure out a way to reuse this code better
-    assert(D == 2);
     VectorDeserializer<uint32_t> deserializer(2);
 
     // XXX make a copy so we can get a unique_ptr
@@ -79,10 +83,7 @@ std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned 
       deserializer.GetOneOutput(&deserialized);
     }
   } else {
-    // have to cast
-    for (auto& it : inputs) {
-      words.push_back(it);
-    }
+    cout << "WARNING: BDModel deserializer received unhandled deserialization factor, throwing the words away" << endl;
   }
   return words;
 }

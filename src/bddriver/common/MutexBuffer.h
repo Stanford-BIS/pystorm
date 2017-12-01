@@ -4,7 +4,7 @@
 #include <condition_variable>
 #include <chrono>  // duration, for wait_for
 #include <mutex>
-#include <queue>
+#include <deque>
 #include <vector>
 #include <memory>
 #include <cassert>
@@ -20,7 +20,7 @@ namespace bddriver {
 template <class T>
 class MutexBuffer {
  private:
-  std::queue<std::unique_ptr<std::vector<T>>> vals_;
+  std::deque<std::unique_ptr<std::vector<T>>> vals_;
 
   // signal sleeping consumer threads to wake up
   std::condition_variable just_pushed_;
@@ -46,7 +46,7 @@ class MutexBuffer {
     assert(input.get() != nullptr);
 
     // push (move) vector pointer to back of queue
-    vals_.emplace(std::move(input));
+    vals_.emplace_back(std::move(input));
 
     // let the sleeping threads know they can wake up
     just_pushed_.notify_all();
@@ -75,7 +75,7 @@ class MutexBuffer {
 
     // return front vector pointer
     std::unique_ptr<std::vector<T>> front_vect = std::move(vals_.front());
-    vals_.pop();
+    vals_.pop_front();
 
     return front_vect;
   }
@@ -105,10 +105,19 @@ class MutexBuffer {
     while (!vals_.empty())
     {
         buf_out.emplace_back(std::move(vals_.front()));
-        vals_.pop();
+        vals_.pop_front();
     }
 
     return buf_out;
+  }
+
+  unsigned int TotalSize() {
+    std::unique_lock<std::mutex> ulock(lock_);
+    unsigned int total_size = 0;
+    for (auto& val : vals_) {
+      total_size += val->size();
+    }
+    return total_size;
   }
 
 };

@@ -21,7 +21,7 @@ module SpikeGeneratorArray #(parameter Ngens = 8, parameter Nperiod = 16, parame
   input clk,
   input reset);
 
-localparam Nmem = Nperiod * 2 + Ntag;
+localparam Nmem = Nperiod * 2 + Ntag + 1;
 localparam Nmem_bytes = 6;
 localparam Nmem_full = Nmem_bytes * 8;
 
@@ -142,11 +142,12 @@ always_comb
 logic [Nperiod-1:0] rd_tick, wr_tick, period;
 logic [Ntag-1:0] tag;
 logic [Nmem-1:0] mem_writeback;
+logic sign;
 
 // the output of the memory is registered, 
 // so we see this TWO cycles after we assert rd_en
 // the SAME cycle that we are writing back
-assign {rd_tick, period, tag} = mem_rd_data;
+assign {sign, tag, period, rd_tick} = mem_rd_data;
 
 logic emit_output;
 always_comb
@@ -160,7 +161,7 @@ always_comb
   end
 
 // pack up writeback
-assign mem_writeback = {tag, period, wr_tick};
+assign mem_writeback = {sign, tag, period, wr_tick};
 
 //////////////////////////////////////////////////////
 // memory inputs
@@ -174,7 +175,7 @@ always_comb
       if (program_mem.v == 1) begin
         mem_wr_en = 1;
         mem_wr_addr = program_mem.gen_idx;
-        mem_wr_data = {program_mem.tag, program_mem.period, program_mem.ticks};
+        mem_wr_data = {program_mem.sign, program_mem.tag, program_mem.period, program_mem.ticks};
         mem_wr_bytemask = 6'b111100; // don't actually overwrite the ticks
 
         mem_rd_en = 0;
@@ -236,7 +237,7 @@ always_comb
   if (state == UPDATE_C && emit_output == 1) begin
     out.v = 1;
     out.tag = tag;
-    out.ct = 1;
+    out.ct = sign == 0 ? 1 : '1;
   end
   else begin
     out.v = 0;

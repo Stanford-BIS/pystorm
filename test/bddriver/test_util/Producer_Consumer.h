@@ -74,7 +74,14 @@ void ConsumeAndCheckAndReport(bddriver::MutexBuffer<T>* buf, const std::vector<s
   ConsumeAndReport(buf, &to_fill, check_vals.size(), try_for_us, report_every);
   ASSERT_EQ(to_fill.size(), check_vals.size());
   for (unsigned int i = 0; i < check_vals.size(); i++) {
-    ASSERT_EQ(to_fill.at(i), check_vals.at(i));
+    //cout << "len " << to_fill.at(i).size() << " vs " << check_vals.at(i).size() << endl;
+    ASSERT_EQ(to_fill.at(i).size(), check_vals.at(i).size());
+    for (unsigned int j = 0; j < check_vals.at(i).size(); j++) {
+      //if (to_fill.at(i).at(j) != check_vals.at(i).at(j)) {
+      //  cout << j << ": rec: " << int(to_fill.at(i).at(j)) << " vs exp: " << int(check_vals.at(i).at(j)) << endl;
+      //}
+      ASSERT_EQ(to_fill.at(i).at(j), check_vals.at(i).at(j));
+    }
   }
 }
 

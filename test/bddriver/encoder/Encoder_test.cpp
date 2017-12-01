@@ -29,6 +29,7 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
 
   // return values
   EIVect enc_inputs;
+  std::vector<uint32_t> enc_outputs_packed;
   EOVect enc_outputs;
 
   // rng
@@ -42,13 +43,50 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
     input.payload = payload_dist(generator);
     input.FPGA_ep_code = ep_code_dist(generator);
     input.core_id = 0; // XXX
-    input.time = 0; // XXX
-    enc_inputs.push_back(input);
+    input.time = 0; // XXX we're not testing the HB generation
 
-    // pack
-    uint32_t packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, input.FPGA_ep_code}, {FPGAIO::PAYLOAD, input.payload}});
+    // last word must be a flush so everything comes out
+    if (i == N-1) {
+      input.FPGA_ep_code = EncInput::kFlushCode;
+    }
 
-    // serialize
+    // don't make HBs randomly
+    if (input.FPGA_ep_code == pars->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED0) || 
+        input.FPGA_ep_code == pars->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED1) || 
+        input.FPGA_ep_code == pars->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2)) {
+
+      // pass
+      
+    } else if (input.FPGA_ep_code == EncInput::kFlushCode) {
+      // pad nops
+      enc_inputs.push_back(input);
+
+      const unsigned int kPackedPerBlock = Encoder::WORDS_PER_BLOCK / 4;
+      unsigned int curr_size_in_frame = enc_outputs_packed.size() % kPackedPerBlock;
+      //cout << curr_size_in_frame << endl;
+      //cout << kPackedPerBlock << endl;
+      unsigned int to_complete_block = (kPackedPerBlock - curr_size_in_frame) % kPackedPerBlock;
+      //cout << to_complete_block << endl;
+
+      uint32_t nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, pars->DnEPCodeFor(bdpars::FPGARegEP::NOP)}});
+      for (unsigned int nop_idx = 0; nop_idx < to_complete_block; nop_idx++) {
+        enc_outputs_packed.push_back(nop);
+      }
+
+    } else {
+      // pack inputs
+      enc_inputs.push_back(input);
+
+      // pack
+      uint32_t packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, input.FPGA_ep_code}, {FPGAIO::PAYLOAD, input.payload}});
+
+      enc_outputs_packed.push_back(packed);
+    }
+  }
+
+  // serialize
+  for (auto& packed : enc_outputs_packed) {
+
     uint8_t b[4];
     b[0] = GetField(packed, FPGABYTES::B0);
     b[1] = GetField(packed, FPGABYTES::B1);
@@ -59,6 +97,7 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
       enc_outputs.push_back(b[j]);
     }
   }
+  //cout << enc_outputs.size() << endl;
 
   return make_pair(enc_inputs, enc_outputs);
 }

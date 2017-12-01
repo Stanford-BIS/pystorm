@@ -1,26 +1,17 @@
 import numpy as np
-from resources import (
+from hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATFanout, TATTapPoint)
 
 R = []
 
-# weights -> bucket
+# neurons -> weights -> bucket
 def GetN1():
     D = 2
+    My = 10
+    Mx = 20
+    M = My*Mx
 
-    W = MMWeights(np.random.rand(D, D))
-    B = AMBuckets(D)
-
-    W.connect(B)
-
-    return [W, B]
-
-# neurons -> weights -> bucket
-def GetN2():
-    D = 2
-    M = 10
-
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
 
@@ -29,15 +20,21 @@ def GetN2():
 
     return [N, W, B]
 
+# (neurons -> weights -> bucket) *2
+def GetN2():
+    return GetN1() + GetN1()
+
 # source -> TATTapPoint -> neurons -> weights -> bucket -> sink
 def GetN3():
     D = 2
     K = 2
-    M = 10
+    My = 10
+    Mx = 20
+    M = My*Mx
 
     I = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
     O = Sink(D)
@@ -56,11 +53,13 @@ def GetN3():
 def GetN4():
     D = 2
     K = 2
-    M = 10
+    My = 10
+    Mx = 20
+    M = My*Mx
 
     I1 = Source(D)
     TP = TATTapPoint(np.random.randint(M, size=(K, D)), np.random.randint(1, size=(K, D))*2 - 1, M)
-    N = Neurons(M)
+    N = Neurons(My, Mx)
     W1 = MMWeights(np.random.rand(D, M))
     B = AMBuckets(D)
     O1 = Sink(D)
@@ -87,10 +86,12 @@ def GetN4():
 
     return [I1, I2, TP, TA, TF, N, W1, W2, B, O1, O2]
 
-print("creating Resource graphs")
-print("all this is testing is that no assertions are thrown, expect no further output")
+if __name__ == "__main__":
 
-N1 = GetN1()
-N2 = GetN2()
-N3 = GetN3()
-N4 = GetN4()
+    print("creating Resource graphs")
+    print("all this is testing is that no assertions are thrown, expect no further output")
+
+    N1 = GetN1()
+    N2 = GetN2()
+    N3 = GetN3()
+    N4 = GetN4()

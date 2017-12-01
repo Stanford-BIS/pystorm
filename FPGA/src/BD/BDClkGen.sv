@@ -15,14 +15,15 @@ wire base_clk;   // skewed 10MHz clock to use for BD IO
 BDIOPLL BC_pll(
   .refclk(clk),   // input clock(), 100 MHz
   .rst(reset),
-  .outclk_0(base_clk),
-  .outclk_1(skewed_clk),
+  .outclk_0(fast_clk),
+  .outclk_1(slow_clk),
+  .outclk_2(slow_skewed_clk),
   .locked(pll_locked));
 
-assign BD_in_clk_ext = skewed_clk;
-assign BD_out_clk_ext = skewed_clk;
+assign BD_in_clk_ext = slow_skewed_clk;
+assign BD_out_clk_ext = slow_skewed_clk;
 
-assign BD_in_clk_int = base_clk;
-assign BD_out_clk_int = base_clk;
+assign BD_in_clk_int = fast_clk;
+assign BD_out_clk_int = slow_clk;
 
 endmodule

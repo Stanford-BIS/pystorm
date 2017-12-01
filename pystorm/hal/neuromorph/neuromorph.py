@@ -1,8 +1,15 @@
 """Provides the mapping functionality of the HAL"""
 from functools import singledispatch, update_wrapper
 import numpy as np
-from . import core_pars
-from pystorm.hal.neuromorph.graph import (Bucket, Input, Output, Pool)
+
+#import core_pars
+#from graph import (Bucket, Input, Output, Pool)
+#from core import Core
+#from hardware_resources import (
+#    AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
+
+from .core_pars import CORE_PARAMETERS
+from .graph import (Bucket, Input, Output, Pool)
 from .core import Core
 from .hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
@@ -44,7 +51,7 @@ def _create_resources_ps_output(ps_output):
 @create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
     """create_resources for neuromorph graph Pool"""
-    return Neurons(ps_pool.get_num_neurons())
+    return Neurons(ps_pool.y, ps_pool.x)
 
 @create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):
@@ -302,25 +309,24 @@ def create_network_resources(network):
 
     hardware_resources = []
     # A map from neuromorph graph objects to GraphHWMappers
-    # The map forms a graph of neuromorph graph.Network/Resource objects
-    ng_obj_hw_map = dict()
+    ng_obj_to_ghw_mapper = dict()
 
     # Populate the GraphHWMappers in the graph
     for inp in network.get_inputs():
-        ng_obj_hw_map[inp] = GraphHWMapper(inp)
-        hardware_resources.append(ng_obj_hw_map[inp].get_resource())
+        ng_obj_to_ghw_mapper[inp] = GraphHWMapper(inp)
+        hardware_resources.append(ng_obj_to_ghw_mapper[inp].get_resource())
 
     for out in network.get_outputs():
-        ng_obj_hw_map[out] = GraphHWMapper(out)
-        hardware_resources.append(ng_obj_hw_map[out].get_resource())
+        ng_obj_to_ghw_mapper[out] = GraphHWMapper(out)
+        hardware_resources.append(ng_obj_to_ghw_mapper[out].get_resource())
 
     for pool in network.get_pools():
-        ng_obj_hw_map[pool] = GraphHWMapper(pool)
-        hardware_resources.append(ng_obj_hw_map[pool].get_resource())
+        ng_obj_to_ghw_mapper[pool] = GraphHWMapper(pool)
+        hardware_resources.append(ng_obj_to_ghw_mapper[pool].get_resource())
 
     for bucket in network.get_buckets():
-        ng_obj_hw_map[bucket] = GraphHWMapper(bucket)
-        hardware_resources.append(ng_obj_hw_map[bucket].get_resource())
+        ng_obj_to_ghw_mapper[bucket] = GraphHWMapper(bucket)
+        hardware_resources.append(ng_obj_to_ghw_mapper[bucket].get_resource())
 
     # Connect source GraphHWMappers to their destination GraphHWMappers
     connections = network.get_connections()
@@ -328,13 +334,14 @@ def create_network_resources(network):
         source = conn.get_source()
         dest = conn.get_dest()
         weights = conn.get_weights()  # weights is either of type Weights or None
-        ng_obj_hw_map[source].connect_src_to_dest_mapper(ng_obj_hw_map[dest], weights)
+        ng_obj_to_ghw_mapper[source].connect_src_to_dest_mapper(
+            ng_obj_to_ghw_mapper[dest], weights)
 
     # Connect the adjacent nodes creating Resources relevant to each connection
-    for _, ng_obj_hw_mapper in ng_obj_hw_map.items():
+    for _, ng_obj_hw_mapper in ng_obj_to_ghw_mapper.items():
         ng_obj_hw_mapper.connect(hardware_resources)
 
-    return ng_obj_hw_map, hardware_resources
+    return ng_obj_to_ghw_mapper, hardware_resources
 
 def map_resources_to_core(hardware_resources, core, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
@@ -342,13 +349,14 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     Parameters
     ----------
     hardware_resources: A list of hardware_resources.Resource objects
-    core: A Core object
     verbose: A bool
-
-    Returns
-    -------
-    core: The modified Core object
     """
+
+    for resource in hardware_resources:
+        resource.pretranslate_early(core)
+    if verbose:
+        print("finished pretranslate_early")
+
     for resource in hardware_resources:
         resource.pretranslate(core)
     if verbose:
@@ -359,11 +367,18 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished allocate_early")
 
-    core.MM.alloc.SwitchToTrans()  # switch allocation mode of MM
+    core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
     for resource in hardware_resources:
         resource.allocate(core)
     if verbose:
         print("finished allocate")
+
+    #core.Print()
+
+    for resource in hardware_resources:
+        resource.posttranslate_early(core)
+    if verbose:
+        print("finished posttranslate_early")
 
     for resource in hardware_resources:
         resource.posttranslate(core)
@@ -375,10 +390,43 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished assign")
 
-    return core
+    if verbose:
+        print("results")
+        print(str(core))
+
+def reassign_resources_to_core(hardware_resources, core, verbose=False):
+    """given a set of resources that has already been mapped,
+    AND WHOSE TOPOLOGY HAS NOT CHANGED SINCE THE INITIAL MAPPING,
+    perform assignment to a core object. 
+    This is only meant to be used to reassign connection weights.
+    This will break badly if you change the topology.
+
+    Parameters
+    ----------
+    hardware_resources: A list of hardware_resources.Resource objects
+    verbose: A bool
+    """
+
+    # start with posttranslate early
+    # this should pick up modifications to decoders in the user network
+
+    for resource in hardware_resources:
+        resource.posttranslate_early(core)
+    if verbose:
+        print("finished posttranslate_early")
+
+    for resource in hardware_resources:
+        resource.posttranslate(core)
+    if verbose:
+        print("finished posttranslate")
+
+    for resource in hardware_resources:
+        resource.assign(core)
+    if verbose:
+        print("finished assign")
 
 def map_network(network, verbose=False):
-    """Create a MappedNetwork object given a neuromorphg graph Network object
+    """Create a mapped core object given a neuromorph graph network objects
 
     Parameters
     ----------
@@ -386,18 +434,40 @@ def map_network(network, verbose=False):
 
     Returns
     -------
-    ng_obj_to_hw: dictionary
+    ng_obj_to_ghw_mapper: dictionary
         keys: neuromorph graph objects in the input network
-        values: hardware resources used to implement neuromorph graph object
-    hardware_resources: list of total hardware resources allocated for the input network
+        values: GraphHWMapper object used to instantiate
+                hardware resource objects for neuromorph graph object connections
+    hardware_resources: list of all hardware resources allocated for the input network
+    core: Core object
+        Representats the hardware core
+    """
+    ng_obj_to_ghw_mapper, hardware_resources = create_network_resources(network)
+    core = Core(CORE_PARAMETERS)
+    map_resources_to_core(hardware_resources, core, verbose)
+    return ng_obj_to_ghw_mapper, hardware_resources, core
+
+def remap_resources(hardware_resources, verbose=False):
+    """Create a mapped core object given previously mapped resources objects list
+
+    This meant to be used after modifying connection weights in the neuromorph Network.
+    E.g. after computing decoders.
+
+    (resource objects reference matrices from neuromorph Network objects, they do not copy them)
+
+    Parameters
+    ----------
+    hardware_resources: list of previously mapped network resources
+
+    Returns
+    -------
     core: a representation of the hardware core
     """
-    pars = core_pars.get_core_pars()
 
-    core = Core(pars)
+    # create new core
+    core = Core(CORE_PARAMETERS)
 
-    ng_obj_to_hw, hardware_resources = create_network_resources(network)
+    reassign_resources_to_core(hardware_resources, core, verbose)
 
-    core = map_resources_to_core(hardware_resources, core, verbose)
+    return core
 
-    return ng_obj_to_hw, hardware_resources, core

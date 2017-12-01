@@ -6,9 +6,11 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <array>
 #include <typeinfo>
 #include <typeindex>
 #include <algorithm>
+#include <cassert>
 
 using std::cout;
 using std::endl;
@@ -165,6 +167,7 @@ enum class BDFunnelEP {
   OVFLW1,          // class 1 FIFO overflow warning
   RO_ACC,          // tag output from accumulator
   RO_TAT,          // tag output from TAT
+  INVALID,         // something unexpected
   COUNT
 };
 
@@ -173,10 +176,12 @@ enum class BDFunnelEP {
 
 // the enum value is the upstream code
 enum class FPGAOutputEP {
-  UPSTREAM_HB = 13, // Upstream report of FPGA clock
-  SF_OUTPUT   = 14, // SpikeFilter outputs
-  NOP         = 64, // NOP, inserted to pad output pipe
-  COUNT       = 3   // XXX hardcoded, be careful
+  SF_OUTPUT       = 14,  // SpikeFilter outputs
+  UPSTREAM_HB_LSB = 15,  // Upstream report of FPGA clock
+  UPSTREAM_HB_MSB = 16,  // Upstream report of FPGA clock
+  NOP             = 64,  // NOP, inserted to pad output pipe
+  DS_QUEUE_CT     = 128, // first word of each block
+  COUNT           = 4    // XXX hardcoded, be careful
 };
 
 
@@ -265,8 +270,8 @@ class BDPars {
   const unsigned int DnEPFPGABitsPerReg     = 16;
   const unsigned int DnEPFPGABitsPerChannel = 16;
 
-  const unsigned int DnWordsPerFrame        = 128; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
-  const unsigned int DnTimeUnitsPerHB       = 10; // Send FPGA downstream heartbeat every <this many time units>
+  const unsigned int DnWordsPerFrame        = 256; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
+  const unsigned int DnTimeUnitsPerHB       = 1; // Send FPGA downstream heartbeat every <this many time units>
 
   // downstream endpoint info
   std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;
@@ -279,6 +284,14 @@ class BDPars {
   
   // DAC info
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
+
+  // maps for AER address translation
+  std::array<unsigned int, 4096> soma_xy_to_aer_;
+  std::array<unsigned int, 4096> soma_aer_to_xy_;
+  std::array<unsigned int, 1024> syn_xy_to_aer_;
+  std::array<unsigned int, 1024> syn_aer_to_xy_;
+  std::array<unsigned int, 256> mem_xy_to_aer_;
+  std::array<unsigned int, 256> mem_aer_to_xy_;
 
   ///////////////////////////////
   // Neuron config stuff
@@ -366,6 +379,59 @@ class BDPars {
     }
     return retval;
   }
+
+  inline FPGARegEP GenIdxToSG_GENS_EN(unsigned int gen_idx) const {
+    return static_cast<FPGARegEP>(static_cast<unsigned int>(FPGARegEP::SG_GENS_EN0) + gen_idx / 16);
+  }
+
+ private:
+
+  // D is binary tree depth, not 4-ary tree depth, must be even
+  template <int D>
+  void InitAERMappers(std::array<unsigned int, (1<<D)> * xy_to_aer, std::array<unsigned int, (1<<D)> * aer_to_xy) {
+    assert(D % 2 == 0); // D must be even
+    for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
+      unsigned int array_edge_length = (1<<D/2);
+      unsigned int x = xy_idx % array_edge_length;
+      unsigned int y = xy_idx / array_edge_length;
+      
+      // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
+      uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
+      for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
+        // determine 2-bit AER code to give to each AER node
+        unsigned int yx = ((y % 2) << 1) | x % 2;
+        uint16_t aer_node_addr;
+        if (yx == 0) {
+          aer_node_addr = 0;
+        } else if (yx == 1) {
+          aer_node_addr = 1;
+        } else if (yx == 2) {
+          aer_node_addr = 3;
+        } else if (yx == 3) {
+          aer_node_addr = 2;
+        } else {
+          assert(false);
+        }
+
+        // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
+        unsigned int shift = 2 * aer_node_idx;
+        aer_idx |= aer_node_addr << shift;
+
+        // shift out x/y bits
+        x = x >> 1;
+        y = y >> 1;
+      }
+
+      // write results
+      assert(xy_idx < 1<<D && "xy_idx too big");
+      assert(aer_idx < 1<<D && "aer_idx too big");
+      xy_to_aer->at(xy_idx) = aer_idx;
+      aer_to_xy->at(aer_idx) = xy_idx;
+      //cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
+
+    }
+  }
+
 
 };
 

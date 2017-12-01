@@ -51,6 +51,7 @@ interface SpikeGeneratorProgChannel #(parameter Ngens = 8, parameter Nperiod = 1
   logic [Nperiod-1:0] period;
   logic [Nperiod-1:0] ticks;
   logic [Ntag-1:0] tag;
+  logic sign;
   logic v;
   logic a;
 endinterface
@@ -63,7 +64,7 @@ interface UnencodedBDWordChannel;
 endinterface
 
 interface DecodedBDWordChannel;
-  logic [3:0] leaf_code; // there are 13 leaves
+  logic [3:0] leaf_code; // there are 13 leaves (and one INVALID code)
   logic [37:0] payload; // the longest data chunk
   logic v;
   logic a;
