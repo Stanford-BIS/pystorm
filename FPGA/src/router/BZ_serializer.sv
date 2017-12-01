@@ -80,7 +80,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 		case(state)
 			3'd0: begin
 					wrreq = 1'b0; //if we're idle, don't send a write request
-					data_out = 31'b0;
+					data_out = 11'b0;
 					PC_in_channel.a = 1'b0;
 				  end
 
@@ -112,6 +112,12 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 					end
 					PC_in_channel.a = 1'b0;
 					end
+
+			default: begin
+					wrreq = 1'b0;
+					data_out = 11'b0;
+					PC_in_channel.a = 1'b0;
+				  	end
 		endcase
 	end
 
