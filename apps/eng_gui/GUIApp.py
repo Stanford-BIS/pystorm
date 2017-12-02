@@ -37,9 +37,18 @@ __g_refresh_period__ = 1./60.
 # Shared Sparkle plot data
 __shared_arr__ = Array(ctypes.c_float, 4096)
 
+# Shared Raster plot data
+__shared_bin_arr__ = Array(ctypes.c_uint8, 4096)
+NUM_X_PIXELS = 1000
+NUM_Y_PIXELS = 4096
+__shared_raster__ = Array(ctypes.c_uint8, NUM_X_PIXELS * NUM_Y_PIXELS)
 
 driver_proc.__g_refresh_period__ = __g_refresh_period__
 driver_proc.__shared_arr__ = __shared_arr__
+driver_proc.__shared_bin_arr__ = __shared_bin_arr__
+driver_proc.__shared_raster__ = __shared_raster__
+driver_proc.NUM_X_PIXELS = NUM_X_PIXELS
+driver_proc.NUM_Y_PIXELS = NUM_Y_PIXELS
 
 # message queue for REPL
 EQ = queue.Queue(1)
@@ -361,11 +370,15 @@ class SliderRow(BoxLayout):
         if widget == self.slider:
             self.slider_value = self.slider.value
         elif widget == self.text:
-            _val = int(self.text.text)
+            try:
+                _val = int(self.text.text)
+            except ValueError:
+                _val = self.slider.value
             if _val < 1:
                 _val = 1
             elif _val > 1024:
                 _val = 1024
+            self.text.text = str(_val)
             self.slider_value = _val
         self.__update_scaled_value__()
         if self.__send_update__:
@@ -422,8 +435,10 @@ class Raster(Widget):
     ZERO_MAT       = np.zeros(4096, dtype=np.uint8)
     MAX_MAT        = np.full(4096, 255, dtype=np.uint8)
     window_size = 1.0  # Time window (s) to show the spikes over
-    arr_data = np.zeros(4096, dtype=np.uint8)
-    raster_data = np.zeros((NUM_X_PIXELS, NUM_Y_PIXELS), dtype=np.uint8)
+    #arr_data = np.zeros(4096, dtype=np.uint8)
+    arr_data = np.frombuffer(__shared_bin_arr__.get_obj(), dtype=np.uint8)
+    raster_data = np.frombuffer(__shared_raster__.get_obj(), dtype=np.uint8).view()
+    raster_data.shape = (NUM_X_PIXELS, NUM_Y_PIXELS)
     _mask1 = np.full(4096, False, dtype=np.bool)
 
     def __update_win_period__(self, win_period):
@@ -448,10 +463,13 @@ class Raster(Widget):
             self.raster_data[:-bin_rem, :] = self.raster_data[bin_rem:, :]
             self.raster_data[-bin_rem:-1, :] = 0
             self.raster_data[-1, :] = self.arr_data
-            np.copyto(self.arr_data, self.ZERO_MAT)
+            #np.copyto(self.arr_data, self.ZERO_MAT)
 
-        np.greater(np.random.rand(4096), 0.9, self._mask1)
-        np.copyto(self.arr_data, self.MAX_MAT, where=self._mask1)
+        #np.greater(np.random.rand(4096), 0.9, self._mask1)
+        #np.copyto(self.arr_data, self.MAX_MAT, where=self._mask1)
+
+        np.greater(self.arr_data, 0, self._mask1)
+        CTRLQ.put(("__clear_arr__", ))
 
     def update(self, dt):
         # then blit the buffer

@@ -12,11 +12,16 @@ from pystorm.PyDriver import bddriver as bd
 
 __g_refresh_period__ = None
 __shared_arr__ = None
+__shared_bin_arr__ = None
+__shared_raster__  = None
+NUM_X_PIXELS = None
+NUM_Y_PIXELS = None
 
 def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
     driver = bd.Driver()
     print(driver)
     _do_run = True
+    _read_spikes = True
     REFRESH_PERIOD = __g_refresh_period__
     POLL_PERIOD = 1./60.
 
@@ -25,8 +30,13 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
     DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
 
     ZERO_MAT = np.zeros(4096, dtype=np.float32)
+    ZERO_BIN_MAT = np.zeros(4096, dtype=np.uint8)
     ARR_DATA = np.frombuffer(__shared_arr__.get_obj(), dtype=np.float32)
+    ARR_BIN_DATA = np.frombuffer(__shared_bin_arr__.get_obj(), dtype=np.uint8)
+    RASTER_DATA = np.frombuffer(__shared_raster__.get_obj(), dtype=np.uint8).view()
+    RASTER_DATA.shape = (NUM_X_PIXELS, NUM_Y_PIXELS)
     MAX_MAT = np.full(4096, 1.0, dtype=np.float32)
+    MAX_BIN_MAT = np.full(4096, 255, dtype=np.uint8)
     ZERO_MASK = np.full(4096, False, dtype=bool)
     DECAY_MASK = np.full(4096, False, dtype=bool)
 
@@ -36,7 +46,7 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
             eval(code, proc_dict, proc_dict)
 
     def __cmd_loop__():
-        nonlocal _do_run
+        nonlocal _do_run, _read_spikes
         nonlocal DECAY_PERIOD, DECAY_AMOUNT, DECAY_MAT
         _cntrl = ""
         while _do_run:
@@ -56,6 +66,8 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
             if _cntrl[0] == "__exit__":
                 _do_run = False
                 continue
+            elif _cntrl[0] == "__clear_arr__":
+                np.copyto(ARR_BIN_DATA, ZERO_BIN_MAT)
             elif _cntrl[0] == "__decay_T__":
                 DECAY_PERIOD = _cntrl[1]
                 DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / POLL_PERIOD
@@ -82,8 +94,10 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
                 continue
 
             try:
+                _read_spikes = False
                 _code = compile(_cmd, '<string>', 'single')
                 eval(_code, {}, proc_dict)
+                _read_spikes = True
             except:
                 try:
                     _exc_info = sys.exc_info()
@@ -103,7 +117,8 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
         spike_t = np.zeros(4096, dtype=np.float)
 
         while _do_run:
-            spike_data = driver.RecvXYSpikesMasked(0)
+            if _read_spikes:
+                spike_data = driver.RecvXYSpikesMasked(0)
 
             np.copyto(spike_idx, spike_data[0])
             np.copyto(spike_t, spike_data[1])
@@ -122,6 +137,7 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
 
             np.copyto(ARR_DATA, ZERO_MAT, where=ZERO_MASK)
             np.copyto(ARR_DATA, _decay, where=spike_idx.astype(bool))
+            np.copyto(ARR_BIN_DATA, MAX_BIN_MAT, where=spike_idx.astype(bool))
 
             time.sleep(POLL_PERIOD)
 

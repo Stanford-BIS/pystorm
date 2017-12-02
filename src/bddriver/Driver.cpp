@@ -1083,9 +1083,16 @@ std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMas
     std::vector<unsigned int> xy_addresses(4096, 0);
     std::vector<float> xy_times(4096, 0);
     for(unsigned int idx = 0; idx < aer_addresses.size(); ++idx){
-        auto _xy = GetSomaXYAddr(aer_addresses[idx]);
-        xy_addresses[_xy] = 1;
-        xy_times[_xy] = static_cast<float>(aer_times[idx]) * 1e-9;
+        // bug in synchronizer can result in out of bond aer addresses
+        // due to the bit-flipping bug
+        auto _addr = aer_addresses[idx];
+        if(_addr >=0 && _addr < 4096){
+            auto _xy = GetSomaXYAddr(aer_addresses[idx]);
+            xy_addresses[_xy] = 1;
+            xy_times[_xy] = static_cast<float>(aer_times[idx]) * 1e-9;
+        }else {
+            cout << "WARNING: Invalid spike address: " << _addr << endl;
+        }
     }
     return {xy_addresses, xy_times};
 }
