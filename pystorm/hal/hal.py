@@ -1,12 +1,12 @@
 """Provides the hardware abstraction layer"""
 import numpy as np
 from pystorm.hal.neuromorph import map_network, remap_resources
-from pystorm.PyDriver import bddriver
+from pystorm.PyDriver import bddriver as bd
 
-DIFFUSOR_NORTH_LEFT = bddriver.bdpars.DiffusorCutLocationId.NORTH_LEFT
-DIFFUSOR_NORTH_RIGHT = bddriver.bdpars.DiffusorCutLocationId.NORTH_RIGHT
-DIFFUSOR_WEST_TOP = bddriver.bdpars.DiffusorCutLocationId.WEST_TOP
-DIFFUSOR_WEST_BOTTOM = bddriver.bdpars.DiffusorCutLocationId.WEST_BOTTOM
+DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
+DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
+DIFFUSOR_WEST_TOP = bd.bdpars.DiffusorCutLocationId.WEST_TOP
+DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
 # send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
@@ -24,8 +24,11 @@ class HAL(object):
     ----------
     driver: Instance of pystorm.PyDriver Driver
     """
-    def __init__(self):
-        self.driver = bddriver.BDModelDriver()
+    def __init__(self, use_soft_driver=False):
+        if use_soft_driver:
+            self.driver = bd.BDModelDriver()
+        else:
+            self.driver = bd.Driver()
 
         # neuromorph graph Input -> tags
         self.ng_input_to_tags = {}
@@ -55,7 +58,7 @@ class HAL(object):
     def start_hardware(self):
         """Starts the driver"""
         comm_state = self.driver.Start()
-        if comm_state != 0:
+        if comm_state < 0:
             print("Comm failed to init fully, exiting")
             exit(0)
 
@@ -66,14 +69,6 @@ class HAL(object):
     ##############################################################################
     #                           Data flow functions                              #
     ##############################################################################
-
-    def disable_output_recording(self):
-        """Turns off recording from all outputs."""
-        self.driver.SetNumSpikeFilters(CORE_ID, 0)
-
-    def disable_spike_recording(self):
-        """Turns off spike recording from all neurons."""
-        self.driver.SetSpikeDumpState(CORE_ID, en=False)
 
     def enable_output_recording(self):
         """Turns on recording from all outputs.
@@ -92,16 +87,33 @@ class HAL(object):
         """
         self.driver.SetSpikeDumpState(CORE_ID, en=True)
 
+    def disable_output_recording(self):
+        """Turns off recording from all outputs."""
+        # by setting the number of spike filters to 0, the FPGA SF array
+        # no longer reports any values
+        self.driver.SetNumSpikeFilters(CORE_ID, 0)
+
+    def disable_spike_recording(self):
+        """Turns off spike recording from all neurons."""
+        self.driver.SetSpikeDumpState(CORE_ID, en=False)
+
     def get_outputs(self, timeout=1000):
         """Returns all pending output values gathered since this was last called.
 
         Data format: a numpy array of : [(output, dim, counts, time), ...]
         Timestamps are in microseconds
+
+        Whether or not you get return values is enabled/disabled by 
+        enable/disable_output_recording()
         """
+        # every FPGA time unit, the Spike Filter array loops through N_SF
+        # filters, reports the tallied tag counts since the last report, 
+        # and resets each count to 0
+
         words, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
         
-        filt_idxs = [bddriver.GetField(w, bddriver.SFWORD.FILTIDX) for w in words]
-        counts = [bddriver.GetField(w, bddriver.SFWORD.STATE) for w in words]
+        filt_idxs = [bd.GetField(w, bd.SFWORD.FILTIDX) for w in words]
+        counts = [bd.GetField(w, bd.SFWORD.STATE) for w in words]
 
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
@@ -143,9 +155,16 @@ class HAL(object):
             If you're making several calls, it may be advantageous to only flush
             the last one
         """
+        # every FPGA time unit, the FPGA loops through the spike generators and decides whether or 
+        # not to emit a tag for each one. The SGs can be reprogrammed to change their individual rates
+        # and to target different tags
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
         out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
-        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, flush)
+        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, True)
+
+        # XXX there is a bug (probably with how inputs are sorted by time)
+        # calling SetSpikeGeneratorRates with more than one element per list 
+        # or not calling flush after each invocation will cause undefined behavior
 
     def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
         """Controls tag stream generators rates (on the FPGA)
@@ -166,9 +185,14 @@ class HAL(object):
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        gen_idxs = [self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
-        out_tags = [self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
-        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+        #gen_idxs = [self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
+        #out_tags = [self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
+        #self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+
+        # XXX see comment on set_input_rate(). For now this doesn't work as intended
+        # this should work (with some negligible additional latency)
+        for inp, dim, rate in zip(inputs, dims, rates):
+            self.set_input_rate(inp, dim, rate, time, flush)
 
 
     ##############################################################################
@@ -235,15 +259,15 @@ class HAL(object):
         # datapath memory programming 
 
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
+            CORE_ID, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
+            CORE_ID, bd.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
+            CORE_ID, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
+            CORE_ID, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bddriver.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
+            CORE_ID, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
 
         # neuron tile config SRAM: open diffusor cuts
 

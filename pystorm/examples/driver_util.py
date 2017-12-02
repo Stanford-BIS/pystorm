@@ -43,7 +43,7 @@ def standard_DAC_settings(D, CORE):
     D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
     D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
     D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 250)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 6)
+    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 1)
 
 def compare_TAT_words(progged, dumped):
     if len(dumped) >= 1 and sum([i == j for i,j in zip(dumped, progged)]) == len(progged):

@@ -882,6 +882,7 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
     cout << "WARNING: DumpMemRecv timed out! Expected output from memory" << endl;
     return payloads;
   }
+  cout << "payload size: " << payloads.size() << endl;
 
   // if this is the PAT, need to chop off the first num_pushs_pending_ - 2 outputs
   // (the last two pending we just put on, come after the memory words)

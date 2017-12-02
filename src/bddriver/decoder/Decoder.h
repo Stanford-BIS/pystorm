@@ -20,7 +20,10 @@ class Decoder : public Xcoder {
 
  public:
 
-  constexpr static unsigned int bytesPerInput = 4; 
+  constexpr static unsigned int READ_SIZE = 512 * 256;
+  constexpr static unsigned int READ_BLOCK_SIZE = 1024; // XXX shouldn't hardcode this, should get from Comm
+  constexpr static unsigned int BYTES_PER_WORD = 4;
+  constexpr static unsigned int bytesPerInput = BYTES_PER_WORD;
 
   Decoder(
       MutexBuffer<DecInput> *in_buf,
