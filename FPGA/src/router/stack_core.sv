@@ -100,7 +100,7 @@ BrainDrizzle router_node (
  .reset			(reset),
  .top_in_clk	(top_in_clk),
  .bot_in_clk	(bot_in_clk),
- .BD_in_clk		(BD_in_clk),
+ .BD_in_clk		(router_clk),
  .top_valid_in	(top_valid_in),
  .bot_valid_in	(bot_valid_in),
  .BD_valid_in	(BD_valid_in),
@@ -153,7 +153,7 @@ BZ_serializer serializer (
 	.is_full(~BD_ready_out), //full signal for the fifo this places stuff into
 	.data_out(BD_in), //data to write to fifo
 	.wrreq(BD_valid_in), //fifo write request
-	.clk(clk),
+	.clk(router_clk),
 	.reset(reset)
 );
 

@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: stack_core.tcl
-# Generated on: Wed Nov 29 17:25:08 2017
+# Generated on: Fri Dec 01 16:35:03 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -58,6 +58,10 @@ if {$make_assignments} {
 	set_global_assignment -name POWER_DEFAULT_INPUT_IO_TOGGLE_RATE "12.5 %"
 	set_global_assignment -name SYSTEMVERILOG_FILE ../src/router/stack_core.sv
 	set_global_assignment -name QIP_FILE stack_BDIO_PLL.qip
+	set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+	set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+	set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments
 	set_global_assignment -name TIMEQUEST_MULTICORNER_ANALYSIS ON -family "MAX 10"
