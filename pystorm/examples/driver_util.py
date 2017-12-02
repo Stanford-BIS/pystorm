@@ -35,15 +35,15 @@ def standard_DAC_settings(D, CORE):
     D.InitDAC(CORE)
 
     # magical DAC settings (DC is the most important, with the default, inhibition doesn't work)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 920)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 10)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 250)
-    D.SetDACValue(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 1)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 920)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 10)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 250)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 1)
 
 def compare_TAT_words(progged, dumped):
     if len(dumped) >= 1 and sum([i == j for i,j in zip(dumped, progged)]) == len(progged):
