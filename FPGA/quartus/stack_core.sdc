@@ -1,4 +1,4 @@
-## Generated SDC file "BrainDrizzle.sdc"
+## Generated SDC file "stack_core.sdc"
 
 ## Copyright (C) 2017  Intel Corporation. All rights reserved.
 ## Your use of Intel Corporation's design tools, logic functions 
@@ -39,9 +39,8 @@ set_time_format -unit ns -decimal_places 3
 # Create Clock
 #**************************************************************
 
-create_clock -name {clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {clk}]
+create_clock -name {osc} -period 20.000 -waveform { 0.000 10.000 } [get_ports {osc}]
 create_clock -name {top_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {top_in_clk}]
-create_clock -name {BD_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {BD_in_clk}]
 create_clock -name {bot_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {bot_in_clk}]
 
 
@@ -49,7 +48,7 @@ create_clock -name {bot_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_por
 # Create Generated Clock
 #**************************************************************
 
-
+derive_pll_clocks
 
 #**************************************************************
 # Set Clock Latency
