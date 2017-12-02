@@ -51,7 +51,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			default: next_state = 3'd4; //default to idling for header
 		endcase
 
-	always @(posedge clk) begin
+	always @(posedge clk or posedge reset) begin
 		if(!reset) begin
 			state <= next_state; //ff the state
 		end

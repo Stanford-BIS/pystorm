@@ -23,7 +23,7 @@
 ## DATE    "Tue Nov 07 14:52:07 2017"
 
 ##
-## DEVICE  "10M08SCU169A7G"
+## DEVICE  "10M08SCU169C8G"
 ##
 
 

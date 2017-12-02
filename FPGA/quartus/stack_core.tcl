@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: stack_core.tcl
-# Generated on: Fri Dec 01 16:35:03 2017
+# Generated on: Fri Dec 01 16:59:20 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -42,13 +42,13 @@ if {[is_project_open]} {
 # Make assignments
 if {$make_assignments} {
 	set_global_assignment -name FAMILY "MAX 10"
-	set_global_assignment -name DEVICE 10M08SCU169A7G
+	set_global_assignment -name DEVICE 10M08SAU169C8G
 	set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.0.0
 	set_global_assignment -name PROJECT_CREATION_TIME_DATE "15:10:37  NOVEMBER 28, 2017"
 	set_global_assignment -name LAST_QUARTUS_VERSION "17.0.0 Lite Edition"
 	set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
-	set_global_assignment -name MIN_CORE_JUNCTION_TEMP "-40"
-	set_global_assignment -name MAX_CORE_JUNCTION_TEMP 125
+	set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+	set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
 	set_global_assignment -name DEVICE_FILTER_PACKAGE UFBGA
 	set_global_assignment -name DEVICE_FILTER_PIN_COUNT 169
 	set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256

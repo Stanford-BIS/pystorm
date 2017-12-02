@@ -59,7 +59,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 			default: next_state = 3'b0;
 		endcase // state
 
-	always @(posedge clk) begin
+	always @(posedge clk or posedge reset) begin
 		if((state == 3'd0 | state == 3'd4)  & !reset) begin
 			header_packet <= {1'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
 			data <= PC_in_channel.d[29:0]; //assign data
