@@ -371,7 +371,6 @@ class SliderRow(BoxLayout):
         if self.__send_update__:
             CTRLQ.put(("__bias__", ("SetDACCount", 0, self.__attr_name__, self.slider.value)))
             CTRLRESP.get(True)
-            #Clock.schedule_once(partial(self.shell.run_command, "driver.Flush()"))
 
         self.__send_update__ = True
 

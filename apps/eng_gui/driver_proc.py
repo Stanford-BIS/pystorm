@@ -18,7 +18,6 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
     print(driver)
     _do_run = True
     REFRESH_PERIOD = __g_refresh_period__
-    #POLL_PERIOD = 0.001
     POLL_PERIOD = 1./60.
 
     DECAY_PERIOD = 0.1
@@ -26,7 +25,6 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
     DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
 
     ZERO_MAT = np.zeros(4096, dtype=np.float32)
-    #ARR_DATA = np.zeros(4096, dtype=np.float32)
     ARR_DATA = np.frombuffer(__shared_arr__.get_obj(), dtype=np.float32)
     MAX_MAT = np.full(4096, 1.0, dtype=np.float32)
     ZERO_MASK = np.full(4096, False, dtype=bool)
@@ -84,7 +82,6 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
                 continue
 
             try:
-                #eval(compile(_cmd, '<string>', 'single'), g_dict, l_dict)
                 _code = compile(_cmd, '<string>', 'single')
                 eval(_code, {}, proc_dict)
             except:
@@ -101,7 +98,6 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
             #err_q.put("")
 
     def __data_loop__():
-        _mask1 = np.full(4096, False, dtype=np.bool)
         _last_time = driver.GetFPGATimeSec()
         spike_idx = np.zeros(4096, dtype=np.int64)
         spike_t = np.zeros(4096, dtype=np.float)
@@ -114,34 +110,12 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
 
             _current_time = driver.GetFPGATimeSec()
 
-            #for iy in range(16, 48):
-            #    for ix in range(16, 48):
-            #        ii = iy * 64 + ix
-            #        spike_idx[ii] = 1
-            #        spike_t[ii] = _current_time - 10e-9
-
             _delta_time = _current_time - _last_time
             _last_time = _current_time * 1.0
 
-            #DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / _delta_time
             DECAY_AMOUNT = 1.0 / DECAY_PERIOD * _delta_time
             DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
             _decay = MAX_MAT - DECAY_AMOUNT * (_current_time - spike_t) / _delta_time
-
-            #_spiked = np.where(spike_idx == 1)[0]
-            #if len(_spiked) > 0:
-            #    print((_current_time, _delta_time, DECAY_AMOUNT, np.amax(spike_t[_spiked]), np.amin(spike_t[_spiked])))
-            #    print(_decay[_spiked])
-
-            #t_min = _cnt * POLL_PERIOD
-            #t_max = t_min + POLL_PERIOD
-            #spike_idx = np.zeros(4096, dtype=np.uint8)
-            #spike_t = np.zeros(4096, dtype=np.float)
-            #_rand = np.random.rand(4096)
-            #_valid_idx = np.where(_rand > 0.9)[0]
-            #spike_idx[_valid_idx] = 1
-            #spike_t[_valid_idx] = _rand[_valid_idx] * POLL_PERIOD + t_min
-            #_decay = MAX_MAT - DECAY_AMOUNT * (t_max - spike_t) / POLL_PERIOD
 
             np.subtract(ARR_DATA, DECAY_MAT, ARR_DATA)
             np.less(ARR_DATA, DECAY_MAT, ZERO_MASK)
@@ -161,4 +135,3 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
 
     cmd_thread.join()
     data_thread.join()
-
