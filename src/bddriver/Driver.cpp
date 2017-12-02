@@ -129,7 +129,7 @@ Driver::Driver() {
   InitSGEn();
 
   // OK appreciates a little sleep time?
-  std::this_thread::sleep_for(std::chrono::microseconds(100)); 
+  std::this_thread::sleep_for(std::chrono::microseconds(100));
   cout << "Driver constructor done" << endl;
 
 
@@ -164,7 +164,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
-  
+
   const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
   if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
     cout << "WARNING: ns_per_unit is very small: FPGA Spike Generator updates might not complete" << endl;
@@ -188,7 +188,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
-  
+
   if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
@@ -203,7 +203,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
 }
 
 void Driver::ResetBD() {
-  // XXX this is only guaranteed to work after bring-up. 
+  // XXX this is only guaranteed to work after bring-up.
   // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
 
@@ -216,28 +216,28 @@ void Driver::ResetBD() {
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_1_sReset_1});
     Flush();
 
-    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
 
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_0_sReset_1});
     Flush();
 
-    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
 
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_0_sReset_0});
     Flush();
 
-    std::this_thread::sleep_for(std::chrono::microseconds(delay_us)); 
+    std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
   }
 }
 
 void Driver::IssuePushWords() {
   // we need to send something that will elicit an output, PAT read is the simplest
   // thing we can request
-  
+
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
   }
-  
+
   //// XXX try using writes instead, theory is that there's input slack, not output slack
   //for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
   //  const std::vector<BDWord> * curr_entries = bd_state_[i].GetMem(bdpars::BDMemId::PAT);
@@ -247,7 +247,7 @@ void Driver::IssuePushWords() {
   //  last_two.push_back(curr_entries->at(PAT_size-1));
   //  SetMem(i, bdpars::BDMemId::PAT, last_two, PAT_size-2);
   //}
-  
+
   num_pushs_pending_ += 2;
   // we have to do something special when dumping the PAT to skip the push words
 }
@@ -266,7 +266,9 @@ BDTime Driver::GetFPGATime() {
   if (times.size() > 0) {
     return times.back();
   } else {
+#ifndef __OPTIMIZE__
     cout << "WARNING: GetFPGATime: haven't received any upstream HBs! Returning 0" << endl;
+#endif
     return 0;
   }
 }
@@ -297,14 +299,14 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
   // Set them to default values defined in BDPars
   for(auto& dac_id: dac_list){
     unsigned int dac_count = GetDACDefaultCount(dac_id);
-    SetDACValue(core_id, dac_id, dac_count, false);
+    SetDACCount(core_id, dac_id, dac_count, false);
   }
   if (flush) Flush();
 }
 
 
 void Driver::InitBD() {
-  
+
   // BD hard reset
   ResetBD();
 
@@ -380,7 +382,7 @@ void Driver::InitFIFO(unsigned int core_id) {
   cout << "sent tags to push junk out of FIFO" << endl;
 
   // resume traffic will wait for the traffic drain timer before turning traffic regs back on
-  std::this_thread::sleep_for(std::chrono::microseconds(1000000)); 
+  std::this_thread::sleep_for(std::chrono::microseconds(1000000));
 
   ResumeTraffic(core_id);
 
@@ -397,8 +399,8 @@ int Driver::Start() {
   dec_->Start();
   cout << "enc and dec started" << endl;
 
-  int comm_state = 0; 
- 
+  int comm_state = 0;
+
 #ifdef BD_COMM_TYPE_OPALKELLY
   // Initialize Opal Kelly Board
   comm_state = static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
@@ -565,14 +567,17 @@ std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int
   return {ovflw0.size(), ovflw1.size()};
 }
 
-void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush) {
+void Driver::SetDACCount(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush) {
 
   // look up state of connection to ADC
   BDWord reg_val = bd_state_.at(core_id).GetReg(signal_id).first;
   bool DAC_to_ADC_conn_curr_state = GetField(reg_val, DACWord::DAC_TO_ADC_CONN);
 
   BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, value - 1}, {DACWord::DAC_TO_ADC_CONN, DAC_to_ADC_conn_curr_state}});
-  SetBDRegister(core_id, signal_id, word, flush);
+  //SetBDRegister(core_id, signal_id, word, flush);
+  SetBDRegister(core_id, signal_id, word, false);
+  SetBDRegister(core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
+  SetBDRegister(core_id, bdpars::BDHornEP::DAC_UNUSED, word, flush);
 }
 
 void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush) {
@@ -583,7 +588,12 @@ void Driver::SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float
     }else{
         dac_count = static_cast<unsigned int>(value / bdpars::DACInfo::DAC_UNIT_CURRENT * _dac.scaling);
     }
-    SetDACValue(core_id, signal_id, dac_count, flush);
+    SetDACCount(core_id, signal_id, dac_count, flush);
+}
+
+unsigned int Driver::GetDACCurrentCount(unsigned int core_id, bdpars::BDHornEP signal_id){
+  BDWord reg_val =  GetRegState(core_id, signal_id).first;
+  return GetField(reg_val, DACWord::DAC_VALUE) + 1;
 }
 
   unsigned int Driver::GetDACScaling(bdpars::BDHornEP signal_id){ return bd_pars_->dac_info_.at(signal_id).scaling; }
@@ -814,7 +824,7 @@ void Driver::SetMem(
 /// helper for DumpMem
 void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr) {
   // make dump words
-  
+
   assert(start_addr >= 0);
   assert(end_addr <= bd_pars_->mem_info_.at(mem_id).size);
 
@@ -861,7 +871,7 @@ void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned 
 std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int dump_first_n, unsigned int wait_for_us) {
 
   // sleep to wait for the outputs to come back
-  std::this_thread::sleep_for(std::chrono::microseconds(wait_for_us)); 
+  std::this_thread::sleep_for(std::chrono::microseconds(wait_for_us));
 
   bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
 
@@ -910,7 +920,7 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
       if (extra_words_after > 0) {
         cout << "WARNING! Got more words from non-PAT memory than expected" << endl;
         cout << "  expected: " << dump_first_n << endl;
-        cout << "  received: " << payloads.size() << endl; 
+        cout << "  received: " << payloads.size() << endl;
       }
     }
   } else if (dump_first_n > payloads.size()) {
@@ -1089,12 +1099,12 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
 
 void Driver::SetSpikeGeneratorRates(
     unsigned int core_id,
-    const std::vector<unsigned int>& gen_idxs, 
-    const std::vector<unsigned int>& tags, 
-    const std::vector<int>& rates, 
+    const std::vector<unsigned int>& gen_idxs,
+    const std::vector<unsigned int>& tags,
+    const std::vector<int>& rates,
     BDTime time,
     bool flush) {
-  
+
   assert(tags.size() == rates.size());
 
   std::vector<BDWord> SG_prog_words;
@@ -1106,7 +1116,7 @@ void Driver::SetSpikeGeneratorRates(
 
     unsigned int gen_idx = gen_idxs.at(i);
     unsigned int tag = tags.at(i);
-    
+
     // (period in time units) = (units/sec) / (rate in 1/sec)
     const unsigned int max_period = (1 << FieldWidth(FPGASGWORD::PERIOD)) - 1;
 
@@ -1130,12 +1140,12 @@ void Driver::SetSpikeGeneratorRates(
   }
 
   //std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
-  
+
   // XXX this is a hack to avoid misordering upon sorting
   // we have the same problem here that the serializer does
   std::vector<BDTime> SG_prog_times;
   for (unsigned int i = 0; i < SG_prog_words.size(); i++) {
-    SG_prog_times.push_back(time + UnitsToNs(1)); 
+    SG_prog_times.push_back(time + UnitsToNs(1));
   }
 
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
@@ -1174,9 +1184,9 @@ void Driver::SetSpikeGeneratorRates(
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
 
   // set number of SGs used
-  
 
-  if (flush) Flush(); 
+
+  if (flush) Flush();
 
 }
 
@@ -1211,7 +1221,7 @@ void Driver::SendToEP(unsigned int core_id,
 
   // slightly different serialization behaviors for BD vs FPGA EPs
   // data width is 24 for BD EPs, 16 for FPGA EPs
-  const unsigned int FPGA_serialization_width = bd_pars_->DnEPCodeIsBDHornEP(ep_code) ? 
+  const unsigned int FPGA_serialization_width = bd_pars_->DnEPCodeIsBDHornEP(ep_code) ?
       FieldWidth(FPGAIO::PAYLOAD)
     : FieldWidth(THREEFPGAREGS::W0);
 

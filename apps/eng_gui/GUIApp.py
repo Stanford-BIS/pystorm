@@ -27,6 +27,8 @@ import numpy as np
 from pystorm.PyDriver import bddriver as bd
 import driver_proc
 
+EPID = bd.bdpars.BDHornEP
+
 Window.size = (800, 640)
 
 # Expected display refresh period
@@ -54,16 +56,12 @@ ERRQ = Queue(1)
 # message queue for IPC control
 CTRLQ = Queue(1)
 
+# message queue for IPC control response
+CTRLRESP = Queue(1)
+
 # namespace for the console interpreter
 NS = {}
 
-# BD driver
-BDDriver = bd.Driver()
-
-def load(file_name):
-    with open(file_name) as f:
-        code = compile(f.read(), file_name, 'exec')
-        exec(code, globals())
 
 def _truncate_pwd():
     """
@@ -129,7 +127,7 @@ class Shell(EventDispatcher):
                 self.run_command(_item)
 
     def init(self, *args, **kwargs):
-        self.driver_proc = Process(target=driver_proc.__proc__, args=(BDDriver, CMDQ, RESQ, ERRQ, CTRLQ, globals(), NS))
+        self.driver_proc = Process(target=driver_proc.__proc__, args=(CMDQ, RESQ, ERRQ, CTRLQ, CTRLRESP, globals(), NS))
 
         self._do_run = True
         self.run_thread = threading.Thread(target=self.main_loop, args=args, kwargs=kwargs)
@@ -263,6 +261,7 @@ class KivyConsole(BoxLayout, Shell):
         self._output = None
         self._output_text = ""
         self._last_success = True
+        self._exec_cb = None
         self.new_prompt()
 
         Clock.schedule_once(partial(self._prompt.init, shell=self))
@@ -294,6 +293,9 @@ class KivyConsole(BoxLayout, Shell):
         Clock.schedule_once(partial(self._prompt.init, shell=self))
         self.scroll_view.scroll_y = 0
         self._output = None
+
+        if self._exec_cb is not None:
+            Clock.schedule_once(self._exec_cb)
 
         super(KivyConsole, self).new_prompt()
 
@@ -332,15 +334,59 @@ class TopBar(ActionBar):
     pass
 
 class SliderRow(BoxLayout):
+    slider_name = ObjectProperty(None)
+    label = ObjectProperty(None)
+    slider = ObjectProperty(None)
+    text = ObjectProperty(None)
+    text_value = ObjectProperty(None)
 
-    def update_slider(self, inst_s, inst_t, val):
-        _val = int(val)
-        if _val < 1:
-            _val = 1
-        elif _val > 1024:
-            _val = 1024
-        inst_s.value = _val
-        inst_t.text = str(_val)
+    slider_value = NumericProperty(0)
+
+    shell = None
+
+    def __update_scaled_value__(self):
+        _scaled_value = self.slider.value / self.__scaling__
+        if _scaled_value >= 1000:
+            _value_suffix = "nA"
+            _value_mult = 0.001
+        elif _scaled_value >= 1:
+            _value_suffix = "pA"
+            _value_mult = 1.0
+        else:
+            _value_suffix = "fA"
+            _value_mult = 1000.0
+        self.text_value.text = ("%.4g %s" % (_scaled_value * _value_mult, _value_suffix))
+
+    def update_bias(self, widget):
+        if widget == self.slider:
+            self.slider_value = self.slider.value
+        elif widget == self.text:
+            _val = int(self.text.text)
+            if _val < 1:
+                _val = 1
+            elif _val > 1024:
+                _val = 1024
+            self.slider_value = _val
+        self.__update_scaled_value__()
+        if self.__send_update__:
+            CTRLQ.put(("__bias__", ("SetDACCount", 0, self.__attr_name__, self.slider.value)))
+            CTRLRESP.get(True)
+            #Clock.schedule_once(partial(self.shell.run_command, "driver.Flush()"))
+
+        self.__send_update__ = True
+
+    def on_pos(self, *args, **kwargs):
+        self.__attr_name__ = 'DAC_' + self.slider_name.upper()
+        CTRLQ.put(("__bias__", ("GetDACScaling", None, self.__attr_name__)))
+        self.__scaling__ = CTRLRESP.get(True)
+        self.__update_GUI_bias__()
+
+    def __update_GUI_bias__(self, *args, **kwargs):
+        CTRLQ.put(("__bias__", ("GetDACCurrentCount", 0, self.__attr_name__)))
+        _res = CTRLRESP.get(True)
+        self.__send_update__ = False
+        self.slider_value = _res
+
 
 class Sparkle(Widget):
     REFRESH_PERIOD = __g_refresh_period__
@@ -426,6 +472,16 @@ class RootLayout(BoxLayout):
     fade_slider = ObjectProperty(None)
     raster_box = ObjectProperty(None)
     raster_widget = ObjectProperty(None)
+    syn_lk = ObjectProperty(None)
+    syn_pu = ObjectProperty(None)
+    syn_pd = ObjectProperty(None)
+    syn_exc = ObjectProperty(None)
+    syn_dc = ObjectProperty(None)
+    syn_inh = ObjectProperty(None)
+    diff_g = ObjectProperty(None)
+    diff_r = ObjectProperty(None)
+    soma_offset = ObjectProperty(None)
+    soma_ref = ObjectProperty(None)
 
     def init_children(self):
         self.sparkle_widget.init()
@@ -439,6 +495,20 @@ class RootLayout(BoxLayout):
 
         # Trigger Polling
         self.raster_poll_event = None
+
+        self.__biases__ = dict({
+            'syn_lk': self.syn_lk,
+            'syn_pu': self.syn_pu,
+            'syn_pd': self.syn_pd,
+            'syn_exc': self.syn_exc,
+            'syn_dc': self.syn_dc,
+            'syn_inh': self.syn_inh,
+            'diff_g': self.diff_g,
+            'diff_r': self.diff_r,
+            'soma_offset': self.soma_offset,
+            'soma_ref': self.soma_ref
+        })
+
 
     def select_plot(self, type_name):
         if type_name == 'sparkle':
@@ -462,10 +532,6 @@ class RootLayout(BoxLayout):
     def update_rasterwin(self, *args):
         self.raster_widget.__update_win_period__(args[0])
 
-    def update_bias(self, slider, val_text, *args, **kwargs):
-        val_text.text = str(slider.value)
-        print("Name: %s, Value: %g" % (kwargs['name'], kwargs['value']))
-
 class MainScreen(Screen):
     main_area = ObjectProperty(None)
 
@@ -483,17 +549,13 @@ class SettingsScreen(Screen):
         self.settings_area.init_children()
 
 
-def InitBD():
-    print("[INFO] Starting BD")
-    BDDriver.Start() # starts BDDriver threads
-    print("[INFO] Resetting BD")
-    BDDriver.ResetBD()
-    print("[INFO] Init the FIFO (also turns on traffic)")
-    BDDriver.InitFIFO(0)
-    print("[INFO] BDDriver available as '[color=ffffff]BDDriver[/color]'")
-
-
 class GUIApp(App):
+
+    def __update_bias_sliders__(self, *args, **kwargs):
+        _bd =  self.scr_main.main_area.__biases__
+        for k, v in _bd.items():
+            v.shell = self.console
+            v.__update_GUI_bias__()
 
     def build(self):
         self.root = BoxLayout(orientation='vertical')
@@ -505,6 +567,7 @@ class GUIApp(App):
         self.sm = ScreenManager()
         self.scr_main = MainScreen(name='main')
         self.scr_settings = SettingsScreen(name='settings')
+
 
         def __select_screen__(scene_name):
             self.sm.current = scene_name
@@ -522,7 +585,8 @@ class GUIApp(App):
 
     def on_start(self):
         self.scr_main.init_children()
-        Clock.schedule_once(partial(self.console.run_command, "InitBD()"))
+        self.console._exec_cb = self.__update_bias_sliders__
+        Clock.schedule_once(partial(self.console.run_command, "load('ini.py')"))
 
 
     def on_stop(self, *args, **kwargs):

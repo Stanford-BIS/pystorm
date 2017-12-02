@@ -129,7 +129,7 @@ class Driver {
   BDTime GetFPGATime();
   /// Get the most recently received upstream FPGA clock value in seconds
   float GetFPGATimeSec(){
-      return static_cast<float>(GetFPGATime() * ns_per_clk_) * 1e-9;
+      return static_cast<float>(GetFPGATime()) * 1e-9;
   }
   /// Returns driver (PC) time in ns
   BDTime GetDriverTime() const;
@@ -202,9 +202,11 @@ class Driver {
 
   /// Program DAC value
   /// DAC value is from 1 to 1024
-  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
+  void SetDACCount(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
   // Specify any `value` < 0.0 to use default value;
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush=true);
+
+  unsigned int GetDACCurrentCount(unsigned int core_id, bdpars::BDHornEP signal_id);
 
   unsigned int GetDACScaling(bdpars::BDHornEP signal_id);
 

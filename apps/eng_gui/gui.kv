@@ -83,8 +83,10 @@
 <SliderRow>:
     orientation: 'horizontal'
     slider_text: ""
-    slider_name: ""
-    slider_cb: None
+    label: label
+    slider: slider
+    text: text
+    text_value: text_value
     Label:
         id: label
         text: root.slider_text
@@ -99,17 +101,25 @@
         size_hint: (1., 1.)
         min: 1
         max: 1024
-        value: 1
+        value: root.slider_value
         step: 1
         value_track: True
-        on_value: root.slider_cb(self, text, name=root.slider_name, value=self.value)
+        on_value: root.update_bias(self)
     TextInput:
         id: text
         multiline: False
-        text: '1'
-        on_text_validate: root.update_slider(slider, self, self.text)
+        text: str(root.slider_value)
+        on_text_validate: root.update_bias(self)
         size: 80, self.minimum_height
         size_hint: (None, None)
+    Label:
+        id: text_value
+        text: '1 pA'
+        text_size: (140, None)
+        halign: 'right'
+        size: (140, root.height)
+        size_hint: (None, None)
+        markup: True
 
 <StencilBox@StencilView+BoxLayout>:
 
@@ -158,6 +168,18 @@
     raster_box: raster_box
     raster_scatter: raster_scatter
     raster_widget: raster_widget
+
+    syn_lk: syn_lk
+    syn_pu: syn_pu
+    syn_pd: syn_pd
+    syn_exc: syn_exc
+    syn_dc: syn_dc
+    syn_inh: syn_inh
+    diff_g: diff_g
+    diff_r: diff_r
+    soma_offset: soma_offset
+    soma_ref: soma_ref
+
     padding: 20
     BoxLayout:
         orientation: 'horizontal'
@@ -186,32 +208,26 @@
                         id: syn_lk
                         slider_text: "Leak"
                         slider_name: "syn_lk"
-                        slider_cb: root.update_bias
                     SliderRow:
                         id: syn_pu
                         slider_text: "PE PU"
                         slider_name: "syn_pu"
-                        slider_cb: root.update_bias
                     SliderRow:
                         id: syn_pd
                         slider_text: "PE PD"
                         slider_name: "syn_pd"
-                        slider_cb: root.update_bias
                     SliderRow:
                         id: syn_exc
                         slider_text: "Exc"
                         slider_name: "syn_exc"
-                        slider_cb: root.update_bias
                     SliderRow:
                         id: syn_dc
                         slider_text: "DC"
                         slider_name: "syn_dc"
-                        slider_cb: root.update_bias
                     SliderRow:
                         id: syn_inh
                         slider_text: "Inh"
                         slider_name: "syn_inh"
-                        slider_cb: root.update_bias
             GridLayout:
                 id: diff_grid
                 height: (root.ROW_HEIGHT * 2.)
@@ -231,12 +247,10 @@
                         id: diff_g
                         slider_text: "[i]Vert[/i] G"
                         slider_name: "diff_g"
-                        slider_cb: root.update_bias
                     SliderRow:
-                        id: soma_ref
+                        id: diff_r
                         slider_text: "[i]Hor[/i] R"
                         slider_name: "diff_r"
-                        slider_cb: root.update_bias
             GridLayout:
                 id: soma_grid
                 height: (root.ROW_HEIGHT * 2.)
@@ -253,15 +267,13 @@
                     row_force_default: True
                     row_default_height: root.ROW_HEIGHT
                     SliderRow:
-                        id: soma_off
+                        id: soma_offset
                         slider_text: "Offset"
-                        slider_name: "soma_off"
-                        slider_cb: root.update_bias
+                        slider_name: "soma_offset"
                     SliderRow:
                         id: soma_ref
                         slider_text: "Ref"
                         slider_name: "soma_ref"
-                        slider_cb: root.update_bias
             Widget:
         BoxLayout:
             TabbedPanel:

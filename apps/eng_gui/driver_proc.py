@@ -8,12 +8,14 @@ from io import StringIO
 import traceback
 import queue
 import time
+from pystorm.PyDriver import bddriver as bd
 
 __g_refresh_period__ = None
 __shared_arr__ = None
 
-def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
-    BDDriver = driver
+def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
+    driver = bd.Driver()
+    print(driver)
     _do_run = True
     REFRESH_PERIOD = __g_refresh_period__
     #POLL_PERIOD = 0.001
@@ -30,6 +32,10 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
     ZERO_MASK = np.full(4096, False, dtype=bool)
     DECAY_MASK = np.full(4096, False, dtype=bool)
 
+    def load(file_name):
+        with open(file_name) as f:
+            code = compile(f.read(), file_name, 'exec')
+            eval(code, proc_dict, proc_dict)
 
     def __cmd_loop__():
         nonlocal _do_run
@@ -56,6 +62,20 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
                 DECAY_PERIOD = _cntrl[1]
                 DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / POLL_PERIOD
                 DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
+            elif _cntrl[0] == "__bias__":
+                _cmd = _cntrl[1]
+                _core_id = _cmd[1]
+                _attr_enum = getattr(bd.bdpars.BDHornEP, _cmd[2])
+                if _core_id is not None:
+                    _args = list([_core_id, _attr_enum])
+                else:
+                    _args = list([_attr_enum])
+                for _idx in range(len(_cmd) - 3):
+                    _args.append(_cmd[_idx + 3])
+                _res = getattr(driver, _cmd[0])(*_args)
+                if _res is None:
+                    _res = ""
+                cntrl_r.put(_res)
 
             # Check command queue
             try:
@@ -64,7 +84,9 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
                 continue
 
             try:
-                eval(compile(_cmd, '<string>', 'single'), g_dict, l_dict)
+                #eval(compile(_cmd, '<string>', 'single'), g_dict, l_dict)
+                _code = compile(_cmd, '<string>', 'single')
+                eval(_code, {}, proc_dict)
             except:
                 try:
                     _exc_info = sys.exc_info()
@@ -80,21 +102,36 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
 
     def __data_loop__():
         _mask1 = np.full(4096, False, dtype=np.bool)
-        _cnt = 0
-        _last_time = BDDriver.GetFPGATimeSec()
+        _last_time = driver.GetFPGATimeSec()
+        spike_idx = np.zeros(4096, dtype=np.int64)
+        spike_t = np.zeros(4096, dtype=np.float)
+
         while _do_run:
-            _current_time = BDDriver.GetFPGATimeSec()
+            spike_data = driver.RecvXYSpikesMasked(0)
+
+            np.copyto(spike_idx, spike_data[0])
+            np.copyto(spike_t, spike_data[1])
+
+            _current_time = driver.GetFPGATimeSec()
+
+            #for iy in range(16, 48):
+            #    for ix in range(16, 48):
+            #        ii = iy * 64 + ix
+            #        spike_idx[ii] = 1
+            #        spike_t[ii] = _current_time - 10e-9
+
             _delta_time = _current_time - _last_time
             _last_time = _current_time * 1.0
-
-            spike_data = BDDriver.RecvXYSpikesMasked(0)
-            spike_idx = spike_data[0]
-            spike_t = spike_data[1]
 
             #DECAY_AMOUNT = 1.0 / DECAY_PERIOD * REFRESH_PERIOD * REFRESH_PERIOD / _delta_time
             DECAY_AMOUNT = 1.0 / DECAY_PERIOD * _delta_time
             DECAY_MAT = np.full(4096, DECAY_AMOUNT, dtype=np.float32)
             _decay = MAX_MAT - DECAY_AMOUNT * (_current_time - spike_t) / _delta_time
+
+            #_spiked = np.where(spike_idx == 1)[0]
+            #if len(_spiked) > 0:
+            #    print((_current_time, _delta_time, DECAY_AMOUNT, np.amax(spike_t[_spiked]), np.amin(spike_t[_spiked])))
+            #    print(_decay[_spiked])
 
             #t_min = _cnt * POLL_PERIOD
             #t_max = t_min + POLL_PERIOD
@@ -113,7 +150,8 @@ def __proc__(driver, cmd_q, res_q, err_q, cntrl_q, g_dict, l_dict):
             np.copyto(ARR_DATA, _decay, where=spike_idx.astype(bool))
 
             time.sleep(POLL_PERIOD)
-            _cnt += 1
+
+    proc_dict = locals()
 
     cmd_thread = threading.Thread(target=__cmd_loop__)
     data_thread = threading.Thread(target=__data_loop__)
