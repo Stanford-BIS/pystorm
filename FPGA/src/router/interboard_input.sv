@@ -17,7 +17,7 @@ parameter fifo_start_trigger = 8'd251; //two less than max
 
 
 //signals latched on transmit_clk
-always @(posedge transmit_clk) begin
+always @(posedge transmit_clk or posedge reset) begin
 	if (reset == 1) begin
 		data <= 11'b0;
 		wrreq <= 1'b0;

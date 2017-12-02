@@ -24,7 +24,7 @@ end
 
 
 //signals latched on rdclk
-always @(posedge input_clk) begin
+always @(posedge input_clk or posedge reset) begin
 	if (reset == 1) begin
 		rdreq <= 1'b0;
 		valid_ff <= 1'b0;
