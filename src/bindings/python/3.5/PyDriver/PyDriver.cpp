@@ -353,6 +353,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("SetTimeUnitLen", &Driver::SetTimeUnitLen, "sets the FPGA time resolution (sets number of clock cycles per time unit). Also determines SG/SF update interval", py::arg("ns_per_unit"));
 		cl.def("ResetFPGATime", &Driver::ResetFPGATime, "resets FPGA clock to 0");
 		cl.def("GetFPGATime", &Driver::GetFPGATime, "get last received FPGA clock value");
+		cl.def("GetFPGATimeSec", &Driver::GetFPGATimeSec, "get last received FPGA clock value in seconds");
 
 		cl.def("ResetBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::ResetBD, "Toggles pReset/sReset");
 		cl.def("InitBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::InitBD, "Initializes hardware state\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitBD() --> void");
@@ -368,10 +369,14 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("SetSpikeTrafficState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, bool)) &pystorm::bddriver::Driver::SetSpikeTrafficState, "Control spike traffic from neuron array to datapath\n\nC++: pystorm::bddriver::Driver::SetSpikeTrafficState(unsigned int, bool, bool) --> void", py::arg("core_id"), py::arg("en"), py::arg("flush"));
 		cl.def("SetSpikeDumpState", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, bool  const &a1) -> void { return o.SetSpikeDumpState(a0, a1); }, "", py::arg("core_id"), py::arg("en"));
 		cl.def("SetSpikeDumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool, bool)) &pystorm::bddriver::Driver::SetSpikeDumpState, "Control spike traffic from neuron array to driver\n\nC++: pystorm::bddriver::Driver::SetSpikeDumpState(unsigned int, bool, bool) --> void", py::arg("core_id"), py::arg("en"), py::arg("flush"));
-		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, unsigned int  const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", py::arg("core_id"), py::arg("signal_id"), py::arg("value"));
-		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool)) &pystorm::bddriver::Driver::SetDACValue, "Program DAC value\n\nC++: pystorm::bddriver::Driver::SetDACValue(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool) --> void", py::arg("core_id"), py::arg("signal_id"), py::arg("value"), py::arg("flush"));
+
+		cl.def("SetDACCount", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, unsigned int  const &a2) -> void { return o.SetDACCount(a0, a1, a2); }, "", py::arg("core_id"), py::arg("signal_id"), py::arg("value"));
+		cl.def("SetDACCount", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool)) &pystorm::bddriver::Driver::SetDACCount, "Program DAC value\n\nC++: pystorm::bddriver::Driver::SetDACCount(unsigned int, pystorm::bddriver::bdpars::BDHornEP, unsigned int, bool) --> void", py::arg("core_id"), py::arg("signal_id"), py::arg("value"), py::arg("flush"));
+
 		cl.def("SetDACValue", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, float, bool)) &pystorm::bddriver::Driver::SetDACValue, "", py::arg("core_id"), py::arg("signal_id"), py::arg("value"), py::arg("flush"));
 		cl.def("SetDACValue", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, float const &a2) -> void { return o.SetDACValue(a0, a1, a2); }, "", py::arg("core_id"), py::arg("signal_id"), py::arg("value"));
+
+        cl.def("GetDACCurrentCount", &pystorm::bddriver::Driver::GetDACCurrentCount, "get last programmed DAC count");
 		cl.def("SetDACtoADCConnectionState", [](pystorm::bddriver::Driver &o, unsigned int  const &a0, pystorm::bddriver::bdpars::BDHornEP  const &a1, bool  const &a2) -> void { return o.SetDACtoADCConnectionState(a0, a1, a2); }, "", py::arg("core_id"), py::arg("dac_signal_id"), py::arg("en"));
 		cl.def("SetDACtoADCConnectionState", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool)) &pystorm::bddriver::Driver::SetDACtoADCConnectionState, "Make DAC-to-ADC connection for calibration for a particular DAC\n\nC++: pystorm::bddriver::Driver::SetDACtoADCConnectionState(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool) --> void", py::arg("core_id"), py::arg("dac_signal_id"), py::arg("en"), py::arg("flush"));
 
@@ -414,8 +419,10 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 
     // manually modified
 		cl.def("RecvSpikes", &pystorm::bddriver::Driver::RecvSpikes, "Receive a stream of spikes\n\nC++: pystorm::bddriver::Driver::RecvSpikes(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
-    cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
+        cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
 		cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
+		//cl.def("RecvXYSpikes", &pystorm::bddriver::Driver::RecvXYSpikes, "Similar to `RecvSpikes`, except the address space is flat X-Y", py::arg("core_id"));
+		cl.def("RecvXYSpikesMasked", &pystorm::bddriver::Driver::RecvXYSpikesMasked, "Similar to `RecvXYSpikes`, but provides masked data", py::arg("core_id"));
 
     // manually added
     cl.def("SetSpikeGeneratorRates", &Driver::SetSpikeGeneratorRates, "Set input rates (in +/- Hz) for Spike Generators.", 

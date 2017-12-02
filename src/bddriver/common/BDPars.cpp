@@ -136,13 +136,13 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_SYN_EXC]     = {8  , (34 + 30) * 8};   // (34 + 30) * 8 = 512
   dac_info_[BDHornEP::DAC_SYN_DC]      = {16 , 920};             // 34 * 16 = 544
   dac_info_[BDHornEP::DAC_SYN_INH]     = {128, (34 - 30) * 128}; // (34 - 30) * 128 = 512
-  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1023}; 
+  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1024}; 
   dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 22};
   // DAC output is scaled by 160.
   // Then LPF leak multiplies by 8X to get 20.
   dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10};
-  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1023}; 
-  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 256};
+  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024}; 
+  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512};
   dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10};
 

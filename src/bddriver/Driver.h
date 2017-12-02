@@ -127,6 +127,10 @@ class Driver {
   void ResetFPGATime();
   /// Get the most recently received upstream FPGA clock value
   BDTime GetFPGATime();
+  /// Get the most recently received upstream FPGA clock value in seconds
+  float GetFPGATimeSec(){
+      return static_cast<float>(GetFPGATime()) * 1e-9;
+  }
   /// Returns driver (PC) time in ns
   BDTime GetDriverTime() const;
   /// Cycles BD pReset/sReset
@@ -198,9 +202,11 @@ class Driver {
 
   /// Program DAC value
   /// DAC value is from 1 to 1024
-  void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
+  void SetDACCount(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush=true);
   // Specify any `value` < 0.0 to use default value;
   void SetDACValue(unsigned int core_id, bdpars::BDHornEP signal_id, float value, bool flush=true);
+
+  unsigned int GetDACCurrentCount(unsigned int core_id, bdpars::BDHornEP signal_id);
 
   unsigned int GetDACScaling(bdpars::BDHornEP signal_id);
 
@@ -454,12 +460,20 @@ class Driver {
       const std::vector<BDTime> times,
       bool flush=true);
 
-  /// Receive a stream of spikes
+  /// Receive a stream of spikes in AER address space
   std::pair<std::vector<BDWord>,
             std::vector<BDTime> > RecvSpikes(unsigned int core_id) {
     // Timeout of 1us
     return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
+
+  ///// Receive spikes stream in X-Y flat space
+  //std::pair<std::vector<unsigned int>,
+  //          std::vector<BDTime> > RecvXYSpikes(unsigned int core_id);
+
+  /// Receive spikes stream in X-Y flat space as masked boolean array
+  std::pair<std::vector<unsigned int>,
+            std::vector<float>> RecvXYSpikesMasked(unsigned int core_id);
 
   /// Send a stream of tags
   void SendTags(
