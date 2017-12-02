@@ -40,8 +40,8 @@ set_time_format -unit ns -decimal_places 3
 #**************************************************************
 
 create_clock -name {osc} -period 20.000 -waveform { 0.000 10.000 } [get_ports {osc}]
-create_clock -name {top_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {top_in_clk}]
-create_clock -name {bot_in_clk} -period 5.000 -waveform { 0.000 2.500 } [get_ports {bot_in_clk}]
+create_clock -name {top_in_clk} -period 6.667 -waveform { 0.000 3.333 } [get_ports {top_in_clk}]
+create_clock -name {bot_in_clk} -period 6.667 -waveform { 0.000 3.333 } [get_ports {bot_in_clk}]
 
 
 #**************************************************************
@@ -84,8 +84,6 @@ derive_clock_uncertainty
 # Set False Path
 #**************************************************************
 
-set_false_path  -from  [get_clocks {clk}]  -to  [get_clocks {BD_in_clk bot_in_clk top_in_clk}]
-set_false_path  -from  [get_clocks {BD_in_clk bot_in_clk top_in_clk}]  -to  [get_clocks {clk}]
 
 
 #**************************************************************

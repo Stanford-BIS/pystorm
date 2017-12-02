@@ -141,7 +141,7 @@ tail_bit_reset gen_reset(
 
 
 BZ_deserializer deserializer (
-	.PC_out_channel(PC_downstream), //output channel for the Core
+	.PC_out_channel(Des_out), //output channel for the Core
 	.isempty(~BD_valid_out), //isempty signal for the fifo feeding us packets
 	.data_in(BD_out), //data from the fifo
 	.rdreq(BD_ready_in), //read request for fifo
@@ -149,13 +149,20 @@ BZ_deserializer deserializer (
 	.reset(reset)
 );
 BZ_serializer serializer (
-	.PC_in_channel(PC_upstream), //channel from the BD that has data for us
+	.PC_in_channel(Ser_in), //channel from the BD that has data for us
 	.is_full(~BD_ready_out), //full signal for the fifo this places stuff into
 	.data_out(BD_in), //data to write to fifo
 	.wrreq(BD_valid_in), //fifo write request
 	.clk(router_clk),
 	.reset(reset)
 );
+
+// channels between serdes and core design
+Channel #(NPCinout) Des_out();
+Channel #(NPCinout + NPCroute) Ser_in();
+
+DCChannelFIFO32 input_channel_fifo(Des_out, PC_downstream, router_clk, core_clk, reset);
+DCChannelFIFO42 output_channel_fifo(PC_upstream, Ser_in, core_clk, router_clk, reset);
 
 // core design
 Core core(
