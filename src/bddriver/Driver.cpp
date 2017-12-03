@@ -1064,17 +1064,6 @@ void Driver::SendSpikes(unsigned int core_id, const std::vector<BDWord>& spikes,
   if (flush) Flush();
 }
 
-//std::pair<std::vector<unsigned int>, std::vector<BDTime>> Driver::RecvXYSpikes(unsigned int core_id){
-//    // Timeout of 1us
-//    auto spikes = RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
-//    auto aer_addresses = spikes.first;
-//    std::vector<unsigned int> xy_addresses(aer_addresses.size());
-//    for(unsigned int idx = 0; idx < aer_addresses.size(); ++idx){
-//        xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
-//    }
-//    return {xy_addresses, spikes.second};
-//}
-
 std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMasked(unsigned int core_id){
     // Timeout of 1us
     auto spikes = RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);

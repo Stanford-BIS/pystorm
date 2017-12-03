@@ -167,12 +167,13 @@ class Driver {
 
   /// Utility function to process spikes a little more quickly
   std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
-    std::vector<unsigned int> to_return;
-    for (auto& it : aer_addrs) {
-      if (it < 4096) {
-        to_return.push_back(bd_pars_->soma_aer_to_xy_.at(it));
+    std::vector<unsigned int> to_return(aer_addrs.size());;
+    for (unsigned int i = 0; i < aer_addrs.size(); i++) {
+      unsigned int addr = aer_addrs[i];
+      if (addr < 4096) {
+        to_return[i] = bd_pars_->soma_aer_to_xy_.at(addr);
       } else {
-        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << it << endl;
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
       }
     }
     return to_return;
@@ -416,6 +417,252 @@ class Driver {
   // Memory programming
   //////////////////////////////////////////////////////////////////////////
 
+  // convenience functions to pack memory entries
+
+  /// Pack PAT words
+  ///
+  /// inputs: three equal-length vectors. Each index corresponds to the fields of a single 
+  /// PAT entry.
+  ///
+  /// Spikes leaving the neuron array index into the PAT for redirection to the accumulator.
+  /// The accumulator takes in an AM and MM address (for its buckets and weights, respectively).
+  ///
+  /// Each 8x8 group of neurons shares the same PAT entry. The PAT entry contains:
+  ///   AM_addr     : 10 bits,  an AM address
+  ///   MM_addr_msb : 2 bits, msbs to use in computing the MM addr
+  ///   MM_addr_lsb : 8 bits, lsbs to use in computing the MM addr
+  ///
+  /// basically, the PAT does (in pseudo-verilog):
+  /// 
+  /// function PAT(aer_addr) {
+  ///   logic[5:0] aer_msb, aer_lsb
+  ///   {aer_msb, aer_lsb} = aer_addr
+  ///
+  ///   logic[19:0] entry = PAT[aer_msb]
+  ///   return (entry.AM_addr, {entry.MM_addr_msb, aer_lsb, entry.MM_addr_lsb})
+  /// }
+  ///
+  /// The MM can be thought of as being 256x256 (64K total entries), comprised by
+  /// four 64x256 "fat" blocks stacked on top of each other. The PAT MM MSBs 
+  /// determine which fat block a 64-neuron group's decoders sit in and the MM LSBs
+  /// determine which column the decoders start in (the accumulator walks along the X-axis).
+  /// The neuron's sub-idx (aer_lsb) determines which row in the fat block is used by that neuron.
+  std::vector<BDWord> PackPATWords(const std::vector<unsigned int>& AM_addrs,
+                                   const std::vector<unsigned int>& MM_addrs_lsb,
+                                   const std::vector<unsigned int>& MM_addrs_msb) {
+    assert(AM_addrs.size() == MM_addrs_lsb.size());
+    assert(AM_addrs.size() == MM_addrs_msb.size());
+    std::vector<BDWord> packed(AM_addrs.size());
+    for (unsigned int i = 0; i < AM_addrs.size(); i++) {
+      packed[i] = PackWord<PATWord>({
+        {PATWord::AM_ADDRESS, AM_addrs[i]},
+        {PATWord::MM_ADDRESS_LO, MM_addrs_lsb[i]},
+        {PATWord::MM_ADDRESS_HI, MM_addrs_msb[i]}});
+    }
+    return packed;
+  }
+
+  /// Pack AM words
+  /// 
+  /// inputs: three equal-length vectors. Each index corresponds to the fields of a single
+  /// AM entry. 
+  ///
+  /// The AM works in tandem with the MM to feed the accumulator.
+  /// When a spike or tag enters the accumulator with an AM or MM address,
+  /// the accumulator will do as many reads of the accumulator and MM as there are
+  /// dimensions in the output of the decode/transform being performed.
+  /// Each AM entry therefore corresponds to the state of a single accumulator bucket.
+  ///
+  /// The AM entry has 4 fields:
+  ///   value         : 19 bits, current bucket value
+  ///   threshold_idx : 3 bits, determines the overflow value of the accumulator bucket.
+  ///                   this value, in the same units as the MM weights is: 2**(6 + threshold_idx)
+  ///                   making thresholds of 64 to 8192 possible. This is meant to optimize 
+  ///                   the dynamic range of the decode weights.
+  ///  stop           : 1 bit, 1 denotes this is the final bucket (last dimension) 
+  ///                   of a decode/transform
+  ///  output_tag     : 19 bits, the global tag to emit when the accumulator overflows
+  ///
+  /// (we don't program the value)
+  /// 
+  /// The accumulator does (roughly speaking):
+  /// 
+  /// function Accumulator(am_addr, mm_addr) {
+  ///   stop = False
+  ///   curr_am_addr = am_addr
+  ///   curr_mm_addr = mm_addr
+  ///   outputs = []
+  ///   while (!stop) {
+  ///     am_entry = AM[curr_am_addr]
+  ///     mm_entry = MM[curr_mm_addr]
+  ///     am_entry.value += mm_entry.weight
+  ///     thr_val = 2**(6 + am_entry.threshold_idx);
+  ///     if (am_entry.value >= thr_val) {
+  ///       am_entry.value -= thr_val
+  ///       outputs.append((am_entry.output_tag, +1))
+  ///     }
+  ///     if (am_entry.value <= -thr_val) {
+  ///       am_entry.value += thr_val
+  ///       outputs.append((am_entry.output_tag, -1))
+  ///     }
+  ///     curr_am_addr++
+  ///     curr_mm_addr++
+  ///   }
+  ///   return outputs
+  /// }
+  std::vector<BDWord> PackAMWords(const std::vector<unsigned int>& threshold_idxs,
+                                  const std::vector<unsigned int>& output_tags,
+                                  const std::vector<unsigned int>& stops) {
+    unsigned int size = stops.size();
+    assert(size == threshold_idxs.size());
+    assert(size == output_tags.size());
+    std::vector<BDWord> packed(size);
+    for (unsigned int i = 0; i < size; i++) {
+      packed[i] = PackWord<AMWord>({
+        {AMWord::ACCUMULATOR_VALUE, 0}, // could look up current value, clobber instead
+        {AMWord::THRESHOLD, threshold_idxs[i]},
+        {AMWord::STOP, stops[i]},
+        {AMWord::NEXT_ADDRESS, output_tags[i]}});
+    }
+    return packed;
+  }
+
+  // (MM word has a single field, the weight, no need to pack)
+
+  /// Packs TAT Spike Words
+  ///
+  /// inputs are four vectors. synapse_xs, synapse_ys, and synapse_signs must be length 2*N, 
+  /// stops are length N. synapse_xs/ys/signs[2*i], synapse_xs/ys/signs[2*i+1],
+  /// and stops[i] all correspond to the same TAT entry
+  /// 
+  /// The TAT takes input tags, uses it to index the memory, which it walks through
+  /// until encountering a stop bit. For each entry, it does one of three things:
+  ///   send spikes to two different synapses, optionally flipping the sign of each
+  ///   emit a different global tag
+  ///   send an input to the accumulator
+  /// 
+  /// for the spikes or accumulator outputs, if the count is greater than 1 or less than -1,
+  /// a single set of outputs is produced (with the same sign), the count is 
+  /// incremented or decremented, and the input is re-submitted to the FIFO. After leaving
+  /// the FIFO, it will return to the TAT until the count is exhausted. 
+  /// The resubmission to the FIFO has the effect of round-robinning between pending operations.
+  ///
+  /// A TAT Spike Word has 5 programmable fields:
+  ///   stop              : 1 bit, whether or not this is the last entry for the input tag
+  ///   synapse address 0 : 10 bits, AER address of the first synapse to hit
+  ///   synapse sign 0    : 1 bit, whether to invert or not invert sign of input spikes 
+  ///                       to first synapse, "0" means invert, "1" means don't invert
+  ///   synapse address 1 : 10 bits, AER address of the second synapse to hit
+  ///   synapse sign 1    : 1 bit, whether to invert or not invert sign of input spikes 
+  ///                       to second synapse, "0" means invert, "1" means don't invert
+  /// 
+  /// note that you can't just hit 1 synapse per entry. You must hit 2.
+  /// the synapse inputs are wired backwards. Hence the slightly confusing "1" for invert, 
+  /// "0" for no inversion with the synapse signs
+  std::vector<BDWord> PackTATSpikeWords(const std::vector<unsigned int>& synapse_xs,
+                                        const std::vector<unsigned int>& synapse_ys,
+                                        const std::vector<unsigned int>& synapse_signs,
+                                        const std::vector<unsigned int>& stops) {
+    
+    unsigned int size = stops.size();
+    assert(2*size == synapse_xs.size());
+    assert(2*size == synapse_ys.size());
+    assert(2*size == synapse_signs.size());
+
+    std::vector<BDWord> packed(size);
+    for (unsigned int i = 0; i < size; i++) {
+      unsigned int addr0 = GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
+      unsigned int addr1 = GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
+      unsigned int sign0 = synapse_signs[2*i  ];
+      unsigned int sign1 = synapse_signs[2*i+1];
+      packed[i] = PackWord<TATSpikeWord>({
+        {TATSpikeWord::STOP, stops[i]},
+        {TATSpikeWord::SYNAPSE_ADDRESS_0, addr0},
+        {TATSpikeWord::SYNAPSE_ADDRESS_1, addr1},
+        {TATSpikeWord::SYNAPSE_SIGN_0, sign0},
+        {TATSpikeWord::SYNAPSE_SIGN_1, sign1}});
+    }
+    return packed;
+  }
+
+  /// Packs TAT Tag Words
+  ///
+  /// inputs are three vectors of the same length. Each index corresponds to the same TAT entry
+  /// 
+  /// The TAT takes input tags, uses it to index the memory, which it walks through
+  /// until encountering a stop bit. For each entry, it does one of three things:
+  ///   send spikes to two different synapses, optionally flipping the sign of each
+  ///   emit a different global tag
+  ///   send an input to the accumulator
+  /// 
+  /// for the spikes or accumulator outputs, if the count is greater than 1 or less than -1,
+  /// a single set of outputs is produced (with the same sign), the count is 
+  /// incremented or decremented, and the input is re-submitted to the FIFO. After leaving
+  /// the FIFO, it will return to the TAT until the count is exhausted. 
+  /// The resubmission to the FIFO has the effect of round-robinning between pending operations.
+  ///
+  /// A TAT Tag Word has 3 programmable fields:
+  ///   stop         : 1 bit, whether or not this is the last entry for the input tag
+  ///   tag          : 11 bits, output tag to output
+  ///   global route : 12 bits, global route to output
+  std::vector<BDWord> PackTATTagWords(const std::vector<unsigned int>& tags,
+                                      const std::vector<unsigned int>& global_routes,
+                                      const std::vector<unsigned int>& stops) {
+    
+    unsigned int size = stops.size();
+    assert(size == tags.size());
+    assert(size == global_routes.size());
+
+    std::vector<BDWord> packed(size);
+    for (unsigned int i = 0; i < size; i++) {
+      packed[i] = PackWord<TATTagWord>({
+        {TATTagWord::STOP, stops[i]},
+        {TATTagWord::TAG, tags[i]},
+        {TATTagWord::GLOBAL_ROUTE, global_routes[i]}});
+    }
+    return packed;
+  }
+
+  /// Packs TAT Acc Words
+  ///
+  /// inputs are three vectors of the same length. Each index corresponds to the same TAT entry
+  /// 
+  /// The TAT takes input tags, uses it to index the memory, which it walks through
+  /// until encountering a stop bit. For each entry, it does one of three things:
+  ///   send spikes to two different synapses, optionally flipping the sign of each
+  ///   emit a different global tag
+  ///   send an input to the accumulator
+  /// 
+  /// for the spikes or accumulator outputs, if the count is greater than 1 or less than -1,
+  /// a single set of outputs is produced (with the same sign), the count is 
+  /// incremented or decremented, and the input is re-submitted to the FIFO. After leaving
+  /// the FIFO, it will return to the TAT until the count is exhausted. 
+  /// The resubmission to the FIFO has the effect of round-robinning between pending operations.
+  ///
+  /// A TAT Acc Word has 3 programmable fields:
+  ///   stop    : 1 bit, whether or not this is the last entry for the input tag
+  ///   AM addr : 10 bits, AM addr to output
+  ///   MM addr : 16 bits, MM addr to output
+  ///
+  /// unlike the PAT, this is a fully-specified MM address. No bits are inferred from the
+  /// input tag value, as they are for input spikes
+  std::vector<BDWord> PackTATAccWords(const std::vector<unsigned int>& AM_addrs,
+                                      const std::vector<unsigned int>& MM_addrs,
+                                      const std::vector<unsigned int>& stops) {
+    
+    unsigned int size = stops.size();
+    assert(size == AM_addrs.size());
+    assert(size == MM_addrs.size());
+
+    std::vector<BDWord> packed(size);
+    for (unsigned int i = 0; i < size; i++) {
+      packed[i] = PackWord<TATAccWord>({
+        {TATAccWord::AM_ADDRESS, AM_addrs[i]},
+        {TATAccWord::MM_ADDRESS, MM_addrs[i]}});
+    }
+    return packed;
+  }
+  
   /// Set memory delay line value
   void SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int read_value, unsigned int write_value, bool flush=true);
 
@@ -467,9 +714,15 @@ class Driver {
     return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
 
-  ///// Receive spikes stream in X-Y flat space
-  //std::pair<std::vector<unsigned int>,
-  //          std::vector<BDTime> > RecvXYSpikes(unsigned int core_id);
+  /// Receive a stream of spikes in XY address space (Y msb, X lsb)
+  std::tuple<std::vector<unsigned int>, std::vector<BDTime>> RecvXYSpikes(unsigned int core_id) {
+    auto spike_words_times = RecvSpikes(core_id);
+    std::vector<unsigned int> return_xy;
+    for (auto& it : spike_words_times.first) {
+      return_xy.push_back(GetSomaXYAddr(it));
+    }
+    return {return_xy, spike_words_times.second};
+  }
 
   /// Receive spikes stream in X-Y flat space as masked boolean array
   std::pair<std::vector<unsigned int>,
@@ -486,6 +739,24 @@ class Driver {
   /// receive from both tag output leaves, the Acc and TAT
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>> RecvTags(unsigned int core_id, unsigned int timeout_us=1000);
+
+  /// receive tags with their fields unpacked, from both tag output leaves, the Acc and TAT
+  /// returns {counts, tags, routes, times}
+  std::tuple<std::vector<unsigned int>,
+             std::vector<unsigned int>,
+             std::vector<unsigned int>,
+             std::vector<BDTime>> RecvUnpackedTags(unsigned int core_id, unsigned int timeout_us=1000) {
+    auto tags_times = RecvTags(core_id, timeout_us);
+    std::vector<unsigned int> counts;
+    std::vector<unsigned int> tags;
+    std::vector<unsigned int> routes;
+    for (auto& it : tags_times.first) {
+      counts.push_back(GetField(it, TATOutputTag::COUNT));
+      tags.push_back(GetField(it, TATOutputTag::TAG));
+      routes.push_back(GetField(it, TATOutputTag::GLOBAL_ROUTE));
+    }
+    return {counts, tags, routes, tags_times.second};
+  }
 
   //////////////////////////////////////////////////////////////////////////
   // FPGA tag IO
