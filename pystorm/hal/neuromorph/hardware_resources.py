@@ -476,7 +476,7 @@ class AMBuckets(Resource):
         return thr_idxs, thr_vals
 
     def __init__(self, D):
-        super().__init__([MMWeights], [TATAccumulator, TATFanout, TATTapPoint, Sink],
+        super().__init__([MMWeights], [TATAccumulator, TATFanout, TATTapPoint],
                          sliceable_in=False, sliceable_out=True, max_conns_out=1)
         self.D = D
 
@@ -721,17 +721,54 @@ class TATFanout(Resource):
     def dimensions_out(self):
         return self.D
 
+    # note, there's a hack in here to work around the "repeated/clobbered" outputs problem
+    # we need to surround all TATFanouts with one dummy fanout before the actual fanouts, 
+    # and one dummy fanout after. These will clobber/be clobbered instead of the actual
+    # messages
+
+    @property
+    def has_Sink_output(self):
+        for conn in self.conns_out:
+            if isinstance(conn.tgt, Sink):
+                return True
+        return False
+
+    @property
+    def fanout_entries(self):
+        if has_Sink_output:
+            return len(self.conns_out) + 2
+        else
+            return len(self.conns_out)
+
+    # highest tag value is the clobber tag
+    # can't be used for anything else
+    def clobber_tag(self, core):
+        return 2 * core.TAT_size - 1
+
     def pretranslate(self, core):
-        self.size = self.D * len(self.conns_out)
-        self.start_offsets = np.array(
-            range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
+        self.size = self.D * self.fanout_entries
+        self.start_offsets = np.array(range(self.D)) * self.fanout_entries # D acc sets, each with self.fanout_entries entries
 
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
+        assert(self.start_addr + self.size < self.clobber_tag 
+                and "collided with clobber tag, out of room")
 
     def posttranslate(self, core):
-        self.contents = []
+
+        max_route = 2**bddriver.GetWidth(bddriver.TATTagWord.GLOBAL_ROUTE)
+        clobber_entry = [bddriver.PackWord([
+            (bddriver.TATTagWord.STOP, 0),
+            (bddriver.TATTagWord.TAG, self.clobber_tag),
+            (bddriver.TATTagWord.GLOBAL_ROUTE, max_route)])]
+        
+        # prepend clobber entry
+        if self.has_Sink_output:
+            self.contents = [clober_entry]
+        else:
+            self.contents = []
+
         for d in range(self.D):
             for t in range(len(self.conns_out)):
                 stop = 1 * (t == len(self.conns_out) - 1)
@@ -743,6 +780,11 @@ class TATFanout(Resource):
                     (bddriver.TATTagWord.STOP, stop),
                     (bddriver.TATTagWord.TAG, tag),
                     (bddriver.TATTagWord.GLOBAL_ROUTE, global_route)])]
+
+        # postpend clobber entry
+        if self.has_Sink_output:
+            self.contents += [clobber_entry]
+
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):

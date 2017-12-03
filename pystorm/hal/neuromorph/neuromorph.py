@@ -126,7 +126,8 @@ class GraphHWMapper(object):
             hardware_resources: AMBuckets ─> MMWeights ─> AMBuckets
         Conn 4b:
               neuromorph graph: Bucket ─> Output
-            hardware_resources: AMBuckets ─> Sink
+            hardware_resources: AMBuckets ─> TATFanout -> Sink
+            (note, AMBuckets -> Sink is technically feasible, but has the repeated outputs problem)
         Conn 4c:
               neuromorph graph: Bucket ─> Pool
             hardware_resources: AMBuckets ─> TATTapPoint -> Neurons
@@ -211,12 +212,17 @@ class GraphHWMapper(object):
 
                 hardware_resources.append(weight_resource)
 
-            #   Conn 4b: Bucket -> Output
+            #   Conn 4b: Bucket -> TATFanout -> Output
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Output):
                 am_bucket = self.hardware_resource
+                tat_fanout = TATFanout(self.ps_obj.get_num_dimensions())
                 sink = dest_node[1].hardware_resource
 
-                am_bucket.connect(sink)
+                am_bucket.connect(tat_fanout)
+                tat_fanout.connect(sink)
+
+                hardware_resources.append(tat_fanout)
+
             elif isinstance(self.ps_obj, Bucket) and isinstance(dest_node_ps_obj, Pool):
                 am_bucket = self.hardware_resource
 
