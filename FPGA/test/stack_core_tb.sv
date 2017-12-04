@@ -52,6 +52,13 @@ begin
 	bot_in=11'b00111111100; //try sending data
 	top_ready_in = 1;
 
+	#200
+	bot_in=11'b10111111100; //try sending data
+	#4
+	bot_in=11'b00000000000; //try sending data to BD
+	#50
+	bot_in=11'b01010101010;
+
 end
 
 always 

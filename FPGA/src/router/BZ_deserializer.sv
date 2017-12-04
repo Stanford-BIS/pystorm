@@ -103,17 +103,17 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	always @ (*) begin
 		case(state)
 			3'd0: begin
-				rdreq = !isempty; 
+				rdreq = 1; 
 				PC_out_channel.v = 0;
 			end//just ignore the header data
 
 			3'd1: begin
-				rdreq = !isempty;
+				rdreq = 1;
 				PC_out_channel.v = 0;
 			end
 
 			3'd2: begin
-				rdreq = !isempty;
+				rdreq = 1;
 				PC_out_channel.v = 0;
 			end
 
@@ -124,12 +124,12 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			end
 
 			3'd4, 3'd5: begin
-				rdreq = 0; 
+				rdreq = 1; 
 				PC_out_channel.v = !isempty; //pull valid high once we have a full word
 			end
 
 			3'd6: begin
-				rdreq = 0;
+				rdreq = 1;
 				PC_out_channel.v = 0;
 			end
 			

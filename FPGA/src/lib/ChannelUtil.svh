@@ -52,7 +52,8 @@ module DCChannelFIFO32(
     .wrclk  (wrclk),
     .wrreq  (wrreq),
     .q      (q),
-    .rdempty(rdempty));
+    .rdempty(rdempty),
+    .wrfull (wrfull));
 
 endmodule
 
@@ -84,7 +85,8 @@ module DCChannelFIFO42(
     .wrclk  (wrclk),
     .wrreq  (wrreq),
     .q      (q),
-    .rdempty(rdempty));
+    .rdempty(rdempty),
+    .wrfull (wrfull));
 
 endmodule
 
