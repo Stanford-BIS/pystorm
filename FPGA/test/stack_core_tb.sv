@@ -45,11 +45,11 @@ begin
 	top_in_clk=0;
 	bot_in_clk=0;
 	BD_in_clk_ifc=0;
-	bot_in=11'b11111111100; //try resetting with tail bit high
+	bot_in=11'b10111111100; //try resetting with tail bit high
 	bot_valid_in = 1;
 	
 	#200
-	bot_in=11'b01111111100; //try sending data
+	bot_in=11'b00111111100; //try sending data
 	top_ready_in = 1;
 
 end

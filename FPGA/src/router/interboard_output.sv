@@ -28,10 +28,15 @@ always @(posedge input_clk or posedge reset) begin
 	if (reset == 1) begin
 		rdreq <= 1'b0;
 		valid_ff <= 1'b0;
-		send_data <=0;
+		send_data <= 11'b0;
 	end
 	else begin
-		send_data <= fifo_data && valid_ff;
+		if (valid_ff) begin
+			send_data <= fifo_data;
+		end
+		else begin
+			send_data <= 11'b0;
+		end
 		if(~empty & read_input)begin
 			//
 			rdreq <= 1;
