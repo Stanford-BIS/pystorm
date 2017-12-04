@@ -123,6 +123,7 @@ wire bot_out_read;
 
 allocator top_out_allocator (
 clk,
+reset,
 BD_req_1,
 bot_req_1,
 top_out_FIFO_full,
@@ -136,6 +137,7 @@ top_out_to_FIFO
 
 allocator BD_out_allocator (
 clk,
+reset,
 bot_req_0,
 top_req_0,
 BD_out_FIFO_full,
@@ -149,6 +151,7 @@ BD_out_to_FIFO
 
 allocator bot_out_allocator (
 clk,
+reset,
 BD_req_0,
 top_req_1,
 bot_out_FIFO_full,
@@ -176,6 +179,7 @@ bot_out_to_FIFO
 
 InputController top_in_controller (
 clk,
+reset,
 top_in_FIFO_empty,
 BD_ready_1,
 bot_ready_1,
@@ -188,6 +192,7 @@ top_data
 
 InputController BD_in_controller (
 clk,
+reset,
 BD_in_FIFO_empty,
 bot_ready_0,
 top_ready_0,
@@ -200,6 +205,7 @@ BD_data
 
 InputController bot_in_controller (
 clk,
+reset,
 bot_in_FIFO_empty,
 BD_ready_0,
 top_ready_1,
@@ -212,6 +218,7 @@ bot_data
 
 //3 Input FIFOs
 //module routerDCFIFO (
+// aclr,
 //	data,
 //	rdclk,
 //	rdreq,
@@ -224,6 +231,7 @@ bot_data
 //	wrusedw);
 
 routerDCFIFO top_in_FIFO (
+	reset,
 	top_to_input_FIFO,
 	clk,
 	top_read,
@@ -237,6 +245,7 @@ routerDCFIFO top_in_FIFO (
 );
 
 routerDCFIFO BD_in_FIFO (
+	reset,
 	BD_to_input_FIFO,
 	clk,
 	BD_read,
@@ -250,6 +259,7 @@ routerDCFIFO BD_in_FIFO (
 );
 
 routerDCFIFO bot_in_FIFO (
+	reset,
 	bot_to_input_FIFO,
 	clk,
 	bot_read,
@@ -264,6 +274,7 @@ routerDCFIFO bot_in_FIFO (
 
 //3 output FIFOs (Same DCFIFO IP)
 routerDCFIFO top_out_FIFO (
+	reset,
 	top_out_to_FIFO,
 	clk,
 	top_out_read,
@@ -277,6 +288,7 @@ routerDCFIFO top_out_FIFO (
 );
 
 routerDCFIFO BD_out_FIFO (
+	reset,
 	BD_out_to_FIFO,
 	clk,
 	BD_out_read,
@@ -290,6 +302,7 @@ routerDCFIFO BD_out_FIFO (
 );
 
 routerDCFIFO bot_out_FIFO (
+	reset,
 	bot_out_to_FIFO,
 	clk,
 	bot_out_read,

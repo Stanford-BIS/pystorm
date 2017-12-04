@@ -125,6 +125,7 @@ interboard_output DUT_top_in (
 //	wrusedw);
 
 routerDCFIFO top_input (
+	.aclr		(reset),
 	.data		(top_test_input),
 	.rdclk	(top_in_clk),
 	.rdreq	(top_rdreq),
@@ -183,6 +184,7 @@ interboard_input DUT_top_out (
 );
 
 routerDCFIFO bot_output (
+	.aclr		(reset)
 	.data		(bot_data_out),
 	.rdclk	(bot_out_clk),
 	.rdreq	(bot_readout_test),
@@ -195,6 +197,7 @@ routerDCFIFO bot_output (
 	.wrusedw	(bot_wrusedw)
 );
 	routerDCFIFO BD_output (
+	.aclr		(reset)
 	.data		(BD_data_out),
 	.rdclk	(BD_out_clk),
 	.rdreq	(BD_readout_test),

@@ -38,6 +38,7 @@
 `timescale 1 ps / 1 ps
 // synopsys translate_on
 module routerDCFIFO (
+	aclr,
 	data,
 	rdclk,
 	rdreq,
@@ -49,6 +50,7 @@ module routerDCFIFO (
 	wrfull,
 	wrusedw);
 
+	input	  aclr;
 	input	[10:0]  data;
 	input	  rdclk;
 	input	  rdreq;
@@ -59,6 +61,13 @@ module routerDCFIFO (
 	output	[7:0]  rdusedw;
 	output	  wrfull;
 	output	[7:0]  wrusedw;
+`ifndef ALTERA_RESERVED_QIS
+// synopsys translate_off
+`endif
+	tri0	  aclr;
+`ifndef ALTERA_RESERVED_QIS
+// synopsys translate_on
+`endif
 
 	wire [10:0] sub_wire0;
 	wire  sub_wire1;
@@ -72,6 +81,7 @@ module routerDCFIFO (
 	wire [7:0] wrusedw = sub_wire4[7:0];
 
 	dcfifo	dcfifo_component (
+				.aclr (aclr),
 				.data (data),
 				.rdclk (rdclk),
 				.rdreq (rdreq),
@@ -82,7 +92,6 @@ module routerDCFIFO (
 				.rdusedw (sub_wire2),
 				.wrfull (sub_wire3),
 				.wrusedw (sub_wire4),
-				.aclr (),
 				.eccstatus (),
 				.rdfull (),
 				.wrempty ());
@@ -95,8 +104,10 @@ module routerDCFIFO (
 		dcfifo_component.lpm_widthu = 8,
 		dcfifo_component.overflow_checking = "ON",
 		dcfifo_component.rdsync_delaypipe = 5,
+		dcfifo_component.read_aclr_synch = "OFF",
 		dcfifo_component.underflow_checking = "ON",
 		dcfifo_component.use_eab = "ON",
+		dcfifo_component.write_aclr_synch = "OFF",
 		dcfifo_component.wrsync_delaypipe = 5;
 
 
@@ -125,7 +136,7 @@ endmodule
 // Retrieval info: PRIVATE: UNDERFLOW_CHECKING NUMERIC "0"
 // Retrieval info: PRIVATE: UsedW NUMERIC "1"
 // Retrieval info: PRIVATE: Width NUMERIC "11"
-// Retrieval info: PRIVATE: dc_aclr NUMERIC "0"
+// Retrieval info: PRIVATE: dc_aclr NUMERIC "1"
 // Retrieval info: PRIVATE: diff_widths NUMERIC "0"
 // Retrieval info: PRIVATE: msb_usedw NUMERIC "0"
 // Retrieval info: PRIVATE: output_width NUMERIC "11"
@@ -146,9 +157,12 @@ endmodule
 // Retrieval info: CONSTANT: LPM_WIDTHU NUMERIC "8"
 // Retrieval info: CONSTANT: OVERFLOW_CHECKING STRING "ON"
 // Retrieval info: CONSTANT: RDSYNC_DELAYPIPE NUMERIC "5"
+// Retrieval info: CONSTANT: READ_ACLR_SYNCH STRING "OFF"
 // Retrieval info: CONSTANT: UNDERFLOW_CHECKING STRING "ON"
 // Retrieval info: CONSTANT: USE_EAB STRING "ON"
+// Retrieval info: CONSTANT: WRITE_ACLR_SYNCH STRING "OFF"
 // Retrieval info: CONSTANT: WRSYNC_DELAYPIPE NUMERIC "5"
+// Retrieval info: USED_PORT: aclr 0 0 0 0 INPUT GND "aclr"
 // Retrieval info: USED_PORT: data 0 0 11 0 INPUT NODEFVAL "data[10..0]"
 // Retrieval info: USED_PORT: q 0 0 11 0 OUTPUT NODEFVAL "q[10..0]"
 // Retrieval info: USED_PORT: rdclk 0 0 0 0 INPUT NODEFVAL "rdclk"
@@ -159,6 +173,7 @@ endmodule
 // Retrieval info: USED_PORT: wrfull 0 0 0 0 OUTPUT NODEFVAL "wrfull"
 // Retrieval info: USED_PORT: wrreq 0 0 0 0 INPUT NODEFVAL "wrreq"
 // Retrieval info: USED_PORT: wrusedw 0 0 8 0 OUTPUT NODEFVAL "wrusedw[7..0]"
+// Retrieval info: CONNECT: @aclr 0 0 0 0 aclr 0 0 0 0
 // Retrieval info: CONNECT: @data 0 0 11 0 data 0 0 11 0
 // Retrieval info: CONNECT: @rdclk 0 0 0 0 rdclk 0 0 0 0
 // Retrieval info: CONNECT: @rdreq 0 0 0 0 rdreq 0 0 0 0

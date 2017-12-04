@@ -9,14 +9,17 @@ reg [10:0] data_in;
 reg ready_0;
 reg ready_1;
 reg empty;
+reg reset;
 wire read;
 wire req_0;
 wire req_1;
 wire [10:0] data_out;
 
+
 InputController DUT	(
 	.clk				(clk),
-	.empty				(empty),
+	.reset			(reset),
+	.empty			(empty),
 	.ready_0			(ready_0),
 	.ready_1			(ready_1),
 	.data_in			(data_in),
@@ -34,8 +37,12 @@ begin
 	ready_0=0;
 	ready_1=0;
 	data_in=11'b01111111101;
+	reset=1;
 	
 	#210
+	reset=0;
+	
+	#200
 	empty=0;
 	
 	#500

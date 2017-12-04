@@ -4,6 +4,7 @@
 
 module Allocator_tb();
 reg clk;
+reg reset;
 reg req_0;
 reg req_1;
 reg out_FIFO_full;
@@ -19,6 +20,7 @@ wire [10:0] data_out;
 //DUT
 allocator DUT (
 	.clk				(clk),
+	.reset			(reset),
 	.req_0			(req_0),
 	.req_1			(req_1),
 	.out_FIFO_full	(out_FIFO_full),
@@ -39,8 +41,13 @@ begin
 	out_FIFO_full = 0;
 	data_in_0 = 0;
 	data_in_1 = 0;
+	reset=1;
+	
 	
 	#210
+	reset=0;
+	
+	#200
 	req_0 = 1;
 	
 	#300
