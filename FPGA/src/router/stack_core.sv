@@ -139,6 +139,9 @@ tail_bit_reset gen_reset(
 	.next_tail_bit	(tail_out_reset)
 	);
 
+// channels between serdes and core design
+Channel #(NPCinout) Des_out();
+Channel #(NPCinout + NPCroute) Ser_in();
 
 BZ_deserializer deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
@@ -156,10 +159,6 @@ BZ_serializer serializer (
 	.clk(router_clk),
 	.reset(reset)
 );
-
-// channels between serdes and core design
-Channel #(NPCinout) Des_out();
-Channel #(NPCinout + NPCroute) Ser_in();
 
 DCChannelFIFO32 input_channel_fifo(Des_out, PC_downstream, router_clk, core_clk, reset);
 DCChannelFIFO42 output_channel_fifo(PC_upstream, Ser_in, core_clk, router_clk, reset);
@@ -180,7 +179,7 @@ Core core(
 
 //ADD NEW BDCLKGEN WHICH TAKES IN 50 MHz and generates 200 MHz, 100MHz, and 2 BD clks
 stack_BDIO_PLL stack_clockgen(
-	.areset	(reset),//NEW RESET STUFF
+	.areset	(0),//NEW RESET STUFF
 	.inclk0	(osc),
 	.c0		(base_BD_clk),
 	.c1		(skewed_BD_clk),
