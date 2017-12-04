@@ -134,7 +134,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			end
 			
 			default: begin
-				rdreq = 0;
+				rdreq = 1;
 				PC_out_channel.v = 0;
 			end
 
