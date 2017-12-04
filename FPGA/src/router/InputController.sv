@@ -6,6 +6,7 @@
 
 module InputController (
 input clk,
+input reset,
 input empty,
 input ready_0,
 input ready_1,
@@ -35,8 +36,14 @@ parameter send_0 = 2'b10;
 parameter send_1 = 2'b11;
 
 //FF with Enable for data_in_ff, empty
-always @ (posedge clk) begin
-	if (read) begin
+always @ (posedge clk or posedge reset) begin
+	if (reset == 1) begin
+		data_in_ff <= 0;
+		empty_ff <= 1;
+		final_empty <= 1;
+		data_out <= 0;
+	end
+	else if (read) begin
 		data_in_ff <= data_in;
 		empty_ff <= empty;
 		final_empty <= empty_ff;
@@ -86,9 +93,12 @@ begin : next_state_logic
 	endcase
 end
 
-always @ (posedge clk)
+always @ (posedge clk or posedge reset)
 	begin: state_register
-	state <= next_state;
+	if (reset == 1)
+		state <= idle;
+	else
+		state <= next_state;
 end
 
 //output combinational logic

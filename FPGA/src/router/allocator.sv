@@ -12,6 +12,7 @@
 //In other words, a packet must either continue in its original direction or be diverted to the braindrop. It cannot turn around.
 module allocator (
 input clk,
+input reset,
 input req_0,
 input req_1,
 input out_FIFO_full,
@@ -26,8 +27,6 @@ wire tail_0;
 wire tail_1;
 assign tail_0 = data_in_0[10];
 assign tail_1 = data_in_1[10];
-reg req_0_ff;
-reg req_1_ff;
 
 
 //4 states
@@ -41,9 +40,12 @@ parameter idle_recent_1 = 2'b11;
 
 
 //State Register
-always @ (posedge clk)
+always @ (posedge clk or posedge reset)
 	begin: state_register
-	state <= next_state;
+	if(reset == 1)
+		state <= idle_recent_0;
+	else
+		state <= next_state;
 end
 
 //Next State combinational logic
