@@ -715,13 +715,25 @@ class Driver {
   }
 
   /// Receive a stream of spikes in XY address space (Y msb, X lsb)
-  std::tuple<std::vector<unsigned int>, std::vector<BDTime>> RecvXYSpikes(unsigned int core_id) {
-    auto spike_words_times = RecvSpikes(core_id);
-    std::vector<unsigned int> return_xy;
-    for (auto& it : spike_words_times.first) {
-      return_xy.push_back(GetSomaXYAddr(it));
+  std::tuple<std::vector<unsigned int>, std::vector<float>> RecvXYSpikes(unsigned int core_id) {
+    auto spike_words = RecvSpikes(core_id);
+    auto aer_addresses = spike_words.first;
+    auto aer_times = spike_words.second;
+    auto num_spikes = aer_addresses.size();
+
+    std::vector<unsigned int> xy_addresses(num_spikes, 0);
+    std::vector<float> xy_times(num_spikes, 0);
+
+    for(unsigned int idx = 0; idx < num_spikes; ++idx){
+        auto _addr = aer_addresses[idx];
+        if(_addr >=0 && _addr < 4096){
+            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+            xy_times[idx] = static_cast<float>(aer_times[idx]) * 1e-9;
+        }else {
+            cout << "WARNING: Invalid spike address: " << _addr << endl;
+        }
     }
-    return {return_xy, spike_words_times.second};
+    return {xy_addresses, xy_times};
   }
 
   /// Receive spikes stream in X-Y flat space as masked boolean array
