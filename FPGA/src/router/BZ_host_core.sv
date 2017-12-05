@@ -56,10 +56,14 @@ reg r1,r2,r3,r4;
 wire tail_out_reset;
 wire [10:0] top_out_router;
 assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
+wire bot_ready_out;
 
 // channels between OK ifc and core design
 Channel #(NPCinout + NPCroute) PC_downstream();
 Channel #(NPCinout) PC_upstream();
+// channels between serdes and core design
+Channel #(NPCinout) Des_out();
+Channel #(NPCinout + NPCroute) Ser_in();
 
 // get single-ended clock
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));
@@ -73,7 +77,7 @@ assign led_in[2] = PC_upstream.v;
 //Generate 200 MHz Clock for router node
 BZ_host_core_PLL BZ_host_PLL(
 	.refclk(sys_clk),
-	.rst(user_reset),
+	.rst(0),
 	.outclk_0(router_clk),
 	.locked()
 	);
@@ -126,8 +130,12 @@ BrainDrizzle router_node (
  .bot_out_clk	(bot_out_clk)
 );
 
+DCChannelFIFO32 input_channel_fifo(Des_out, PC_upstream, router_clk, okClk, user_reset);
+DCChannelFIFO42 output_channel_fifo(PC_downstream, Ser_in, okClk, router_clk, user_reset);
+
+
 BZ_deserializer deserializer (
-	.PC_out_channel(PC_upstream), //output channel for the Core
+	.PC_out_channel(Des_out), //output channel for the Core
 	.isempty(~bot_valid_out), //isempty signal for the fifo feeding us packets ???????
 	.data_in(bot_out), //data from the fifo
 	.rdreq(bot_ready_in), //read request for fifo
@@ -135,7 +143,7 @@ BZ_deserializer deserializer (
 	.reset(user_reset)
 );
 BZ_serializer serializer (
-	.PC_in_channel(PC_downstream), //channel from the PC that has data for us
+	.PC_in_channel(Ser_in), //channel from the PC that has data for us
 	.is_full(~bot_ready_out), //full signal for the fifo this places stuff into
 	.data_out(bot_in), //data to write to fifo
 	.wrreq(bot_valid_in), //fifo write request
