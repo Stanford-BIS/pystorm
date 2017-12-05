@@ -113,19 +113,19 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			end
 
 			3'd2: begin
-				rdreq = 1;
+				rdreq = 0; //don't overfill fifo; hacky fix to delay
 				PC_out_channel.v = 0;
 			end
 
 			3'd3: begin
-				rdreq = 1;
+				rdreq = 0; //don't overfill fifo; hacky fix to delay
 				PC_out_channel.v = 0;
 				
 			end
 
 			3'd4, 3'd5: begin
-				rdreq = 1; 
-				PC_out_channel.v = !isempty; //pull valid high once we have a full word
+				rdreq = PC_out_channel.a; //want to start reading once we've been acked 
+				PC_out_channel.v = 1; //pull valid high once we have a full word
 			end
 
 			3'd6: begin
@@ -134,7 +134,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			end
 			
 			default: begin
-				rdreq = 0;
+				rdreq = 1;
 				PC_out_channel.v = 0;
 			end
 
