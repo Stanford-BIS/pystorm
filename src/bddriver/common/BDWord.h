@@ -71,8 +71,8 @@ DEFWORD(ToggleWord,
     WIDTHS(1              , 1           )  )
 
 DEFWORD(DACWord,
-    FIELDS(DAC_TO_ADC_CONN , DAC_VALUE ) ,
-    WIDTHS(1               , 10        )   )
+    FIELDS(DAC_VALUE , DAC_TO_ADC_CONN ) ,
+    WIDTHS(10        , 1               )   )
 
 DEFWORD(ADCWord,
     FIELDS(ADC_SMALL_LARGE_CURRENT_0 , ADC_SMALL_LARGE_CURRENT_1 , ADC_OUTPUT_ENABLE ) ,
