@@ -442,9 +442,13 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     // manually modified
 		cl.def("RecvSpikes", &Driver::RecvSpikes, "Receive a stream of spikes\n\nC++: pystorm::bddriver::Driver::RecvSpikes(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
 		cl.def("RecvXYSpikes", &Driver::RecvXYSpikes, "Receive a stream of spikes in XY address space (Y msb, X lsb)", py::arg("core_id"));
+		cl.def("RecvXYSpikesSeconds", &Driver::RecvXYSpikesSeconds, "Receive a stream of spikes in XY address space (Y msb, X lsb), times as float seconds", py::arg("core_id"));
     cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
 		cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
 		cl.def("RecvXYSpikesMasked", &pystorm::bddriver::Driver::RecvXYSpikesMasked, "Similar to `RecvXYSpikes`, but provides masked data", py::arg("core_id"));
+
+    // temporary
+		cl.def("RecvFromEPDebug", &Driver::RecvFromEPDebug, "", py::arg("core_id"), py::arg("ep_code"));
 
     // manually added
     cl.def("SetSpikeGeneratorRates", &Driver::SetSpikeGeneratorRates, "Set input rates (in +/- Hz) for Spike Generators.", 

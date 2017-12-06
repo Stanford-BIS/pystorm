@@ -3,7 +3,7 @@ import time
 
 CORE = 0
 
-range_len = 3
+range_len = 1
 tag_in = [i for i in range(range_len)] # tag we use to make a loopback entry
 tag_in = [0] * range_len
 tag_out = [i for i in range(range_len)] # tag returned by TAT
@@ -90,9 +90,12 @@ print("current time:", curr_FPGA_time)
 start_time = curr_FPGA_time + int(1e9)
 
 times = [i + start_time for i in range(0, len(all_tag_words)*interval, interval)]
-D.SendTags(CORE, all_tag_words, times)
+#D.SendTags(CORE, all_tag_words, times)
 
-time.sleep(1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [10000], start_time, False)
+D.Flush()
+
+time.sleep(100)
 
 def print_queue_states(D):
     print("printing driver queue states:")

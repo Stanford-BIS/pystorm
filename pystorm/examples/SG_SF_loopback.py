@@ -37,33 +37,33 @@ print("* Enable tag traffic")
 D.SetTagTrafficState(CORE, True, True)
 
 print("* Programming TAT for loopback through tag 0")
-#lb_entries = [bd.PackWord([
-#    (bd.TATTagWord.STOP, 1),
-#    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-#    (bd.TATTagWord.TAG, t)
-#    ]) for t in tag_out]
-
-lb_entries = [
-    bd.PackWord([
-    (bd.TATTagWord.STOP, 0),
-    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-    (bd.TATTagWord.TAG, 0)
-    ]),
-    bd.PackWord([
-    (bd.TATTagWord.STOP, 0),
-    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-    (bd.TATTagWord.TAG, 0)
-    ]),
-    bd.PackWord([
-    (bd.TATTagWord.STOP, 0),
-    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-    (bd.TATTagWord.TAG, 0)
-    ]),
-    bd.PackWord([
+lb_entries = [bd.PackWord([
     (bd.TATTagWord.STOP, 1),
     (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-    (bd.TATTagWord.TAG, 1)
-    ])]
+    (bd.TATTagWord.TAG, t)
+    ]) for t in tag_out]
+
+#lb_entries = [
+#    bd.PackWord([
+#    (bd.TATTagWord.STOP, 0),
+#    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
+#    (bd.TATTagWord.TAG, 0)
+#    ]),
+#    bd.PackWord([
+#    (bd.TATTagWord.STOP, 0),
+#    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
+#    (bd.TATTagWord.TAG, 0)
+#    ]),
+#    bd.PackWord([
+#    (bd.TATTagWord.STOP, 0),
+#    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
+#    (bd.TATTagWord.TAG, 0)
+#    ]),
+#    bd.PackWord([
+#    (bd.TATTagWord.STOP, 1),
+#    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
+#    (bd.TATTagWord.TAG, 1)
+#    ])]
 D.SetMem(CORE, bd.bdpars.BDMemId.TAT0, lb_entries, tag_in[0])
 
 print("* Reading TAT")

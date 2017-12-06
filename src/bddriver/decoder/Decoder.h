@@ -20,7 +20,7 @@ class Decoder : public Xcoder {
 
  public:
 
-  constexpr static unsigned int READ_SIZE = 512 * 256;
+  constexpr static unsigned int READ_SIZE = 512 * 16;
   constexpr static unsigned int READ_BLOCK_SIZE = 1024; // XXX shouldn't hardcode this, should get from Comm
   constexpr static unsigned int BYTES_PER_WORD = 4;
   constexpr static unsigned int bytesPerInput = BYTES_PER_WORD;
@@ -36,6 +36,7 @@ class Decoder : public Xcoder {
     out_bufs_(out_bufs),
     bd_pars_(bd_pars),
     last_HB_LSB_recvd_(0),
+    curr_HB_recvd_(0),
     last_HB_recvd_(0) {};
 
   ~Decoder() {};
@@ -48,6 +49,7 @@ class Decoder : public Xcoder {
   const bdpars::BDPars * bd_pars_;
 
   uint32_t last_HB_LSB_recvd_;
+  BDTime curr_HB_recvd_;
   BDTime last_HB_recvd_;
 
   // because of the "push" output problem, we have to shift how we label times by

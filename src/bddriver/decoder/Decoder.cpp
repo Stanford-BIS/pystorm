@@ -85,10 +85,16 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_LSB)) {
         last_HB_LSB_recvd_ = payload;
       } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_MSB)) {
-        last_HB_recvd_ = PackWord<TWOFPGAPAYLOADS>(
+        BDTime this_HB = PackWord<TWOFPGAPAYLOADS>(
             {{TWOFPGAPAYLOADS::MSB, payload},
              {TWOFPGAPAYLOADS::LSB, last_HB_LSB_recvd_}});
-        //cout << "got HB: " << payload << " curr_HB_ = " << last_HB_recvd_ << endl;
+        if (this_HB - curr_HB_recvd_ != curr_HB_recvd_ - last_HB_recvd_) { 
+          cout << "WARNING: Decoder::Decode: possibly missed an upstream HB. Jump was" <<
+            this_HB - curr_HB_recvd_ << ". Last jump was " << curr_HB_recvd_ - last_HB_recvd_ << endl;
+        }
+        last_HB_recvd_ = curr_HB_recvd_;
+        curr_HB_recvd_ = this_HB;
+        //cout << "got HB: " << payload << " curr_HB_ = " << curr_HB_recvd_ << endl;
       }
 
       // ignore queue counts (first word of each block)
@@ -98,8 +104,8 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       // break on nop
       } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
         had_nop = true;
-        break; // all further words in the block are guaranteed to be nops!
-        
+        //break; // all further words in the block are guaranteed to be nops!
+      
       // otherwise, forward to Driver
       } else {
         //cout << "decoder got something that wasn't a HB" << endl;
@@ -107,14 +113,18 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         
         // XXX core id?
 
+        //if (had_nop) {
+        //  cout << "had real data after nop" << endl;
+        //}
+
         DecOutput to_push;
         to_push.payload = payload;
 
         // update times for "push" output problem
         // edit: for debugging, no attempt at correction
-        to_push.time       = last_HB_recvd_;
+        to_push.time       = curr_HB_recvd_;
         //word_i_min_2_time_ = word_i_min_1_time_;
-        //word_i_min_1_time_ = last_HB_recvd_;
+        //word_i_min_1_time_ = curr_HB_recvd_;
 
         if (outputs.count(ep_code) == 0) {
           outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
