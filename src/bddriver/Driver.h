@@ -714,8 +714,27 @@ class Driver {
     return RecvFromEP(core_id, bdpars::BDFunnelEP::NRNI, 1);
   }
 
+  std::tuple<std::vector<unsigned int>, std::vector<BDTime>> RecvXYSpikes(unsigned int core_id) {
+    auto spike_words = RecvSpikes(core_id);
+    auto aer_addresses = spike_words.first;
+    auto aer_times = spike_words.second;
+    auto num_spikes = aer_addresses.size();
+
+    std::vector<unsigned int> xy_addresses(num_spikes, 0);
+
+    for(unsigned int idx = 0; idx < num_spikes; ++idx){
+        auto _addr = aer_addresses[idx];
+        if(_addr >=0 && _addr < 4096){
+            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+        }else {
+            cout << "WARNING: Invalid spike address: " << _addr << endl;
+        }
+    }
+    return {xy_addresses, aer_times};
+  }
+
   /// Receive a stream of spikes in XY address space (Y msb, X lsb)
-  std::tuple<std::vector<unsigned int>, std::vector<float>> RecvXYSpikes(unsigned int core_id) {
+  std::tuple<std::vector<unsigned int>, std::vector<float>> RecvXYSpikesSeconds(unsigned int core_id) {
     auto spike_words = RecvSpikes(core_id);
     auto aer_addresses = spike_words.first;
     auto aer_times = spike_words.second;
@@ -851,6 +870,12 @@ class Driver {
   /// Get software state of memory contents: this DOES NOT dump the memory.
   inline const std::vector<BDWord> *GetMemState(bdpars::BDMemId mem_id, unsigned int core_id) const { return bd_state_[core_id].GetMem(mem_id); }
 
+
+  std::pair<std::vector<BDWord>,
+            std::vector<BDTime>>
+    RecvFromEPDebug(unsigned int core_id, uint8_t ep_code) {
+      return RecvFromEP(core_id, ep_code);
+  }
  protected:
 
   ////////////////////////////////
