@@ -1,6 +1,8 @@
 `define SIMULATION
 `include "../src/router/stack_core.sv"
 
+`include "BDSrcSink.sv"
+
 `timescale 1ns/1ps
 module stack_core_tb();
 
@@ -38,7 +40,9 @@ reg sReset;
 reg adc0;
 reg adc1;
 
+reg reset = 0; //for srcs
 
+//basic routing tests for router -> BD
 initial
 begin
 	#0
@@ -71,10 +75,22 @@ begin
 	bot_in=11'b00000011111;
 	#4
 	bot_in=11'b00000111111;
-	#50
+	#4
 	bot_in=11'b01010101010;
-
 end
+
+// BD src
+BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(200)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset, BD_in_clk_ifc);
+initial begin
+	reset = 0;
+	#10
+	reset = 1;
+	#10
+	reset = 0;
+end
+
+//////////////////////////////////////////////////////////////
+//CLKS
 
 always 
 	#6 osc =! osc;

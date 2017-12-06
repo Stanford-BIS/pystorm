@@ -80,31 +80,31 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 	always @(*) begin
 		case(state)
 			3'd0: begin
-					wrreq = 1'b1;
+					wrreq = 1'b0;
 					data_out = 11'b0;
 					PC_in_channel.a = 1'b0;
 				  end
 
 			3'd1: begin
-					wrreq = 1'b1;
+					wrreq = !is_full;
 					data_out = header_packet; //output header packet
 					PC_in_channel.a = 1'b0;
 					end
 
 			3'd2: begin
-					wrreq = 1'b1;
+					wrreq = !is_full;
 					data_out = {1'b0, data[29:20]}; //data 1
 					PC_in_channel.a = !is_full; //ack
 					end
 
 			3'd3: begin
-					wrreq = 1'b1;
+					wrreq = !is_full;
 					data_out = {1'b0, data[19:10]}; //data 2
 					PC_in_channel.a = 1'b0;
 					end
 
 			3'd4: begin
-					wrreq = 1'b1;
+					wrreq = !is_full;
 					if (PC_in_channel.v & (header_packet == current_header)) begin
 						data_out = {1'b0, data[9:0]}; //data 3, no tail
 					end
