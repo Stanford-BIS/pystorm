@@ -5,7 +5,7 @@ from pystorm.PyDriver import bddriver as bd
 
 CORE = 0
 downstream_time_res = 10 * 1000 # ns
-upstream_time_res = downstream_time_res * 10 # ns
+upstream_time_res = 10 * downstream_time_res # ns
 
 try:
     driver
@@ -69,16 +69,16 @@ for y0 in yaddr:
         addr = driver.GetSomaAERAddr(x0, y0)
         faddr.append(y0 * 64 + x0)
         driver.EnableSoma(CORE, addr)
-        driver.SetSomaGain(CORE, addr, bd.bdpars.SomaGainId.ONE_FOURTH)
+        driver.SetSomaGain(CORE, addr, bd.bdpars.SomaGainId.ONE)
         driver.SetSomaOffsetSign(CORE, addr, bd.bdpars.SomaOffsetSignId.POSITIVE)
-        driver.SetSomaOffsetMultiplier(CORE, addr, bd.bdpars.SomaOffsetMultiplierId.ZERO)
+        driver.SetSomaOffsetMultiplier(CORE, addr, bd.bdpars.SomaOffsetMultiplierId.ONE)
 
-driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 1)
+driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 512)
 
 driver.Flush()
 
 driver.RecvXYSpikes(CORE)
-val = 10
+val = 1
 print("[INFO] Setting refractory DAC to %d" % val)
 driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, val)
 
@@ -88,13 +88,13 @@ _invalid = []
 
 time.sleep(10)
 _ = driver.RecvXYSpikes(CORE)
-time.sleep(30)
+time.sleep(10)
 _qdebug = driver.GetOutputQueueCounts()
-_addr, _times = driver.RecvXYSpikes(CORE)
+_addr, _times_ns = driver.RecvXYSpikes(CORE)
 print("[INFO] Got %d spikes" % len(_addr))
 print(_qdebug)
 
-for _a, _t in zip(_addr, _times):
+for _a, _t in zip(_addr, _times_ns):
     if _a in faddr:
         spk_data[_a].append(_t)
     else:
@@ -116,9 +116,9 @@ ioff()
 def plot_hist(value, bin1=100, bin2=25, prefix='', idx=2145):
     IFILE = open("%sspk_data_%d.bin" % (prefix, value), "rb")
     _data = pickle.load(IFILE)
-    _times = _data[idx]
-    _isi = diff(_times)
-    _isi_ms = _isi * 1e3
+    _times_ns = _data[idx]
+    _isi = diff(_times_ns) * 1e-9
+    _isi_ms = _isi * 1e3 
     _freq = 1./_isi
     _freq_khz = _freq / 1000
 
@@ -141,3 +141,4 @@ def plot_hist(value, bin1=100, bin2=25, prefix='', idx=2145):
     show()
 
 plot_hist(val, idx=faddr[0])
+driver.Stop()
