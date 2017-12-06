@@ -53,7 +53,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 
 	always @(posedge clk or posedge reset) begin
 		if (reset==1) begin
-			state <= 3'd6; //reset to idling for header (special state)
+			state <= 3'd0; //reset to idling for header
 		end
 		else begin
 			state <= next_state; //ff the state
