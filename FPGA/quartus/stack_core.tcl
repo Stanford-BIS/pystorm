@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: stack_core.tcl
-# Generated on: Fri Dec 01 16:59:20 2017
+# Generated on: Tue Dec 05 16:59:00 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -61,6 +61,62 @@ if {$make_assignments} {
 	set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 	set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 	set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+	set_location_assignment PIN_B2 -to top_out_clk
+	set_location_assignment PIN_E12 -to top_out[0]
+	set_location_assignment PIN_D12 -to top_out[1]
+	set_location_assignment PIN_C12 -to top_out[2]
+	set_location_assignment PIN_B12 -to top_out[3]
+	set_location_assignment PIN_B11 -to top_out[4]
+	set_location_assignment PIN_B10 -to top_out[5]
+	set_location_assignment PIN_B9 -to top_out[6]
+	set_location_assignment PIN_A8 -to top_out[7]
+	set_location_assignment PIN_B7 -to top_out[8]
+	set_location_assignment PIN_B6 -to top_out[9]
+	set_location_assignment PIN_B5 -to top_out[10]
+	set_location_assignment PIN_B4 -to top_valid_out
+	set_location_assignment PIN_B3 -to top_ready_in
+	set_location_assignment PIN_A2 -to top_ready_out
+	set_location_assignment PIN_A3 -to top_valid_in
+	set_location_assignment PIN_D13 -to top_in[0]
+	set_location_assignment PIN_C13 -to top_in[1]
+	set_location_assignment PIN_B13 -to top_in[2]
+	set_location_assignment PIN_A12 -to top_in[3]
+	set_location_assignment PIN_A11 -to top_in[4]
+	set_location_assignment PIN_A10 -to top_in[5]
+	set_location_assignment PIN_A9 -to top_in[6]
+	set_location_assignment PIN_A7 -to top_in[7]
+	set_location_assignment PIN_A6 -to top_in[8]
+	set_location_assignment PIN_A5 -to top_in[9]
+	set_location_assignment PIN_A4 -to top_in[10]
+	set_location_assignment PIN_B1 -to top_in_clk
+	set_location_assignment PIN_H13 -to bot_in[0]
+	set_location_assignment PIN_H10 -to bot_in[1]
+	set_location_assignment PIN_G10 -to bot_in[2]
+	set_location_assignment PIN_F13 -to bot_in[3]
+	set_location_assignment PIN_H8 -to bot_in[4]
+	set_location_assignment PIN_F12 -to bot_in[5]
+	set_location_assignment PIN_D11 -to bot_in[6]
+	set_location_assignment PIN_E10 -to bot_in[7]
+	set_location_assignment PIN_E9 -to bot_in[8]
+	set_location_assignment PIN_D8 -to bot_in[9]
+	set_location_assignment PIN_F8 -to bot_in[10]
+	set_location_assignment PIN_C2 -to bot_in_clk
+	set_location_assignment PIN_D6 -to bot_valid_in
+	set_location_assignment PIN_E4 -to bot_ready_out
+	set_location_assignment PIN_G13 -to bot_out[0]
+	set_location_assignment PIN_G12 -to bot_out[1]
+	set_location_assignment PIN_G9 -to bot_out[2]
+	set_location_assignment PIN_E13 -to bot_out[3]
+	set_location_assignment PIN_F10 -to bot_out[4]
+	set_location_assignment PIN_F9 -to bot_out[5]
+	set_location_assignment PIN_C11 -to bot_out[6]
+	set_location_assignment PIN_C10 -to bot_out[7]
+	set_location_assignment PIN_C9 -to bot_out[8]
+	set_location_assignment PIN_D9 -to bot_out[9]
+	set_location_assignment PIN_E8 -to bot_out[10]
+	set_location_assignment PIN_D7 -to bot_valid_out
+	set_location_assignment PIN_E6 -to bot_ready_in
+	set_location_assignment PIN_F4 -to bot_out_clk
 	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments

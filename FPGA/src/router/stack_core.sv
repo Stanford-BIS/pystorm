@@ -14,11 +14,11 @@
 module stack_core(
 input osc,//clock from oscillator on board
 // BD ifc
-output logic        BD_out_clk_ifc,//Do I need this?
+output logic        BD_out_clk_ifc,
 input               BD_out_ready,
 output logic        BD_out_valid,
 output logic [20:0] BD_out_data,
-output logic        BD_in_clk_ifc,//Do I need this?
+output logic        BD_in_clk_ifc,
 output logic        BD_in_ready,
 input               _BD_in_valid,
 input [33:0]        BD_in_data,
@@ -40,6 +40,7 @@ output [10:0] bot_out,
 output top_valid_out,
 output bot_valid_out,
 output top_ready_out,
+output bot_ready_out,
 output top_out_clk,
 output bot_out_clk
 );
@@ -50,7 +51,6 @@ wire BD_ready_in;
 wire [10:0] BD_in;
 wire [10:0] BD_out;
 wire BD_valid_out;
-wire bot_ready_out;
 wire BD_out_clk;
 wire BD_ready_out;
 
