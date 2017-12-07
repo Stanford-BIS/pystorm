@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: stack_core.tcl
-# Generated on: Tue Dec 05 16:59:00 2017
+# Generated on: Wed Dec 06 17:36:57 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -61,6 +61,15 @@ if {$make_assignments} {
 	set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 	set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 	set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+	set_global_assignment -name ENABLE_OCT_DONE OFF
+	set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+	set_global_assignment -name STRATIXV_CONFIGURATION_SCHEME "PASSIVE SERIAL"
+	set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+	set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF
+	set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+	set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+	set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+	set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
 	set_location_assignment PIN_B2 -to top_out_clk
 	set_location_assignment PIN_E12 -to top_out[0]
 	set_location_assignment PIN_D12 -to top_out[1]
@@ -117,6 +126,72 @@ if {$make_assignments} {
 	set_location_assignment PIN_D7 -to bot_valid_out
 	set_location_assignment PIN_E6 -to bot_ready_in
 	set_location_assignment PIN_F4 -to bot_out_clk
+	set_location_assignment PIN_M8 -to pReset
+	set_location_assignment PIN_J2 -to sReset
+	set_location_assignment PIN_M11 -to BD_out_data[0]
+	set_location_assignment PIN_M10 -to BD_out_data[1]
+	set_location_assignment PIN_N11 -to BD_out_data[2]
+	set_location_assignment PIN_N12 -to BD_out_data[3]
+	set_location_assignment PIN_M12 -to BD_out_data[4]
+	set_location_assignment PIN_M13 -to BD_out_data[5]
+	set_location_assignment PIN_L13 -to BD_out_data[6]
+	set_location_assignment PIN_K13 -to BD_out_data[7]
+	set_location_assignment PIN_J13 -to BD_out_data[8]
+	set_location_assignment PIN_K11 -to BD_out_data[9]
+	set_location_assignment PIN_L12 -to BD_out_data[10]
+	set_location_assignment PIN_K12 -to BD_out_data[11]
+	set_location_assignment PIN_K8 -to BD_out_data[12]
+	set_location_assignment PIN_L11 -to BD_out_data[13]
+	set_location_assignment PIN_H9 -to BD_out_data[14]
+	set_location_assignment PIN_K10 -to BD_out_data[15]
+	set_location_assignment PIN_J10 -to BD_out_data[16]
+	set_location_assignment PIN_J9 -to BD_out_data[17]
+	set_location_assignment PIN_J8 -to BD_out_data[18]
+	set_location_assignment PIN_K7 -to BD_out_data[19]
+	set_location_assignment PIN_K6 -to BD_out_data[20]
+	set_location_assignment PIN_C1 -to BD_out_clk_ifc
+	set_location_assignment PIN_K5 -to BD_out_ready
+	set_location_assignment PIN_L3 -to BD_out_valid
+	set_location_assignment PIN_L4 -to BD_in_data[0]
+	set_location_assignment PIN_J7 -to BD_in_data[1]
+	set_location_assignment PIN_L5 -to BD_in_data[2]
+	set_location_assignment PIN_J6 -to BD_in_data[3]
+	set_location_assignment PIN_E3 -to BD_in_data[4]
+	set_location_assignment PIN_G5 -to BD_in_data[5]
+	set_location_assignment PIN_K2 -to BD_in_data[6]
+	set_location_assignment PIN_J5 -to BD_in_data[7]
+	set_location_assignment PIN_H5 -to BD_in_data[8]
+	set_location_assignment PIN_H3 -to BD_in_data[9]
+	set_location_assignment PIN_H4 -to BD_in_data[10]
+	set_location_assignment PIN_G4 -to BD_in_data[11]
+	set_location_assignment PIN_D1 -to BD_in_data[12]
+	set_location_assignment PIN_E1 -to BD_in_data[13]
+	set_location_assignment PIN_H1 -to BD_in_data[14]
+	set_location_assignment PIN_J1 -to BD_in_data[15]
+	set_location_assignment PIN_K1 -to BD_in_data[16]
+	set_location_assignment PIN_L2 -to BD_in_data[17]
+	set_location_assignment PIN_F1 -to BD_in_data[18]
+	set_location_assignment PIN_H2 -to BD_in_data[19]
+	set_location_assignment PIN_M4 -to BD_in_data[20]
+	set_location_assignment PIN_M3 -to BD_in_data[21]
+	set_location_assignment PIN_M2 -to BD_in_data[22]
+	set_location_assignment PIN_L1 -to BD_in_data[23]
+	set_location_assignment PIN_M1 -to BD_in_data[24]
+	set_location_assignment PIN_N2 -to BD_in_data[25]
+	set_location_assignment PIN_N3 -to BD_in_data[26]
+	set_location_assignment PIN_N4 -to BD_in_data[27]
+	set_location_assignment PIN_N5 -to BD_in_data[28]
+	set_location_assignment PIN_N6 -to BD_in_data[29]
+	set_location_assignment PIN_N7 -to BD_in_data[30]
+	set_location_assignment PIN_N8 -to BD_in_data[31]
+	set_location_assignment PIN_N9 -to BD_in_data[32]
+	set_location_assignment PIN_N10 -to BD_in_data[33]
+	set_location_assignment PIN_M5 -to BD_in_clk_ifc
+	set_location_assignment PIN_M7 -to BD_in_ready
+	set_location_assignment PIN_M9 -to _BD_in_valid
+	set_location_assignment PIN_J12 -to adc0
+	set_location_assignment PIN_L10 -to adc1
+	set_location_assignment PIN_H6 -to osc
 	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments
@@ -132,9 +207,6 @@ if {$make_assignments} {
 	set_global_assignment -name OPTIMIZE_HOLD_TIMING "ALL PATHS" -family "MAX 10"
 	set_global_assignment -name OPTIMIZE_MULTI_CORNER_TIMING ON -family "MAX 10"
 	set_global_assignment -name AUTO_DELAY_CHAINS ON -family "MAX 10"
-	set_global_assignment -name CRC_ERROR_OPEN_DRAIN OFF -family "MAX 10"
-	set_global_assignment -name USE_CONFIGURATION_DEVICE ON -family "MAX 10"
-	set_global_assignment -name ENABLE_OCT_DONE ON -family "MAX 10"
 
 	# Commit assignments
 	export_assignments
