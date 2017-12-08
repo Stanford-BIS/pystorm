@@ -4,7 +4,7 @@
 `include "Channel.svh"
 `ifdef SIMULATION
   `include "../../quartus/Internal_DC_Channel_FIFO.v"
-  `include "../../quartus/BDinFIFO.v"
+  `include "../../quartus/BDInFIFO.v"
 `endif
 
 ///////////////////////////////////////////
