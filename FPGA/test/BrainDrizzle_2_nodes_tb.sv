@@ -181,12 +181,15 @@ begin
 	BD_2_data_in=11'b01111111111;
 	bot_2_data_in=11'd0;
 	top_empty=0;
-	BD_empty=0;
+	BD_empty=1;
 	BD_2_empty=1;
 	bot_2_empty=1;
 	
 	#110
 	reset=0;
+	
+	#800
+	top_empty=1;
 	
 	#2500
 	BD_2_empty=0;
