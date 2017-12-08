@@ -9,6 +9,7 @@
 `ifdef SIMULATION
 	`include "../../quartus/SysClkBuf.v"
 	`include "../../quartus/BZ_host_core_PLL.v"
+	`include "../../quartus/BZ_host_core_PLL/BZ_host_core_PLL_0002.v"
 `endif
 
 

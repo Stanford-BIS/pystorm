@@ -2,6 +2,10 @@
 `define CHANNEL_UTIL_SVH
 
 `include "Channel.svh"
+`ifdef SIMULATION
+  `include "../../quartus/Internal_DC_Channel_FIFO.v"
+  `include "../../quartus/BDinFIFO.v"
+`endif
 
 ///////////////////////////////////////////
 // Synthesizable channel helpers
