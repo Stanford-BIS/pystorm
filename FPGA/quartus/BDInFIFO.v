@@ -1,3 +1,6 @@
+`ifndef BDINFIFO_SV
+`define BDINFIFO_SV
+
 // megafunction wizard: %FIFO%
 // GENERATION: STANDARD
 // VERSION: WM1.0
@@ -164,3 +167,5 @@ endmodule
 // Retrieval info: GEN_FILE: TYPE_NORMAL BDInFIFO_inst.v FALSE
 // Retrieval info: GEN_FILE: TYPE_NORMAL BDInFIFO_bb.v FALSE
 // Retrieval info: LIB_FILE: altera_mf
+
+`endif

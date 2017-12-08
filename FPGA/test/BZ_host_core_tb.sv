@@ -127,10 +127,10 @@ initial begin
 	FrontPanelReset;  // Start routine with FrontPanelReset;
 	user_reset <= 0;
 
-  	// turn off resets
-  	// ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
-  	SetReg(31, 0); 
-  	FlushAndSendPipeIn(); // send the stuff we queued up
+  	// // turn off resets
+  	// // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
+  	// SetReg(31, 0); 
+  	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
   	SendPacket(10'd3, 32'b01001100011100001111000001111100);
