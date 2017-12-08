@@ -86,6 +86,7 @@ assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
 const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
+const logic[31:0] nop_rt = {22'b0, 10'b1000000000}; //negative routes get discarded
 
 // index into PipeIn
 int i = 0;
@@ -106,8 +107,10 @@ task SendPacket(logic[9:0] route, logic[31:0] payload);
 endtask
 
 task FlushAndSendPipeIn();
-	while (i < pipeInSize) begin
+	while (i + 1 < pipeInSize) begin
 		pipeInFlat[i] = nop;
+		i = i + 1;
+		pipeInFlat[i] = nop_rt;
 		i = i + 1;
 	end
 	WriteToBlockPipeIn(8'h80, pipeInSize, pipeInSize);
