@@ -1,8 +1,9 @@
 //Core for BrainDrizzle host FPGA
 `include "BrainDrizzle.sv"
-`include	"BZ_deserializer.sv"
+`include "BZ_deserializer.sv"
 `include "BZ_serializer.sv"
 `include "../OK/OKIfc.sv"
+`include "../core/Deserializer.sv"
 
 // for quartus, we add external IP to the project
 `ifdef SIMULATION
@@ -82,6 +83,20 @@ BZ_host_core_PLL BZ_host_PLL(
 	.locked()
 	);
 
+////////////////////////////////////////////
+//
+//DESERIALIZER FOR OK ("temporary")
+//
+Channel #(NPCinout) OK_downstream();
+
+Deserializer #(NPCinout, NPCinout + NPCroute) OK_des(
+	PC_downstream,
+	OK_downstream,
+	okClk,
+	user_reset);
+
+////////////////////////////////////////////
+
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
   NPCcode, 
@@ -95,7 +110,7 @@ ok_ifc(
 	.led_in(led_in),
 	.okClk(okClk),
 	.user_reset(user_reset),
-	.PC_downstream(PC_downstream),
+	.PC_downstream(OK_downstream),
 	.PC_upstream(PC_upstream)
  );
 
