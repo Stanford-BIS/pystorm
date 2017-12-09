@@ -100,7 +100,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	end
 
 
-	always @ (*) begin
+	always_comb
 		case(state)
 			3'd0: begin
 				rdreq = 1; 
@@ -139,6 +139,5 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 			end
 
 		endcase
-	end
 	
 endmodule // BZ_deserializer
