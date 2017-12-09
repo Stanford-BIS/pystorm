@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: stack_core.tcl
-# Generated on: Wed Dec 06 17:36:57 2017
+# Generated on: Fri Dec 08 16:00:17 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -70,6 +70,13 @@ if {$make_assignments} {
 	set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
 	set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
 	set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 8
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 6
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 5
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 3
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 2
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 1B
+	set_global_assignment -name IOBANK_VCCIO 1.8V -section_id 1A
 	set_location_assignment PIN_B2 -to top_out_clk
 	set_location_assignment PIN_E12 -to top_out[0]
 	set_location_assignment PIN_D12 -to top_out[1]
@@ -192,6 +199,128 @@ if {$make_assignments} {
 	set_location_assignment PIN_J12 -to adc0
 	set_location_assignment PIN_L10 -to adc1
 	set_location_assignment PIN_H6 -to osc
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[32]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_clk_ifc
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[33]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[31]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[30]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[29]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[28]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[27]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[26]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[25]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[24]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[23]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[22]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[21]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[20]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[19]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[18]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[17]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[16]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[15]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[14]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[13]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[12]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[11]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_data[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_in_ready
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_clk_ifc
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[20]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[19]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[18]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[17]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[16]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[15]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[14]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[13]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[12]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[11]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_data[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_ready
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to BD_out_valid
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to _BD_in_valid
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to adc0
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to adc1
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_in_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_out_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_ready_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_ready_out
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_valid_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to bot_valid_out
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to osc
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to pReset
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to sReset
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_ready_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_ready_out
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_valid_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_valid_out
 	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments
