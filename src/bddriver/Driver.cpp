@@ -421,6 +421,14 @@ void Driver::Stop() {
 
 void Driver::Flush() {
 
+    // Call phantom DAC to push two other words into BD to
+    // circumvent the synchronizer bug
+    BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
+    for(unsigned int _core_id = 0; _core_id < bd_pars_->NumCores; _core_id ++){
+        SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
+        SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
+    }
+
   // pushes a special ep_code
 
   // XXX note that the order that the user makes timed vs sequenced downstream calls is lost!

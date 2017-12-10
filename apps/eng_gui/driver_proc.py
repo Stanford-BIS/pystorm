@@ -151,3 +151,4 @@ def __proc__(cmd_q, res_q, err_q, cntrl_q, cntrl_r, g_dict, l_dict):
 
     cmd_thread.join()
     data_thread.join()
+    driver.Stop()
