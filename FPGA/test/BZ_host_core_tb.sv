@@ -9,8 +9,10 @@ module BZ_host_core_tb();
 reg osc; //signal for oscillator
 
 //sys clks for ok
-logic sys_clk_p = osc;
-logic sys_clk_n = ~osc;
+wire sys_clk_p;
+assign sys_clk_p = osc;
+wire sys_clk_n;
+assign sys_clk_n = ~osc;
 
 // OK ifc
 wire [4:0]   okUH;
@@ -43,11 +45,10 @@ end
 //////////////////////////////////////////////////////////////
 //CLKS
 
-always 
-#6 osc =! osc;
+always #6 osc =! osc;
 
 always begin
-	#2 //3x osc clk (50 vs 150)
+	#3 //3x osc clk (50 vs 150)
 	top_in_clk=!top_in_clk;
 end
 
@@ -123,6 +124,10 @@ endtask
 
 // OK program
 initial begin
+	osc = 0;
+	top_in_clk = 0;
+	top_in=11'b0;
+
 	top_valid_in = 0; //not providing input data
 	top_ready_in = 1; //always ready for output data
 
@@ -140,14 +145,18 @@ initial begin
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
   	#200
+  	@(posedge top_in_clk) #6;
   	top_valid_in = 1;
-	top_in=11'b01000100000; //send header
-	#4
+	top_in=11'b00000100000; //send header
+	#6
 	top_in=11'b00000000001; //send data
-	#4
+	#6
 	top_in=11'b00000000111;
-	#4
+	#6
 	top_in=11'b00000011111;
+	#6
+	top_in=11'b0;
+	top_valid_in = 0;
 
   	forever begin
   		#(1000)
