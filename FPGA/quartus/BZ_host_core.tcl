@@ -15,7 +15,7 @@
 
 # Quartus Prime: Generate Tcl File for Project
 # File: BZ_host_core.tcl
-# Generated on: Wed Nov 29 17:43:53 2017
+# Generated on: Mon Dec 11 12:29:52 2017
 
 # Load Quartus Prime Tcl Project package
 package require ::quartus::project
@@ -196,6 +196,62 @@ if {$make_assignments} {
 	set_instance_assignment -name IO_STANDARD "1.5 V" -to led[2]
 	set_instance_assignment -name IO_STANDARD "1.5 V" -to led[1]
 	set_instance_assignment -name IO_STANDARD "1.5 V" -to led[0]
+	set_location_assignment PIN_U13 -to top_out[0]
+	set_location_assignment PIN_T13 -to top_out[1]
+	set_location_assignment PIN_R12 -to top_out[2]
+	set_location_assignment PIN_AB16 -to top_out[3]
+	set_location_assignment PIN_AB15 -to top_out[4]
+	set_location_assignment PIN_AA18 -to top_out[5]
+	set_location_assignment PIN_AB18 -to top_out[6]
+	set_location_assignment PIN_Y15 -to top_out[7]
+	set_location_assignment PIN_AA15 -to top_out[8]
+	set_location_assignment PIN_T15 -to top_out[9]
+	set_location_assignment PIN_Y20 -to top_out[10]
+	set_location_assignment PIN_AA20 -to top_valid_out
+	set_location_assignment PIN_Y19 -to top_ready_in
+	set_location_assignment PIN_AA19 -to top_out_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_ready_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_out_clk
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_ready_out
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_valid_in
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_valid_out
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[10]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[9]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[8]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[7]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[6]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[5]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[4]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[3]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[2]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[1]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in[0]
+	set_instance_assignment -name IO_STANDARD "1.8 V" -to top_in_clk
+	set_location_assignment PIN_T14 -to top_in[0]
+	set_location_assignment PIN_Y12 -to top_in[1]
+	set_location_assignment PIN_W12 -to top_in[2]
+	set_location_assignment PIN_W14 -to top_in[3]
+	set_location_assignment PIN_Y14 -to top_in[4]
+	set_location_assignment PIN_V13 -to top_in[5]
+	set_location_assignment PIN_W13 -to top_in[6]
+	set_location_assignment PIN_T12 -to top_in[7]
+	set_location_assignment PIN_U12 -to top_in[8]
+	set_location_assignment PIN_R15 -to top_in[9]
+	set_location_assignment PIN_R14 -to top_in[10]
+	set_location_assignment PIN_P14 -to top_valid_in
+	set_location_assignment PIN_V15 -to top_ready_out
+	set_location_assignment PIN_U15 -to top_in_clk
 	set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
 	# Including default assignments
