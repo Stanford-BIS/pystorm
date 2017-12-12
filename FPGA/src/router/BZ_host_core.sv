@@ -53,6 +53,7 @@ localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest of the design
 wire sys_clk; // 100 MHz clock, send to PLL to generate 200MHz clock for router node
 
+
 //signals for reset
 reg r1,r2,r3,r4;
 wire tail_out_reset;
@@ -74,7 +75,7 @@ SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk
 logic [3:0] led_in;
 assign led_in[0] = PC_downstream.v;
 assign led_in[1] = 0;
-assign led_in[3] = 0;
+//assign led_in[3] = 0;
 assign led_in[2] = PC_upstream.v;
 //Generate 200 MHz Clock for router node
 BZ_host_core_PLL BZ_host_PLL(
@@ -143,7 +144,8 @@ BrainDrizzle router_node (
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
  .BD_out_clk	(),//No BD
- .bot_out_clk	(bot_out_clk)
+ .bot_out_clk	(bot_out_clk),
+ .sent_something(led_in[3])
 );
 
 DCChannelFIFO32 input_channel_fifo(Des_out, PC_upstream, router_clk, okClk, user_reset);

@@ -34,12 +34,14 @@ output BD_ready_out,
 output bot_ready_out,
 output top_out_clk,
 output BD_out_clk,
-output bot_out_clk
+output bot_out_clk,
+output reg sent_something=0
 );
 
 assign top_out_clk=clk;
 assign BD_out_clk=clk;
 assign bot_out_clk=clk;
+
 
 //Signals which originate from allocators
 wire top_wr;
@@ -314,6 +316,12 @@ routerDCFIFO bot_out_FIFO (
 	bot_out_FIFO_full,
 	//wrusedw not used
 );
+
+//sent_something
+always @ (top_out_FIFO_empty) begin
+	if (top_out_FIFO_empty==0)
+		sent_something = 1;
+end
 
 //module interboard_input(
 //	input transmit_clk, //clock from board we're receiving input from
