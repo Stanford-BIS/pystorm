@@ -318,7 +318,7 @@ routerDCFIFO bot_out_FIFO (
 );
 
 //sent_something
-assign sent_something=~top_out_FIFO_empty;
+assign sent_something=(~top_out_FIFO_empty)||(~BD_out_FIFO_empty);
 
 //module interboard_input(
 //	input transmit_clk, //clock from board we're receiving input from
