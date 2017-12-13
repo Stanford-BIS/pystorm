@@ -127,7 +127,7 @@ BrainDrizzle router_node (
  .top_valid_in	(top_valid_in),
  .bot_valid_in	(bot_valid_in),
  .BD_valid_in	(0),//No BD
- .top_ready_in	(top_ready_in),
+ .top_ready_in	(0),//CHANGE THIS BACK TO top_ready_in AFTER TESTING
  .BD_ready_in	(0),//No BD. Discard anything coming out of BD_out
  .bot_ready_in	(bot_ready_in),
  .top_in			(top_in),
@@ -139,7 +139,7 @@ BrainDrizzle router_node (
  .top_valid_out(top_valid_out),
  .bot_valid_out(bot_valid_out),
  .BD_valid_out	(),//No BD
- .top_ready_out(0),//CHANGE THIS BACK TO top_ready_out AFTER TESTING
+ .top_ready_out(top_ready_out),
  .BD_ready_out	(),//No BD
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
