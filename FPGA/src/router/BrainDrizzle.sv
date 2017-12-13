@@ -35,7 +35,8 @@ output bot_ready_out,
 output top_out_clk,
 output BD_out_clk,
 output bot_out_clk,
-output sent_something
+output sent_something_to_top,
+output sent_something_to_BD
 );
 
 assign top_out_clk=clk;
@@ -318,7 +319,8 @@ routerDCFIFO bot_out_FIFO (
 );
 
 //sent_something
-assign sent_something=(~top_out_FIFO_empty)||(~BD_out_FIFO_empty);
+assign sent_something_to_top = ~top_out_FIFO_empty;
+assign sent_something_to_BD = ~BD_out_FIFO_empty;
 
 //module interboard_input(
 //	input transmit_clk, //clock from board we're receiving input from

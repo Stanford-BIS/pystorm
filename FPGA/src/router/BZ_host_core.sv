@@ -74,7 +74,7 @@ SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk
 // led control. Flashes for handshakes.
 logic [3:0] led_in;
 assign led_in[0] = PC_downstream.v;
-assign led_in[1] = 0;
+//assign led_in[1] = 0;
 //assign led_in[3] = 0;
 assign led_in[2] = PC_upstream.v;
 //Generate 200 MHz Clock for router node
@@ -139,13 +139,14 @@ BrainDrizzle router_node (
  .top_valid_out(top_valid_out),
  .bot_valid_out(bot_valid_out),
  .BD_valid_out	(),//No BD
- .top_ready_out(top_ready_out),
+ .top_ready_out(0),//CHANGE THIS BACK TO top_ready_out AFTER TESTING
  .BD_ready_out	(),//No BD
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
  .BD_out_clk	(),//No BD
  .bot_out_clk	(bot_out_clk),
- .sent_something(led_in[3])
+ .sent_something_to_top(led_in[3]),
+ .sent_something_to_BD(led_in[1])
 );
 
 DCChannelFIFO32 input_channel_fifo(Des_out, PC_upstream, router_clk, okClk, user_reset);
