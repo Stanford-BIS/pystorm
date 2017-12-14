@@ -41,7 +41,7 @@ time.sleep(2)
 ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
 
-codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000011"]
+codes = ["0b00001100011100001111000001111100", "0b00000000000000000000000000000001"]
 
 outputs = []
 for n in range(int(block_size / len(codes))):
@@ -62,8 +62,8 @@ print("============SENDING=============")
 PrintBytearrayAs32b(buf)
 print("================================")
 
-written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
-print("Written " + str(written))
+# written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
+# print("Written " + str(written))
 
 time.sleep(2)
 i=0
