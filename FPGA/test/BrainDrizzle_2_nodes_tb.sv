@@ -1,5 +1,5 @@
 `define SIMULATION
-`include "../src/Router/BrainDrizzle.sv"
+`include "../src/router/BrainDrizzle.sv"
 
 `timescale 10ps/1ps
 module BrainDrizzle_2_nodes_tb();
@@ -82,7 +82,9 @@ BrainDrizzle DUT_1 (
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
  .BD_out_clk	(BD_out_clk),
- .bot_out_clk	(bot_out_clk)
+ .bot_out_clk	(bot_out_clk),
+ .sent_something_to_top	(),
+ .sent_something_to_BD	()
 );
 
 BrainDrizzle DUT_2 (
@@ -180,8 +182,8 @@ begin
 	BD_data_in=11'b01111111111;
 	BD_2_data_in=11'b01111111111;
 	bot_2_data_in=11'd0;
-	top_empty=0;
-	BD_empty=1;
+	top_empty=1;
+	BD_empty=0;
 	BD_2_empty=1;
 	bot_2_empty=1;
 	
@@ -189,7 +191,7 @@ begin
 	reset=0;
 	
 	#800
-	top_empty=1;
+	BD_empty=1;
 	
 	#2500
 	BD_2_empty=0;
