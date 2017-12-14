@@ -127,7 +127,7 @@ begin: output_logic
 							req_0 = 0;
 							req_1 = 0;
 							//negate destination if going to output 0
-							data_out_ff = {data_in_ff[10],-dest};
+							data_out_ff = {data_in_ff[10],~dest};
 							read = 1;
 						end
 							
