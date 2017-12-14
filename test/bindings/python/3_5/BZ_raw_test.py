@@ -41,11 +41,9 @@ time.sleep(2)
 ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
 
-<<<<<<< HEAD
+
 codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000001"]
-=======
-codes = ["0b00001100011100001111000001111100", "0b00000000000000000000000000000001"]
->>>>>>> 570abcb1913e4c8ae6babfb15d465b3e4fb302b5
+
 
 outputs = []
 for n in range(int(block_size / len(codes))):
