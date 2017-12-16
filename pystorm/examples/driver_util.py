@@ -36,7 +36,7 @@ def standard_DAC_settings(D, CORE):
 
     # magical DAC settings (DC is the most important, with the default, inhibition doesn't work)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
-    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 920)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 10)
