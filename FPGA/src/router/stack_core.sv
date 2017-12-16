@@ -44,6 +44,16 @@ output bot_ready_out,
 output top_out_clk,
 output bot_out_clk
 );
+//RESET TEST
+//reg [1:0] test;
+//always @ (posedge router_clk or posedge reset) begin
+//	if (reset==1)
+//		test = 2'b10;
+//	else
+//		test = 2'b01;
+//end
+
+//assign top_valid_out=test[0];
 
 wire BD_in_clk;
 wire BD_valid_in;
@@ -95,21 +105,22 @@ assign BD_out_clk_ifc=skewed_BD_clk;
 // Channel #(NBDin) BD_downstream();
 // Channel #(NBDout) BD_upstream();
 
+wire req_0, req_1;
 BrainDrizzle router_node (
  .clk				(router_clk),
  .reset			(reset),
- .top_in_clk	(top_in_clk),
+ .top_in_clk	(top_out_clk),
  .bot_in_clk	(bot_in_clk),
  .BD_in_clk		(router_clk),
- .top_valid_in	(top_valid_in),
+ .top_valid_in	(top_valid_out),//CHANGE BACK
  .bot_valid_in	(bot_valid_in),
- .BD_valid_in	(BD_valid_in),
- .top_ready_in	(top_ready_in),
+ .BD_valid_in	(0),//CHANGE BACK
+ .top_ready_in	(top_ready_out),// CHANGE THIS BACK TO top_ready_in),
  .BD_ready_in	(BD_ready_in),
  .bot_ready_in	(bot_ready_in),
- .top_in			(top_in),
+ .top_in			(top_out_router),//CHANGE BACK
  .bot_in			(bot_in),
- .BD_in			(BD_in),
+ .BD_in			(0),//CHANGE BACK
  .top_out		(top_out_router),
  .bot_out		(bot_out),
  .BD_out			(BD_out),
@@ -121,7 +132,9 @@ BrainDrizzle router_node (
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
  .BD_out_clk	(BD_out_clk),
- .bot_out_clk	(bot_out_clk)
+ .bot_out_clk	(bot_out_clk),
+ .sent_something_to_top	(req_0),
+ .sent_something_to_BD	(req_1)
 );
 
 //module tail_bit_reset(
@@ -183,13 +196,11 @@ BZ_serializer serializer (
 
 //ADD NEW BDCLKGEN WHICH TAKES IN 50 MHz and generates 200 MHz, 100MHz, and 2 BD clks
 stack_BDIO_PLL stack_clockgen(
-	.areset	(0),//NEW RESET STUFF
 	.inclk0	(osc),
 	.c0		(base_BD_clk),
 	.c1		(skewed_BD_clk),
 	.c2		(router_clk),
-	.c3		(core_clk),
-	.locked	()
+	.c3		(core_clk)
 	);
 
 // // BD handshakers and FIFOs

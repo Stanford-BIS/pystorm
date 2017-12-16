@@ -117,7 +117,7 @@ ok_ifc(
  );
 
 
-
+wire BD_valid_out;
 BrainDrizzle router_node (
  .clk				(router_clk),
  .reset			(user_reset),
@@ -127,7 +127,7 @@ BrainDrizzle router_node (
  .top_valid_in	(top_valid_in),
  .bot_valid_in	(bot_valid_in),
  .BD_valid_in	(0),//No BD
- .top_ready_in	(top_ready_in),//CHANGE THIS BACK TO top_ready_in AFTER TESTING
+ .top_ready_in	(top_ready_in),
  .BD_ready_in	(1),//No BD. Discard anything coming out of BD_out
  .bot_ready_in	(bot_ready_in),
  .top_in			(top_in),
@@ -138,16 +138,32 @@ BrainDrizzle router_node (
  .BD_out			(),//No BD
  .top_valid_out(top_valid_out),
  .bot_valid_out(bot_valid_out),
- .BD_valid_out	(),//No BD
+ .BD_valid_out	(BD_valid_out),//No BD
  .top_ready_out(top_ready_out),
  .BD_ready_out	(),//No BD
  .bot_ready_out(bot_ready_out),
  .top_out_clk	(top_out_clk),
  .BD_out_clk	(),//No BD
  .bot_out_clk	(bot_out_clk),
- .sent_something_to_top(led_in[3]),
- .sent_something_to_BD(led_in[1])
+ .sent_something_to_top(),//led_in[3]),
+ .sent_something_to_BD(),//led_in[1])
 );
+//assign led_in[1]=bot_ready_out;
+reg something_top,something_in=0;
+always @ (top_valid_out or top_valid_in or user_reset) begin
+	if (user_reset==1) begin
+		something_top=0;
+		something_in=0;
+	end
+	else if (user_reset==0) begin
+		if (top_valid_out==1)
+			something_top=1;
+		if (top_valid_in==1)
+			something_in=1;
+	end	
+end
+assign led_in[3]=something_top;
+assign led_in[1]=something_in;
 
 DCChannelFIFO32 input_channel_fifo(Des_out, PC_upstream, router_clk, okClk, user_reset);
 DCChannelFIFO42 output_channel_fifo(PC_downstream, Ser_in, okClk, router_clk, user_reset);
