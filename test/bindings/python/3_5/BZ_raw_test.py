@@ -42,16 +42,16 @@ ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
 
 
-codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000001"]
+codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000111"]
 
 
 outputs = []
-for n in range(int(block_size / len(codes))):
+for n in range(2): #range(int(block_size / len(codes))):
 	for code in codes:
 		outputs.append(FormatBits(code))
 
-# for code in codes:
-# 	outputs.append(FormatBits(code))
+#for code in codes:
+#	outputs.append(FormatBits(code))
 
 while len(outputs) < block_size:
 	outputs.append(FormatBits(nop_down))
@@ -64,12 +64,12 @@ print("============SENDING=============")
 PrintBytearrayAs32b(buf)
 print("================================")
 
-# written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
+written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
 # print("Written " + str(written))
 
 time.sleep(2)
 i=0
-for j in range(10):
+for j in range(3):
     # get the memory programming read and one output!
     out_buf = bytearray(block_size*4)
     dev.ReadFromPipeOut(ep_up, out_buf)
