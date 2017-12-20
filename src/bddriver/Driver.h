@@ -104,7 +104,6 @@ class Driver {
   // static Driver * GetInstance();
 
   inline const bdpars::BDPars *GetBDPars() { return bd_pars_; }
-  inline const driverpars::DriverPars *GetDriverPars() { return driver_pars_; }
   inline const BDState *GetState(unsigned int core_id) { return &bd_state_[core_id]; }
 
   void testcall(const std::string &msg);
@@ -979,8 +978,6 @@ class Driver {
   /// Issues two push words (PAT dumps) to force out the 2 trapped words
   void IssuePushWords();
 
-  /// parameters describing parameters of the software (e.g. buffer depths)
-  const driverpars::DriverPars *driver_pars_;
   /// parameters describing BD hardware
   const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware

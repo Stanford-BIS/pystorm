@@ -15,9 +15,8 @@ namespace bddriver {
 using std::cout;
 using std::endl;
 
-BDState::BDState(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* driver_pars) {
+BDState::BDState(const bdpars::BDPars* bd_pars) {
   bd_pars_     = bd_pars;
-  driver_pars_ = driver_pars;
 
   // initialize memory vectors
   mems_[bdpars::BDMemId::PAT]  = std::vector<BDWord>(bd_pars->mem_info_.at(bdpars::BDMemId::PAT).size,  0);
@@ -118,7 +117,7 @@ bool BDState::AreTrafficRegsOff() const
 int BDState::TrafficRegWaitTimeLeftUs() const {
   auto time_since = std::chrono::high_resolution_clock::now() - all_traffic_off_start_;
   std::chrono::duration<unsigned int, std::micro> traffic_drain_time(
-      driver_pars_->Get(driverpars::BD_STATE_TRAFFIC_DRAIN_US));
+      driverpars::BD_STATE_TRAFFIC_DRAIN_US);
   std::chrono::duration<int, std::micro> wait_time_left =
       std::chrono::duration_cast<std::chrono::microseconds>(traffic_drain_time - time_since);
   return wait_time_left.count();

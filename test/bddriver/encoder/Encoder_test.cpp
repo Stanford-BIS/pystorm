@@ -1,4 +1,5 @@
 #include "Encoder.h"
+#include "common/DriverPars.h"
 
 #include <chrono>
 #include <cstdint>
@@ -61,7 +62,7 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
       // pad nops
       enc_inputs.push_back(input);
 
-      const unsigned int kPackedPerBlock = Encoder::WORDS_PER_BLOCK / 4;
+      const unsigned int kPackedPerBlock = driverpars::WRITE_BLOCK_SIZE / 4;
       unsigned int curr_size_in_frame = enc_outputs_packed.size() % kPackedPerBlock;
       //cout << curr_size_in_frame << endl;
       //cout << kPackedPerBlock << endl;
