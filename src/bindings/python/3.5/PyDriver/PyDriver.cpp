@@ -1212,7 +1212,6 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
 typedef std::function< py::module & (std::string const &) > ModuleGetter;
 
 void bind_unknown_unknown(std::function< py::module &(std::string const &namespace_) > &M);
-void bind_unknown_unknown_1(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_unknown_unknown_2(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_unknown_unknown_3(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_model_BDModelDriver(std::function< py::module &(std::string const &namespace_) > &M);
@@ -1233,14 +1232,12 @@ PYBIND11_PLUGIN(_PyDriver) {
 		{"pystorm", "bddriver"},
 		{"pystorm::bddriver", "bdmodel"},
 		{"pystorm::bddriver", "bdpars"},
-		{"pystorm::bddriver", "driverpars"},
 	};
 	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = std::make_shared<py::module>( modules[p.first]->def_submodule(p.second.c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() ) );
 
 	py::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
 	bind_unknown_unknown(M);
-	bind_unknown_unknown_1(M);
 	bind_unknown_unknown_2(M);
 	bind_unknown_unknown_3(M);
 	bind_MemInfo(M);
