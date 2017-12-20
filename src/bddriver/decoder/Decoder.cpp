@@ -64,6 +64,8 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
     unsigned int start = block_idx * driverpars::READ_BLOCK_SIZE;
     unsigned int end   = (block_idx + 1) * driverpars::READ_BLOCK_SIZE;
 
+    had_nop = false; 
+
     for (unsigned int word_idx = start; word_idx < end; word_idx += BYTES_PER_WORD) { // iterating by 4!!
 
       // deserialize
