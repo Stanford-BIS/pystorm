@@ -322,12 +322,27 @@ void Driver::InitBD() {
     // init the FIFO
     InitFIFO(i);
 
-    // clear all memories (perhaps unecessary? takes extra time)
-    //SetMem(i , bdpars::BDMemId::PAT  , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size  , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::TAT0 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::TAT1 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::MM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size   , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
+    // initialize memories to sane values
+    // PAT is kind of irrelevant, but points to 0, 0
+    BDWord default_PAT = PackWord<PATWord>({{PATWord::AM_ADDRESS, 0}, 
+                                            {PATWord::MM_ADDRESS_HI, 0}, 
+                                            {PATWord::MM_ADDRESS_LO, 0}});
+    // TAT emits max tag, max route, stops
+    BDWord default_TAT = PackWord<TATTagWord>({{TATTagWord::STOP, 1}, 
+                                               {TATTagWord::TAG, (1<<FieldWidth(TATTagWord::TAG)) - 1}, 
+                                               {TATTagWord::GLOBAL_ROUTE, (1<<FieldWidth(TATTagWord::GLOBAL_ROUTE)) - 1}});
+    // squash everything to acc by default
+    BDWord default_MM = 0;
+    // stops, emits max tag, max route, threshold is irrelevant
+    BDWord default_AM = PackWord<AMWord>({{AMWord::STOP, 1},
+                                          {AMWord::THRESHOLD, 1},
+                                          {AMWord::NEXT_ADDRESS, (1<<FieldWidth(AMWord::NEXT_ADDRESS)) - 1}});
+
+    SetMem(i , bdpars::BDMemId::PAT  , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size  , default_PAT) , 0);
+    SetMem(i , bdpars::BDMemId::TAT0 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size , default_TAT) , 0);
+    SetMem(i , bdpars::BDMemId::TAT1 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size , default_TAT) , 0);
+    SetMem(i , bdpars::BDMemId::MM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size   , default_MM) , 0);
+    SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , default_AM) , 0);
 
     // Initialize neurons
     InitDAC(i, false);
