@@ -339,6 +339,18 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def_readwrite("CloseDiffusorCut", &pystorm::bddriver::Driver::CloseDiffusorCut);
 		cl.def_readwrite("OpenDiffusorAllCuts", &pystorm::bddriver::Driver::OpenDiffusorAllCuts);
 		cl.def_readwrite("CloseDiffusorAllCuts", &pystorm::bddriver::Driver::CloseDiffusorAllCuts);
+
+    // XY versions of calls, added manually
+		cl.def("EnableSomaXY", &Driver::EnableSomaXY);
+		cl.def("DisableSomaXY", &Driver::DisableSomaXY);
+		cl.def("SetSomaGainXY", &Driver::SetSomaGainXY);
+		cl.def("SetSomaOffsetSignXY", &Driver::SetSomaOffsetSignXY);
+		cl.def("SetSomaOffsetMultiplierXY", &Driver::SetSomaOffsetMultiplierXY);
+		cl.def("EnableSynapseXY", &Driver::EnableSynapseXY);
+		cl.def("DisableSynapseXY", &Driver::DisableSynapseXY);
+		cl.def("EnableSynapseADCXY", &Driver::EnableSynapseADCXY);
+		cl.def("DisableSynapseADCXY", &Driver::DisableSynapseADCXY);
+
 		cl.def("GetBDPars", (const class pystorm::bddriver::bdpars::BDPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetBDPars, "C++: pystorm::bddriver::Driver::GetBDPars() --> const class pystorm::bddriver::bdpars::BDPars *", py::return_value_policy::reference_internal);
 		cl.def("GetDriverPars", (const class pystorm::bddriver::driverpars::DriverPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetDriverPars, "C++: pystorm::bddriver::Driver::GetDriverPars() --> const class pystorm::bddriver::driverpars::DriverPars *", py::return_value_policy::automatic);
 		cl.def("GetState", (const class pystorm::bddriver::BDState * (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetState, "C++: pystorm::bddriver::Driver::GetState(unsigned int) --> const class pystorm::bddriver::BDState *", py::return_value_policy::automatic, py::arg("core_id"));

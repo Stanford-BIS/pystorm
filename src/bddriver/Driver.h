@@ -294,6 +294,37 @@ class Driver {
   void SetSomaOffsetMultiplier(unsigned int core_id, unsigned int soma_id,
                                bdpars::SomaOffsetMultiplierId soma_offset_multiplier);
 
+  /// Enable Soma in XY space
+  void EnableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    EnableSoma(core_id, AER_addr);
+  }
+
+  /// Disable Soma in XY space
+  void DisableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    DisableSoma(core_id, AER_addr);
+  }
+
+  /// Set Soma gain in XY space
+  void SetSomaGainXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaGainId gain) {
+    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    SetSomaGain(core_id, AER_addr, gain);
+  }
+
+  /// Set Soma offset sign in XY space
+  void SetSomaOffsetSignXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetSignId sign) {
+    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    SetSomaOffsetSign(core_id, AER_addr, sign);
+  }
+
+  /// Set Soma offset multiplier in XY space
+  void SetSomaOffsetMultiplierXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetMultiplierId multiplier) {
+    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    SetSomaOffsetMultiplier(core_id, AER_addr, multiplier);
+  }
+  
+
   ////////////////////////////////////////////////////////////////////////////
   // Synapse controls
   ////////////////////////////////////////////////////////////////////////////
@@ -351,6 +382,26 @@ class Driver {
                 std::placeholders::_2,
                 bdpars::SynapseStatusId::DISABLED);
 
+  void EnableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSynAERAddr(x, y);
+    EnableSynapse(core_id, AER_addr);
+  }
+
+  void DisableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSynAERAddr(x, y);
+    DisableSynapse(core_id, AER_addr);
+  }
+  
+  void EnableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSynAERAddr(x, y);
+    EnableSynapseADC(core_id, AER_addr);
+  }
+
+  void DisableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
+    unsigned int AER_addr = GetSynAERAddr(x, y);
+    DisableSynapseADC(core_id, AER_addr);
+  }
+    
   //////////////////////////////////////////////////////////////////////////
   // Diffusor controls
   //////////////////////////////////////////////////////////////////////////

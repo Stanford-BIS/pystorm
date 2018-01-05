@@ -41,15 +41,10 @@ print("* Programming TAT for loopback through tag 0")
 #    (bd.TATTagWord.TAG, t)
 #    ]) for t in tag_out]
 lb_entries = [bd.PackWord([
-    (bd.TATTagWord.STOP, 0),
+    (bd.TATTagWord.STOP, 1),
     (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
     (bd.TATTagWord.TAG, t)
     ]) for t in tag_out]
-lb_entries[-1] = bd.PackWord([
-    (bd.TATTagWord.STOP, 1),
-    (bd.TATTagWord.GLOBAL_ROUTE, 1), # any gtag not 0 goes to PC
-    (bd.TATTagWord.TAG, tag_out[-1])
-    ])
 D.SetMem(CORE, bd.bdpars.BDMemId.TAT0, lb_entries, tag_in[0])
 
 print("* Reading TAT")
@@ -92,10 +87,31 @@ start_time = curr_FPGA_time + int(1e9)
 times = [i + start_time for i in range(0, len(all_tag_words)*interval, interval)]
 #D.SendTags(CORE, all_tag_words, times)
 
-D.SetSpikeGeneratorRates(CORE, [0], [0], [10000], start_time, False)
+#D.SetSpikeGeneratorRates(CORE, [1], [0], [10000], start_time, False)
+#D.Flush()
+D.SetSpikeGeneratorRates(CORE, [0], [0], [1000], 0, False)
 D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [1000], 0, False)
+D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [0], 0, False)
+D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [0], 0, False)
+D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [0], 0, False)
+D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [1000], 0, False)
+D.Flush()
+time.sleep(.1)
+D.SetSpikeGeneratorRates(CORE, [0], [0], [1000], 0, False)
+D.Flush()
+time.sleep(.1)
 
-time.sleep(100)
+time.sleep(1)
 
 def print_queue_states(D):
     print("printing driver queue states:")
@@ -135,5 +151,9 @@ def print_tat_tags(tags, times, max_to_print=20):
 
 tags, times = D.RecvTags(CORE, 1000)
 print_tat_tags(tags, times, 100)
+
+#time.sleep(10)
+#tags, times = D.RecvTags(CORE, 1000)
+#print_tat_tags(tags, times, 100)
 
 D.Stop()
