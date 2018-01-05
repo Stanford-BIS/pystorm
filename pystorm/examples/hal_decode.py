@@ -9,7 +9,7 @@ net = graph.Network("net")
 np.random.seed(0)
 
 Din = 1
-Dout = 1
+Dout = 2
 K = 8
 N = 64
 
@@ -143,28 +143,28 @@ if p1 in As:
     print('total count in bounds, in exp duration:', np.sum(As[p1]))
 print("got", len(spikes), "spikes")
 
-tags, times = HAL.driver.RecvTags(0)
-print("got", len(tags), "tags")
-
-def count_tags(tags):
-    tag_cts = {}
-    total_tag_cts = {}
-    for t in tags:
-        ct = bd.GetField(t, bd.TATOutputTag.COUNT)
-        tag = bd.GetField(t, bd.TATOutputTag.TAG)
-        route = bd.GetField(t, bd.TATOutputTag.GLOBAL_ROUTE)
-        k = (tag, route, ct)
-        if k not in tag_cts:
-            tag_cts[k] = 0
-        tag_cts[k] += 1
-        k = (tag, route)
-        if k not in total_tag_cts:
-            total_tag_cts[k] = 0
-        total_tag_cts[k] += ct
-    print(tag_cts)    
-    print(total_tag_cts)
-
-count_tags(tags)
+#tags, times = HAL.driver.RecvTags(0)
+#print("got", len(tags), "tags")
+#
+#def count_tags(tags):
+#    tag_cts = {}
+#    total_tag_cts = {}
+#    for t in tags:
+#        ct = bd.GetField(t, bd.TATOutputTag.COUNT)
+#        tag = bd.GetField(t, bd.TATOutputTag.TAG)
+#        route = bd.GetField(t, bd.TATOutputTag.GLOBAL_ROUTE)
+#        k = (tag, route, ct)
+#        if k not in tag_cts:
+#            tag_cts[k] = 0
+#        tag_cts[k] += 1
+#        k = (tag, route)
+#        if k not in total_tag_cts:
+#            total_tag_cts[k] = 0
+#        total_tag_cts[k] += ct
+#    print(tag_cts)    
+#    print(total_tag_cts)
+#
+#count_tags(tags)
 
 outputs = HAL.get_outputs()
 print("got outputs, doing binning")
