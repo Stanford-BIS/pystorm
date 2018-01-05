@@ -34,16 +34,17 @@ def standard_DAC_settings(D, CORE):
     time.sleep(2)
     D.InitDAC(CORE)
 
-    # magical DAC settings (DC is the most important, with the default, inhibition doesn't work)
-    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
+    # should be the close to the driver's defaults, at this point
+    # (we had the DAC BDWord bit order wrong at some point)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 600)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
-    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 10)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 22)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
     D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
-    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 250)
-    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 1)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+    D.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
 def compare_TAT_words(progged, dumped):
     if len(dumped) >= 1 and sum([i == j for i,j in zip(dumped, progged)]) == len(progged):
