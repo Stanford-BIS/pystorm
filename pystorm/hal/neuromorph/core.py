@@ -1,6 +1,6 @@
 import numpy as np
 import rectpack # for NeuronAllocator
-from pystorm.PyDriver import bddriver
+from pystorm.PyDriver import bddriver as bd
 import sys
 
 class Core(object):
@@ -78,7 +78,7 @@ class Core(object):
                 "===== TAT0 =====\n" + str(self.TAT0) +
                 "===== TAT1 =====\n" + str(self.TAT1) +
                 "===== MM =====\n"   + str(self.MM)   +
-                "===== AM =====\n"   + str(self.MM))
+                "===== AM =====\n"   + str(self.AM))
 
     def write_mems_to_file(self, fname):
         f = open(fname, 'w')
@@ -272,12 +272,12 @@ class MMAllocator(MemAllocator):
         return (start_y, start_x)
 
 class Memory(object):
-    def __init__(self, shape, ):
+    def __init__(self, shape, default_val):
         self.shape = shape
         if len(self.shape) == 1:
-            self.M = [0 for i in range(self.shape[0])]
+            self.M = [default_val for i in range(self.shape[0])]
         else:
-            self.M = [[0 for i in range(self.shape[0])] for j in range(self.shape[1])]
+            self.M = [[default_val for i in range(self.shape[0])] for j in range(self.shape[1])]
         self.M = np.array(self.M, dtype=object)
 
     def assign_1d_block(self, mem, start):
@@ -297,17 +297,17 @@ class Memory(object):
 
 class StepMem(Memory):
     """Read-Write Memory"""
-    def __init__(self, shape):
-        super(StepMem, self).__init__(shape)
+    def __init__(self, shape, default_val):
+        super(StepMem, self).__init__(shape, default_val)
 
 class PATMem(Memory):
-    def __init__(self, shape):
-        super(PATMem, self).__init__(shape)
+    def __init__(self, shape, default_val):
+        super(PATMem, self).__init__(shape, default_val)
 
 class MM(object):
     """Represents a Core's main memory"""
     def __init__(self, shape, neurons_per_pool):
-        self.mem = StepMem(shape)
+        self.mem = StepMem(shape, 0)
         self.alloc = MMAllocator(shape, neurons_per_pool)
 
     def allocate_dec(self, D):
@@ -328,7 +328,8 @@ class MM(object):
 
 class AM(object):
     def __init__(self, shape):
-        self.mem = StepMem(shape)
+        default_val = bd.PackWord([[bd.AMWord.STOP, 1]]) # the stop is the only important part
+        self.mem = StepMem(shape, default_val)
         self.alloc = StepMemAllocator(shape)
 
     def allocate(self, size):
@@ -341,22 +342,24 @@ class AM(object):
         s = "AM: [ val | thr | stop | na ]\n"
         for idx in range(self.mem.shape[0]):
             m    = self.mem.M[idx]
-            val  = bddriver.GetField(m, bddriver.AMWord.ACCUMULATOR_VALUE)
-            thr  = bddriver.GetField(m, bddriver.AMWord.THRESHOLD)
-            stop = bddriver.GetField(m, bddriver.AMWord.STOP)
-            na   = bddriver.GetField(m, bddriver.AMWord.NEXT_ADDRESS)
+            val  = bd.GetField(m, bd.AMWord.ACCUMULATOR_VALUE)
+            thr  = bd.GetField(m, bd.AMWord.THRESHOLD)
+            stop = bd.GetField(m, bd.AMWord.STOP)
+            na   = bd.GetField(m, bd.AMWord.NEXT_ADDRESS)
             s += "[ " + str(val) + " | " + str(thr) + " | " + str(stop) + " | " + str(na) + " ]\n"
         return s
 
 class TAT(object):
     def __init__(self, shape):
-        self.mem = StepMem(shape)
+        default_val = bd.PackWord([[bd.TATTagWord.STOP, 1]]) # the rest will default to BDWord HCVals
+        self.mem = StepMem(shape, default_val)
         self.alloc = StepMemAllocator(shape)
 
     def allocate(self, size):
         return self.alloc.allocate(size)
 
     def assign(self, data, start):
+        #print("assign called:", type(data), data)
         self.mem.assign_1d_block(data, start)
 
     def __str__(self):
@@ -366,36 +369,37 @@ class TAT(object):
         for idx in range(self.mem.shape[0]):
             m = self.mem.M[idx]
 
-            if bddriver.GetField(m, bddriver.TATTagWord.FIXED_2) == 2:
+            if bd.GetField(m, bd.TATTagWord.FIXED_2) == 2:
                 ty   = 2
-                stop = bddriver.GetField(m, bddriver.TATTagWord.STOP)
-                tag  = bddriver.GetField(m, bddriver.TATTagWord.TAG)
-                grt  = bddriver.GetField(m, bddriver.TATTagWord.GLOBAL_ROUTE)
-                X    = bddriver.GetField(m, bddriver.TATTagWord.UNUSED)
+                stop = bd.GetField(m, bd.TATTagWord.STOP)
+                tag  = bd.GetField(m, bd.TATTagWord.TAG)
+                grt  = bd.GetField(m, bd.TATTagWord.GLOBAL_ROUTE)
+                X    = bd.GetField(m, bd.TATTagWord.UNUSED)
                 s += "[ " + str(stop) + " | " + str(ty) + " | " + str(tag) + " | " + str(grt) + " | " + str(X) + " ]\n"
 
-            elif bddriver.GetField(m, bddriver.TATSpikeWord.FIXED_1) == 1:
+            elif bd.GetField(m, bd.TATSpikeWord.FIXED_1) == 1:
                 ty   = 1
-                stop = bddriver.GetField(m, bddriver.TATSpikeWord.STOP)
-                tap0 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0)
-                s0   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_0)
-                tap1 = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1)
-                s1   = bddriver.GetField(m, bddriver.TATSpikeWord.SYNAPSE_SIGN_1)
-                X    = bddriver.GetField(m, bddriver.TATSpikeWord.UNUSED)
+                stop = bd.GetField(m, bd.TATSpikeWord.STOP)
+                tap0 = bd.GetField(m, bd.TATSpikeWord.SYNAPSE_ADDRESS_0)
+                s0   = bd.GetField(m, bd.TATSpikeWord.SYNAPSE_SIGN_0)
+                tap1 = bd.GetField(m, bd.TATSpikeWord.SYNAPSE_ADDRESS_1)
+                s1   = bd.GetField(m, bd.TATSpikeWord.SYNAPSE_SIGN_1)
+                X    = bd.GetField(m, bd.TATSpikeWord.UNUSED)
                 s += "[ " + str(stop) + " | " + str(ty) + " | " + str(tap0) + " | " + str(s0) + " | " + str(tap1) + " | " + str(s1) + " | " + str(X) + " ]\n"
 
             else:
                 ty   = 0
-                stop = bddriver.GetField(m, bddriver.TATAccWord.STOP)
-                ama  = bddriver.GetField(m, bddriver.TATAccWord.AM_ADDRESS)
-                mma  = bddriver.GetField(m, bddriver.TATAccWord.MM_ADDRESS)
+                stop = bd.GetField(m, bd.TATAccWord.STOP)
+                ama  = bd.GetField(m, bd.TATAccWord.AM_ADDRESS)
+                mma  = bd.GetField(m, bd.TATAccWord.MM_ADDRESS)
                 s += "[ " + str(stop) + " | " + str(ty) + " | " + str(ama) + " | " + str(mma) + " ]\n"
 
         return s
 
 class PAT(object):
     def __init__(self, shape):
-        self.mem = PATMem(shape)
+        default_val = 0
+        self.mem = PATMem(shape, 0)
 
     def assign(self, data, start):
         self.mem.assign_2d_block(data, start)
@@ -405,14 +409,15 @@ class PAT(object):
         for idx in range(self.mem.shape[0]):
             for jdx in range(self.mem.shape[1]):
                 m         = self.mem.M[idx, jdx]
-                ama       = bddriver.GetField(m, bddriver.PATWord.AM_ADDRESS)
-                mmax      = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_LO)
-                mmay_base = bddriver.GetField(m, bddriver.PATWord.MM_ADDRESS_HI)
+                ama       = bd.GetField(m, bd.PATWord.AM_ADDRESS)
+                mmax      = bd.GetField(m, bd.PATWord.MM_ADDRESS_LO)
+                mmay_base = bd.GetField(m, bd.PATWord.MM_ADDRESS_HI)
                 s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
         return s
 
 class NeuronArray(object):
     """Represents a Core's neuron array
+    keeps track of which neurons and synapses are used
     
     Parameters
     ----------
@@ -441,6 +446,8 @@ class NeuronArray(object):
         shape = (self.y, self.x)
         self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
         self.pool_allocations = [] # store pool allocation results
+
+        self.syns_used = [] # list of synapses that are targeted
 
     def add_pool(self, pool):
         self.alloc.add_pool(pool.py, pool.px, id(pool))
