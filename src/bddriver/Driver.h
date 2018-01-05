@@ -104,7 +104,6 @@ class Driver {
   // static Driver * GetInstance();
 
   inline const bdpars::BDPars *GetBDPars() { return bd_pars_; }
-  inline const driverpars::DriverPars *GetDriverPars() { return driver_pars_; }
   inline const BDState *GetState(unsigned int core_id) { return &bd_state_[core_id]; }
 
   void testcall(const std::string &msg);
@@ -725,6 +724,53 @@ class Driver {
       const std::vector<BDWord> &data,
       unsigned int start_addr);
 
+  /// Default (safe) values for PAT
+  /// PAT default is kind of irrelevant, but points to 0, 0
+  std::vector<BDWord> GetDefaultPATEntries() const {
+    BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, 0}, 
+                                            {PATWord::MM_ADDRESS_HI, 0}, 
+                                            {PATWord::MM_ADDRESS_LO, 0}});
+    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
+    return std::vector<BDWord>(mem_size, default_word);
+  }
+
+  /// Default (safe) values for TAT0
+  /// TAT emits max tag, max route, stops (stop is critical to avoid infinite loop)
+  std::vector<BDWord> GetDefaultTAT0Entries() const {
+    BDWord default_word = PackWord<TATTagWord>({{TATTagWord::STOP, 1}, 
+                                                {TATTagWord::TAG, (1<<FieldWidth(TATTagWord::TAG)) - 1}, 
+                                                {TATTagWord::GLOBAL_ROUTE, (1<<FieldWidth(TATTagWord::GLOBAL_ROUTE)) - 1}});
+    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size;
+    return std::vector<BDWord>(mem_size, default_word);
+  }
+
+  /// Default (safe) values for TAT1
+  /// TAT emits max tag, max route, stops (stop is critical to avoid infinite loop)
+  std::vector<BDWord> GetDefaultTAT1Entries() const {
+    BDWord default_word = PackWord<TATTagWord>({{TATTagWord::STOP, 1}, 
+                                                {TATTagWord::TAG, (1<<FieldWidth(TATTagWord::TAG)) - 1}, 
+                                                {TATTagWord::GLOBAL_ROUTE, (1<<FieldWidth(TATTagWord::GLOBAL_ROUTE)) - 1}});
+    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size;
+    return std::vector<BDWord>(mem_size, default_word);
+  }
+
+  /// Default (safe) values for MM
+  /// zero weight squashes everything
+  std::vector<BDWord> GetDefaultMMEntries() const {
+    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size;
+    return std::vector<BDWord>(mem_size, 0);
+  }
+
+  /// Default (safe) values for AM
+  /// stops (critical to avoid looping), emits max tag, max route, threshold is irrelevant
+  std::vector<BDWord> GetDefaultAMEntries() const {
+    BDWord default_word = PackWord<AMWord>({{AMWord::STOP, 1},
+                                          {AMWord::THRESHOLD, 1},
+                                          {AMWord::NEXT_ADDRESS, (1<<FieldWidth(AMWord::NEXT_ADDRESS)) - 1}});
+    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size;
+    return std::vector<BDWord>(mem_size, default_word);
+  }
+
   /// Dump the contents of one of the memories.
   /// BDWords must subsequently be unpacked as the correct word type for the mem_id
   std::vector<BDWord> DumpMem(unsigned int core_id, bdpars::BDMemId mem_id);
@@ -883,10 +929,20 @@ class Driver {
     if (flush) Flush();
   }
 
-  /// Get FPGA SpikeFilter outputs
-  std::pair<std::vector<BDWord>,
+  /// Get FPGA SpikeFilter filter ids and states
+  /// returns (filter ids, states, times)
+  std::tuple<std::vector<unsigned int>,
+            std::vector<unsigned int>,
             std::vector<BDTime>> RecvSpikeFilterStates(unsigned int core_id, unsigned int timeout_us) {
-    return RecvFromEP(core_id, bdpars::FPGAOutputEP::SF_OUTPUT, timeout_us);
+    auto words_times = RecvFromEP(core_id, bdpars::FPGAOutputEP::SF_OUTPUT, timeout_us);
+
+    std::vector<unsigned int> filter_ids(words_times.first.size());
+    std::vector<unsigned int> filter_states(words_times.first.size());
+    for (unsigned int i = 0; i < words_times.first.size(); i++) {
+      filter_ids[i]    = GetField(words_times.first[i], FPGASFWORD::FILTIDX);
+      filter_states[i] = GetField(words_times.first[i], FPGASFWORD::STATE);
+    }
+    return {filter_ids, filter_states, words_times.second};
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -979,8 +1035,6 @@ class Driver {
   /// Issues two push words (PAT dumps) to force out the 2 trapped words
   void IssuePushWords();
 
-  /// parameters describing parameters of the software (e.g. buffer depths)
-  const driverpars::DriverPars *driver_pars_;
   /// parameters describing BD hardware
   const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware

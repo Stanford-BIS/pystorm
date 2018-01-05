@@ -52,13 +52,12 @@ static const std::string OK_SERIAL = "";
 
 Driver::Driver() {
   // load parameters
-  driver_pars_ = new driverpars::DriverPars();
   bd_pars_     = new bdpars::BDPars();
 
   // one BDState object per core
-  // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_, driver_pars_));
+  // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_));
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
-    bd_state_.push_back(BDState(bd_pars_, driver_pars_));
+    bd_state_.push_back(BDState(bd_pars_));
   }
 
   // initialize buffers
@@ -95,20 +94,20 @@ Driver::Driver() {
       enc_buf_in_,
       enc_buf_out_,
       bd_pars_,
-      driver_pars_->Get(driverpars::ENC_TIMEOUT_US));
+      driverpars::ENC_TIMEOUT_US);
 
   dec_ = new Decoder(
       dec_buf_in_,
       dec_bufs_out_,
       bd_pars_,
-      driver_pars_->Get(driverpars::DEC_TIMEOUT_US));
+      driverpars::DEC_TIMEOUT_US);
 
   // initialize Comm
 #ifdef BD_COMM_TYPE_SOFT
   cout << "initializing CommSoft" << endl;
     comm_ = new comm::CommSoft(
-        *(driver_pars_->Get(driverpars::SOFT_COMM_IN_FNAME)),
-        *(driver_pars_->Get(driverpars::SOFT_COMM_OUT_FNAME)),
+        "soft_comm_in.dat",
+        "soft_comm_out.dat",
         dec_buf_in_,
         enc_buf_out_);
 #elif BD_COMM_TYPE_USB
@@ -136,7 +135,6 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
-  delete driver_pars_;
   delete bd_pars_;
   delete enc_buf_in_;
   delete enc_buf_out_;
@@ -324,12 +322,12 @@ void Driver::InitBD() {
     // init the FIFO
     InitFIFO(i);
 
-    // clear all memories (perhaps unecessary? takes extra time)
-    //SetMem(i , bdpars::BDMemId::PAT  , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size  , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::TAT0 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::TAT1 , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::MM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size   , 0) , 0);
-    //SetMem(i , bdpars::BDMemId::AM   , std::vector<BDWord>(bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size   , 0) , 0);
+    // initialize memories to sane values (critically, that can't cause infinite loops)
+    SetMem(i , bdpars::BDMemId::PAT  , GetDefaultPATEntries()  , 0);
+    SetMem(i , bdpars::BDMemId::TAT0 , GetDefaultTAT0Entries() , 0);
+    SetMem(i , bdpars::BDMemId::TAT1 , GetDefaultTAT1Entries() , 0);
+    SetMem(i , bdpars::BDMemId::MM   , GetDefaultMMEntries()   , 0);
+    SetMem(i , bdpars::BDMemId::AM   , GetDefaultAMEntries()   , 0);
 
     // Initialize neurons
     InitDAC(i, false);

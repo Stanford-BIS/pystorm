@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "common/DriverPars.h"
 #include "common/BDPars.h"
 #include "common/BDWord.h"
 #include "common/MutexBuffer.h"
@@ -48,21 +49,21 @@ inline void Encoder::PushWord(uint32_t word) {
   uint8_t b2 = GetField<FPGABYTES>(word, FPGABYTES::B2);
   uint8_t b3 = GetField<FPGABYTES>(word, FPGABYTES::B3);
 
-  working_block_->push_back(b0);
-  working_block_->push_back(b1);
-  working_block_->push_back(b2);
-  working_block_->push_back(b3);
+  output_block_->push_back(b0);
+  output_block_->push_back(b1);
+  output_block_->push_back(b2);
+  output_block_->push_back(b3);
 
   // if we've got a lot of blocks, break it up
-  if (working_block_->size() == MAX_BLOCKS * WORDS_PER_BLOCK) {
+  if (output_block_->size() == driverpars::MAX_WRITE_SIZE) {
     FlushWords();
   }
 }
 
 inline void Encoder::PadNopsAndFlush() {
   // figure out how man nops are needed to pad
-  unsigned int curr_size_in_frame = working_block_->size() % WORDS_PER_BLOCK;
-  unsigned int to_complete_block = (WORDS_PER_BLOCK - curr_size_in_frame) % WORDS_PER_BLOCK;
+  unsigned int curr_size_in_frame = output_block_->size() % driverpars::WRITE_BLOCK_SIZE;
+  unsigned int to_complete_block = (driverpars::WRITE_BLOCK_SIZE - curr_size_in_frame) % driverpars::WRITE_BLOCK_SIZE;
 
   // construct FPGA nop word
   uint8_t nop_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
@@ -80,14 +81,14 @@ inline void Encoder::PadNopsAndFlush() {
 // flush code, pad nops to complete block
 inline void Encoder::FlushWords() {
 
-  assert(WORDS_PER_BLOCK % 4 == 0);
-  assert(working_block_->size() % WORDS_PER_BLOCK == 0);
+  assert(driverpars::WRITE_BLOCK_SIZE % 4 == 0);
+  assert(output_block_->size() % driverpars::WRITE_BLOCK_SIZE == 0);
 
-  // move working_block_
-  out_buf_->Push(std::move(working_block_)); 
+  // move output_block_
+  out_buf_->Push(std::move(output_block_)); 
 
-  // construct new working_block_
-  working_block_ = std::make_unique<std::vector<EncOutput>>();
+  // construct new output_block_
+  output_block_ = std::make_unique<std::vector<EncOutput>>();
 }
 
 void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {

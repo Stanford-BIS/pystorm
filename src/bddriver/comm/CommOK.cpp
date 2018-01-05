@@ -41,7 +41,8 @@ void CommOK::CommController() {
     int last_read_status = ReadFromDevice();
 
     // determine if downstream queue is almost full, if it isn't write
-    if ((FIFO_DEPTH - DS_queue_count_) * 4 > MAX_WRITE_BLOCKS * WRITE_BLOCK_SIZE){
+    unsigned int bytes_free = driverpars::WRITE_FIFO_DEPTH - DS_queue_count_;
+    if (bytes_free > driverpars::MAX_WRITE_SIZE) { // max write size is half buffer
       int last_write_status = WriteToDevice();
 
       if (last_write_status < 0) {
@@ -53,8 +54,8 @@ void CommOK::CommController() {
     if (last_read_status < 0) {
       cout << "ERROR: CommOK: read failed. Got code " << last_read_status << ". Stopping." << endl;
       StopStreaming();
-    } else if (last_read_status != READ_SIZE) {
-      cout << "WARNING: CommOK: didn't read " << READ_SIZE << " bytes. Instead got " << last_read_status << endl;
+    } else if (last_read_status != driverpars::READ_SIZE) {
+      cout << "WARNING: CommOK: didn't read " << driverpars::READ_SIZE << " bytes. Instead got " << last_read_status << endl;
     }
 
     //std::this_thread::sleep_for(1us);
@@ -103,11 +104,12 @@ int CommOK::WriteToDevice() {
     // nothing gets through the driver and encoder without a flush, 
     // encoder flush pads to the correct length
 
-    assert(blocks->size() % WRITE_BLOCK_SIZE == 0);
+    assert(blocks->size() % driverpars::WRITE_BLOCK_SIZE == 0);
+    assert(blocks->size() <= driverpars::MAX_WRITE_SIZE);
 
     //auto start = std::chrono::high_resolution_clock::now();
     
-    int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, WRITE_BLOCK_SIZE, blocks->size(), blocks->data());
+    int last_status = dev.WriteToBlockPipeIn(PIPE_IN_ADDR, driverpars::WRITE_BLOCK_SIZE, blocks->size(), blocks->data());
 
     //auto end = std::chrono::high_resolution_clock::now();
     //cout << "CommOK::WriteToDevice : write took " << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << " us" << endl;
@@ -125,17 +127,17 @@ int CommOK::WriteToDevice() {
 }
 
 int CommOK::ReadFromDevice() {
-    std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(READ_SIZE, 0));
+    std::unique_ptr<std::vector<COMMWord>> read_buffer(new std::vector<COMMWord>(driverpars::READ_SIZE, 0));
     COMMWord * raw_data = read_buffer->data();
-    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, READ_BLOCK_SIZE, READ_SIZE, raw_data);
+    int num_bytes = dev.ReadFromBlockPipeOut(PIPE_OUT_ADDR, driverpars::READ_BLOCK_SIZE, driverpars::READ_SIZE, raw_data);
 
     // peek at the first word to get the number of things in the downstream queue
     // use this to determine whether we should WriteToDevice or not
     
-    // FIFO depth is 2**14, so tack together first two words
-    DS_queue_count_ = (raw_data[1] << 8) | raw_data[0];
+    // FIFO depth is 2**14, so tack together first two bytes, count is in words, multiply * 4 to get bytes
+    DS_queue_count_ = ((raw_data[1] << 8) | raw_data[0]) * 4; 
     //if (DS_queue_count_ > 0) {
-    //  cout << "DS_queue_count_ measured as " << DS_queue_count_ << endl;
+    //  cout << "DS_queue_count_ measured as " << DS_queue_count_ << " bytes" << endl;
     //}
     assert(raw_data[3] == 128);
     
@@ -145,7 +147,7 @@ int CommOK::ReadFromDevice() {
     //  PrintBinaryAsStr(raw_data[i], 8);
     //}
 
-    //assert(num_bytes == READ_SIZE);
+    assert(num_bytes == driverpars::READ_SIZE);
 
     if (num_bytes > 0) {
       m_read_buffer->Push(std::move(read_buffer));

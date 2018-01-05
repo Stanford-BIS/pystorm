@@ -252,56 +252,11 @@ void bind_unknown_unknown(std::function< py::module &(std::string const &namespa
 	}
 }
 
-void bind_unknown_unknown_1(std::function< py::module &(std::string const &namespace_) > &M)
-{
-	// pystorm::bddriver::driverpars::DriverParId file: line:11
-	py::enum_<pystorm::bddriver::driverpars::DriverParId>(M("pystorm::bddriver::driverpars"), "DriverParId", "")
-		.value("ENC_BUF_IN_CAPACITY", pystorm::bddriver::driverpars::DriverParId::ENC_BUF_IN_CAPACITY)
-		.value("DEC_BUF_IN_CAPACITY", pystorm::bddriver::driverpars::DriverParId::DEC_BUF_IN_CAPACITY)
-		.value("ENC_BUF_OUT_CAPACITY", pystorm::bddriver::driverpars::DriverParId::ENC_BUF_OUT_CAPACITY)
-		.value("DEC_BUF_OUT_CAPACITY", pystorm::bddriver::driverpars::DriverParId::DEC_BUF_OUT_CAPACITY)
-		.value("ENC_CHUNK_SIZE", pystorm::bddriver::driverpars::DriverParId::ENC_CHUNK_SIZE)
-		.value("ENC_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::ENC_TIMEOUT_US)
-		.value("DEC_CHUNK_SIZE", pystorm::bddriver::driverpars::DriverParId::DEC_CHUNK_SIZE)
-		.value("DEC_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::DEC_TIMEOUT_US)
-		.value("BD_STATE_TRAFFIC_DRAIN_US", pystorm::bddriver::driverpars::DriverParId::BD_STATE_TRAFFIC_DRAIN_US)
-		.value("COMM_TYPE", pystorm::bddriver::driverpars::DriverParId::COMM_TYPE)
-		.value("BDMODELCOMM_TRY_FOR_US", pystorm::bddriver::driverpars::DriverParId::BDMODELCOMM_TRY_FOR_US)
-		.value("BDMODELCOMM_MAX_TO_READ", pystorm::bddriver::driverpars::DriverParId::BDMODELCOMM_MAX_TO_READ)
-		.value("BDMODELCOMM_SLEEP_FOR_US", pystorm::bddriver::driverpars::DriverParId::BDMODELCOMM_SLEEP_FOR_US)
-		.value("DUMPPAT_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::DUMPPAT_TIMEOUT_US)
-		.value("DUMPTAT_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::DUMPTAT_TIMEOUT_US)
-		.value("DUMPMM_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::DUMPMM_TIMEOUT_US)
-		.value("RECVSPIKES_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::RECVSPIKES_TIMEOUT_US)
-		.value("RECVTAGS_TIMEOUT_US", pystorm::bddriver::driverpars::DriverParId::RECVTAGS_TIMEOUT_US)
-		.value("LastDriverParId", pystorm::bddriver::driverpars::DriverParId::LastDriverParId)
-		.export_values();
-
-;
-
-	// pystorm::bddriver::driverpars::DriverStringParId file: line:36
-	py::enum_<pystorm::bddriver::driverpars::DriverStringParId>(M("pystorm::bddriver::driverpars"), "DriverStringParId", "")
-		.value("SOFT_COMM_IN_FNAME", pystorm::bddriver::driverpars::DriverStringParId::SOFT_COMM_IN_FNAME)
-		.value("SOFT_COMM_OUT_FNAME", pystorm::bddriver::driverpars::DriverStringParId::SOFT_COMM_OUT_FNAME)
-		.value("LastDriverStringParId", pystorm::bddriver::driverpars::DriverStringParId::LastDriverStringParId)
-		.export_values();
-
-;
-
-	{ // pystorm::bddriver::driverpars::DriverPars file: line:52
-		py::class_<pystorm::bddriver::driverpars::DriverPars> cl(M("pystorm::bddriver::driverpars"), "DriverPars", "Stores parameters that modify driver object parameters/functions");
-		cl.def(py::init<>());
-
-		cl.def("Get", (unsigned int (pystorm::bddriver::driverpars::DriverPars::*)(pystorm::bddriver::driverpars::DriverParId) const) &pystorm::bddriver::driverpars::DriverPars::Get, "C++: pystorm::bddriver::driverpars::DriverPars::Get(pystorm::bddriver::driverpars::DriverParId) const --> unsigned int", py::arg("par_id"));
-		cl.def("Get", (const std::string * (pystorm::bddriver::driverpars::DriverPars::*)(pystorm::bddriver::driverpars::DriverStringParId) const) &pystorm::bddriver::driverpars::DriverPars::Get, "C++: pystorm::bddriver::driverpars::DriverPars::Get(pystorm::bddriver::driverpars::DriverStringParId) const --> const std::string *", py::return_value_policy::automatic, py::arg("par_id"));
-	}
-}
-
 void bind_unknown_unknown_2(std::function< py::module &(std::string const &namespace_) > &M)
 {
 	{ // pystorm::bddriver::BDState file: line:24
 		py::class_<pystorm::bddriver::BDState> cl(M("pystorm::bddriver"), "BDState", "Keeps track of currently set register values, toggle states, memory values, etc.\n\n Also encodes timing assumptions: e.g. as soon as the traffic toggles are turned\n off in software, it is not necessarily safe to start programming memories:\n there is some amount of time that we must wait for the traffic to drain completely.\n the length of this delay is kept in DriverPars, and is used by BDState to implement\n an interface that the driver can use to block until it is safe.");
-		cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *, const class pystorm::bddriver::driverpars::DriverPars *>(), py::arg("bd_pars"), py::arg("driver_pars"));
+		cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *>(), py::arg("bd_pars"));
 
 		cl.def(py::init<const class pystorm::bddriver::BDState &>(), py::arg(""));
 
@@ -352,7 +307,6 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("DisableSynapseADCXY", &Driver::DisableSynapseADCXY);
 
 		cl.def("GetBDPars", (const class pystorm::bddriver::bdpars::BDPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetBDPars, "C++: pystorm::bddriver::Driver::GetBDPars() --> const class pystorm::bddriver::bdpars::BDPars *", py::return_value_policy::reference_internal);
-		cl.def("GetDriverPars", (const class pystorm::bddriver::driverpars::DriverPars * (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::GetDriverPars, "C++: pystorm::bddriver::Driver::GetDriverPars() --> const class pystorm::bddriver::driverpars::DriverPars *", py::return_value_policy::automatic);
 		cl.def("GetState", (const class pystorm::bddriver::BDState * (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetState, "C++: pystorm::bddriver::Driver::GetState(unsigned int) --> const class pystorm::bddriver::BDState *", py::return_value_policy::automatic, py::arg("core_id"));
 		cl.def("testcall", (void (pystorm::bddriver::Driver::*)(const std::string &)) &pystorm::bddriver::Driver::testcall, "C++: pystorm::bddriver::Driver::testcall(const class std::__cxx11::basic_string<char> &) --> void", py::arg("msg"));
 
@@ -492,7 +446,7 @@ void bind_unknown_unknown_3(std::function< py::module &(std::string const &names
 {
 	{ // pystorm::bddriver::bdmodel::BDModel file: line:21
 		py::class_<pystorm::bddriver::bdmodel::BDModel> cl(M("pystorm::bddriver::bdmodel"), "BDModel", "BDModel pretends to be the BD hardware.\n Public ifc is threadsafe.");
-		cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *, const class pystorm::bddriver::driverpars::DriverPars *>(), py::arg("bd_pars"), py::arg("driver_pars"));
+		cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *>(), py::arg("bd_pars"));
 
 		cl.def("ParseInput", (void (pystorm::bddriver::bdmodel::BDModel::*)(const class std::vector<unsigned char, class std::allocator<unsigned char> > &)) &pystorm::bddriver::bdmodel::BDModel::ParseInput, "parse input stream to update internal BDState object and other state\n\nC++: pystorm::bddriver::bdmodel::BDModel::ParseInput(const class std::vector<unsigned char, class std::allocator<unsigned char> > &) --> void", py::arg("input_stream"));
 		cl.def("GenerateOutputs", (class std::vector<unsigned char, class std::allocator<unsigned char> > (pystorm::bddriver::bdmodel::BDModel::*)()) &pystorm::bddriver::bdmodel::BDModel::GenerateOutputs, "given internal state, generate requested output stream\n\nC++: pystorm::bddriver::bdmodel::BDModel::GenerateOutputs() --> class std::vector<unsigned char, class std::allocator<unsigned char> >");
@@ -1258,7 +1212,6 @@ void bind_BDWord(std::function< py::module &(std::string const &namespace_) > &M
 typedef std::function< py::module & (std::string const &) > ModuleGetter;
 
 void bind_unknown_unknown(std::function< py::module &(std::string const &namespace_) > &M);
-void bind_unknown_unknown_1(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_unknown_unknown_2(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_unknown_unknown_3(std::function< py::module &(std::string const &namespace_) > &M);
 void bind_model_BDModelDriver(std::function< py::module &(std::string const &namespace_) > &M);
@@ -1279,14 +1232,12 @@ PYBIND11_PLUGIN(_PyDriver) {
 		{"pystorm", "bddriver"},
 		{"pystorm::bddriver", "bdmodel"},
 		{"pystorm::bddriver", "bdpars"},
-		{"pystorm::bddriver", "driverpars"},
 	};
 	for(auto &p : sub_modules ) modules[p.first.size() ? p.first+"::"+p.second : p.second] = std::make_shared<py::module>( modules[p.first]->def_submodule(p.second.c_str(), ("Bindings for " + p.first + "::" + p.second + " namespace").c_str() ) );
 
 	py::class_<std::shared_ptr<void>>(M(""), "_encapsulated_data_");
 
 	bind_unknown_unknown(M);
-	bind_unknown_unknown_1(M);
 	bind_unknown_unknown_2(M);
 	bind_unknown_unknown_3(M);
 	bind_MemInfo(M);

@@ -104,6 +104,30 @@ class GraphHWMapper(object):
         """
         self.dest_mappers.append((weight, mapper))
 
+    def matrix_to_TAT_taps(self, M):
+        """weight matrix entries in connection to Pool should be in {-1, 0, 1}
+        converts this representation to the sparse representation used by TATTapPoint
+        """
+        nrns = M.shape[0]
+        dims = M.shape[1]
+
+        taps_and_signs = [[] for d in range(dims)]
+        for d in range(dims):
+            for n in range(nrns):
+                entry = M[n, d]
+                assert(entry in [-1, 0, 1] and "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
+                if entry != 0:
+                    t = n
+                    s = int(entry)
+                    taps_and_signs[d].append((t, s))
+
+        #print("matrix:")
+        #print(M)
+        #print("taps and signs:")
+        #print(taps_and_signs)
+        return taps_and_signs
+
+
     def connect(self, hardware_resources):
         """Allocate hardware resources to implement this instance's connections
 
@@ -159,16 +183,12 @@ class GraphHWMapper(object):
             # Conn 1: Input -> Pool
             if isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Pool):
                 num_neurons = dest_node_ps_obj.get_num_neurons()
-                matrix_dims = 2
                 adj_node_dims = self.ps_obj.get_num_dimensions()
 
                 source = self.hardware_resource
-                tap = TATTapPoint(
-                    # TODO: This should not be random! 
-                    # Put in the H-Tree algorithm here!
-                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
-                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
-                    num_neurons)
+
+                tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
+                tap = TATTapPoint(tat_taps, num_neurons)
                 neurons = dest_node[1].hardware_resource
 
                 source.connect(tap)
@@ -230,12 +250,8 @@ class GraphHWMapper(object):
                 matrix_dims = 2
                 adj_node_dims = self.ps_obj.get_num_dimensions()
 
-                tap = TATTapPoint(
-                    # TODO: This should not be random! 
-                    # Put in the H-Tree algorithm here!
-                    np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
-                    np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
-                    num_neurons)
+                tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
+                tap = TATTapPoint(tat_taps, num_neurons)
                 neurons = dest_node[1].hardware_resource
 
                 am_bucket.connect(tap)
@@ -280,12 +296,8 @@ class GraphHWMapper(object):
                     matrix_dims = 2
                     adj_node_dims = self.ps_obj.get_num_dimensions()
 
-                    tap = TATTapPoint(
-                        # TODO: This should not be random! 
-                        # Put in the H-Tree algorithm here!
-                        np.random.randint(num_neurons, size=(matrix_dims, adj_node_dims)),
-                        np.random.randint(2, size=(matrix_dims, adj_node_dims))*2 - 1,
-                        num_neurons)
+                    tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
+                    tap = TATTapPoint(tat_taps, num_neurons)
                     neurons = dest_node[1].hardware_resource
 
                     tat_fanout.connect(tap)
@@ -397,8 +409,12 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
         print("finished assign")
 
     if verbose:
-        print("results")
-        print(str(core))
+        fname = "mapped_core.txt"
+        np.set_printoptions(threshold=np.nan)
+        print("mapping results written to", fname)
+        f = open(fname, "w")
+        f.write(str(core))
+        f.close()
 
 def reassign_resources_to_core(hardware_resources, core, verbose=False):
     """given a set of resources that has already been mapped,

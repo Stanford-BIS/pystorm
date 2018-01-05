@@ -20,12 +20,11 @@ class BDModelDriver : public Driver {
  public: 
   BDModelDriver() : Driver() {
 
-    model_ = new bdmodel::BDModel(bd_pars_, driver_pars_);
+    model_ = new bdmodel::BDModel(bd_pars_);
 
     delete comm_;
     comm_ = new comm::CommBDModel( // overwrite comm_ assignment from base constructor
         model_,
-        driver_pars_,
         dec_buf_in_,
         enc_buf_out_);
   }

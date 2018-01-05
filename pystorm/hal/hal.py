@@ -2,6 +2,7 @@
 import numpy as np
 from pystorm.hal.neuromorph import map_network, remap_resources
 from pystorm.PyDriver import bddriver as bd
+import time
 
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -11,6 +12,7 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 # notes that affect nengo BE:
 # send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
 # arguments for remap_core/implement_core have changed (use the self.last_mapped objects now)
+# get_outputs output order changed
 
 CORE_ID = 0 # hardcoded for now
 
@@ -42,6 +44,22 @@ class HAL(object):
         self.start_hardware()
 
         self.driver.InitBD()
+        self.driver.SetTimeUnitLen(10000)
+        self.driver.SetTimePerUpHB(100000)
+
+        #self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
+        #self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
+        #self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
+
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 256)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 272)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 256)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 22)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 250)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 1)
 
         self.last_mapped_resources = None
         self.last_mapped_core = None
@@ -69,6 +87,14 @@ class HAL(object):
     ##############################################################################
     #                           Data flow functions                              #
     ##############################################################################
+
+    def start_traffic(self):
+        self.driver.SetTagTrafficState(CORE_ID, True)
+        self.driver.SetSpikeTrafficState(CORE_ID, True)
+
+    def stop_traffic(self):
+        self.driver.SetTagTrafficState(CORE_ID, False)
+        self.driver.SetSpikeTrafficState(CORE_ID, False)
 
     def enable_output_recording(self):
         """Turns on recording from all outputs.
@@ -110,15 +136,13 @@ class HAL(object):
         # filters, reports the tallied tag counts since the last report, 
         # and resets each count to 0
 
-        words, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
+        filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
+        counts = filt_states # for now, working in count mode
         
-        filt_idxs = [bd.GetField(w, bd.SFWORD.FILTIDX) for w in words]
-        counts = [bd.GetField(w, bd.SFWORD.STATE) for w in words]
-
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
 
-        return np.array([outputs, dims, counts, times]).T
+        return np.array([times, outputs, dims, counts]).T
 
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
@@ -126,15 +150,18 @@ class HAL(object):
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
         Timestamps are in microseconds
         """
-        spk_ids, spk_times = self.driver.RecvSpikes(CORE_ID)
+        spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
         timestamps = []
         pool_ids = []
         nrn_idxs = []
         for spk_id, spk_time in zip(spk_ids, spk_times):
-            pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
-            pool_ids.append(pool_id)
-            nrn_idx.append(nrn_idx)
-            timestamps.append(spk_time)
+            if spk_id not in self.spk_to_pool_nrn_idx:
+                print("got out-of-bounds spike from neuron id", spk_id)
+            else:
+                pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
+                pool_ids.append(pool_id)
+                nrn_idxs.append(nrn_idx)
+                timestamps.append(spk_time)
         ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
         return ret_data
 
@@ -226,8 +253,11 @@ class HAL(object):
         """
         ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
+        self.last_mapped_resources = hardware_resources
+        self.last_mapped_core = core
+
         # implement core objects, calling driver
-        self.implement_core(core)
+        self.implement_core()
 
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
@@ -248,11 +278,24 @@ class HAL(object):
                     pool_nrn_idx = x + y*hwr_neurons.x
                     self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
 
-        self.last_mapped_resources = hardware_resources
-        self.last_mapped_core = core
+            #print("mapping table")
+            #for k in self.spk_to_pool_nrn_idx:
+            #    print(k, self.spk_to_pool_nrn_idx[k][1])
+
+    def dump_core(self):
+        print("PAT")
+        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
+        print("TAT0")
+        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
+        print("TAT1")
+        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
+        print("AM")
+        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
+        print("MM")
+        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
 
     def implement_core(self):
-        """Implements a supplied core to BD"""
+        """Implements a core that resulted from map_network. This is called by map and remap_weights"""
 
         core = self.last_mapped_core
 
@@ -265,11 +308,11 @@ class HAL(object):
         self.driver.SetMem(
             CORE_ID, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
         self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
-        self.driver.SetMem(
             CORE_ID, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
+        self.driver.SetMem(
+            CORE_ID, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
 
-        # neuron tile config SRAM: open diffusor cuts
+        # open diffusor around pools
 
         for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
             self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
@@ -303,8 +346,22 @@ class HAL(object):
                     self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
                     self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
 
+            # enable somas inside pool
+            for nrn_y_idx in range(8*y_min, 8*y_max):
+                for nrn_x_idx in range(8*x_min, 8*x_max):
+                    #print("enabling soma", nrn_y_idx, nrn_x_idx)
+                    self.driver.EnableSomaXY(CORE_ID, nrn_x_idx, nrn_y_idx);
+
+        # enable used synapses
+        for tx, ty in core.neuron_array.syns_used:
+            print("enabling synapse", tx, ty)
+            self.driver.EnableSynapseXY(CORE_ID, tx, ty)
+
         # set spike filter decay constant 
         # the following sets the filters to "count mode"
         # exponential decay is also possible
         self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
+
+        # voodoo sleep, (wait for everything to go in) 
+        time.sleep(2)
