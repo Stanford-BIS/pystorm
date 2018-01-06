@@ -1,4 +1,5 @@
 #include "Decoder.h"
+#include "common/DriverPars.h"
 
 #include <chrono>
 #include <cstdint>
@@ -144,7 +145,7 @@ TEST(DecoderTest, MainDecoderTest) {
     bufs_out.insert({it, new MutexBuffer<DecOutput>()});
   }
   
-  unsigned int M = Decoder::READ_BLOCK_SIZE * 4; // must be a multiple of READ_BLOCK_SIZE
+  unsigned int M = driverpars::READ_BLOCK_SIZE * 4; // must be a multiple of READ_BLOCK_SIZE
   unsigned int N = 100;
 
   // this is super confusing, turn the map<vector<>> into a map<vector<vector<>>> for outputs

@@ -20,8 +20,6 @@ class Decoder : public Xcoder {
 
  public:
 
-  constexpr static unsigned int READ_SIZE = 512 * 16;
-  constexpr static unsigned int READ_BLOCK_SIZE = 1024; // XXX shouldn't hardcode this, should get from Comm
   constexpr static unsigned int BYTES_PER_WORD = 4;
   constexpr static unsigned int bytesPerInput = BYTES_PER_WORD;
 
@@ -52,6 +50,8 @@ class Decoder : public Xcoder {
   BDTime curr_HB_recvd_;
   BDTime last_HB_recvd_;
 
+  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> decoded_outputs_; 
+
   // because of the "push" output problem, we have to shift how we label times by
   // two words: the time that event i actually happened is the time for event i - 2
   BDTime word_i_min_2_time_ = 0;
@@ -59,7 +59,7 @@ class Decoder : public Xcoder {
 
 
   void RunOnce();
-  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decode(std::unique_ptr<std::vector<DecInput>> input);
+  void Decode(std::unique_ptr<std::vector<DecInput>> input);
 
 };
 

@@ -15,7 +15,6 @@ set(SRC_FILES
     ${SRC_FILES} 
     ${CMAKE_CURRENT_SOURCE_DIR}/BDPars.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/BDState.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/DriverPars.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Xcoder.cpp
     PARENT_SCOPE
 )

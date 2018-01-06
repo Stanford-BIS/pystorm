@@ -23,7 +23,7 @@ namespace bddriver {
 /// an interface that the driver can use to block until it is safe.
 class BDState {
  public:
-  BDState(const bdpars::BDPars *bd_pars, const driverpars::DriverPars *driver_pars);
+  BDState(const bdpars::BDPars *bd_pars);
   ~BDState();
 
   void SetMem(bdpars::BDMemId mem_id, unsigned int start_addr, const std::vector<BDWord> &data);
@@ -75,8 +75,6 @@ class BDState {
   const bdpars::BDPars *bd_pars_;
 
  private:
-  // const pointer to driver's pars objects
-  const driverpars::DriverPars *driver_pars_;
 
   // register contents
   std::unordered_map<bdpars::BDHornEP, BDWord, EnumClassHash> reg_;

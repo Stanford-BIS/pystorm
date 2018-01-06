@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
 from pystorm import hal
+from copy import copy
+
+HOME_ROUTE = 255
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -179,7 +182,8 @@ class Neurons(Resource):
         # y and x locations in units of minimum pool x and y dimensions
         self.py_loc = None
         self.px_loc = None
-        self.start_nrn_idx = None
+        self.y_loc = None
+        self.x_loc = None
 
         # posttranslate
         self.PAT_contents = None
@@ -210,35 +214,38 @@ class Neurons(Resource):
     def allocate(self, core):
         """neuron array allocation"""
         self.py_loc, self.px_loc = core.neuron_array.allocate(self)
-        self.start_nrn_idx = (
-            (self.py_loc * core.neuron_array.pools_x + self.px_loc) * core.NeuronArray_pool_size)
+        self.y_loc = self.py_loc * core.NeuronArray_pool_size_y
+        self.x_loc = self.px_loc * core.NeuronArray_pool_size_x
 
     def posttranslate(self, core):
         """PAT assignment setup"""
         # assert no more than one connection (only one decoder allowed)
-        assert(len(self.conns_out) == 1)
+        if len(self.conns_out) == 1:
+            weights = self.conns_out[0].tgt
+            buckets = self.conns_out[0].tgt.conns_out[0].tgt
 
-        weights = self.conns_out[0].tgt
-        buckets = self.conns_out[0].tgt.conns_out[0].tgt
+            self.PAT_contents = np.empty((self.py, self.px), dtype=object)
 
-        self.PAT_contents = np.empty((self.py, self.px), dtype=object)
+            for py_idx in range(self.py):
+                for px_idx in range(self.px):
+                    # first nrn idx in block
+                    nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
+                    MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
 
-        for py_idx in range(self.py):
-            for px_idx in range(self.px):
-                # first nrn idx in block
-                nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
-                MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
+                    AMA = buckets.start_addr
 
-                AMA = buckets.start_addr
-
-                self.PAT_contents[py_idx, px_idx] = bddriver.PackWord([
-                    (bddriver.PATWord.AM_ADDRESS, AMA),
-                    (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
-                    (bddriver.PATWord.MM_ADDRESS_HI, MMAY)])
+                    self.PAT_contents[py_idx, px_idx] = bddriver.PackWord([
+                        (bddriver.PATWord.AM_ADDRESS, AMA),
+                        (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
+                        (bddriver.PATWord.MM_ADDRESS_HI, MMAY)])
+        elif len(self.conns_out) > 1:
+            print("ERROR: pool had", len(self.conns_out), "output connections")
+            assert(False and "Neurons can have only one output connection")
 
     def assign(self, core):
         """PAT assignment"""
-        core.PAT.assign(self.PAT_contents, (self.py_loc, self.px_loc))
+        if len(self.conns_out) == 1:
+            core.PAT.assign(self.PAT_contents, (self.py_loc, self.px_loc))
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -292,6 +299,7 @@ class MMWeights(Resource):
         W = (user_W.T * thr_vals).T
         W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
 
+        print("thrs:", thr_vals, "W:", W)
         W = dec2onesc(W, core.max_weight_value)
 
         return W
@@ -523,8 +531,8 @@ class AMBuckets(Resource):
         if len(self.conns_out) > 0:
             if isinstance(self.conns_out[0].tgt, Sink):
                 # if we target a sink, we're targetting a SF on the FPGA
-                # tag is the filter idx, give it a global route of 1
-                NAs = self.conns_out[0].tgt.filter_idxs + 2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG)
+                # tag is the filter idx, give it a global route of HOME_ROUTE
+                NAs = self.conns_out[0].tgt.filter_idxs + 2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG) * HOME_ROUTE
             else:
                 # otherwise, we're going to the TAT
                 NAs = self.conns_out[0].tgt.in_tags
@@ -607,25 +615,28 @@ class TATAccumulator(Resource):
 class TATTapPoint(Resource):
     """XXX not supporting fanout to multiple pools (and therefore no output slicing).
     Using TATFanout for that, also apparently not supporting non-square taps (different K)
+    tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
+    Each tuple (neuron idx, sign)
     """
-    def __init__(self, taps, signs, N):
+    def __init__(self, taps_and_signs, N):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         self.N = N
-        self.D = taps.shape[1]
-        self.K = taps.shape[0]
+        self.D = len(taps_and_signs)
+        self.Ks = [len(el) for el in taps_and_signs] # num taps for each dim
         
-        self.taps = taps
-        self.signs = signs
+        self.taps_and_signs = taps_and_signs
 
-        assert self.K % 2 == 0 and "need even number of tap points"
-        assert self.taps.all() < self.N
+        for K in self.Ks:
+            assert K % 2 == 0 and "need even number of tap points"
+        for dim_taps in self.taps_and_signs:
+            for tap, sign in dim_taps:
+                assert tap < self.N and tap >= 0 and "tap point indexes neuron outside of pool size"
+                assert sign in [-1, 1] and "sign must be -1 or 1"
 
         # pretranslate
         self.nrn_per_syn = None
-        self.size = None
-        self.start_offsets = None
 
         # allocate
         self.start_addr = None
@@ -643,53 +654,87 @@ class TATTapPoint(Resource):
     def dimensions_in(self):
         return self.D
 
-    def tap_map(self, tap):
+    @property
+    def size(self):
+        return sum(self.Ks) // 2 # two taps per entry
+
+    @property
+    def start_offsets(self):
+        zero_prepend = [0] + [K // 2 for K in self.Ks]
+        return np.cumsum(zero_prepend[:-1])
+
+    def tap_map(self, tap_in_nrn_space, tgt_pool_width):
         """allow user to specify tap points at neuron granularity
         but actually there are fewer synapses than neurons
         """
-        yx_tap = tap // self.nrn_per_syn
-        aer_tap = hal.HAL.driver.GetSynAERAddr(yx_tap)
-        return aer_tap
+        tap_y = (tap_in_nrn_space // tgt_pool_width) // self.neurons_per_syn_y
+        tap_x = (tap_in_nrn_space %  tgt_pool_width) // self.neurons_per_syn_x
+        return tap_x, tap_y
 
     def pretranslate(self, core):
-        self.nrn_per_syn = core.NeuronArray_neurons_per_tap
-        self.size = self.D * self.K // 2
-        self.start_offsets = np.array(
-            range(self.D)) * self.K // 2 # D acc sets, each with len(conns_out) fanout
+        self.array_width = core.NeuronArray_width
+        self.neurons_per_syn_x = int(np.sqrt(core.NeuronArray_neurons_per_tap))
+        self.neurons_per_syn_y = self.neurons_per_syn_x
 
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
-        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
+        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size # in TAT1
 
     def posttranslate(self, core):
 
         def bin_sign(sign):
-            return (sign + 1) // 2
+            return (int(sign) + 1) // 2
 
-        self.mapped_taps = np.zeros_like(self.taps)
-        for d in range(self.D):
-            for k in range(0, self.K, 2):
-                self.mapped_taps[k, d] = self.tap_map(self.conns_out[0].tgt.start_nrn_idx + self.taps[k,d])
+        tgt_pool_width = self.conns_out[0].tgt.x
+        syn_start_y = self.conns_out[0].tgt.y_loc // self.neurons_per_syn_y
+        syn_start_x = self.conns_out[0].tgt.x_loc // self.neurons_per_syn_x
 
-        self.contents = []
-        for d in range(self.D):
-            for k in range(0, self.K, 2):
-                stop = 1*(k == self.K - 2)
-                tap0 = self.mapped_taps[k, d]
-                s0 = bin_sign(self.signs[k, d])
-                tap1 = self.mapped_taps[k+1, d]
-                s1 = bin_sign(self.signs[k+1, d])
+        self.mapped_taps_unshifted = [[(*self.tap_map(t, tgt_pool_width), s) for t, s in dim_taps] for dim_taps in self.taps_and_signs]
+        self.mapped_taps = [[(x + syn_start_x, y + syn_start_y, s) for x, y, s in dim_taps] for dim_taps in self.mapped_taps_unshifted]
 
-                self.contents += [bddriver.PackWord([
-                    (bddriver.TATSpikeWord.STOP, stop),
-                    (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
-                    (bddriver.TATSpikeWord.SYNAPSE_SIGN_0, s0),
-                    (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
-                    (bddriver.TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
+        self.tap_ys = []
+        self.tap_xs = []
+        self.signs = []
+        self.stops = []
+        for dim_taps in self.mapped_taps:
+            for t_idx, (syn_x, syn_y, s) in enumerate(dim_taps):
+                self.tap_ys.append(syn_y)
+                self.tap_xs.append(syn_x)
+                self.signs.append(bin_sign(s))
+                #print("HWR: x", syn_x, "y", syn_y)
+                if t_idx % 2 == 1:
+                    stop = 1*(t_idx == self.Ks[-1] - 1)
+                    self.stops.append(stop)
+        self.contents = hal.HAL.driver.PackTATSpikeWords(self.tap_xs, self.tap_ys, self.signs, self.stops)
+
+        #self.contents = []
+        #for dim_taps in self.mapped_taps:
+        #    for t_idx, (t, s) in enumerate(dim_taps):
+        #        self.contents.append((
+        #        last_t = t
+        #        last_s = s
+        #        if t_idx % 2 == 1:
+        #            stop = 1*(t_idx == self.Ks[-1] - 1)
+        #            tap0 = last_t
+        #            s0   = bin_sign(last_s)
+        #            tap1 = t
+        #            s1   = bin_sign(s)
+
+        #            self.contents += [bddriver.PackWord([
+        #                (bddriver.TATSpikeWord.STOP, stop),
+        #                (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
+        #                (bddriver.TATSpikeWord.SYNAPSE_SIGN_0, s0),
+        #                (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
+        #                (bddriver.TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
+        
+        assert(len(self.contents) == self.size)
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
         core.TAT1.assign(self.contents, self.start_addr)
+
+        for tx, ty in zip(self.tap_xs, self.tap_ys):
+            core.neuron_array.syns_used.append((tx, ty))
 
 class TATFanout(Resource):
     """Represents a Tag Action Table entry for fanning out tags
@@ -701,6 +746,8 @@ class TATFanout(Resource):
                          [TATAccumulator, TATTapPoint, TATFanout, Sink],
                          sliceable_in=True, sliceable_out=False)
         self.D = D
+        self.clobber_pre_len = 2
+        self.clobber_post_len = 1
 
         # pretranslate
         self.size = None
@@ -713,6 +760,7 @@ class TATFanout(Resource):
         # posttranslate
         self.contents = None
 
+
     @property
     def dimensions_in(self):
         return self.D
@@ -722,7 +770,7 @@ class TATFanout(Resource):
         return self.D
 
     # note, there's a hack in here to work around the "repeated/clobbered" outputs problem
-    # we need to surround all TATFanouts with one dummy fanout before the actual fanouts, 
+    # we need to surround all TATFanouts with two dummy fanouts before the actual fanouts, 
     # and one dummy fanout after. These will clobber/be clobbered instead of the actual
     # messages
 
@@ -735,9 +783,9 @@ class TATFanout(Resource):
 
     @property
     def fanout_entries(self):
-        if has_Sink_output:
-            return len(self.conns_out) + 2
-        else
+        if self.has_Sink_output:
+            return len(self.conns_out) + self.clobber_pre_len + self.clobber_post_len
+        else:
             return len(self.conns_out)
 
     # highest tag value is the clobber tag
@@ -751,30 +799,46 @@ class TATFanout(Resource):
 
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
-        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size // 2 # in TAT1
-        assert(self.start_addr + self.size < self.clobber_tag 
-                and "collided with clobber tag, out of room")
+        self.in_tags = self.start_addr + self.start_offsets + core.TAT_size
+        #print("IN TAGS", self.in_tags)
 
     def posttranslate(self, core):
 
-        max_route = 2**bddriver.GetWidth(bddriver.TATTagWord.GLOBAL_ROUTE)
-        clobber_entry = [bddriver.PackWord([
+        clobber_base = bddriver.PackWord([
             (bddriver.TATTagWord.STOP, 0),
-            (bddriver.TATTagWord.TAG, self.clobber_tag),
-            (bddriver.TATTagWord.GLOBAL_ROUTE, max_route)])]
-        
+            (bddriver.TATTagWord.TAG, self.clobber_tag(core)),
+            (bddriver.TATTagWord.GLOBAL_ROUTE, HOME_ROUTE)])
+        clobber_stop = bddriver.PackWord([
+            (bddriver.TATTagWord.STOP, 1),
+            (bddriver.TATTagWord.TAG, self.clobber_tag(core)),
+            (bddriver.TATTagWord.GLOBAL_ROUTE, HOME_ROUTE)])
+
+        clobber_pre = self.clobber_pre_len * [clobber_base]
+        if (self.clobber_post_len > 1):
+            clobber_post = (self.clobber_post_len - 1) * [clobber_base] + [clobber_stop]
+        else:
+            clobber_post = [clobber_stop]
+
         # prepend clobber entry
         if self.has_Sink_output:
-            self.contents = [clober_entry]
+            self.contents = clobber_pre
         else:
             self.contents = []
 
         for d in range(self.D):
             for t in range(len(self.conns_out)):
-                stop = 1 * (t == len(self.conns_out) - 1)
+                if self.has_Sink_output:
+                    stop = 0 # stop provided by clobber
+                else: 
+                    stop = 1 * (t == len(self.conns_out) - 1)
+
                 tgt = self.conns_out[t].tgt
                 tag = tgt.in_tags[d]
-                global_route = 0
+
+                if isinstance(self.conns_out[t].tgt, Sink):
+                    global_route = HOME_ROUTE
+                else:
+                    global_route = 0
 
                 self.contents += [bddriver.PackWord([
                     (bddriver.TATTagWord.STOP, stop),
@@ -783,7 +847,7 @@ class TATFanout(Resource):
 
         # postpend clobber entry
         if self.has_Sink_output:
-            self.contents += [clobber_entry]
+            self.contents += clobber_post
 
         self.contents = np.array(self.contents, dtype=object)
 
@@ -801,6 +865,7 @@ class Sink(Resource):
 
         # allocate
         self.filter_idxs = None
+        self.in_tags = None
 
     @property
     def dimensions_in(self):
@@ -814,6 +879,7 @@ class Sink(Resource):
 
     def allocate(self, core):
         self.filter_idxs = core.FPGASpikeFilters.allocate(self.D)
+        self.in_tags = self.filter_idxs # other Resources expect this name, but filter_idxs is more accurate
 
 class Source(Resource):
     """Represents an FPGA SpikeGenerator (tag generator)"""

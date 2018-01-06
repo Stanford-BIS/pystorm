@@ -5,16 +5,16 @@
 #include <array>
 
 #include "common/BDPars.h"
+#include "common/DriverPars.h"
 
 namespace pystorm {
 namespace bddriver {
 namespace bdmodel {
 
-BDModel::BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* driver_pars) {
-  driver_pars_ = driver_pars;
+BDModel::BDModel(const bdpars::BDPars* bd_pars) {
   bd_pars_     = bd_pars;
 
-  state_ = new BDState(bd_pars_, driver_pars_);
+  state_ = new BDState(bd_pars_);
 
   for(auto& it : bd_pars_->GetUpEPs()) {
     to_send_.insert({it, {}});
@@ -90,7 +90,7 @@ std::vector<uint8_t> BDModel::GenerateOutputs() {
     }
   }
 
-  const unsigned int kWordsPerBlock = Decoder::READ_BLOCK_SIZE/Decoder::BYTES_PER_WORD;
+  const unsigned int kWordsPerBlock = driverpars::READ_BLOCK_SIZE/Decoder::BYTES_PER_WORD;
   const unsigned int words_in_block = FPGA_words.size() % kWordsPerBlock;
   const unsigned int to_complete_block = (kWordsPerBlock - words_in_block) % kWordsPerBlock;
   //cout << "size " << FPGA_words.size() << endl;

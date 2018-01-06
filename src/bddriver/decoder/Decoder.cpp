@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "common/DriverTypes.h"
+#include "common/DriverPars.h"
 #include "common/BDPars.h"
 #include "common/BDWord.h"
 #include "common/MutexBuffer.h"
@@ -23,15 +24,15 @@ void Decoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
 
-  if (in_buf_->TotalSize() > READ_SIZE*4) { // four buffers behind XXX shouldn't hardcode
-    //cout << "WARNING: Decoder running " << in_buf_->TotalSize() / READ_SIZE << " comm reads behind." << endl;
+  if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
+    cout << "WARNING: Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
   }
 
   if (popped_vect->size() > 0) {
-    std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> to_push_vects = Decode(std::move(popped_vect));
+    Decode(std::move(popped_vect));
 
     // push to each output vector
-    for (auto& it : to_push_vects) {
+    for (auto& it : decoded_outputs_) {
       uint8_t ep_code = it.first;
       std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
       out_bufs_.at(ep_code)->Push(std::move(vvect));
@@ -40,26 +41,30 @@ void Decoder::RunOnce() {
   }
 }
 
-std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
+void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
   if (input->size() % BYTES_PER_WORD != 0) {
     cout << "ERROR: Decoder::Decode: received non-multiple of 4 number of inputs. Stopping." << endl;
     Stop();
   }
 
-  unsigned int num_blocks = input->size() % READ_BLOCK_SIZE == 0 ? input->size() / READ_BLOCK_SIZE : input->size() / READ_BLOCK_SIZE + 1;
-  assert(READ_BLOCK_SIZE % BYTES_PER_WORD == 0);
-  assert(input->size() % READ_BLOCK_SIZE == 0);
+  unsigned int num_blocks = input->size() % driverpars::READ_BLOCK_SIZE == 0 ? input->size() / driverpars::READ_BLOCK_SIZE : input->size() / driverpars::READ_BLOCK_SIZE + 1;
+  assert(driverpars::READ_BLOCK_SIZE % BYTES_PER_WORD == 0);
+  assert(input->size() % driverpars::READ_BLOCK_SIZE == 0);
 
   bool had_nop = false; // we want to see some nops before the end, otherwise the USB may have held up BD
-  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> outputs; // XXX I don't like that we create this every decode
+
+  // clear decoded_outputs_
+  decoded_outputs_.clear();
 
   DecInput * raw_data = input->data();
 
   unsigned int words_processed = 0;
   for (unsigned int block_idx = 0; block_idx < num_blocks; block_idx++) {
-    unsigned int start = block_idx * READ_BLOCK_SIZE;
-    unsigned int end   = (block_idx + 1) * READ_BLOCK_SIZE;
+    unsigned int start = block_idx * driverpars::READ_BLOCK_SIZE;
+    unsigned int end   = (block_idx + 1) * driverpars::READ_BLOCK_SIZE;
+
+    had_nop = false; 
 
     for (unsigned int word_idx = start; word_idx < end; word_idx += BYTES_PER_WORD) { // iterating by 4!!
 
@@ -104,7 +109,7 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
       // break on nop
       } else if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)) {
         had_nop = true;
-        //break; // all further words in the block are guaranteed to be nops!
+        break; // all further words in the block are guaranteed to be nops!
       
       // otherwise, forward to Driver
       } else {
@@ -126,10 +131,10 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
         //word_i_min_2_time_ = word_i_min_1_time_;
         //word_i_min_1_time_ = curr_HB_recvd_;
 
-        if (outputs.count(ep_code) == 0) {
-          outputs[ep_code] = std::make_unique<std::vector<DecOutput>>();
+        if (decoded_outputs_.count(ep_code) == 0) {
+          decoded_outputs_[ep_code] = std::make_unique<std::vector<DecOutput>>();
         }
-        outputs.at(ep_code)->push_back(to_push);
+        decoded_outputs_.at(ep_code)->push_back(to_push);
 
         words_processed++;
       }
@@ -141,8 +146,6 @@ std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> Decoder::De
   if (!had_nop) {
     cout << "WARNING: Decoder::Decode: didn't receive any nops in a read, FPGA possibly stalled BD" << endl;
   }
-
-  return outputs;
 }
 
 }  // bddriver
