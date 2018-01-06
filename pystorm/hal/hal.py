@@ -10,9 +10,13 @@ DIFFUSOR_WEST_TOP = bd.bdpars.DiffusorCutLocationId.WEST_TOP
 DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 # notes that affect nengo BE:
-# send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
-# arguments for remap_core/implement_core have changed (use the self.last_mapped objects now)
-# get_outputs output order changed
+# - send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
+# - arguments for remap_core/implement_core have changed (use the self.last_mapped objects now)
+# - graph.Pool now takes an argument with its encoders. Its input dimensionality is now self.dimensions.
+#   therefore making a connection to a pool will have no weight: the only kind of graph 
+#   connection that should have weights is a connection going into a Bucket.
+#   not sure when I changed this/if Terry has incorporated changes. I had forgotten my
+#   original intent.
 
 CORE_ID = 0 # hardcoded for now
 
@@ -269,7 +273,7 @@ class HAL(object):
             for dim_idx, filt_idx in enumerate(hwr_sink.filter_idxs):
                 self.spike_filter_idx_to_output[filt_idx] = (ng_out, dim_idx)
         for ng_pool in network.get_pools():
-            hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()
+            hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()[1] # two resources for pool, [TATTapPoint and Neurons]
             xmin = hwr_neurons.px_loc * core.NeuronArray_pool_size_x
             ymin = hwr_neurons.py_loc * core.NeuronArray_pool_size_y
             for x in range(hwr_neurons.x):

@@ -11,12 +11,11 @@ np.random.seed(0)
 Din = 1
 Dout = 2
 K = 8
-N = 64
+x = 8
+y = 8
+xy = (x, y)
+N = x * y
 
-i1 = net.create_input("i1", Din)
-p1 = net.create_pool("p1", N, Din)
-b1 = net.create_bucket("b1", Dout)
-o1 = net.create_output("o1", Dout)
 
 # tap matrix is NxD (like a normal weight matrix)
 # entries are in [-1, 0, 1]
@@ -29,18 +28,23 @@ for d in range(Din):
 
         #sign = np.random.randint(2) * 2 - 1 # fully random taps
 
-        y = tgt // p1.x
-        x = tgt %  p1.x
+        y = tgt // xy[0]
+        x = tgt %  xy[0]
         print("tap at y:", y // 2, ", x:", x // 2, " = AER:", HAL.driver.GetSynAERAddr(x // 2, y // 2))
-        sign = int(2 * (x > p1.x // 2) - 1) # positive signs on one side
+        sign = int(2 * (x > xy[0] // 2) - 1) # positive signs on one side
 
         tap_matrix[tgt, d] = sign
 
 # decoders are initially zero, we remap them later
 decoders = np.zeros((Dout, N))
-decoders = np.ones((Dout, N)) * .2
+#decoders = np.ones((Dout, N)) * .2
 
-net.create_connection("c_i1_to_p1", i1, p1, tap_matrix)
+i1 = net.create_input("i1", Din)
+p1 = net.create_pool("p1", tap_matrix)
+b1 = net.create_bucket("b1", Dout)
+o1 = net.create_output("o1", Dout)
+
+net.create_connection("c_i1_to_p1", i1, p1, None)
 net.create_connection("c_p1_to_b1", p1, b1, decoders)
 net.create_connection("c_b1_to_o1", b1, o1, None)
 

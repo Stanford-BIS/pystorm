@@ -46,9 +46,29 @@ class Network(object):
         assert x*y == n_neurons
         return x, y
 
-    def create_pool(self, label, n_neurons, dimensions):
-        x, y = self._flat_to_rectangle(n_neurons)
-        p = pool.Pool(label, n_neurons, dimensions, x, y)
+    def create_pool(self, label, encoders, xy=None):
+        """Adds a Pool object to the network.
+        
+        Parameters
+        ----------
+        label: string
+            name of pool
+        encoders:
+            encoder matrix (pre-diffuser), size neurons-by-dimensions.
+            Elements must be in {-1, 0, 1}.
+            Implicitly describes pool dimensionality and number of neurons.
+        xy: tuple: (int, int)
+            user-specified x, y shape. x * y must match encoder shape
+        """
+        n_neurons, dimensions = encoders.shape
+
+        # if xy
+        if xy is None:
+            x, y = self._flat_to_rectangle(n_neurons)
+        else:
+            x, y = xy
+
+        p = pool.Pool(label, encoders, x, y)
         self.pools.append(p)
         return p
 
@@ -58,6 +78,11 @@ class Network(object):
         return i
 
     def create_connection(self, label, src, dest, weights):
+
+        if weights is not None and not isinstance(dest, bucket.Bucket):
+            print("connection weights are only used when the destination node is a Bucket")
+            raise NotImplementedError
+
         c = connection.Connection(label, src, dest, weights)
         self.connections.append(c)
         return c

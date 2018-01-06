@@ -613,20 +613,16 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    """XXX not supporting fanout to multiple pools (and therefore no output slicing).
-    Using TATFanout for that, also apparently not supporting non-square taps (different K)
-    tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-    Each tuple (neuron idx, sign)
-    """
-    def __init__(self, taps_and_signs, N):
+    def __init__(self, encoders):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
-        self.N = N
-        self.D = len(taps_and_signs)
-        self.Ks = [len(el) for el in taps_and_signs] # num taps for each dim
+        self.N, self.D = encoders.shape
         
-        self.taps_and_signs = taps_and_signs
+        # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
+        self.taps_and_signs = self.encoders_to_taps(encoders)
+
+        self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 
         for K in self.Ks:
             assert K % 2 == 0 and "need even number of tap points"
@@ -645,6 +641,29 @@ class TATTapPoint(Resource):
         # posttranslate
         self.mapped_taps = None
         self.contents = None
+
+    def encoders_to_taps(self, M):
+        """encoder entries should be in {-1, 0, 1}
+        converts this representation to the sparse representation used by TATTapPoint
+        """
+        nrns = M.shape[0]
+        dims = M.shape[1]
+
+        taps_and_signs = [[] for d in range(dims)]
+        for d in range(dims):
+            for n in range(nrns):
+                entry = M[n, d]
+                assert(entry in [-1, 0, 1] and "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
+                if entry != 0:
+                    t = n
+                    s = int(entry)
+                    taps_and_signs[d].append((t, s))
+
+        #print("matrix:")
+        #print(M)
+        #print("taps and signs:")
+        #print(taps_and_signs)
+        return taps_and_signs
 
     @property
     def dimensions_out(self):
