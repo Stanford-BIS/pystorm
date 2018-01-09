@@ -29,7 +29,7 @@ def PrintBytearrayAs32b(buf_out):
       sys.stdout.write('\n')
   print("plus " + str(nop_count) + " NOPs")
 
-bitfile = "/home/braindrop/pystorm/FPGA/quartus/output_files/BZ_host_core.rbf"
+bitfile = "/home/zach/pystorm/FPGA/quartus/output_files/BZ_host_core.rbf"
 block_size = 16
 # for padding downstream block transmissions
 nop_down = "0x80000000" # that's 1 followed by a 31 0s
@@ -42,7 +42,7 @@ ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
 
 
-codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000111"]
+codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000001"]
 
 
 outputs = []

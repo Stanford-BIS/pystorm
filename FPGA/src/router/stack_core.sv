@@ -109,18 +109,18 @@ wire req_0, req_1;
 BrainDrizzle router_node (
  .clk				(router_clk),
  .reset			(reset),
- .top_in_clk	(top_out_clk),
+ .top_in_clk	(top_in_clk),
  .bot_in_clk	(bot_in_clk),
  .BD_in_clk		(router_clk),
- .top_valid_in	(top_valid_out),//CHANGE BACK
+ .top_valid_in	(top_valid_in),
  .bot_valid_in	(bot_valid_in),
- .BD_valid_in	(0),//CHANGE BACK
- .top_ready_in	(top_ready_out),// CHANGE THIS BACK TO top_ready_in),
+ .BD_valid_in	(BD_valid_in),//CHANGE BACK
+ .top_ready_in	(top_ready_in),// CHANGE THIS BACK TO top_ready_in),
  .BD_ready_in	(BD_ready_in),
  .bot_ready_in	(bot_ready_in),
- .top_in			(top_out_router),//CHANGE BACK
+ .top_in			(top_in),//CHANGE BACK
  .bot_in			(bot_in),
- .BD_in			(0),//CHANGE BACK
+ .BD_in			(BD_in),//CHANGE BACK
  .top_out		(top_out_router),
  .bot_out		(bot_out),
  .BD_out			(BD_out),
