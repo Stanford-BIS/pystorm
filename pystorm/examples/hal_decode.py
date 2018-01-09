@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from pystorm.hal import HAL
 import time
 
@@ -11,29 +12,40 @@ np.random.seed(0)
 Din = 1
 Dout = 2
 K = 8
-x = 8
-y = 8
-xy = (x, y)
-N = x * y
+width = 8
+height = 8
+width_height = (width, height)
+N = width * height
 
 
 # tap matrix is NxD (like a normal weight matrix)
 # entries are in [-1, 0, 1]
 tap_matrix = np.zeros((N, Din))
-for d in range(Din):
-    for k in range(K):
-        tgt = np.random.randint(N)
-        while tap_matrix[tgt, d] in [-1, 1]:
-            tgt = np.random.randint(N) # retry if already assigned
-
-        #sign = np.random.randint(2) * 2 - 1 # fully random taps
-
-        y = tgt // xy[0]
-        x = tgt %  xy[0]
-        print("tap at y:", y // 2, ", x:", x // 2, " = AER:", HAL.driver.GetSynAERAddr(x // 2, y // 2))
-        sign = int(2 * (x > xy[0] // 2) - 1) # positive signs on one side
-
-        tap_matrix[tgt, d] = sign
+#for d in range(Din):
+#    for k in range(K):
+#        tgt = np.random.randint(N)
+#        while tap_matrix[tgt, d] in [-1, 1]:
+#            tgt = np.random.randint(N) # retry if already assigned
+#
+#        #sign = np.random.randint(2) * 2 - 1 # fully random taps
+#
+#        y = tgt // width_height[0]
+#        x = tgt %  width_height[0]
+#        print("tap at y:", y // 2, ", x:", x // 2, " = AER:", HAL.driver.GetSynAERAddr(x // 2, y // 2))
+#        sign = int(2 * (x > width_height[0] // 2) - 1) # positive signs on one side
+#
+#        tap_matrix[tgt, d] = sign
+if Din == 1:
+    # one synapse per 4 neurons
+    for x in range(0, width, 2):
+        for y in range(0, height, 2):
+            n = y * width + x
+            if x < width // 2:
+                tap_matrix[n, 0] = 1
+            else:
+                tap_matrix[n, 0] = -1
+else:
+    assert(False)
 
 # decoders are initially zero, we remap them later
 #decoders = np.zeros((Dout, N))
@@ -52,7 +64,6 @@ net.create_connection("c_b1_to_o1", b1, o1, None)
 
 # map network
 HAL.map(net)
-HAL.driver.SetTimePerUpHB(100000)
 
 from pystorm.PyDriver import bddriver as bd
 
@@ -144,8 +155,13 @@ spikes = HAL.get_spikes()
 filtered_times = filter_spikes(spikes)
 As = do_binning(filtered_times, bin_boundaries)
 if p1 in As:
-    print(As[p1])
+    A = As[p1]
     print('total count in bounds, in exp duration:', np.sum(As[p1]))
+
+    plt.figure()
+    plt.plot(A.T)
+    plt.savefig("hal_tuning_curves.pdf")
+
 print("got", len(spikes), "spikes")
 
 #tags, times = HAL.driver.RecvTags(0)
@@ -178,10 +194,4 @@ binned_outputs = do_binning(filtered_outputs, bin_boundaries)
 print("got", len(outputs), "from filters")
 print(binned_outputs[o1])
 print(np.sum(binned_outputs[o1]))
-
-print("before")
-print(HAL.driver.GetOutputQueueCounts())
-time.sleep(1)
-print("after")
-print(HAL.driver.GetOutputQueueCounts())
 
