@@ -36,8 +36,8 @@ for d in range(Din):
         tap_matrix[tgt, d] = sign
 
 # decoders are initially zero, we remap them later
-decoders = np.zeros((Dout, N))
-#decoders = np.ones((Dout, N)) * .2
+#decoders = np.zeros((Dout, N))
+decoders = np.ones((Dout, N)) * .2
 
 i1 = net.create_input("i1", Din)
 p1 = net.create_pool("p1", tap_matrix)
@@ -52,6 +52,7 @@ net.create_connection("c_b1_to_o1", b1, o1, None)
 
 # map network
 HAL.map(net)
+HAL.driver.SetTimePerUpHB(100000)
 
 from pystorm.PyDriver import bddriver as bd
 
@@ -177,4 +178,10 @@ binned_outputs = do_binning(filtered_outputs, bin_boundaries)
 print("got", len(outputs), "from filters")
 print(binned_outputs[o1])
 print(np.sum(binned_outputs[o1]))
+
+print("before")
+print(HAL.driver.GetOutputQueueCounts())
+time.sleep(1)
+print("after")
+print(HAL.driver.GetOutputQueueCounts())
 

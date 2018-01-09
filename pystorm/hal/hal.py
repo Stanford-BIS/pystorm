@@ -48,8 +48,8 @@ class HAL(object):
         self.start_hardware()
 
         self.driver.InitBD()
-        self.driver.SetTimeUnitLen(10000)
-        self.driver.SetTimePerUpHB(100000)
+        self.driver.SetTimeUnitLen(10000) # 10 us downstream resolution 
+        self.driver.SetTimePerUpHB(1000000) # 1 ms upstream resolution/tag binning
 
         #self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
         #self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
