@@ -6,7 +6,7 @@ module SpikeFilterArray_tb;
 
 parameter Nfilts = 10;
 parameter Nstate = 27;
-parameter Nct = 10;
+parameter Nct = 9;
 
 SpikeFilterOutputChannel out();
 
@@ -71,7 +71,7 @@ initial begin
   @(posedge clk) 
   in.v <= 1;
   in.tag <= 1;
-  in.ct <= 1;
+  in.ct <= 511;
   @(posedge clk) 
   in.v <= 0;
   in.tag <= 'X;
@@ -101,7 +101,7 @@ initial begin
     @(posedge clk);
     in.v <= 1;
     in.tag <= 1;
-    in.ct <= 2;
+    in.ct <= 511;
     forever begin 
       @(posedge clk);
       if (in.a == 1) begin
@@ -116,8 +116,8 @@ initial begin
   // do the same thing in "decay mode"
   // using numbers from example
   #(Tclk * 10) 
-  conf.increment_constant <= 5120;
-  conf.decay_constant <= 134083577;
+  conf.increment_constant <= 5120/2;
+  conf.decay_constant <= 134083577/2;
 
   // send tags
   repeat(10) begin
@@ -140,7 +140,7 @@ initial begin
     @(posedge clk);
     in.v <= 1;
     in.tag <= 1;
-    in.ct <= 2;
+    in.ct <= 511;
     forever begin
       @(posedge clk);
       if (in.a == 1) begin
