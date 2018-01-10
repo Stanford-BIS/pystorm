@@ -373,6 +373,12 @@ class HAL(object):
             x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
             y_min = pool_allocation['py']*2
             y_max = pool_allocation['py']*2+pool_allocation['ph']*2-1
+
+            #print("x_min", x_min)
+            #print("x_max", x_max)
+            #print("y_min", y_min)
+            #print("y_max", y_max)
+
             # cut top edge
             for x_idx in range(x_min, x_max+1):
                 tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
@@ -397,14 +403,15 @@ class HAL(object):
                     self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
 
             # enable somas inside pool
-            for nrn_y_idx in range(8*y_min, 8*y_max):
-                for nrn_x_idx in range(8*x_min, 8*x_max):
+            # remember, x_min/x_max are tile units, 16 neurons per tile
+            for nrn_y_idx in range(4*y_min, 4*(y_max+1)):
+                for nrn_x_idx in range(4*x_min, 4*(x_max+1)):
                     #print("enabling soma", nrn_y_idx, nrn_x_idx)
                     self.driver.EnableSomaXY(CORE_ID, nrn_x_idx, nrn_y_idx);
 
         # enable used synapses
         for tx, ty in core.neuron_array.syns_used:
-            print("enabling synapse", tx, ty)
+            #print("enabling synapse", tx, ty)
             self.driver.EnableSynapseXY(CORE_ID, tx, ty)
 
         # set spike filter decay constant 

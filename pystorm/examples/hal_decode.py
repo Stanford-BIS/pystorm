@@ -14,7 +14,7 @@ np.random.seed(0)
 # pool size parameters
 
 K = 8
-width = 8
+width = 16
 height = 8
 width_height = (width, height)
 N = width * height
@@ -30,23 +30,23 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 # training parameters
 
 fmax = 1000
-num_training_points_per_dim = 40
-training_hold_time = 1 # seconds
+num_training_points_per_dim = 20
+training_hold_time = .5 # seconds
 
 lams = [1e3, 1e4, 1e5, 1e6]
 
 ###########################################
 # target function to decode
 
-#Din = 1
-#Dout = 1
-#def the_func(x): 
-#    return x 
-
 Din = 1
 Dout = 1
 def the_func(x): 
-    return np.array(x)**2 / fmax
+    return x 
+
+#Din = 1
+#Dout = 1
+#def the_func(x): 
+#    return np.array(x)**2 / fmax
 
 #Din = 1
 #Dout = 1
