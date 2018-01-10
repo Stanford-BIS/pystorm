@@ -25,13 +25,13 @@ num_neurons = pool_height * pool_width
 #def the_func(x): 
 #    return x 
 
-#dims = 1
-#def the_func(x): 
-#    return np.array(x)**2 / fmax
-
 dims = 1
 def the_func(x): 
-    return 1 / (1 + np.exp(-np.array(x)/fmax*8)) * fmax
+    return np.array(x)**2 / fmax
+
+#dims = 1
+#def the_func(x): 
+#    return 1 / (1 + np.exp(-np.array(x)/fmax*8)) * fmax
 
 #dims = 1
 #def the_func(x): 
@@ -45,7 +45,7 @@ K = 8 # K = taps per dim
 
 fmax = 1000
 num_training_points_per_dim = 100
-training_hold_time = .5 # seconds
+training_hold_time = 2. # seconds
 
 lams = [1e3, 1e4, 1e5, 1e6]
 #lams = [2e5]
@@ -148,7 +148,7 @@ def configure_pool(D):
         D.DisableSoma(CORE, i)
         D.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE);
         D.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.NEGATIVE);
-        D.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.ONE)
+        D.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.TWO)
 
     for i in range(1024):
         D.DisableSynapse(CORE, i);
@@ -190,7 +190,7 @@ def configure_pool(D):
                             D.SetSomaOffsetMultiplier(CORE, soma_aer_idx, bd.bdpars.SomaOffsetMultiplierId.THREE)
                         if xnrn > pool_width // 2 and ynrn > pool_height // 2:
                             D.SetSomaOffsetSign(CORE, soma_aer_idx, bd.bdpars.SomaOffsetSignId.POSITIVE);
-                            D.SetSomaOffsetMultiplier(CORE, soma_aer_idx, bd.bdpars.SomaOffsetMultiplierId.ONE)
+                            D.SetSomaOffsetMultiplier(CORE, soma_aer_idx, bd.bdpars.SomaOffsetMultiplierId.ZERO)
 
     # open diffuser within pool
     for xtile in range(pool_width//4):
@@ -425,26 +425,41 @@ for lam in lams:
 
 # pick the best decode for all lambdas
 best_idx = np.argmin(rmses)
-best_d = decoders[best_idx]
 print("best lambda was", lams[best_idx])
+print("  with RMSE", np.min(rmses))
 
-plot_yhat = np.dot(A_test.T, best_d)
-plot_rmse = rmse(plot_yhat, ytest)
+# decoders have to be less than 1, so pick a higher lambda if this condition is not met
+
+best_d = decoders[best_idx]
+
+impl_idx = best_idx
+impl_d = decoders[impl_idx]
+while np.max(np.abs(impl_d)) > 1:
+    impl_idx += 1
+    impl_d = decoders[impl_idx]
+    print("had weights > 1, using suboptimal decode with higher lambda")
+    print("  new RMSE:", rmses[impl_idx])
+
+best_yhat = np.dot(A_test.T, best_d)
+best_rmse = rmse(best_yhat, ytest)
+impl_yhat = np.dot(A_test.T, impl_d)
+impl_rmse = rmse(impl_yhat, ytest)
 
 if dims == 1:
     plot_x = rates_1d[test_idxs]
     plt.figure()
     plt.plot(plot_x, ytest, color='b')
-    plt.plot(plot_x, plot_yhat, color='r')
-    plt.title("CV Decode\nRMSE: " + str(plot_rmse))
+    plt.plot(plot_x, best_yhat, color='r')
+    plt.plot(plot_x, impl_yhat, color='g')
+    plt.title("CV Decode\nRMSE: " + str(best_rmse) + "/" + str(impl_rmse))
     plt.xlabel("input rate")
     plt.ylabel("output rate")
     plt.savefig("decode.pdf")
 else:
     plt.figure()
     plt.plot(ytest, color='b')
-    plt.plot(plot_yhat, color='r')
-    plt.title("CV Decode\nRMSE: " + str(plot_rmse))
+    plt.plot(best_yhat, color='r')
+    plt.title("CV Decode\nRMSE: " + str(best_rmse))
     plt.xlabel("input idx")
     plt.ylabel("output rate")
     plt.savefig("decode.pdf")

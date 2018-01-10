@@ -1135,9 +1135,9 @@ void Driver::SetSpikeGeneratorRates(
 
     unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
-    cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << " sign " << sign << endl;
-    cout << "  period : " << period << " time units" << endl;
-    cout << "  starting at : " << time << " ns" << endl << endl;
+    //cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << " sign " << sign << endl;
+    //cout << "  period : " << period << " time units" << endl;
+    //cout << "  starting at : " << time << " ns" << endl << endl;
 
     SG_prog_words.push_back(PackWord<FPGASGWORD>({{FPGASGWORD::TAG, tag}, {FPGASGWORD::PERIOD, period}, {FPGASGWORD::GENIDX, gen_idx}, {FPGASGWORD::SIGN, sign}}));
   }

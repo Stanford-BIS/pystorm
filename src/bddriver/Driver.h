@@ -118,9 +118,9 @@ class Driver {
   /// stops the child workers
   void Stop();
 
-  /// Sets the FPGA time resolution (also is the interval that FPGA reports/updates SG/SF values)
+  /// Sets the FPGA time resolution (also is the interval that FPGA updates SG values)
   void SetTimeUnitLen(BDTime ns_per_unit);
-  /// Sets how long the FPGA waits between sending upstream HBs
+  /// Sets how long the FPGA waits between sending upstream HBs (and updating/reporting SF values)
   void SetTimePerUpHB(BDTime ns_per_hb);
   /// Sets the FPGA's clock to 0, also resets driver time
   void ResetFPGATime();

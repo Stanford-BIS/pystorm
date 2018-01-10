@@ -277,11 +277,6 @@ class MMWeights(Resource):
             XXX should be in driver?
             """
 
-            def invert_bits(x, all_ones):
-                """Invert the bits in x"""
-                ones = np.ones_like(x).astype(int) * all_ones
-                return np.bitwise_xor(ones, x)
-
             assert np.sum(x > max_weight) == 0
             assert np.sum(x < -max_weight) == 0
             x = np.array(x)
@@ -289,17 +284,20 @@ class MMWeights(Resource):
             neg = x < 0
 
             # invert bits
-            xonesc[neg] = invert_bits(-xonesc[neg], max_weight) # max_weight is all ones
+            all_ones = max_weight * 2 + 1
+            xonesc[neg] += all_ones
 
             return xonesc
 
         # this is the threshold value we should use (and scale the user weights by, in this case)
         _, thr_vals = AMBuckets.thr_idxs_vals(max_abs_row_weights, core)
+        #print("thr vals")
+        #print(thr_vals)
 
         W = (user_W.T * thr_vals).T
         W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
 
-        print("thrs:", thr_vals, "W:", W)
+        #print("thrs:", thr_vals, "W:", W)
         W = dec2onesc(W, core.max_weight_value)
 
         return W
@@ -311,6 +309,7 @@ class MMWeights(Resource):
             max_conns_in=1, max_conns_out=1)
 
         self.user_W = W
+        #print("XXX init'ing MMWeights, user_W=", self.user_W, " ", id(self.user_W))
 
         # do caching based on object id of W, object id of self
         MMWeights.forward_cache[id(self)] = id(W)
@@ -329,8 +328,8 @@ class MMWeights(Resource):
 
         # posttranslate
         self.programmed_W = None
-        self.W_slices = []
-        self.W_slices_BDWord = []
+        self.W_slices = None
+        self.W_slices_BDWord = None
 
     def in_dim_to_mma(self, dim):
         """Calculate the max x and y coordinates in main memory associated with dim"""
@@ -384,6 +383,9 @@ class MMWeights(Resource):
                 self.slice_start_addrs += [start_addr]
 
     def posttranslate(self, core):
+        self.W_slices = []
+        self.W_slices_BDWord = []
+
         """calculate implemented weights"""
         # look at AMBuckets.max_user_W, compute weights to program
         self.programmed_W = MMWeights.weight_to_mem(self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
@@ -398,16 +400,21 @@ class MMWeights(Resource):
                 MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x)).astype(int)
                 for aer_sub_addr in range(core.NeuronArray_pool_size):
                     yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr)
-                    #print("sub_addr", aer_sub_addr, "yx", yx)
                     y = yx // core.NeuronArray_width
                     x = yx  % core.NeuronArray_width
                     MMWeights.yx_to_aer[y, x] = aer_sub_addr
+                #print("aer-xy conversion table:")
+                #print(MMweights.yx_to_aer)
 
             # init with zeros, there are potentially unused entries for the "edge" neurons
             self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int) for i in range(self.N_slices)]
 
             # iterate over neurons in y,x address order (matrix indexing order)
             yx_nrn_idx = 0
+
+            #print("prog W")
+            #print(self.programmed_W)
+
             for y in range(self.conns_in[0].src.y):
                 for x in range(self.conns_in[0].src.x):
                     # slices are stored in y,x pool address order
@@ -422,6 +429,12 @@ class MMWeights(Resource):
 
                     self.W_slices[slice_idx][:, aer_sub_idx] = self.programmed_W[:, yx_nrn_idx]
                     yx_nrn_idx += 1
+
+                    #print("yx_nrn_idx", yx_nrn_idx)
+                    #print("suby", suby)
+                    #print("subx", subx)
+                    #print("aer_sub_idx", aer_sub_idx)
+
 
         else:
             self.W_slices = [self.programmed_W[:,i] for i in range(self.N_slices)]
@@ -613,20 +626,16 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    """XXX not supporting fanout to multiple pools (and therefore no output slicing).
-    Using TATFanout for that, also apparently not supporting non-square taps (different K)
-    tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-    Each tuple (neuron idx, sign)
-    """
-    def __init__(self, taps_and_signs, N):
+    def __init__(self, encoders):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
-        self.N = N
-        self.D = len(taps_and_signs)
-        self.Ks = [len(el) for el in taps_and_signs] # num taps for each dim
+        self.N, self.D = encoders.shape
         
-        self.taps_and_signs = taps_and_signs
+        # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
+        self.taps_and_signs = self.encoders_to_taps(encoders)
+
+        self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 
         for K in self.Ks:
             assert K % 2 == 0 and "need even number of tap points"
@@ -645,6 +654,29 @@ class TATTapPoint(Resource):
         # posttranslate
         self.mapped_taps = None
         self.contents = None
+
+    def encoders_to_taps(self, M):
+        """encoder entries should be in {-1, 0, 1}
+        converts this representation to the sparse representation used by TATTapPoint
+        """
+        nrns = M.shape[0]
+        dims = M.shape[1]
+
+        taps_and_signs = [[] for d in range(dims)]
+        for d in range(dims):
+            for n in range(nrns):
+                entry = M[n, d]
+                assert(entry in [-1, 0, 1] and "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
+                if entry != 0:
+                    t = n
+                    s = int(entry)
+                    taps_and_signs[d].append((t, s))
+
+        #print("matrix:")
+        #print(M)
+        #print("taps and signs:")
+        #print(taps_and_signs)
+        return taps_and_signs
 
     @property
     def dimensions_out(self):
@@ -707,26 +739,6 @@ class TATTapPoint(Resource):
                     self.stops.append(stop)
         self.contents = hal.HAL.driver.PackTATSpikeWords(self.tap_xs, self.tap_ys, self.signs, self.stops)
 
-        #self.contents = []
-        #for dim_taps in self.mapped_taps:
-        #    for t_idx, (t, s) in enumerate(dim_taps):
-        #        self.contents.append((
-        #        last_t = t
-        #        last_s = s
-        #        if t_idx % 2 == 1:
-        #            stop = 1*(t_idx == self.Ks[-1] - 1)
-        #            tap0 = last_t
-        #            s0   = bin_sign(last_s)
-        #            tap1 = t
-        #            s1   = bin_sign(s)
-
-        #            self.contents += [bddriver.PackWord([
-        #                (bddriver.TATSpikeWord.STOP, stop),
-        #                (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_0, tap0),
-        #                (bddriver.TATSpikeWord.SYNAPSE_SIGN_0, s0),
-        #                (bddriver.TATSpikeWord.SYNAPSE_ADDRESS_1, tap1),
-        #                (bddriver.TATSpikeWord.SYNAPSE_SIGN_1, s1)])]
-        
         assert(len(self.contents) == self.size)
         self.contents = np.array(self.contents, dtype=object)
 

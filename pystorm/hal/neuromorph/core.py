@@ -351,7 +351,7 @@ class AM(object):
 
 class TAT(object):
     def __init__(self, shape):
-        default_val = bd.PackWord([[bd.TATTagWord.STOP, 1]]) # the rest will default to BDWord HCVals
+        default_val = bd.PackWord([[bd.TATTagWord.STOP, 1], [bd.TATTagWord.TAG, 2047], [bd.TATTagWord.GLOBAL_ROUTE, 255]]) 
         self.mem = StepMem(shape, default_val)
         self.alloc = StepMemAllocator(shape)
 
@@ -458,7 +458,10 @@ class NeuronArray(object):
         Returns the start coordinates of the pool in units of minimum pool size
         """
         # coordinates and dimensions in units of minimum pool size
-        py, px, pw, ph = self.alloc.allocate(id(pool))
+        py, px, ph, pw = self.alloc.allocate(id(pool))
+        print("allocating")
+        print(pool.px, pool.py)
+        print(py, px, pw, ph)
         self.pool_allocations.append(dict(
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)

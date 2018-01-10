@@ -216,12 +216,12 @@ always_comb
 // filter idx/memory address
 logic [Nfilts-1:0] s2_filt_idx, s2_next_filt_idx, s3_filt_idx, s3_next_filt_idx, s4_filt_idx, s4_next_filt_idx;
 // filter state
-logic [Nstate-1:0] s3_next_filt_state, s3_filt_state, s4_next_filt_state, s4_filt_state;
+logic signed [Nstate-1:0] s3_next_filt_state, s3_filt_state, s4_next_filt_state, s4_filt_state;
 // opcodes
 enum {INCREMENT, DECAY, NOP} s2_op, s2_next_op, s3_op, s3_next_op, s4_op, s4_next_op;
 // count, for INCREMENT op
-logic [Nct-1:0] s2_ct, s2_next_ct;
-logic [Nstate-1:0] s3_inc, s3_next_inc;
+logic signed [Nct-1:0] s2_ct, s2_next_ct;
+logic signed [Nstate-1:0] s3_inc, s3_next_inc;
 
 // pipeline register updates
 always_ff @(posedge clk, posedge reset)
@@ -272,7 +272,7 @@ always_comb
   if (do_inc == 1) begin
     s2_next_op = INCREMENT;
     s2_next_filt_idx = in.tag[Nfilts-1:0]; // software must ensure that there are fewer tags used than filters
-    s2_next_ct = in.ct;
+    s2_next_ct = signed'(in.ct);
   end
   else if (state == DECAY_UPDATE) begin
     s2_next_op = DECAY;
@@ -301,7 +301,7 @@ assign mem_rd_addr = s2_next_filt_idx;
 assign s3_next_filt_state = mem_rd_data;
 
 // inc1
-assign s3_next_inc = conf.increment_constant * s2_ct; // mult discards MSBs (Nct.0 * Nstate-9.9)
+assign s3_next_inc = signed'(conf.increment_constant) * s2_ct; // mult discards MSBs (Nct.0 * Nstate-9.9)
 
 // passthrough
 assign s3_next_op = s2_op;
@@ -328,7 +328,7 @@ assign increment_writeback = s3_inc + s3_filt_state;
 // multiple the state with the conf.decay_constant
 logic [(2*Nstate)-1:0] decay_mult_out;
 logic [Nstate-1:0] decay_writeback;
-assign decay_mult_out = conf.decay_constant * s3_filt_state;
+assign decay_mult_out = signed'(conf.decay_constant) * s3_filt_state; 
 assign decay_writeback = decay_mult_out[(2*Nstate)-1:Nstate]; // discard LSBs (see above, 0.Nstate * Nstate-9.9)
 
 // mux INCREMENT and DECAY writebacks

@@ -50,8 +50,15 @@ def _create_resources_ps_output(ps_output):
 
 @create_resources.register(Pool)
 def _create_resources_ps_pool(ps_pool):
-    """create_resources for neuromorph graph Pool"""
-    return Neurons(ps_pool.y, ps_pool.x)
+    """create_resources for neuromorph graph Pool
+    In this case, there's more than one resource needed:
+    A Pool needs a TATTapPoint resource as well as Neuron resource
+    We make the connection here, breaking convention, for simplicity
+    """
+    TAT_tap = TATTapPoint(ps_pool.encoders)
+    neurons = Neurons(ps_pool.y, ps_pool.x)
+    TAT_tap.connect(neurons)
+    return [TAT_tap, neurons]
 
 @create_resources.register(Bucket)
 def _create_resources_ps_bucket(ps_bucket):
@@ -83,7 +90,7 @@ class GraphHWMapper(object):
     Attributes
     ----------
     ps_obj: The neuromorph graph object
-    hardware_resource: The hardware resource associated with the neuromorph graph object
+    hardware_resource: hardware resources associated with the neuromorph graph object
     dest_mappers: List of (weights, PystormObjectMappers) this instance connects to
     """
     def __init__(self, ps_obj):
@@ -104,30 +111,6 @@ class GraphHWMapper(object):
         """
         self.dest_mappers.append((weight, mapper))
 
-    def matrix_to_TAT_taps(self, M):
-        """weight matrix entries in connection to Pool should be in {-1, 0, 1}
-        converts this representation to the sparse representation used by TATTapPoint
-        """
-        nrns = M.shape[0]
-        dims = M.shape[1]
-
-        taps_and_signs = [[] for d in range(dims)]
-        for d in range(dims):
-            for n in range(nrns):
-                entry = M[n, d]
-                assert(entry in [-1, 0, 1] and "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
-                if entry != 0:
-                    t = n
-                    s = int(entry)
-                    taps_and_signs[d].append((t, s))
-
-        #print("matrix:")
-        #print(M)
-        #print("taps and signs:")
-        #print(taps_and_signs)
-        return taps_and_signs
-
-
     def connect(self, hardware_resources):
         """Allocate hardware resources to implement this instance's connections
 
@@ -138,7 +121,7 @@ class GraphHWMapper(object):
 
         Conn 1:
               neuromorph graph: Input ─> Pool
-            hardware_resources: Source ─> TATTapPoint ─> Neurons
+            hardware_resources: Source ─> (TATTapPoint ─> Neurons)
         Conn 2:
               neuromorph graph: Input ─> Bucket
             hardware_resources: Source ─> TATAcuumulator ─> MMWeights ─> AMBuckets
@@ -154,7 +137,7 @@ class GraphHWMapper(object):
             (note, AMBuckets -> Sink is technically feasible, but has the repeated outputs problem)
         Conn 4c:
               neuromorph graph: Bucket ─> Pool
-            hardware_resources: AMBuckets ─> TATTapPoint -> Neurons
+            hardware_resources: AMBuckets ─> (TATTapPoint -> Neurons)
          Conn 5:
               neuromorph graph: Bucket ─┬─> Bucket / Output / Pool
                                         └─> Bucket / Output / Pool
@@ -186,15 +169,8 @@ class GraphHWMapper(object):
                 adj_node_dims = self.ps_obj.get_num_dimensions()
 
                 source = self.hardware_resource
-
-                tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
-                tap = TATTapPoint(tat_taps, num_neurons)
-                neurons = dest_node[1].hardware_resource
-
+                tap = dest_node[1].hardware_resource[0] # two resources for pool, [TATTapPoint and Neurons]
                 source.connect(tap)
-                tap.connect(neurons)
-
-                hardware_resources.append(tap)
 
             #   Conn 2: Input -> Bucket
             elif isinstance(self.ps_obj, Input) and isinstance(dest_node_ps_obj, Bucket):
@@ -212,7 +188,9 @@ class GraphHWMapper(object):
 
             #   Conn 3: Pool -> Bucket
             elif isinstance(self.ps_obj, Pool) and isinstance(dest_node_ps_obj, Bucket):
-                neurons = self.hardware_resource
+        
+                neurons = self.hardware_resource[1] # two resources for pool, [TATTapPoint and Neurons]
+
                 weight_resource = create_mm_weights(dest_node_weights)
                 am_bucket = dest_node[1].hardware_resource
 
@@ -250,14 +228,8 @@ class GraphHWMapper(object):
                 matrix_dims = 2
                 adj_node_dims = self.ps_obj.get_num_dimensions()
 
-                tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
-                tap = TATTapPoint(tat_taps, num_neurons)
-                neurons = dest_node[1].hardware_resource
-
+                tap = dest_node[1].hardware_resource[0] # two resources for pool, [TATTapPoint and Neurons]
                 am_bucket.connect(tap)
-                tap.connect(neurons)
-
-                hardware_resources.append(tap)
 
             else:
                 raise TypeError("connections between %s and %s are not currently supported"%(
@@ -296,14 +268,8 @@ class GraphHWMapper(object):
                     matrix_dims = 2
                     adj_node_dims = self.ps_obj.get_num_dimensions()
 
-                    tat_taps = self.matrix_to_TAT_taps(dest_node_weights)
-                    tap = TATTapPoint(tat_taps, num_neurons)
-                    neurons = dest_node[1].hardware_resource
-
+                    tap = dest_node[1].hardware_resource[0] # two resources for pool, [TATTapPoint and Neurons]
                     tat_fanout.connect(tap)
-                    tap.connect(neurons)
-
-                    hardware_resources.append(tap)
 
                 else:
                     raise TypeError(
@@ -340,7 +306,8 @@ def create_network_resources(network):
 
     for pool in network.get_pools():
         ng_obj_to_ghw_mapper[pool] = GraphHWMapper(pool)
-        hardware_resources.append(ng_obj_to_ghw_mapper[pool].get_resource())
+        for r in ng_obj_to_ghw_mapper[pool].get_resource(): # two resources for pool, [TATTapPoint and Neurons]
+            hardware_resources.append(r)
 
     for bucket in network.get_buckets():
         ng_obj_to_ghw_mapper[bucket] = GraphHWMapper(bucket)
@@ -408,13 +375,12 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished assign")
 
-    if verbose:
-        fname = "mapped_core.txt"
-        np.set_printoptions(threshold=np.nan)
-        print("mapping results written to", fname)
-        f = open(fname, "w")
-        f.write(str(core))
-        f.close()
+    fname = "mapped_core.txt"
+    np.set_printoptions(threshold=np.nan)
+    print("mapping results written to", fname)
+    f = open(fname, "w")
+    f.write(str(core))
+    f.close()
 
 def reassign_resources_to_core(hardware_resources, core, verbose=False):
     """given a set of resources that has already been mapped,
@@ -446,6 +412,13 @@ def reassign_resources_to_core(hardware_resources, core, verbose=False):
         resource.assign(core)
     if verbose:
         print("finished assign")
+
+    fname = "remapped_core.txt"
+    np.set_printoptions(threshold=np.nan)
+    print("mapping results written to", fname)
+    f = open(fname, "w")
+    f.write(str(core))
+    f.close()
 
 def map_network(network, verbose=False):
     """Create a mapped core object given a neuromorph graph network objects
