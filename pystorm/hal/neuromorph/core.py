@@ -351,7 +351,7 @@ class AM(object):
 
 class TAT(object):
     def __init__(self, shape):
-        default_val = bd.PackWord([[bd.TATTagWord.STOP, 1]]) # the rest will default to BDWord HCVals
+        default_val = bd.PackWord([[bd.TATTagWord.STOP, 1], [bd.TATTagWord.TAG, 2047], [bd.TATTagWord.GLOBAL_ROUTE, 255]]) 
         self.mem = StepMem(shape, default_val)
         self.alloc = StepMemAllocator(shape)
 

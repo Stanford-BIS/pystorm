@@ -375,13 +375,12 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
     if verbose:
         print("finished assign")
 
-    if verbose:
-        fname = "mapped_core.txt"
-        np.set_printoptions(threshold=np.nan)
-        print("mapping results written to", fname)
-        f = open(fname, "w")
-        f.write(str(core))
-        f.close()
+    fname = "mapped_core.txt"
+    np.set_printoptions(threshold=np.nan)
+    print("mapping results written to", fname)
+    f = open(fname, "w")
+    f.write(str(core))
+    f.close()
 
 def reassign_resources_to_core(hardware_resources, core, verbose=False):
     """given a set of resources that has already been mapped,
@@ -413,6 +412,13 @@ def reassign_resources_to_core(hardware_resources, core, verbose=False):
         resource.assign(core)
     if verbose:
         print("finished assign")
+
+    fname = "remapped_core.txt"
+    np.set_printoptions(threshold=np.nan)
+    print("mapping results written to", fname)
+    f = open(fname, "w")
+    f.write(str(core))
+    f.close()
 
 def map_network(network, verbose=False):
     """Create a mapped core object given a neuromorph graph network objects

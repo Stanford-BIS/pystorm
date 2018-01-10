@@ -66,6 +66,23 @@ class HAL(object):
         self.last_mapped_resources = None
         self.last_mapped_core = None
 
+    def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
+        """Controls Driver/FPGA time resolutions
+
+        Parameters
+        ==========
+        downstream_ns: Controls the fineness of when the FPGA can inject inputs to BD.
+                       Also controls the time resolution of the FPGA tag stream generators
+                       (set_input_rates() periods will be a multiple of this).
+        upstream_ns: Controls the period of upstream heartbeats from the FPGA.
+                     Every upstream_ns, the FPGA reports the time current time. 
+                     The Driver uses the most recent HB to timestamp upstream traffic.
+                     Also controls the period with which the FPGA emits filtered outputs.
+                     get_outputs() will have new values every upstream_ns.
+        """
+        self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution 
+        self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
+
     def __del__(self):
         self.stop_hardware()
 
@@ -90,40 +107,53 @@ class HAL(object):
     #                           Data flow functions                              #
     ##############################################################################
 
-    def start_traffic(self):
-        self.driver.SetTagTrafficState(CORE_ID, True)
-        self.driver.SetSpikeTrafficState(CORE_ID, True)
+    def flush(self):
+        """Commits any queued up traffic
 
-    def stop_traffic(self):
-        self.driver.SetTagTrafficState(CORE_ID, False)
-        self.driver.SetSpikeTrafficState(CORE_ID, False)
+        Inputs to HAL that have a time parameter (set_input_rate(s)()) are not committed
+        to the hardware until flushed. After being flushed, inputs are committed
+        to BD in the order of their times. This will block any subsequently flushed
+        inputs until the maximum previously flushed time has elapsed.
 
-    def enable_output_recording(self):
+        This call (along with the flush parameters of other calls) gives the HAL
+        user some freedom in ordering their calls.
+        """
+        self.driver.Flush()
+
+    def start_traffic(self, flush=True):
+        self.driver.SetTagTrafficState(CORE_ID, True, flush=False)
+        self.driver.SetSpikeTrafficState(CORE_ID, True, flush=flush)
+
+    def stop_traffic(self, flush=True):
+        self.driver.SetTagTrafficState(CORE_ID, False, flush=False)
+        self.driver.SetSpikeTrafficState(CORE_ID, False, flush=flush)
+
+    def enable_output_recording(self, flush=True):
         """Turns on recording from all outputs.
 
         These output values will go into a buffer that can be drained by calling
         get_outputs().
         """
         N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
-        self.driver.SetNumSpikeFilters(CORE_ID, N_SF)
+        self.driver.SetNumSpikeFilters(CORE_ID, N_SF, flush=flush)
 
-    def enable_spike_recording(self):
+    def enable_spike_recording(self, flush=True):
         """Turns on spike recording from all neurons.
 
         These spikes will go into a buffer that can be drained by calling
         get_spikes().
         """
-        self.driver.SetSpikeDumpState(CORE_ID, en=True)
+        self.driver.SetSpikeDumpState(CORE_ID, en=True, flush=flush)
 
-    def disable_output_recording(self):
+    def disable_output_recording(self, flush=True):
         """Turns off recording from all outputs."""
         # by setting the number of spike filters to 0, the FPGA SF array
         # no longer reports any values
-        self.driver.SetNumSpikeFilters(CORE_ID, 0)
+        self.driver.SetNumSpikeFilters(CORE_ID, 0, flush=flush)
 
-    def disable_spike_recording(self):
+    def disable_spike_recording(self, flush=True):
         """Turns off spike recording from all neurons."""
-        self.driver.SetSpikeDumpState(CORE_ID, en=False)
+        self.driver.SetSpikeDumpState(CORE_ID, en=False, flush=flush)
 
     def get_outputs(self, timeout=1000):
         """Returns all pending output values gathered since this was last called.
@@ -139,7 +169,21 @@ class HAL(object):
         # and resets each count to 0
 
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
-        counts = filt_states # for now, working in count mode
+
+        # for now, working in count mode
+        # the filter state is a count, and it is signed
+        counts = []
+        for f in filt_states:
+            if f > 2**26 - 1:
+                to_append = f - 2**27
+            else:
+                to_append = f
+
+            if abs(to_append) < 100:
+                counts.append(to_append)
+            else:
+                print("discarding absurdly large spike filter value, probably a glitch")
+                counts.append(0)
         
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
@@ -183,7 +227,13 @@ class HAL(object):
             whether or not to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
+
+        WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
+        provided has passed!
         """
+        if flush is False:
+            assert(False and "there's currently a Driver bug with set_input_rate flush=False")
+
         # every FPGA time unit, the FPGA loops through the spike generators and decides whether or 
         # not to emit a tag for each one. The SGs can be reprogrammed to change their individual rates
         # and to target different tags
@@ -211,6 +261,9 @@ class HAL(object):
             whether or not to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
+
+        WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
+        provided has passed!
         """
         assert len(inputs) == len(dims) == len(rates)
 
@@ -228,23 +281,17 @@ class HAL(object):
     #                           Mapping functions                                #
     ##############################################################################
 
-    def remap_weights(self, network):
+    def remap_weights(self):
         """Call a subset of map()'s functionality to reprogram weights
         that have been modified in the network objects
-
-        Parameters
-        ----------
-        network: pystorm.hal.neuromorph.graph Network object
-        hardware_resources: output of previous map() call
         """
 
-        # network is unused: hardware_resources references it
-
         # generate a new core based on the new allocation, but assigning the new weights
-        core = remap_resources(core.last_mapped_resources)
-        self.implement_core(core)
-
+        core = remap_resources(self.last_mapped_resources)
         self.last_mapped_core = core
+
+        self.implement_core()
+
 
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
@@ -280,9 +327,10 @@ class HAL(object):
                     pool_nrn_idx = x + y*hwr_neurons.x
                     self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
 
-            #print("mapping table")
-            #for k in self.spk_to_pool_nrn_idx:
-            #    print(k, self.spk_to_pool_nrn_idx[k][1])
+        #print('spike mapper')
+        #for k in self.spk_to_pool_nrn_idx:
+        #    print(k, ":", self.spk_to_pool_nrn_idx[k][1])
+
 
     def dump_core(self):
         print("PAT")
