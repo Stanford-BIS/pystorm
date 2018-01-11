@@ -459,9 +459,6 @@ class NeuronArray(object):
         """
         # coordinates and dimensions in units of minimum pool size
         py, px, ph, pw = self.alloc.allocate(id(pool))
-        print("allocating")
-        print(pool.px, pool.py)
-        print(py, px, pw, ph)
         self.pool_allocations.append(dict(
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)

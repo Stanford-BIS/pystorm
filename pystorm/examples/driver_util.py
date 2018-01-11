@@ -128,15 +128,15 @@ def weight_to_mem(user_W):
         neg = x < 0
 
         # invert bits
-        print(xonesc)
+        #print(xonesc)
         xonesc[neg] = invert_bits(-xonesc[neg], 255) # max_weight is all ones
-        print(xonesc)
+        #print(xonesc)
 
         return xonesc
 
     max_abs_row_weights = np.max(abs(user_W), axis=1)
-    print("max absolute row weights")
-    print(max_abs_row_weights)
+    #print("max absolute row weights")
+    #print(max_abs_row_weights)
 
     # this is the threshold value we should use (and scale the user weights by, in this case)
     thr_idxs, thr_vals = thr_idxs_vals(max_abs_row_weights)
