@@ -30,10 +30,11 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 # training parameters
 
 fmax = 1000
-num_training_points_per_dim = 20
+num_training_points_per_dim = 40
 training_hold_time = .5 # seconds
 
 lams = [1e3, 1e4, 1e5, 1e6]
+#lams = [1e5, 1e6, 1e7, 1e8]
 
 ###########################################
 # target function to decode
@@ -150,7 +151,7 @@ print(len(spikes), "spikes before trial")
 
 def do_sweep(bin_time_boundaries):
     for d in range(Din):
-        for r, bin_start in zip(stim_rates[d], bin_time_boundaries):
+        for r, bin_start in zip(stim_rates[d], bin_time_boundaries[:-1]):
             HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
 
 do_sweep(bin_time_boundaries)
@@ -276,11 +277,19 @@ print("got", np.sum(binned_outputs[o1]), "tags from filters. Should be 0 during 
 ###########################################
 # divide A and y into training and test sets
 
+# XXX disregard beginning and end points
+# there's some kind of boundary effect
+# this helps the training except on the first and last points
+# making the training_hold_time longer also seems to help
+ignore_pre = 2
+ignore_post = 1
+
 total_stim_points = len(stim_rates[0])
-num_train_idxs = int(.7 * total_stim_points)
-num_test_idxs  = total_stim_points - num_train_idxs
+valid_stim_points = total_stim_points - ignore_pre - ignore_post
+num_train_idxs = int(.7 * valid_stim_points)
+num_test_idxs  = valid_stim_points - num_train_idxs
 #train_idxs = np.random.permutation([True] * num_train_idxs + [False] * num_test_idxs)
-train_idxs = np.linspace(0, total_stim_points, num_train_idxs).astype(int)
+train_idxs = np.linspace(ignore_pre, total_stim_points - ignore_post, num_train_idxs).astype(int)
 train_idxs = [i in train_idxs for i in range(total_stim_points)]
 test_idxs  = [not ti for ti in train_idxs]
 
@@ -344,6 +353,14 @@ plt.title("decoder distribution")
 plt.savefig("hal_decode_weight_dist.pdf")
 
 #########################################
+# sanity check, what should the weights be per driver_decode.py
+# can compare to remapped_core.txt after HAL.remap_weights()
+import driver_util
+print("sanity check ones' c decoders")
+_, _, _, discretized_d = driver_util.weight_to_mem(impl_d.T)
+discretized_yhat = np.dot(A_test.T, discretized_d)
+
+#########################################
 # plot decode
 
 if Din == 1 and Dout == 1:
@@ -351,7 +368,9 @@ if Din == 1 and Dout == 1:
     plt.figure()
     plt.plot(plot_x, ytest, color='b')
     plt.plot(plot_x, best_yhat, color='r')
-    plt.plot(plot_x, impl_yhat, color='g')
+    plt.plot(plot_x, impl_yhat, color='b')
+    plt.plot(plot_x, discretized_yhat, color='k')
+    plt.legend(["target", "best decoders", "implementable decoders (|d|<1)", "discretized decoders"])
     plt.title("CV Decode\nRMSE: " + str(best_rmse) + "/" + str(impl_rmse))
     plt.xlabel("input rate")
     plt.ylabel("output rate")
@@ -366,11 +385,6 @@ else:
     plt.ylabel("output rate")
     plt.savefig("hal_decode.pdf")
 
-#########################################
-# sanity check, what should the weights be per driver_decode.py
-#import driver_util
-#print("sanity check ones' c decoders")
-#print(driver_util.weight_to_mem(impl_d.T))
 
 #########################################
 # set decode weights, call HAL.remap_weights()
@@ -441,6 +455,7 @@ if Din == 1 and Dout == 1:
     plt.plot(plot_x, yhat, color='r')
     plt.plot(plot_x, yhat2, color='g')
     plt.title("Accumulator Decode\nRMSE: " + str(plot_rmse))
+    plt.legend(["target", "FPGA SF outputs", "raw tag outputs"])
     plt.xlabel("input rate")
     plt.ylabel("output rate")
     plt.savefig("hal_acc_decode.pdf")

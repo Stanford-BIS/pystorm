@@ -261,6 +261,7 @@ void Driver::ResetFPGATime() {
 BDTime Driver::GetFPGATime() {
   // the Decoder already decoded the times, ignore the payload and just use the last timestamp
   std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
+  auto dont_care = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_LSB, 1000).second; // drain the LSBs too so the queue doesn't pile up
   if (times.size() > 0) {
     return times.back();
   } else {
