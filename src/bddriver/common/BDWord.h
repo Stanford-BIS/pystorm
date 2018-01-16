@@ -71,8 +71,8 @@ DEFWORD(ToggleWord,
     WIDTHS(1              , 1           )  )
 
 DEFWORD(DACWord,
-    FIELDS(DAC_TO_ADC_CONN , DAC_VALUE ) ,
-    WIDTHS(1               , 10        )   )
+    FIELDS(DAC_VALUE , DAC_TO_ADC_CONN ) ,
+    WIDTHS(10        , 1               )   )
 
 DEFWORD(ADCWord,
     FIELDS(ADC_SMALL_LARGE_CURRENT_0 , ADC_SMALL_LARGE_CURRENT_1 , ADC_OUTPUT_ENABLE ) ,
@@ -102,7 +102,7 @@ DEFHCWORD(TATAccWord,
 
 DEFHCWORD(TATSpikeWord,
     FIELDS(STOP , FIXED_1 , SYNAPSE_ADDRESS_0 , SYNAPSE_SIGN_0 , SYNAPSE_ADDRESS_1 , SYNAPSE_SIGN_1 , UNUSED ) ,
-    WIDTHS(1    , 2       , 11                , 1              , 11                , 1              , 2      ) ,
+    WIDTHS(1    , 2       , 10                , 1              , 10                , 1              , 2      ) ,
     HCVALS(0    , 1       , 0                 , 0              , 0                 , 0              , 0      )   )
 
 DEFHCWORD(TATTagWord,
@@ -237,6 +237,15 @@ DEFWORD(FPGABYTES,
     FIELDS(B0 , B1 , B2 , B3 ) ,
     WIDTHS(8  , 8  , 8  , 8  )   )
 
+DEFWORD(FPGASFWORD,
+    FIELDS(STATE , FILTIDX ) ,
+    WIDTHS(27    , 9       )   )
+
+DEFHCWORD(FPGASGWORD,
+    FIELDS(TAG , TICKS , PERIOD , GENIDX, SIGN ) ,
+    WIDTHS(11  , 16    , 16     , 8     , 1    ) ,
+    HCVALS(0   , 0     , 0      , 0     , 0    )   )
+
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,
     FIELDS(LSB, MSB ) ,
@@ -245,6 +254,10 @@ DEFWORD(TWOFPGAPAYLOADS,
 DEFWORD(THREEFPGAREGS,
     FIELDS(W0, W1, W2 ) ,
     WIDTHS(16, 16, 16 )   )
+
+DEFWORD(FOURFPGAREGS,
+    FIELDS(W0, W1, W2, W3 ) ,
+    WIDTHS(16, 16, 16, 16 )   )
 
 // FPGA register words
 DEFWORD(FPGABDReset,

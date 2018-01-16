@@ -1,4 +1,5 @@
 #include "BDState.h"
+#include "common/DriverPars.h"
 
 #include <iostream>
 using std::cout;
@@ -13,18 +14,15 @@ class BDStateFixture : public testing::Test {
  public:
   void SetUp() {
     bd_pars     = new bdpars::BDPars();
-    driver_pars = new driverpars::DriverPars();
-    state       = new BDState(bd_pars, driver_pars);
+    state       = new BDState(bd_pars);
   }
   void TearDown() {
     delete bd_pars;
-    delete driver_pars;
     delete state;
   }
 
   BDState* state;
   bdpars::BDPars* bd_pars;
-  driverpars::DriverPars* driver_pars;
 };
 
 TEST_F(BDStateFixture, TestSetUpTearDown) {}
@@ -45,7 +43,7 @@ TEST_F(BDStateFixture, TestTrafficTurnsOff) {
   }
 
   // XXX there's a race here, we won't check this if the delay is set short enough
-  if (driver_pars->Get(driverpars::BD_STATE_TRAFFIC_DRAIN_US) > 100) {
+  if (driverpars::BD_STATE_TRAFFIC_DRAIN_US > 100) {
     // an immediate query should return false still because of the delay
     ASSERT_FALSE(state->IsTrafficOff());
   }

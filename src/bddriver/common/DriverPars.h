@@ -1,67 +1,35 @@
 #ifndef DRIVERPARS_H
 #define DRIVERPARS_H
 
+#include <unordered_map>
 #include <string>
-#include <vector>
 
 namespace pystorm {
 namespace bddriver {
 namespace driverpars {
 
-enum DriverParId {
-  // objects
-  ENC_BUF_IN_CAPACITY,
-  DEC_BUF_IN_CAPACITY,
-  ENC_BUF_OUT_CAPACITY,
-  DEC_BUF_OUT_CAPACITY,
-  ENC_CHUNK_SIZE,
-  ENC_TIMEOUT_US,
-  DEC_CHUNK_SIZE,
-  DEC_TIMEOUT_US,
-  BD_STATE_TRAFFIC_DRAIN_US,
-  COMM_TYPE,
-  BDMODELCOMM_TRY_FOR_US,
-  BDMODELCOMM_MAX_TO_READ,
-  BDMODELCOMM_SLEEP_FOR_US,
-  // functions
-  DUMPPAT_TIMEOUT_US,
-  DUMPTAT_TIMEOUT_US,
-  DUMPMM_TIMEOUT_US,
-  RECVSPIKES_TIMEOUT_US,
-  RECVTAGS_TIMEOUT_US,
+  constexpr unsigned int ms = 1000;
 
-  LastDriverParId = RECVTAGS_TIMEOUT_US
-};
+  // write sizes, in bytes
+  constexpr unsigned int WRITE_BLOCK_SIZE = 512; 
+  constexpr unsigned int WRITE_FIFO_DEPTH = 16 * 1024 * 4;
+  constexpr unsigned int MAX_WRITE_SIZE = WRITE_FIFO_DEPTH / 2; // double-buffering
 
-enum DriverStringParId {
-  SOFT_COMM_IN_FNAME,
-  SOFT_COMM_OUT_FNAME,
+  // read sizes, in bytes
+  constexpr unsigned int READ_BLOCK_SIZE = 512; 
+  constexpr unsigned int READ_FIFO_DEPTH = 16 * 1024 * 4;
+  constexpr unsigned int READ_SIZE = READ_FIFO_DEPTH / 2; // double-buffering
 
-  LastDriverStringParId = SOFT_COMM_OUT_FNAME
-};
+  constexpr unsigned int READ_LAG_WARNING_SIZE = 8 * READ_SIZE; // warning emitted when running 8 buffers behind or more
 
-enum CommType {
-  SOFT,
-  BDMODEL,
-  LIBUSB,
+  constexpr unsigned int BD_STATE_TRAFFIC_DRAIN_US = 
+    1 * ms;  // timing assumption: this long after shutting off traffic, bd will be inactive
 
-  LastCommType = LIBUSB
-};
+  constexpr unsigned int BDMODELCOMM_TRY_FOR_US = 1 * ms;
+  constexpr unsigned int BDMODELCOMM_SLEEP_FOR_US = 1 * ms;
 
-/// Stores parameters that modify driver object parameters/functions
-class DriverPars {
- public:
-  // init from yaml file describing driver parameters
-  DriverPars();
-  ~DriverPars();
-
-  inline unsigned int Get(DriverParId par_id) const { return pars_.at(par_id); }
-  inline const std::string* Get(DriverStringParId par_id) const { return &(string_pars_.at(par_id)); }
-
- private:
-  std::vector<unsigned int> pars_;
-  std::vector<std::string> string_pars_;
-};
+  constexpr unsigned int ENC_TIMEOUT_US = 1 * ms;
+  constexpr unsigned int DEC_TIMEOUT_US = 1 * ms;
 
 }  // driverpars
 }  // bddriver

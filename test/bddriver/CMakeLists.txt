@@ -49,7 +49,6 @@ set(TEST_SRC_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/common/MutexBuffer_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/encoder/Encoder_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/decoder/Decoder_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/common/DriverPars_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/common/BDState_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/Driver_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/include/logger_test.cpp

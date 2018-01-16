@@ -31,7 +31,7 @@ module BDIfc (
   input               BD_in_valid,
   input [33:0]        BD_in_data,
 
-  input core_clk, BD_out_clk_int, BD_in_clk_int, reset
+  input core_clk, BD_out_clk_int, BD_out_clk_ext, BD_in_clk_int, BD_in_clk_ext, reset
   );
 
 localparam NBDdn = 21;

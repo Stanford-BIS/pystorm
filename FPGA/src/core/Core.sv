@@ -372,7 +372,7 @@ SpikeFilterArray #(
 SF_array(
   SF_tags_out,
   BDTagSplit_out_tags_post_FIFO,
-  time_unit_pulse,
+  send_HB_up_pulse,
   SF_conf,
   clk, reset);
 

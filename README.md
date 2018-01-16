@@ -58,6 +58,10 @@ To set up the python interface for Pystorm, first run the [Build](#build). Next,
 
 from the repository base directory so that you may import pystorm as a Python package.
 
+Note that if you want to install only for the current user, you should specify
+
+`python setup.py develop --user`
+
 # Build
 
 We recommend building the pystorm C++ modules by executing the following commands from the

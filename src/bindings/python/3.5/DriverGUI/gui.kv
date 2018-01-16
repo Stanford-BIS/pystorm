@@ -1,3 +1,10 @@
+#: import GridLayout kivy.uix.gridlayout.GridLayout
+#: import Slider kivy.uix.slider.Slider
+#: import Button kivy.uix.button.Button
+#: import TabbedPanel kivy.uix.tabbedpanel.TabbedPanel
+#: import Scatter kivy.uix.scatter.Scatter
+#: import StencilView kivy.uix.stencilview.StencilView
+
 <TopBar>:
     pos_hint: {'top':1}
     scr_cb: None
@@ -276,3 +283,10 @@
     main_area : main_area
     RootLayout:
         id: main_area
+
+<SettingsLayout>:
+
+<SettingsScreen>:
+    settings_area : settings_area
+    SettingsLayout:
+        id: settings_area

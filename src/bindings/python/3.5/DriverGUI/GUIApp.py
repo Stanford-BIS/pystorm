@@ -215,9 +215,15 @@ class MainScreen(Screen):
     def init_children(self):
         self.main_area.init_children()
 
+class SettingsLayout(BoxLayout):
+    def init_children(self):
+        pass
 
 class SettingsScreen(Screen):
-    pass
+    settings_area = ObjectProperty(None)
+
+    def init_children(self):
+        self.settings_area.init_children()
 
 class GUIApp(App):
     

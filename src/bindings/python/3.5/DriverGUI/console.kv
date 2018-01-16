@@ -1,0 +1,58 @@
+<ConsoleInput>:
+    multiline: False
+    cursor_width: 16
+    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+
+<ConsoleOutput>:
+    markup: True
+    text_size: (None, None)
+    size_hint: (1, None)
+    color: (0.7, 0.7, 0.7, 1)
+    size: self.texture_size
+
+<ConsolePrompt>:
+    orientation: 'horizontal'
+    prompt_ps1: prompt_ps1
+    prompt_input: prompt_input
+    size: self.width, self.prompt_height
+    size_hint: 1, None
+    Label:
+        id: prompt_ps1
+        markup: True
+        color: (0, 1, 0, 1)
+        font_name: root.font_name
+        font_size: root.font_size
+        text: root.ps1_text
+        width: self.texture_size[0]
+        height: root.size[1]
+        text_size: self.size
+        size_hint: None, None
+        halign: 'left'
+        valign: 'middle'
+    ConsoleInput:
+        id: prompt_input
+        foreground_color: (1, 1, 1, 1)
+        background_color: (0, 0, 0, 0)
+        font_name: root.font_name
+        font_size: root.font_size
+        width: root.size[0] - prompt_ps1.width
+        height: root.size[1] + sp(3)
+        text_size: self.size
+        size_hint: None, None
+
+<KivyConsole>:
+    console_area: console_area
+    scroll_view: scroll_view
+    ScrollView:
+        id: scroll_view
+        size_hint: (1, None)
+        size: (root.width, root.height)
+        bar_width: 20
+        scroll_type: ['bars', 'content']
+        BoxLayout:
+            orientation: 'vertical'
+            id: console_area
+            size_hint_y: None
+            height: max(scroll_view.height, self.minimum_height)
+            font_name: root.font_name
+            font_size: root.font_size

@@ -20,7 +20,7 @@ namespace bdmodel {
 /// Public ifc is threadsafe.
 class BDModel {
  public:
-  BDModel(const bdpars::BDPars* bd_pars, const driverpars::DriverPars* driver_pars);
+  BDModel(const bdpars::BDPars* bd_pars);
   ~BDModel();
 
   /// parse input stream to update internal BDState object and other state
@@ -90,7 +90,6 @@ class BDModel {
 
   // input parameters to state_
   
-  const driverpars::DriverPars* driver_pars_;
   const bdpars::BDPars* bd_pars_;
 
   // used in ParseInput, once words have been horn-decoded and deserialized
