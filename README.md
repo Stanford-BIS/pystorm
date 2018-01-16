@@ -106,6 +106,17 @@ As an example,
 
 tells cmake to build the project in the current directory for the `Release` configuration and pass `-j6` to the compiler, which for g++ says to use 6 threads for the build.
 
+## Opal Kelly udev Rules
+
+To use the Opal Kelly board, you must copy pystorm/60-opalkelly.rules to /etc/udev/rules.d/
+
+Then reboot or issue the following commands:
+
+```
+   /sbin/udevadm control --reload-rules
+   /sbin/udevadm trigger
+```
+
 # TEST
 
 From the build directory all module tests can be executed issuing the
