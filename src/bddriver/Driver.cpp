@@ -621,12 +621,41 @@ void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP s
 
 /// Set large/small current scale for either ADC
 void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string& small_or_large) {
-  assert(false && "not implemented");
+  bool small = small_or_large.compare("small");
+  bool large = small_or_large.compare("large");
+  if (!small and !large) assert(false && "<small_or_large> must be \"small\" or \"large\"");
+  
+  BDWord curr_state = bd_state_.at(core_id).GetReg(bdpars::BDHornEP::ADC).first;
+  unsigned int curr_small_large_0 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_0);
+  unsigned int curr_small_large_1 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_1);
+  unsigned int curr_enable        = GetField(curr_state, ADCWord::ADC_OUTPUT_ENABLE);
+
+  assert((adc_id == 0 || adc_id == 1) && "<adc_id> must be 0 or 1");
+  BDWord word_to_prog;
+  unsigned int small_large_bit = static_cast<unsigned int>(large);
+  if (adc_id == 0) {
+      word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, small_large_bit},
+                                        {ADCWord::ADC_SMALL_LARGE_CURRENT_1, curr_small_large_1},
+                                        {ADCWord::ADC_OUTPUT_ENABLE,         curr_enable}});
+  } else {
+      word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, curr_small_large_0},
+                                        {ADCWord::ADC_SMALL_LARGE_CURRENT_1, small_large_bit},
+                                        {ADCWord::ADC_OUTPUT_ENABLE,         curr_enable}});
+  }
+  SetBDRegister(core_id, bdpars::BDHornEP::ADC, word_to_prog);
 }
 
 /// Turn ADC output on
 void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
-  assert(false && "not implemented");
+  BDWord curr_state = bd_state_.at(core_id).GetReg(bdpars::BDHornEP::ADC).first;
+  unsigned int curr_small_large_0 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_0);
+  unsigned int curr_small_large_1 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_1);
+
+  BDWord word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, curr_small_large_0},
+                                           {ADCWord::ADC_SMALL_LARGE_CURRENT_1, curr_small_large_1},
+                                           {ADCWord::ADC_OUTPUT_ENABLE, en}});
+
+  SetBDRegister(core_id, bdpars::BDHornEP::ADC, word_to_prog);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
