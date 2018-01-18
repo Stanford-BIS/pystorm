@@ -146,7 +146,7 @@ BrainDrizzle router_node (
  .BD_out_clk	(),//No BD
  .bot_out_clk	(bot_out_clk),
  .sent_something_to_top(),//led_in[3]),
- .sent_something_to_BD(),//led_in[1])
+ .sent_something_to_BD()//led_in[1])
 );
 //assign led_in[1]=bot_ready_out;
 reg something_top,something_in=0;
