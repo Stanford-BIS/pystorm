@@ -18,15 +18,19 @@ def PrintBytearrayAs32b(buf_out):
     elif (this_word[0] == 128 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0):
       nop_count += 1
     else:
+      word = ""
       for j in range(4):
         to_print = ""
         elcopy = this_word[j]
         for i in range(8):
           to_print += str(elcopy % 2)
           elcopy = elcopy >> 1
-        to_print += " "
-        sys.stdout.write(str(to_print[::-1]))
-      sys.stdout.write('\n')
+        word += str(to_print[::-1])
+        # sys.stdout.write(str(to_print[::-1]))
+      word = word[2:]
+      word = ' '.join(word[i:i+10] for i in range(0, len(word), 10))
+      print(word)
+      # sys.stdout.write('\n')
   print("plus " + str(nop_count) + " NOPs")
 
 bitfile = "/home/zach/pystorm/FPGA/quartus/output_files/BZ_host_core.rbf"
