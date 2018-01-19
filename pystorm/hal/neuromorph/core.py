@@ -29,10 +29,12 @@ class Core(object):
         self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y']
         self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x']
         self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
+        self.NeuronArray_pools_y = self.NeuronArray_height // self.NeuronArray_pool_size_y
+        self.NeuronArray_pools_x = self.NeuronArray_width // self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
-        self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
+        self.PAT_size = self.NeuronArray_pools_x * self.NeuronArray_pools_y
 
         self.num_threshold_levels = ps_pars['num_threshold_levels']
         self.min_threshold_value = ps_pars['min_threshold_value']

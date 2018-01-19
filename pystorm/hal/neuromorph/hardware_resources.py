@@ -164,6 +164,9 @@ class Neurons(Resource):
 
     Also includes the direct-mapped PAT memory needed to get to the accumulator
     """
+
+    pool_yx_to_aer = None
+
     def __init__(self, y, x):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
@@ -210,6 +213,16 @@ class Neurons(Resource):
         # let the allocator know about it
         core.neuron_array.add_pool(self)
 
+        # fill in yx_to_AER if not done already
+        if Neurons.pool_yx_to_aer is None:
+            pools_y = core.NeuronArray_pools_y
+            pools_x = core.NeuronArray_pools_x
+            Neurons.pool_yx_to_aer = np.zeros((pools_y, pools_x))
+            for aer_sub_addr in range(pools_y * pools_x):
+                yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr) # this is a minor hack, but should work
+                y = yx // core.NeuronArray_width
+                x = yx  % core.NeuronArray_width
+                Neurons.pool_yx_to_aer[y, x] = aer_sub_addr
 
     def allocate(self, core):
         """neuron array allocation"""
@@ -245,7 +258,8 @@ class Neurons(Resource):
     def assign(self, core):
         """PAT assignment"""
         if len(self.conns_out) == 1:
-            core.PAT.assign(self.PAT_contents, (self.py_loc, self.px_loc))
+            aer_pool_addr_bits = Neurons.pool_yx_to_aer[self.py_loc, self.px_loc]
+            core.PAT.assign(self.PAT_contents, aer_pool_addr_bits)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -262,7 +276,7 @@ class MMWeights(Resource):
     # keep track of unique ids for combined matrices -> list(MMWeights)
     reverse_cache = {}
 
-    yx_to_aer = None
+    yx_to_aer = None # maps y,x address in pool (64 neurons) to aer address (used in HW)
 
     @staticmethod
     def weight_to_mem(user_W, max_abs_row_weights, core):
@@ -437,14 +451,14 @@ class MMWeights(Resource):
 
 
         else:
-            self.W_slices = [self.programmed_W[:,i] for i in range(self.N_slices)]
+            slice_shape = (self.programmed_W.shape[0], 1)
+            self.W_slices = [self.programmed_W[:,i].reshape(*slice_shape) for i in range(self.N_slices)]
 
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:
             contents = [
                 [bddriver.PackWord([(bddriver.MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
-            for i in range(W_slice.shape[0])]
-
+                 for i in range(W_slice.shape[0])]
             self.W_slices_BDWord += [np.array(contents, dtype=object)]
 
     def assign(self, core):
@@ -490,7 +504,8 @@ class AMBuckets(Resource):
 
         # find max_row_Ws in the user_max_weights we just computed
         # user_max_weights is descending, so we provide the sorter argument
-        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights) - 1
+        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights, side="right") - 1
+        assert(np.all(thr_idxs >= 0))
 
         thr_vals = all_thr_vals[thr_idxs]
 

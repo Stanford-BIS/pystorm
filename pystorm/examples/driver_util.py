@@ -90,15 +90,17 @@ def thr_idxs_vals(max_abs_row_weights):
     # compute all possible hardware threshold vals (64, 128, 256, ...)
     all_thr_vals = np.array(
         [min_threshold_value * 2**t for t in range(num_threshold_levels)])
+    #print("vals", all_thr_vals)
 
     # compute max possible weight, in user-space, for each threshold value
     # the first value (for threshold = 64) is special, as noted above
     user_max_weights_for_thr_vals = np.array(
         [1.] + [max_weight_value / thr_val for thr_val in all_thr_vals[1:]])
+    #print("max weights", user_max_weights_for_thr_vals)
 
     # find max_row_Ws in the user_max_weights we just computed
     # user_max_weights is descending, so we provide the sorter argument
-    thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights) - 1
+    thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights, side="right") - 1
 
     thr_vals = all_thr_vals[thr_idxs]
 
