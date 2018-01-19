@@ -46,8 +46,7 @@ class Core(object):
         AM_shape = (self.AM_size,)
         TAT0_shape = (self.TAT_size,)
         TAT1_shape = (self.TAT_size,)
-        PAT_shape = (self.NeuronArray_height // self.NeuronArray_pool_size_y, 
-                     self.NeuronArray_width // self.NeuronArray_pool_size_x)
+        PAT_shape = (self.NeuronArray_pools_y * self.NeuronArray_pools_x,)
 
         self.MM = MM(MM_shape, self.NeuronArray_pool_size)
         self.AM = AM(AM_shape)
@@ -283,10 +282,15 @@ class Memory(object):
         self.M = np.array(self.M, dtype=object)
 
     def assign_1d_block(self, mem, start):
-        if len(self.shape) == 2 and isinstance(start, tuple):
-            start = start[0] * self.shape[1] + start[1]
-        idx_slice = slice(start, start + mem.shape[0])
-        self.M.flat[idx_slice] = mem
+        if isinstance(mem, np.ndarray):
+            if len(self.shape) == 2 and isinstance(start, tuple):
+                start = start[0] * self.shape[1] + start[1]
+            idx_slice = slice(start, start + mem.shape[0])
+            self.M.flat[idx_slice] = mem
+        elif isinstance(mem, int):
+            self.M.flat[start] = mem
+        else:
+            assert(False and "bad <mem> data type in assign_1d_block")
 
     def assign_2d_block(self, mem, start):
         assert len(self.shape) == 2
@@ -404,17 +408,16 @@ class PAT(object):
         self.mem = PATMem(shape, 0)
 
     def assign(self, data, start):
-        self.mem.assign_2d_block(data, start)
+        self.mem.assign_1d_block(data, start)
 
     def __str__(self):
         s = "PAT : [ ama | mmax | mmay_base ]\n"
         for idx in range(self.mem.shape[0]):
-            for jdx in range(self.mem.shape[1]):
-                m         = self.mem.M[idx, jdx]
-                ama       = bd.GetField(m, bd.PATWord.AM_ADDRESS)
-                mmax      = bd.GetField(m, bd.PATWord.MM_ADDRESS_LO)
-                mmay_base = bd.GetField(m, bd.PATWord.MM_ADDRESS_HI)
-                s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
+            m         = self.mem.M[idx]
+            ama       = bd.GetField(m, bd.PATWord.AM_ADDRESS)
+            mmax      = bd.GetField(m, bd.PATWord.MM_ADDRESS_LO)
+            mmay_base = bd.GetField(m, bd.PATWord.MM_ADDRESS_HI)
+            s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
         return s
 
 class NeuronArray(object):

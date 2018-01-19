@@ -217,7 +217,7 @@ class Neurons(Resource):
         if Neurons.pool_yx_to_aer is None:
             pools_y = core.NeuronArray_pools_y
             pools_x = core.NeuronArray_pools_x
-            Neurons.pool_yx_to_aer = np.zeros((pools_y, pools_x))
+            Neurons.pool_yx_to_aer = np.zeros((pools_y, pools_x), dtype=int)
             for aer_sub_addr in range(pools_y * pools_x):
                 yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr) # this is a minor hack, but should work
                 y = yx // core.NeuronArray_width
@@ -237,6 +237,7 @@ class Neurons(Resource):
             weights = self.conns_out[0].tgt
             buckets = self.conns_out[0].tgt.conns_out[0].tgt
 
+            # addressed y-x, they can't necessarily be written to the memory contiguously
             self.PAT_contents = np.empty((self.py, self.px), dtype=object)
 
             for py_idx in range(self.py):
@@ -258,8 +259,11 @@ class Neurons(Resource):
     def assign(self, core):
         """PAT assignment"""
         if len(self.conns_out) == 1:
-            aer_pool_addr_bits = Neurons.pool_yx_to_aer[self.py_loc, self.px_loc]
-            core.PAT.assign(self.PAT_contents, aer_pool_addr_bits)
+            for py_idx in range(self.py_loc, self.py_loc + self.py):
+                for px_idx in range(self.px_loc, self.px_loc + self.px):
+                    aer_pool_addr_bits = Neurons.pool_yx_to_aer[py_idx, px_idx]
+                    to_assign = self.PAT_contents[py_idx, px_idx]
+                    core.PAT.assign(to_assign, aer_pool_addr_bits)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory
@@ -411,7 +415,7 @@ class MMWeights(Resource):
 
             # fill in yx_to_AER if not done already
             if MMWeights.yx_to_aer is None:
-                MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x)).astype(int)
+                MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x), dtype=int)
                 for aer_sub_addr in range(core.NeuronArray_pool_size):
                     yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr)
                     y = yx // core.NeuronArray_width

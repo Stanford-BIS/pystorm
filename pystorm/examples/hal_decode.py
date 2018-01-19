@@ -15,7 +15,7 @@ np.random.seed(0)
 
 K = 8
 width = 16
-height = 8
+height = 16
 width_height = (width, height)
 N = width * height
 
