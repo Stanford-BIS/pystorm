@@ -35,7 +35,8 @@ setup(
     packages=find_packages(),
     install_requires=[
         'numpy>=1.7',
-        'rectpack>=0.2'
+        'rectpack>=0.2',
+        'pyyaml>=3.12',
     ],
     include_package_data=True,
     zip_safe=False
