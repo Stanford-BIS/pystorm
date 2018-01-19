@@ -78,10 +78,13 @@ assign led_in[0] = PC_downstream.v;
 //assign led_in[3] = 0;
 assign led_in[2] = PC_upstream.v;
 //Generate 200 MHz Clock for router node
+wire transmit_clk;
+assign top_out_clk = transmit_clk;
 BZ_host_core_PLL BZ_host_PLL(
 	.refclk(sys_clk),
 	.rst(0),
 	.outclk_0(router_clk),
+	.outclk_1(transmit_clk),
 	.locked()
 	);
 
@@ -142,7 +145,7 @@ BrainDrizzle router_node (
  .top_ready_out(top_ready_out),
  .BD_ready_out	(),//No BD
  .bot_ready_out(bot_ready_out),
- .top_out_clk	(top_out_clk),
+ .top_out_clk	(),
  .BD_out_clk	(),//No BD
  .bot_out_clk	(bot_out_clk),
  .sent_something_to_top(),//led_in[3]),
