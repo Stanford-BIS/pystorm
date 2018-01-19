@@ -60,23 +60,23 @@ begin
 
 	#600
 	bot_in=11'b10111111100; //try sending data
-	#60
+	#12
 	bot_in=11'b00000000000; //try sending data to BD
-	#60
+	#12
 	bot_in=11'b00000000001;
-	#60
+	#12
 	bot_in=11'b00000000011;
-	#60
+	#12
 	bot_in=11'b10000000111; //tail
-	#60
+	#12
 	bot_in=11'b00000000000; //try sending data to BD
-	#60
+	#12
 	bot_in=11'b00000001111;
-	#60
+	#12
 	bot_in=11'b00000011111;
-	#60
+	#12
 	bot_in=11'b00000111111;
-	#60
+	#12
 	bot_in=11'b01010101010;
 end
 
@@ -97,7 +97,7 @@ always
 	#6 osc =! osc;
 	
 always begin
-	#30 //3x osc clk (50 vs 150)
+	#6 //3x osc clk (50 vs 150)
 	top_in_clk=!top_in_clk;
 	bot_in_clk=!bot_in_clk;
 	BD_in_clk_ifc=!BD_in_clk_ifc;

@@ -44,6 +44,7 @@ output bot_ready_out,
 output top_out_clk,
 output bot_out_clk
 );
+
 //RESET TEST
 //reg [1:0] test;
 //always @ (posedge router_clk or posedge reset) begin
@@ -130,9 +131,9 @@ BrainDrizzle router_node (
  .top_ready_out(top_ready_out),
  .BD_ready_out	(BD_ready_out),
  .bot_ready_out(bot_ready_out),
- .top_out_clk	(top_out_clk),
+ .top_out_clk	(),
  .BD_out_clk	(BD_out_clk),
- .bot_out_clk	(bot_out_clk),
+ .bot_out_clk	(),
  .sent_something_to_top	(req_0),
  .sent_something_to_BD	(req_1)
 );
@@ -200,8 +201,12 @@ stack_BDIO_PLL stack_clockgen(
 	.c0		(base_BD_clk),
 	.c1		(skewed_BD_clk),
 	.c2		(router_clk),
-	.c3		(core_clk)
+	.c3		(core_clk),
+	.c4    (transmit_clk)
 	);
+
+assign top_out_clk = transmit_clk;
+assign bot_out_clk = transmit_clk;
 
 // // BD handshakers and FIFOs
 // BDIfc BD_ifc(
