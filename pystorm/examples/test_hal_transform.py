@@ -107,8 +107,21 @@ print(len(spikes), "spikes before trial")
 
 
 def do_sweep(bin_time_boundaries):
-    for d in range(Din):
-        for r, bin_start in zip(stim_rates[d], bin_time_boundaries[:-1]):
+    last_bin_start = None
+    for bin_idx in range(len(stim_rates[0])):
+        bin_start = bin_time_boundaries[bin_idx]
+        if last_bin_start is None:
+            pass
+        else:
+            if bin_start < last_bin_start:
+                print("last_bin_start", last_bin_start, "vs bin_start", bin_start)
+                assert(False)
+        last_bin_start = bin_start
+
+        for d in range(Din):
+            r = stim_rates[d][bin_idx]
+
+            #print("at", bin_start, "d", d, "is", r)
             HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
 
 do_sweep(bin_time_boundaries)

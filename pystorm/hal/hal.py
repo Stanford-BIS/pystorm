@@ -229,7 +229,7 @@ class HAL(object):
             the last one
 
         WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
-        provided has passed!
+        provided has passed! So if you're queing up rates, make sure you call this in the order of the times
         """
         if flush is False:
             assert(False and "there's currently a Driver bug with set_input_rate flush=False")
@@ -239,7 +239,10 @@ class HAL(object):
         # and to target different tags
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
         out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
-        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, True)
+
+        hack_rate = rate + 1 # XXX setting all rates to 0 seems to cause problems, SGs never turn back on
+
+        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [hack_rate], time, True)
 
         # XXX there is a bug (probably with how inputs are sorted by time)
         # calling SetSpikeGeneratorRates with more than one element per list 
@@ -311,6 +314,7 @@ class HAL(object):
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
+            print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
             self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
         # spike filter idx -> Output/dim
         for ng_out in network.get_outputs():
