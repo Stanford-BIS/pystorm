@@ -616,8 +616,7 @@ class TATAccumulator(Resource):
 
     def pretranslate(self, core):
         self.size = self.D * len(self.conns_out)
-        self.start_offsets = np.array(
-            range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
+        self.start_offsets = np.array(range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
 
     def allocate(self, core):
         self.start_addr = core.TAT0.allocate(self.size)
@@ -826,7 +825,7 @@ class TATFanout(Resource):
 
     def pretranslate(self, core):
         self.size = self.D * self.fanout_entries
-        self.start_offsets = np.array(range(self.D)) * self.fanout_entries # D acc sets, each with self.fanout_entries entries
+        self.start_offsets = np.array(range(self.D)) * self.fanout_entries # D sets, each with self.fanout_entries entries
 
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
@@ -850,13 +849,13 @@ class TATFanout(Resource):
         else:
             clobber_post = [clobber_stop]
 
-        # prepend clobber entry
-        if self.has_Sink_output:
-            self.contents = clobber_pre
-        else:
-            self.contents = []
+        self.contents = []
 
         for d in range(self.D):
+            # prepend clobber entry
+            if self.has_Sink_output:
+                self.contents += clobber_pre
+
             for t in range(len(self.conns_out)):
                 if self.has_Sink_output:
                     stop = 0 # stop provided by clobber
@@ -876,11 +875,12 @@ class TATFanout(Resource):
                     (bddriver.TATTagWord.TAG, tag),
                     (bddriver.TATTagWord.GLOBAL_ROUTE, global_route)])]
 
-        # postpend clobber entry
-        if self.has_Sink_output:
-            self.contents += clobber_post
+            # postpend clobber entry
+            if self.has_Sink_output:
+                self.contents += clobber_post
 
         self.contents = np.array(self.contents, dtype=object)
+        assert(len(self.contents) == self.size)
 
     def assign(self, core):
         core.TAT1.assign(self.contents, self.start_addr)

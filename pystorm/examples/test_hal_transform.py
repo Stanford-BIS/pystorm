@@ -14,7 +14,7 @@ np.random.seed(0)
 # network parameters
 
 Din = 2
-Dout = 2
+Dout = 1
 fmax = 1000
 num_training_points_per_dim = 5
 training_hold_time = .5
@@ -44,13 +44,17 @@ net = graph.Network("net")
 
 if Din == 1 and Dout == 1:
     transform = np.array([[1.0]])
+elif Din == 2 and Dout == 1:
+    transform = np.array([[1.0, .25]])
+elif Din == 1 and Dout == 2:
+    transform = np.array([[1.0], [.1]])
 elif Din == 2 and Dout == 2:
     transform = np.array([[1.0, .25], [.1, .2]])
 else:
     assert(False and "write a matrix for this Din/Dout combo")
 
 i1 = net.create_input("i1", Din)
-b1 = net.create_bucket("b1", Din)
+b1 = net.create_bucket("b1", Dout)
 o1 = net.create_output("o1", Dout)
 
 net.create_connection("c_i1_to_b1", i1, b1, transform)
