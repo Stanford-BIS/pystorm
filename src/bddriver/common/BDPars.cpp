@@ -129,22 +129,23 @@ BDPars::BDPars() {
   mem_info_[BDMemId::FIFO_PG]  = {2048,    BDHornEP::COUNT,     BDFunnelEP::COUNT,     BDHornEP::DELAY_PGFIFO};
 
   // DAC info
-  dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {25 , 1};
-  dac_info_[BDHornEP::DAC_ADC_BIAS_2]  = {25 , 1};
+  dac_info_[BDHornEP::DAC_ADC_BIAS_1]  = {1 , 512}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_ADC_BIAS_2]  = {1 , 512}; // roughly 1pA to 1nA
   // DAC output is scaled by 8/16/128.
   // Then LPF input multiplies by 2X to get 4/8/64.        
+  // SYN ranges should be roughly between 125fA/62.5fA/8fA and 125pA/62.5pA/8pA
   dac_info_[BDHornEP::DAC_SYN_EXC]     = {8  , (34 + 30) * 8};   // (34 + 30) * 8 = 512
   dac_info_[BDHornEP::DAC_SYN_DC]      = {16 , 544};             // 34 * 16 = 544
   dac_info_[BDHornEP::DAC_SYN_INH]     = {128, (34 - 30) * 128}; // (34 - 30) * 128 = 512
-  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1024}; 
-  dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 22};
+  dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1024}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 22}; // roughly 1pA to 1nA
   // DAC output is scaled by 160.
   // Then LPF leak multiplies by 8X to get 20.
-  dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10};
-  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024}; 
-  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512};
-  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; 
-  dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10};
+  dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10}; // roughly 6.25fA to 6.25pA
+  dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; // roughly 250fA to 250pA 
+  dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10}; // roughly 1pA to 1nA
 
   // init AER address translation tables
   InitAERMappers<12>(&soma_xy_to_aer_, &soma_aer_to_xy_);
