@@ -22,6 +22,7 @@ set_time_format -unit ns -decimal_places 3
 
 create_clock -name {okUH0} -period 9.920 -waveform { 0.000 4.960 } [get_ports {okUH[0]}]
 create_clock -name {virt_okUH0} -period 9.920 -waveform { 0.000 4.960 } 
+create_clock -name {top_in_clk} -period 100.00 -waveform { 0.000 50.000 } [get_ports {top_in_clk}]
 
 
 #**************************************************************

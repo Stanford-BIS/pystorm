@@ -6,7 +6,7 @@
 // the BD traffic, and the SpikeGeneratorArray traffic,
 // and inserts heartbeat events signalsed by the TimeMgr
 
-module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
+module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10, parameter GO_HOME_rt = -512) (
   Channel PC_out,
 
   // BDSerializer inputs
@@ -14,6 +14,9 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
 
   // FPGASerializer inputs
   SerializedPCWordChannel FPGA_in,
+
+  // GlobalTagParser inputs
+  SerializedPCWordChannelwithRoute Global_in,
 
   input clk, reset);
 
@@ -66,18 +69,29 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24) (
 // [ code=16 |  time_bits[47:24] ]
 
 // pack bits, then merge
-Channel #(NPCcode + NPCdata) BD_packed();
-Channel #(NPCcode + NPCdata) FPGA_packed();
+Channel #(NPCcode + NPCdata + NPCroute) BD_packed();
+Channel #(NPCcode + NPCdata + NPCroute) FPGA_packed();
+Channel #(NPCcode + NPCdata + NPCroute) Global_packed();
 
-assign BD_packed.d = {BD_in.code, BD_in.payload};
+//pack BD, add go home route
+assign BD_packed.d = {GO_HOME_rt, BD_in.code, BD_in.payload};
 assign BD_packed.v = BD_in.v;
 assign BD_in.a = BD_packed.a;
 
-assign FPGA_packed.d = {FPGA_in.code, FPGA_in.payload};
+//pack FPGA, add go home route
+assign FPGA_packed.d = {GO_HOME_rt, FPGA_in.code, FPGA_in.payload};
 assign FPGA_packed.v = FPGA_in.v;
 assign FPGA_in.a = FPGA_packed.a;
 
-ChannelMerge packed_merge_root(PC_out, BD_packed, FPGA_packed, clk, reset);
+//pack BD-to-BD tag data
+assign Global_packed.d = {Global_in.route, Global_in.code, Global_in.payload};
+assign Global_packed.v = Global_in.v;
+assign Global_in.a = Global_packed.a;
+
+//double merge
+Channel #(NPCcode + NPCdata + NPCroute) temp_merge();
+ChannelMerge packed_merge_initial(temp_merge, BD_packed, FPGA_packed, clk, reset);
+ChannelMerge packed_merge_root(PC_out, temp_merge, Global_packed, clk, reset);
 
 endmodule
 

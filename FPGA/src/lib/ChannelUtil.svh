@@ -2,6 +2,10 @@
 `define CHANNEL_UTIL_SVH
 
 `include "Channel.svh"
+`ifdef SIMULATION
+  `include "../../quartus/Internal_DC_Channel_FIFO.v"
+  `include "../../quartus/BDInFIFO.v"
+`endif
 
 ///////////////////////////////////////////
 // Synthesizable channel helpers
@@ -21,6 +25,72 @@ for (i = 0; i < M; i++) begin : UnpackChannelArray_generate
   assign A.a[i] = B[i].a;
 end
 endgenerate
+
+endmodule
+
+////////////////////////////////////////////
+// Dual clock FIFO for 32 bit channels
+// Based on BDinFIFO (yeah it's a bit wide, but i didn't wanna generate more ip :P)
+module DCChannelFIFO32(
+  Channel in,
+  Channel out,
+  input wrclk, rdclk, reset);
+
+  //handshake fifo input
+  wire [33:0] data = {2'b0, in.d};
+  reg wrfull;
+  wire wrreq = in.v & ~wrfull;
+  assign in.a = in.v & ~wrfull;
+
+  //handshake fifo output
+  reg [33:0] q;
+  assign out.d = q[31:0];
+  wire rdreq = out.a;
+  reg rdempty;
+  assign out.v = ~rdempty;
+
+  BDInFIFO fifo(
+    .data   (data),
+    .rdclk  (rdclk),
+    .rdreq  (rdreq),
+    .wrclk  (wrclk),
+    .wrreq  (wrreq),
+    .q      (q),
+    .rdempty(rdempty),
+    .wrfull (wrfull));
+
+endmodule
+
+////////////////////////////////////////////
+// Dual clock FIFO for 32 bit channels
+// Based on DCChannelFifo_internal
+module DCChannelFIFO42(
+  Channel in,
+  Channel out,
+  input wrclk, rdclk, reset);
+
+  //handshake fifo input
+  wire [47:0] data = {6'b0, in.d};
+  reg wrfull;
+  wire wrreq = in.v & ~wrfull;
+  assign in.a = in.v & ~wrfull;
+
+  //handshake fifo output
+  reg [47:0] q;
+  assign out.d = q[41:0];
+  wire rdreq = out.a;
+  reg rdempty;
+  assign out.v = ~rdempty;
+
+  Internal_DC_Channel_FIFO fifo(
+    .data   (data),
+    .rdclk  (rdclk),
+    .rdreq  (rdreq),
+    .wrclk  (wrclk),
+    .wrreq  (wrreq),
+    .q      (q),
+    .rdempty(rdempty),
+    .wrfull (wrfull));
 
 endmodule
 

@@ -8,15 +8,18 @@ reg clk;
 reg [10:0] data_in;
 reg ready_0;
 reg ready_1;
-reg almost_empty;
+reg empty;
+reg reset;
 wire read;
 wire req_0;
 wire req_1;
 wire [10:0] data_out;
 
+
 InputController DUT	(
 	.clk				(clk),
-	.almost_empty	(almost_empty),
+	.reset			(reset),
+	.empty			(empty),
 	.ready_0			(ready_0),
 	.ready_1			(ready_1),
 	.data_in			(data_in),
@@ -30,22 +33,32 @@ initial
 begin
 	#0
 	clk = 0;
-	almost_empty=1;
+	empty=1;
 	ready_0=0;
 	ready_1=0;
 	data_in=11'b01111111101;
+	reset=1;
 	
 	#210
-	almost_empty=0;
+	reset=0;
+	
+	#200
+	empty=0;
 	
 	#500
 	ready_0=1;
 	
 	#500
-	almost_empty=1;
+	empty=1;
 	
 	#200
-	almost_empty=0;
+	empty=0;
+	
+	#500
+	ready_0=0;
+	
+	#300
+	ready_0=1;
 	
 	#200
 	data_in[10]=1;
@@ -53,21 +66,24 @@ begin
 	
 	#100
 	data_in[10]=0;
+	
+	
+	#500
 	ready_0=0;
 	
 	#100
 	ready_1=1;
 	
 	#300 
-	almost_empty=1;
+	empty=1;
 	
 	#100
-	almost_empty=0;
+	empty=0;
 	
 	#400
 	data_in[10]=1;
-	
-	#200
+	#100
+	empty=1;
 	ready_1=0;
 	
 	
@@ -78,7 +94,7 @@ always
 	#50 clk = !clk;
 	
 always @ (posedge clk)
-	if (read)
+	if (read && ~empty)
 		data_in[9:0]=data_in[9:0]+1;
 
 endmodule

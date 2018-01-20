@@ -39,10 +39,8 @@ interboard_input inputDUT(
 	.wrusedw(receive_board_fifo_wrusedw), //fifo words remaining
 	.reset(reset),
 	.data(receive_board_fifo_in), //data sent to the fifo
-	.wrclk(receive_board_fifo_wrclk), //write clock for fifo
 	.wrreq(receive_board_fifo_wrreq), //write request for fifo
-	.read(read), //read request for next board
-	.out_clk(interboard_clk) //out clock for other board
+	.read(read) //read request for next board
 	);
 
 interboard_output outputDUT(
@@ -53,8 +51,7 @@ interboard_output outputDUT(
 	.reset(reset),
 	.valid(valid), //valid signal, sent to the board we're transmitting to
 	.send_data(interboard_data), //data sent to next board
-	.rdreq(send_board_fifo_rdreq), //read request for dual clock fifo
-	.rdclk(send_board_fifo_rdclk) //clock for fifo
+	.rdreq(send_board_fifo_rdreq) //read request for dual clock fifo
 	);
 
 initial begin
@@ -68,18 +65,18 @@ initial begin
 	reset = 0;
 	//should begin sending data here
 
-	#70
+	#80
 	receive_board_fifo_wrusedw = 8'd255;
 	//we've filled up, should stop transmitting
 
-	#70
+	#80
 	receive_board_fifo_wrusedw = 8'd254;
 	//have a spot, should start transmitting
 end
 
 //delay signals
 always begin
-	#5
+	#2
 	interboard_data_del = interboard_data;
 	interboard_clk_del = interboard_clk;
 	valid_del = valid;
