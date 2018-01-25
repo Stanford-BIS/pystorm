@@ -15,8 +15,8 @@ def PrintBytearrayAs32b(buf_out):
     this_word = this_word_flipped[::-1]
     if (this_word[0] == 64 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0):
       nop_count += 1
-    elif (this_word[0] == 128 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0):
-      nop_count += 1
+    # elif (this_word[0] == 128 and this_word[1] == 0 and this_word[2] == 0 and this_word[3] == 0):
+    #   nop_count += 1
     else:
       word = ""
       for j in range(4):
@@ -46,19 +46,26 @@ ep_dn = 0x80 # BTPipeIn ep num
 ep_up = 0xa0 # PipeOut ep num
 
 
-codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000010"]
+codes = ["0b01001100011100001111000001111100", "0b00000000000000000000000000000001"]
 
 
 outputs = []
-for n in range(2): #range(int(block_size / len(codes))):
-	for code in codes:
-		outputs.append(FormatBits(code))
+for n in range(8): #range(int(block_size / len(codes))):
+  word = ""
+  word+="0b000000000000000000000000"
+  for m in range(n-1):
+    word+="0"
+  word+="1"
+  for m in range(7-n):
+    word+="0"
+  outputs.append(FormatBits(word))
+  outputs.append(FormatBits(codes[1])) #add route
 
 #for code in codes:
-#	outputs.append(FormatBits(code))
+#  outputs.append(FormatBits(code))
 
 while len(outputs) < block_size:
-	outputs.append(FormatBits(nop_down))
+  outputs.append(FormatBits(nop_down))
 
 buf = bytearray()
 for el in outputs:
@@ -68,18 +75,21 @@ print("============SENDING=============")
 PrintBytearrayAs32b(buf)
 print("================================")
 
-written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
+for n in range(3000):
+  # sys.stdout.write(str(n) + " ")
+  written = dev.WriteToBlockPipeIn(ep_dn, block_size, buf)
+sys.stdout.write('\n')
 # print("Written " + str(written))
 
 time.sleep(2)
 i=0
-for j in range(3):
+for j in range(500):
     # get the memory programming read and one output!
     out_buf = bytearray(block_size*4)
-    dev.ReadFromPipeOut(ep_up, out_buf)
+    dev.ReadFromBlockPipeOut(ep_up, block_size*4 ,out_buf)
     print("------------RECEIVED------------")
     PrintBytearrayAs32b(out_buf)
     print("--------------------------------")
     print(i)
-    time.sleep(1)
+    time.sleep(0)
     i += 1
