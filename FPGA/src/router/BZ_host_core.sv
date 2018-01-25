@@ -43,10 +43,10 @@ wire bot_valid_out;
 wire bot_out_clk;
 
 
-localparam NPCcode = 8;
-localparam NPCdata = 24;
-localparam NPCinout = NPCcode + NPCdata;
-localparam NPCroute = 10;
+localparam NPCcode = 7;
+localparam NPCdata =20;
+localparam NPCroute = 5;
+localparam NPCinout = NPCcode + NPCdata + NPCroute;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
 // internal clocks
@@ -62,11 +62,11 @@ assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
 wire bot_ready_out;
 
 // channels between OK ifc and core design
-Channel #(NPCinout + NPCroute) PC_downstream();
+Channel #(NPCinout) PC_downstream();
 Channel #(NPCinout) PC_upstream();
 // channels between serdes and core design
 Channel #(NPCinout) Des_out();
-Channel #(NPCinout + NPCroute) Ser_in();
+Channel #(NPCinout) Ser_in();
 
 // get single-ended clock
 SysClkBuf sys_clk_buf(.datain(sys_clk_p), .datain_b(sys_clk_n), .dataout(sys_clk));

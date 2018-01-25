@@ -75,10 +75,10 @@ assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
 logic BD_in_valid;
 assign BD_in_valid = ~_BD_in_valid;
 
-localparam NPCcode = 8;
-localparam NPCdata = 24;
-localparam NPCroute= 10;
-localparam NPCinout = NPCcode + NPCdata;
+localparam NPCcode = 7;
+localparam NPCdata = 20;
+localparam NPCroute= 5;
+localparam NPCinout = NPCcode + NPCdata + NPCroute;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
 localparam NBDin = 21;
@@ -155,11 +155,11 @@ tail_bit_reset gen_reset(
 
 // channels between serdes and core design
 Channel #(NPCinout) Des_out();
-Channel #(NPCinout + NPCroute) Ser_in();
+Channel #(NPCinout) Ser_in();
 
 assign Des_out.a = Ser_in.a;
 assign Ser_in.v = Des_out.v;
-assign Ser_in.d = {10'b1000000000, Des_out.d};
+assign Ser_in.d = Des_out.d;
 
 BZ_deserializer deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
