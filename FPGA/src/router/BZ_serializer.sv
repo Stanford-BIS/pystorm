@@ -7,11 +7,9 @@
 //////////////////////////////////////////////////////////////
 // Core Output Format:
 //
-//	   10      8      24
-//	[ Route | Code | Data ]
+// [route | code | payload ]
+//	  5      7        20
 //
-// We only need to route the least significant 30 bits :)
-//		(this makes routing nicer and more efficient)
 //////////////////////////////////////////////////////////////
 // Router Packet Formats
 //	
@@ -28,7 +26,7 @@
 //////////////////////////////////////////////////////////////
 
 
-module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10)(
+module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter NPCroute = 5)(
 	Channel PC_in_channel, //channel from the Core that has data for us
 	input is_full, //full signal for the fifo this places stuff into
 	output reg [10:0] data_out, //data to write to fifo
@@ -37,7 +35,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 
 	//current header
 	wire [10:0] current_header;
-	assign current_header = {1'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
+	assign current_header = {6'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
 
 	//store header packet
 	reg [10:0] header_packet = 11'b0;
@@ -65,8 +63,8 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 			data <= 30'b0; //assign data
 		end
 		else if(state == 3'd0 | state == 3'd4) begin
-			header_packet <= {1'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
-			data <= PC_in_channel.d[29:0]; //assign data
+			header_packet <= {6'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
+			data <= PC_in_channel.d[NPCdata+NPCcode:0]; //assign data
 		end
 		if (reset==1) begin
 			state <= 3'b0;
@@ -93,7 +91,7 @@ module BZ_serializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter 
 
 			3'd2: begin
 					wrreq = !is_full;
-					data_out = {1'b0, data[29:20]}; //data 1
+					data_out = {4'b0, data[26:20]}; //data 1
 					PC_in_channel.a = !is_full; //ack
 					end
 
