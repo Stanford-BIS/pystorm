@@ -95,16 +95,11 @@ BZ_host_core_PLL BZ_host_PLL(
 // [route | code | payload ]
 //	  5      7        20
 //
-// Input to Router
-//
-// [ route | data ]
-//	  10	  30
-//
 Channel #(NPCinout) OK_downstream();
 
 assign PC_downstream.v = OK_downstream.v;
 assign OK_downstream.a = PC_downstream.a;
-assign PC_downstream.d = {5'b0, OK_downstream.d[31:27], 3'b0, OK_downstream.d[26:0]};
+assign PC_downstream.d = OK_downstream.d;
 
 ////////////////////////////////////////////
 

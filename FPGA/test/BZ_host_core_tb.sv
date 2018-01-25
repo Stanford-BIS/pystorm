@@ -45,10 +45,10 @@ end
 //////////////////////////////////////////////////////////////
 //CLKS
 
-always #6 osc =! osc;
+always #3 osc =! osc;
 
 always begin
-	#3 //3x osc clk (50 vs 150)
+	#1 //3x osc clk (50 vs 150)
 	top_in_clk=!top_in_clk;
 end
 
@@ -98,11 +98,8 @@ task SetReg(logic [4:0] reg_id, logic[15:0] data);
 	i = i + 1;
 endtask
 
-task SendPacket(logic[9:0] route, logic[31:0] payload);
+task SendPacket(logic[31:0] payload);
 	pipeInFlat[i] = payload;
-	assert(i < pipeInSize);
-	i = i + 1;
-	pipeInFlat[i] = {22'b0, route};
 	assert(i < pipeInSize);
 	i = i + 1;
 endtask
@@ -110,8 +107,6 @@ endtask
 task FlushAndSendPipeIn();
 	while (i + 1 < pipeInSize) begin
 		pipeInFlat[i] = nop;
-		i = i + 1;
-		pipeInFlat[i] = nop_rt;
 		i = i + 1;
 	end
 	WriteToBlockPipeIn(8'h80, pipeInSize, pipeInSize);
@@ -141,7 +136,7 @@ initial begin
   	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
-  	SendPacket(10'd3, 32'b01001100011100001111000001111100);
+  	SendPacket(32'b00010000000011110000111000110010);
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
   	#200
