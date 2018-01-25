@@ -54,39 +54,39 @@ begin
 	bot_valid_in = 1;
 	bot_ready_in = 1;
 	
-	#486
+	#399
 	bot_in=11'b00111111100; //try sending data
 	top_ready_in = 1;
 
 	#600
 	bot_in=11'b10111111100; //try sending data
-	#12
-	bot_in=11'b00000000000; //try sending data to BD
-	#12
+	#10
+	bot_in=11'b00000001111; //try sending data to BD
+	#10
 	bot_in=11'b00000000001;
-	#12
+	#10
 	bot_in=11'b00000000011;
-	#12
+	#10
 	bot_in=11'b10000000111; //tail
-	#12
+	#10
 	bot_in=11'b00000000000; //try sending data to BD
-	#12
+	#10
 	bot_in=11'b00000001111;
-	#12
+	#10
 	bot_in=11'b00000011111;
-	#12
+	#10
 	bot_in=11'b00000111111;
-	#12
-	bot_in=11'b01010101010;
+	#10
+	bot_valid_in = 0;
 end
 
 // BD src
 BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(200)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset, BD_in_clk_ifc);
 initial begin
 	reset = 0;
-	#10
+	#17
 	reset = 1;
-	#10
+	#17
 	reset = 0;
 end
 
@@ -94,10 +94,10 @@ end
 //CLKS
 
 always 
-	#6 osc =! osc;
+	#17 osc =! osc;
 	
 always begin
-	#6 //3x osc clk (50 vs 150)
+	#5 //3x osc clk (50 vs 150)
 	top_in_clk=!top_in_clk;
 	bot_in_clk=!bot_in_clk;
 	BD_in_clk_ifc=!BD_in_clk_ifc;
