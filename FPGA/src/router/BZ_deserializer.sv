@@ -22,14 +22,13 @@
 //////////////////////////////////////////////////////////////
 // Core Input Format:
 //
-//     8      24
-//	[ Code | Data ]
+// [route | code | payload ]
+//	  5      7        20
 //
-// The first 2 bits of the code are always 0, and are *not routed*
 //////////////////////////////////////////////////////////////
 
 
-module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10)(
+module BZ_deserializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter NPCroute = 5)(
 	Channel PC_out_channel, //goes to the Core
 	input isempty, //isempty signal for the fifo feeding us packets
 	input [10:0] data_in, //data from the fifo
@@ -61,17 +60,25 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 	end
 
 	reg [31:0] to_transmit;
-	assign to_transmit[31:30] = 2'b0; //first 2 bits are always zero
 	assign PC_out_channel.d = to_transmit;
 
 	always @(posedge clk) begin //do these synchronously to avoid issues
 		case(state)
-			3'd1: begin
+			3'd0: begin
 				if (!isempty) begin
-					to_transmit[29:20] <= data_in[9:0];
+					to_transmit[31:27] <= data_in[4:0];
 				end
 				else begin
-					to_transmit[29:0] <= to_transmit[29:0];
+					to_transmit[31:0] <= to_transmit[31:0];
+				end
+			end
+
+			3'd1: begin
+				if (!isempty) begin
+					to_transmit[26:20] <= data_in[6:0];
+				end
+				else begin
+					to_transmit[31:0] <= to_transmit[31:0];
 				end
 			end
 
@@ -80,7 +87,7 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 					to_transmit[19:10] <= data_in[9:0];
 				end
 				else begin
-					to_transmit[29:0] <= to_transmit[29:0];
+					to_transmit[31:0] <= to_transmit[31:0];
 				end
 			end
 
@@ -89,12 +96,12 @@ module BZ_deserializer #(parameter NPCcode = 8, parameter NPCdata = 24, paramete
 					to_transmit[9:0] <= data_in[9:0];
 				end
 				else begin
-					to_transmit[29:0] <= to_transmit[29:0];
+					to_transmit[31:0] <= to_transmit[31:0];
 				end
 			end
 
 			default: begin
-				to_transmit[29:0] <= to_transmit[29:0];
+				to_transmit[31:0] <= to_transmit[31:0];
 			end
 		endcase
 	end
