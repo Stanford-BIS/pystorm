@@ -85,7 +85,7 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 
 			3'd1: begin
 					wrreq = !is_full;
-					if (header_packet == {6'b0, 5'b11111}) begin
+					if (header_packet == {6'b0, 5'b10000}) begin
 						data_out = 11'b01000000000;
 					end
 					else begin

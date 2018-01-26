@@ -86,8 +86,7 @@ logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
-const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
-const logic[31:0] nop_rt = {22'b0, 10'b1000000000}; //negative routes get discarded
+const logic[31:0] nop = {5'b10000, 27'd0}; // 6'd63 is the highest register, which is unused
 
 // index into PipeIn
 int i = 0;
