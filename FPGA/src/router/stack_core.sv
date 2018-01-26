@@ -159,7 +159,7 @@ Channel #(NPCinout) Ser_in();
 
 assign Des_out.a = Ser_in.a;
 assign Ser_in.v = Des_out.v;
-assign Ser_in.d = Des_out.d;
+assign Ser_in.d = {5'b10000, Des_out.d[26:0]};
 
 BZ_deserializer deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
