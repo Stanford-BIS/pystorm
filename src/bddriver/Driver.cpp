@@ -620,7 +620,7 @@ void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP s
 }
 
 /// Set large/small current scale for either ADC
-void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string& small_or_large) {
+void Driver::SetADCScale(unsigned int core_id, unsigned int adc_id, const std::string& small_or_large) {
   bool small = small_or_large.compare("small");
   bool large = small_or_large.compare("large");
   if (!small and !large) assert(false && "<small_or_large> must be \"small\" or \"large\"");

@@ -218,7 +218,7 @@ class Driver {
   void SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en, bool flush=true);
 
   /// Set large/small current scale for either ADC
-  void SetADCScale(unsigned int core_id, bool adc_id, const std::string &small_or_large);  // XXX not implemented
+  void SetADCScale(unsigned int core_id, unsigned int adc_id, const std::string &small_or_large);  // XXX not implemented
   /// Turn ADC output on
   void SetADCTrafficState(unsigned int core_id, bool en);  // XXX not implemented
 
