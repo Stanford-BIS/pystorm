@@ -1,8 +1,8 @@
 """Provides the hardware abstraction layer"""
+from time import sleep
 import numpy as np
-from pystorm.hal.neuromorph import map_network, remap_resources
+from pystorm.hal.neuromorph import map_network, remap_resources, graph
 from pystorm.PyDriver import bddriver as bd
-import time
 
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -12,8 +12,9 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 # notes that affect nengo BE:
 # - send_inputs->set_inputs/get_outputs are different (SpikeFilter/Generator now used)
 # - arguments for remap_core/implement_core have changed (use the self.last_mapped objects now)
-# - graph.Pool now takes an argument with its encoders. Its input dimensionality is now self.dimensions.
-#   therefore making a connection to a pool will have no weight: the only kind of graph 
+# - graph.Pool now takes an argument with its encoders.
+#   Its input dimensionality is now self.dimensions.
+#   therefore making a connection to a pool will have no weight: the only kind of graph
 #   connection that should have weights is a connection going into a Bucket.
 #   not sure when I changed this/if Terry has incorporated changes. I had forgotten my
 #   original intent.
@@ -48,19 +49,19 @@ class HAL(object):
         self.start_hardware()
 
         self.driver.InitBD()
-    
-        # DAC settings (should be pretty close to driver defaults)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
-        self.driver.SetTimeUnitLen(10000) # 10 us downstream resolution 
+        # DAC settings (should be pretty close to driver defaults)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_DC     , 544)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_LK     , 10)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_PD     , 40)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_PU     , 1023)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_DIFF_G     , 1023)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_DIFF_R     , 500)
+        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 2)
+
+        self.driver.SetTimeUnitLen(10000) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(1000000) # 1 ms upstream resolution/tag binning
 
         self.last_mapped_resources = None
@@ -75,12 +76,12 @@ class HAL(object):
                        Also controls the time resolution of the FPGA tag stream generators
                        (set_input_rates() periods will be a multiple of this).
         upstream_ns: Controls the period of upstream heartbeats from the FPGA.
-                     Every upstream_ns, the FPGA reports the time current time. 
+                     Every upstream_ns, the FPGA reports the time current time.
                      The Driver uses the most recent HB to timestamp upstream traffic.
                      Also controls the period with which the FPGA emits filtered outputs.
                      get_outputs() will have new values every upstream_ns.
         """
-        self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution 
+        self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
 
     def __del__(self):
@@ -161,11 +162,11 @@ class HAL(object):
         Data format: a numpy array of : [(output, dim, counts, time), ...]
         Timestamps are in microseconds
 
-        Whether or not you get return values is enabled/disabled by 
+        Whether or not you get return values is enabled/disabled by
         enable/disable_output_recording()
         """
         # every FPGA time unit, the Spike Filter array loops through N_SF
-        # filters, reports the tallied tag counts since the last report, 
+        # filters, reports the tallied tag counts since the last report,
         # and resets each count to 0
 
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
@@ -184,7 +185,7 @@ class HAL(object):
             else:
                 print("discarding absurdly large spike filter value, probably a glitch")
                 counts.append(0)
-        
+
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
 
@@ -228,13 +229,14 @@ class HAL(object):
             If you're making several calls, it may be advantageous to only flush
             the last one
 
-        WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
-        provided has passed! So if you're queing up rates, make sure you call this in the order of the times
+        WARNING: If <flush> is True, calling this will block traffic until the max <time>
+        provided has passed!
+        If you're queing up rates, make sure you call this in the order of the times
         """
         if flush is False:
             assert(False and "there's currently a Driver bug with set_input_rate flush=False")
 
-        # every FPGA time unit, the FPGA loops through the spike generators and decides whether or 
+        # every FPGA time unit, the FPGA loops through the spike generators and decides whether or
         # not to emit a tag for each one. The SGs can be reprogrammed to change their individual rates
         # and to target different tags
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
@@ -248,7 +250,7 @@ class HAL(object):
         self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [hack_rate], time, True)
 
         # XXX there is a bug (probably with how inputs are sorted by time)
-        # calling SetSpikeGeneratorRates with more than one element per list 
+        # calling SetSpikeGeneratorRates with more than one element per list
         # or not calling flush after each invocation will cause undefined behavior
 
     def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
@@ -356,7 +358,7 @@ class HAL(object):
 
         core = self.last_mapped_core
 
-        # datapath memory programming 
+        # datapath memory programming
 
         self.driver.SetMem(
             CORE_ID, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
@@ -414,18 +416,87 @@ class HAL(object):
             for nrn_y_idx in range(4*y_min, 4*(y_max+1)):
                 for nrn_x_idx in range(4*x_min, 4*(x_max+1)):
                     #print("enabling soma", nrn_y_idx, nrn_x_idx)
-                    self.driver.EnableSomaXY(CORE_ID, nrn_x_idx, nrn_y_idx);
+                    self.driver.EnableSomaXY(CORE_ID, nrn_x_idx, nrn_y_idx)
 
         # enable used synapses
         for tx, ty in core.neuron_array.syns_used:
             #print("enabling synapse", tx, ty)
             self.driver.EnableSynapseXY(CORE_ID, tx, ty)
 
-        # set spike filter decay constant 
+        # set spike filter decay constant
         # the following sets the filters to "count mode"
         # exponential decay is also possible
         self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
 
-        # voodoo sleep, (wait for everything to go in) 
-        time.sleep(2)
+        # voodoo sleep, (wait for everything to go in)
+        sleep(2)
+
+def parse_hal_tags(hal_tags):
+    """Parses the tag information from the output of HAL
+
+    Parameters
+    ----------
+    hal_tags: output of HAL.get_outputs() (list of tuples)
+
+    Returns a dictionary:
+        [output_id][dimension] = list of (times, count) tuples
+    """
+    parsed_tags = {}
+    for time, output_id, dim, count in hal_tags:
+        if output_id not in parsed_tags:
+            parsed_tags[output_id] = {}
+        if dim not in parsed_tags[output_id]:
+            parsed_tags[output_id][dim] = []
+        parsed_tags[output_id][dim].append((time, count))
+    return parsed_tags
+
+def parse_hal_spikes(hal_spikes):
+    """Parses the tag information from the output of HAL
+
+    Parameters
+    ----------
+    hal_spikes: output of HAL.get_spikes() (list of tuples)
+
+    Returns a dictionary:
+        [pool][neuron] = list of (times, 1) tuples
+        The 1 is for consistency with the return of parse_hal_tags
+    """
+    parsed_spikes = {}
+    for time, pool, neuron in hal_spikes:
+        if pool not in parsed_spikes:
+            parsed_spikes[pool] = {}
+        if neuron not in parsed_spikes[pool]:
+            parsed_spikes[pool][neuron] = []
+        parsed_spikes[pool][neuron].append((time, 1))
+    return parsed_spikes
+
+def bin_tags_spikes(tagspikes, bin_time_boundaries):
+    """Bin tags or spikes into rates
+
+    Parameters
+    ----------
+    tagspikes: dict returned by parse_hal_tags or parse_hal_spikes
+    bin_time_boundaries: list-like of floats
+        boundaries of the time bins
+    """
+    n_bins = len(bin_time_boundaries) - 1
+    # initialize A matrices
+    activity_matrices = {}
+    for obj in tagspikes:
+        if isinstance(obj, graph.Pool):
+            max_idx = obj.n_neurons
+        elif isinstance(obj, graph.Output):
+            max_idx = obj.dimensions
+        activity_matrices[obj] = np.zeros((max_idx, n_bins)).astype(int)
+
+    # bin spikes, filling in A
+    for obj, obj_data in tagspikes.items():
+        for obj_idx, obj_idx_data in obj_data.items():
+            times_and_counts = np.array(obj_idx_data)
+            times = times_and_counts[:, 0]
+            counts = times_and_counts[:, 1]
+            binned_counts = np.histogram(
+                times, bin_time_boundaries, weights=counts)[0]
+            activity_matrices[obj][obj_idx, :] = binned_counts
+    return activity_matrices
