@@ -23,6 +23,15 @@
 namespace pystorm {
 namespace bddriver {
 
+// Opal Kelly parameters
+static const std::string OK_BITFILE = "OK_BITFILE.bit";
+static const std::string OK_SERIAL = "";
+struct OKPars {
+    OKPars() : ok_bitfile(OK_BITFILE), ok_serial(OK_SERIAL) {}
+    std::string ok_bitfile;
+    std::string ok_serial;
+};
+
 /**
  * \class Driver is a singleton; There should only be one instance of this.
  *
@@ -1039,6 +1048,9 @@ class Driver {
   const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware
   std::vector<BDState> bd_state_;
+
+  /// parameters describing Opal Kelly hardware
+  OKPars ok_pars_;
 
   // downstream buffers
 

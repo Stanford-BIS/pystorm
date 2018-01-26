@@ -37,10 +37,6 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
-// XXX BEGIN "this should REALLY be in BDPars"
-static const std::string OK_BITFILE = "OK_BITFILE.bit";
-static const std::string OK_SERIAL = "";
-
 // Driver * Driver::GetInstance()
 //{
 //    // In C++11, if control from two threads occurs concurrently, execution
@@ -53,6 +49,7 @@ static const std::string OK_SERIAL = "";
 Driver::Driver() {
   // load parameters
   bd_pars_     = new bdpars::BDPars();
+  ok_pars_     = OKPars();
 
   // one BDState object per core
   // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_));
@@ -402,7 +399,7 @@ int Driver::Start() {
 
 #ifdef BD_COMM_TYPE_OPALKELLY
   // Initialize Opal Kelly Board
-  comm_state = static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+  comm_state = static_cast<comm::CommOK*>(comm_)->Init(ok_pars_.ok_bitfile, ok_pars_.ok_serial);
 #endif
 
   if (comm_state >= 0) {
