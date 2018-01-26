@@ -28,7 +28,11 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+pystorm/PyOK
 
 # vim
 *.swo
 *.swp
+
+# doc outputs
+*.pdf
