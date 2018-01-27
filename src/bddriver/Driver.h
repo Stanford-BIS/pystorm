@@ -141,6 +141,8 @@ class Driver {
   }
   /// Returns driver (PC) time in ns
   BDTime GetDriverTime() const;
+  // Set the Opal Kelly bitfile location
+  void SetOKBitFile(std::string bitfile);
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();

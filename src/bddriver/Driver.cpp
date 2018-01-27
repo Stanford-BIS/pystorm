@@ -275,6 +275,10 @@ BDTime Driver::GetDriverTime() const {
   return ns_now.count();
 }
 
+void Driver::SetOKBitFile(std::string bitfile) {
+    ok_pars_.ok_bitfile = bitfile;
+}
+
 void Driver::InitDAC(unsigned int core_id, bool flush) {
   // List of DAC
   std::array<bdpars::BDHornEP, 12> dac_list {

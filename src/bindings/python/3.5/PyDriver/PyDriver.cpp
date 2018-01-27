@@ -320,7 +320,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("ResetFPGATime", &Driver::ResetFPGATime, "resets FPGA clock to 0");
 		cl.def("GetFPGATime", &Driver::GetFPGATime, "get last received FPGA clock value");
 		cl.def("GetFPGATimeSec", &Driver::GetFPGATimeSec, "get last received FPGA clock value in seconds");
-
+		cl.def("SetOKBitFile", (void (pystorm::bddriver::Driver::*)(std::string)) &pystorm::bddriver::Driver::SetOKBitFile, "Set the Opal Kelly bitfile location");
 		cl.def("ResetBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::ResetBD, "Toggles pReset/sReset");
 		cl.def("InitBD", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::InitBD, "Initializes hardware state\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitBD() --> void");
 		cl.def("InitFIFO", (void (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::InitFIFO, "Clears BD FIFOs\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitFIFO(unsigned int) --> void", py::arg("core_id"));
