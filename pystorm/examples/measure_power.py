@@ -70,7 +70,7 @@ def create_decode_network(width=width, height=height, Din=Din, Dout=Dout, d_rang
     net = graph.Network("net")
 
     min_d, max_d = d_range
-    decoders = np.ones((Dint, N)) * (max_d - min_d) + min_d
+    decoders = np.ones((Dout, N)) * (max_d - min_d) + min_d
 
     tap_matrix = np.zeros((N, Din))
     if Din == 1:
@@ -145,7 +145,7 @@ def names_to_dict(names, locs):
 
 class Experiment(object):
 
-    duration = 2 # seconds
+    duration = 10 # seconds
 
     def run(self):
         assert(False and "derived class must implement run()")
