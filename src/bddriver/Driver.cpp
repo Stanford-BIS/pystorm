@@ -546,15 +546,6 @@ void Driver::SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsign
   SetBDRegister(core_id, bd_pars_->mem_info_.at(mem_id).delay_reg, word, flush);
 }
 
-void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
-}
-
-void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
-}
-
 std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {
   return RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO, 1000).first;
 }

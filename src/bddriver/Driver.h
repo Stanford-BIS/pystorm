@@ -779,9 +779,25 @@ class Driver {
   std::vector<BDWord> DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end);
 
   /// Dump copy of traffic pre-FIFO
-  void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
-  /// Dump copy of traffic post-FIFO, tag msbs = 0
-  void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
+  void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
+  }
+  /// Sink traffic flowing into the FIFO
+  void SetPreFIFOTrafficState(unsigned int core_id, bool traffic_en) {
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, traffic_en);
+  }
+
+  /// Dump copy of traffic post-FIFO
+  void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
+  }
+  /// Sink traffic flowing out of the FIFO
+  void SetPreFIFOTrafficState(unsigned int core_id, bool en) {
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, en);
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, en);
+  }
+
 
   /// Get pre-FIFO tags recorded during dump
   std::vector<BDWord> GetPreFIFODump(unsigned int core_id);

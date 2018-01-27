@@ -47,6 +47,15 @@ class HAL(object):
 
         self.start_hardware()
 
+        # default time resolution
+        self.downstream_ns = 10000
+        self.upstream_ns   = 1000000
+        self.init_hardware()
+
+
+    def init_hardware(self):
+        print("HAL: clearing hardware state")
+
         self.driver.InitBD()
     
         # DAC settings (should be pretty close to driver defaults)
@@ -60,11 +69,12 @@ class HAL(object):
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
-        self.driver.SetTimeUnitLen(10000) # 10 us downstream resolution 
-        self.driver.SetTimePerUpHB(1000000) # 1 ms upstream resolution/tag binning
+        self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution 
+        self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
 
         self.last_mapped_resources = None
         self.last_mapped_core = None
+
 
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
         """Controls Driver/FPGA time resolutions
@@ -82,6 +92,8 @@ class HAL(object):
         """
         self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution 
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
+        self.downstream_ns = downstream_ns
+        self.upstream_ns = upstream_ns
 
     def __del__(self):
         self.stop_hardware()
@@ -353,6 +365,9 @@ class HAL(object):
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
+
+        # start with a clean slate
+        self.init_hardware()
 
         core = self.last_mapped_core
 
