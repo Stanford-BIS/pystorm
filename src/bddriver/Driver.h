@@ -779,7 +779,7 @@ class Driver {
   std::vector<BDWord> DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end);
 
   /// Dump copy of traffic pre-FIFO
-  void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
+  void SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
     SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
   }
   /// Sink traffic flowing into the FIFO
@@ -788,12 +788,12 @@ class Driver {
   }
 
   /// Dump copy of traffic post-FIFO
-  void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
+  void SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
     SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
     SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
   }
   /// Sink traffic flowing out of the FIFO
-  void SetPreFIFOTrafficState(unsigned int core_id, bool en) {
+  void SetPostFIFOTrafficState(unsigned int core_id, bool en) {
     SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, en);
     SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, en);
   }

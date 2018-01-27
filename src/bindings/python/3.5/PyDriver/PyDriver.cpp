@@ -399,12 +399,12 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("DumpMemRange", &Driver::DumpMemRange, py::arg("core_id"), py::arg("mem_id"), py::arg("start"), py::arg("end"));
 
 		cl.def("SetPreFIFODumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool)) &pystorm::bddriver::Driver::SetPreFIFODumpState, "Dump copy of traffic pre-FIFO\n\nC++: pystorm::bddriver::Driver::SetPreFIFODumpState(unsigned int, bool) --> void", py::arg("core_id"), py::arg("dump_en"));
+		cl.def("SetPostFIFODumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool)) &pystorm::bddriver::Driver::SetPostFIFODumpState, "Dump copy of traffic post-FIFO, tag msbs = 0\n\nC++: pystorm::bddriver::Driver::SetPostFIFODumpState(unsigned int, bool) --> void", py::arg("core_id"), py::arg("dump_en"));
 
     // manually added
-		cl.def("SetPreFIFOTrafficState", &Driver::SetPreFIFOTrafficState, "Optionally sink traffic flowing into FIFO", py::arg("core_id"), py::arg("enable"))
-		cl.def("SetPostFIFOTrafficState", &Driver::SetPostFIFOTrafficState, "Optionally sink traffic flowing out of FIFO", py::arg("core_id"), py::arg("enable"))
+		cl.def("SetPreFIFOTrafficState", &Driver::SetPreFIFOTrafficState, "Optionally sink traffic flowing into FIFO", py::arg("core_id"), py::arg("enable"));
+		cl.def("SetPostFIFOTrafficState", &Driver::SetPostFIFOTrafficState, "Optionally sink traffic flowing out of FIFO", py::arg("core_id"), py::arg("enable"));
     
-		cl.def("SetPostFIFODumpState", (void (pystorm::bddriver::Driver::*)(unsigned int, bool)) &pystorm::bddriver::Driver::SetPostFIFODumpState, "Dump copy of traffic post-FIFO, tag msbs = 0\n\nC++: pystorm::bddriver::Driver::SetPostFIFODumpState(unsigned int, bool) --> void", py::arg("core_id"), py::arg("dump_en"));
 		cl.def("GetPreFIFODump", (class std::vector<unsigned long, class std::allocator<unsigned long> > (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetPreFIFODump, "Get pre-FIFO tags recorded during dump\n\nC++: pystorm::bddriver::Driver::GetPreFIFODump(unsigned int) --> class std::vector<unsigned long, class std::allocator<unsigned long> >", py::arg("core_id"));
 		cl.def("GetPostFIFODump", (struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > > (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetPostFIFODump, "Get post-FIFO tags recorded during dump\n\nC++: pystorm::bddriver::Driver::GetPostFIFODump(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
 		cl.def("GetFIFOOverflowCounts", (struct std::pair<unsigned int, unsigned int> (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::GetFIFOOverflowCounts, "Get warning count\n\nC++: pystorm::bddriver::Driver::GetFIFOOverflowCounts(unsigned int) --> struct std::pair<unsigned int, unsigned int>", py::arg("core_id"));
