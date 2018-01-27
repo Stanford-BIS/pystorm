@@ -158,7 +158,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   // update FPGA state
   ns_per_unit_ = ns_per_unit;
   clks_per_unit_ = ns_per_unit / ns_per_clk_;
-  cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
+  //cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
@@ -187,7 +187,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
 
-  if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
+  //if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);

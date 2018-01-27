@@ -145,7 +145,7 @@ def names_to_dict(names, locs):
 
 class Experiment(object):
 
-    duration = 4 # seconds
+    duration = 10 # seconds
 
     def run(self):
         assert(False and "derived class must implement run()")
@@ -260,9 +260,9 @@ class Decode(Experiment):
         self.count_after_experiment(net)
 
         print("disabling pre-FIFO valve, measure power now")
-        HAL.start_traffic()
-        HAL.enable_output_recording()
+        HAL.start_traffic(flush=False)
         HAL.driver.SetPreFIFOTrafficState(CORE, False)
+        HAL.enable_output_recording(flush=True)
 
         time.sleep(self.pars["duration"])
 
@@ -271,14 +271,20 @@ class Decode(Experiment):
 
 
 tests = [
-  #AERRX(soma_bias=2),
-  #AERRX(soma_bias=10),
-  Decode(soma_bias=10, d_val=.1, Dout=1),
-  #Decode(soma_bias=10, d_val=1., Dout=1),
-  #Decode(soma_bias=10, d_val=.1, Dout=10),
-  ]
+    AERRX(soma_bias=2),
+    AERRX(soma_bias=10),
+    Decode(soma_bias=10, d_val=.1, Dout=1),
+    Decode(soma_bias=10, d_val=1., Dout=1),
+    Decode(soma_bias=10, d_val=.1, Dout=10),
+    ]
   
-for test in tests:
-  test.run()
+for idx, test in enumerate(tests):
+    print("=================================")
+    print("EXP: running test", idx)
+    print("EXP: " + test.description)
+    print("=================================")
+    test.run()
+    print("EXP: done")
+
 
 
