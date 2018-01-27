@@ -162,12 +162,12 @@ enum class BDFunnelEP {
   DUMP_PRE_FIFO,   // copy of traffic entering FIFO
   DUMP_TAT0,       // TAT 0 diagnostic read output
   DUMP_TAT1,       // TAT 1 diagnostic read output
-  NRNI,            // copy of traffic exiting neuron array
-  OVFLW0,          // class 0 FIFO overflow warning
-  OVFLW1,          // class 1 FIFO overflow warning
-  RO_ACC,          // tag output from accumulator
-  RO_TAT,          // tag output from TAT
-  INVALID,         // something unexpected
+  NRNI,            // copy of traffic exiting neuron array (id=8)
+  OVFLW0,          // class 0 FIFO overflow warning        (id=9)
+  OVFLW1,          // class 1 FIFO overflow warning        (id=10)
+  RO_ACC,          // tag output from accumulator          (id=11)
+  RO_TAT,          // tag output from TAT                  (id=12)
+  INVALID,         // something unexpected                 (id=13)
   COUNT
 };
 

@@ -155,7 +155,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   // update FPGA state
   ns_per_unit_ = ns_per_unit;
   clks_per_unit_ = ns_per_unit / ns_per_clk_;
-  cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
+  //cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
@@ -184,7 +184,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
 
-  if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
+  //if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
@@ -357,6 +357,12 @@ void Driver::InitBD() {
   }
 }
 
+void Driver::ClearOutputs() {
+  std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
+  for (auto& it : up_eps) {
+    dec_bufs_out_.at(it)->PopAll();
+  }
+}
 
 void Driver::InitFIFO(unsigned int core_id) {
 
@@ -545,15 +551,6 @@ void Driver::SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsign
   BDWord word = PackWord<DelayWord>({{DelayWord::READ_DELAY, read_value},
                                            {DelayWord::WRITE_DELAY, write_value}});
   SetBDRegister(core_id, bd_pars_->mem_info_.at(mem_id).delay_reg, word, flush);
-}
-
-void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
-}
-
-void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
 }
 
 std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {

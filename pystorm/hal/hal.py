@@ -51,24 +51,33 @@ class HAL(object):
         self.driver.SetOKBitFile(okfile)
         self.start_hardware()
 
-        self.driver.InitBD()
-
-        # DAC settings (should be pretty close to driver defaults)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_DC     , 544)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_LK     , 10)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_PD     , 40)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SYN_PU     , 1023)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_DIFF_G     , 1023)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_DIFF_R     , 500)
-        self.driver.SetDACCount(CORE_ID, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 2)
-
-        self.driver.SetTimeUnitLen(10000) # 10 us downstream resolution
-        self.driver.SetTimePerUpHB(1000000) # 1 ms upstream resolution/tag binning
+        # default time resolution
+        self.downstream_ns = 10000
+        self.upstream_ns   = 1000000
 
         self.last_mapped_resources = None
         self.last_mapped_core = None
+
+
+    def init_hardware(self):
+        print("HAL: clearing hardware state")
+
+        self.driver.InitBD()
+
+        # DAC settings (should be pretty close to driver defaults)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
+
+        self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution 
+        self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
+
 
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
         """Controls Driver/FPGA time resolutions
@@ -86,6 +95,8 @@ class HAL(object):
         """
         self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
+        self.downstream_ns = downstream_ns
+        self.upstream_ns = upstream_ns
 
     def __del__(self):
         self.stop_hardware()
@@ -162,7 +173,7 @@ class HAL(object):
     def get_outputs(self, timeout=1000):
         """Returns all pending output values gathered since this was last called.
 
-        Data format: a numpy array of : [(output, dim, counts, time), ...]
+        Data format: a numpy array of : [(time, output, dim, counts), ...]
         Timestamps are in microseconds
 
         Whether or not you get return values is enabled/disabled by
@@ -311,18 +322,30 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
+        print("HAL: doing logical mapping")
         ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
         self.last_mapped_resources = hardware_resources
         self.last_mapped_core = core
 
         # implement core objects, calling driver
+        print("HAL: programming mapping results to hardware")
         self.implement_core()
+
+        # clear dictionaries in case we're calling map more than once
+        # neuromorph graph Input -> tags
+        self.ng_input_to_tags = {}
+        # neuromorph graph Input -> spike generator idx
+        self.ng_input_to_SG_idxs_and_tags = {}
+        # spike filter idx -> Output/dim
+        self.spike_filter_idx_to_output = {}
+        # spike id -> pool/neuron_idx
+        self.spk_to_pool_nrn_idx = {}
 
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
-            print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
+            #print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
             self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
         # spike filter idx -> Output/dim
         for ng_out in network.get_outputs():
@@ -358,6 +381,9 @@ class HAL(object):
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
+
+        # start with a clean slate
+        self.init_hardware()
 
         core = self.last_mapped_core
 
@@ -431,6 +457,10 @@ class HAL(object):
         # exponential decay is also possible
         self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
+        
+        # remove any evidence of old network in driver queues
+        print("HAL: clearing queued-up outputs")
+        self.driver.ClearOutputs()
 
         # voodoo sleep, (wait for everything to go in)
         sleep(2)
