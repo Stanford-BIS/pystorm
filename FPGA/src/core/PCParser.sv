@@ -3,7 +3,7 @@
 `include "../lib/ChannelUtil.svh"
 
 module PCParser #(
-  parameter NPCin = 32,
+  parameter NPCin = 27,
   parameter Nconf = 16,
   parameter Nreg = 64,
   parameter Nchan = 2) (

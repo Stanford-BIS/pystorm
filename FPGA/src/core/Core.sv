@@ -17,9 +17,9 @@
 
 module Core #(
   // common parameters (in/out names relative to FPGA)
-  parameter NPCcode = 8,
-  parameter NPCdata = 24,
-  parameter NPCroute = 10,
+  parameter NPCcode = 7,
+  parameter NPCdata = 20,
+  parameter NPCroute = 5,
   parameter NPCout = NPCcode + NPCdata + NPCroute,
   parameter NPCin = NPCcode + NPCdata,
 
