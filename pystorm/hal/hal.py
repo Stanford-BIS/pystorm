@@ -1,6 +1,7 @@
 """Provides the hardware abstraction layer"""
 from time import sleep
 import numpy as np
+import pystorm
 from pystorm.hal.neuromorph import map_network, remap_resources, graph
 from pystorm.PyDriver import bddriver as bd
 
@@ -45,7 +46,9 @@ class HAL(object):
         self.spike_filter_idx_to_output = {}
         # spike id -> pool/neuron_idx
         self.spk_to_pool_nrn_idx = {}
-
+        okfile = "/".join(
+            pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
+        self.driver.SetOKBitFile(okfile)
         self.start_hardware()
 
         self.driver.InitBD()
