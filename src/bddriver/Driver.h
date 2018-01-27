@@ -144,6 +144,8 @@ class Driver {
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
   void InitBD();
+  /// Empties all driver output queues
+  void ClearOutputs();
   
   ////////////////////////////////////////////////////////////////////////////
   // AER Address <-> Y,X mapping static member fns

@@ -145,7 +145,7 @@ def names_to_dict(names, locs):
 
 class Experiment(object):
 
-    duration = 10 # seconds
+    duration = 2 # seconds
 
     def run(self):
         assert(False and "derived class must implement run()")
@@ -165,7 +165,7 @@ class Experiment(object):
 
     def check_outputs(self, outputs, obj, max_Dout):
         if not np.all(outputs[:,1] == obj):
-            print('ERROR: got unexpected output')
+            print('ERROR: got unexpected output object')
             exit(-1)
         if not np.all(outputs[:,2] <= max_Dout):
             print('ERROR: got unexpected output dimension')
@@ -195,6 +195,7 @@ class AERRX(Experiment):
 
     def __init__(self, soma_bias=2, duration=Experiment.duration):
         self.pars = names_to_dict(["soma_bias", "duration"], locals())
+        self.results = {}
         self.description = "measure AER xmitter power. Pars: " + str(self.pars)
 
     def run(self):
@@ -231,6 +232,7 @@ class Decode(Experiment):
 
     def __init__(self, soma_bias=2, d_val=.1, Dout=10, duration=Experiment.duration):
         self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dout"], locals())
+        self.results = {}
         self.description = "measure power for decode operation: AER xmitter + PAT + accumulator. Pars: " + str(self.pars)
 
     def count_after_experiment(self, net):
@@ -279,12 +281,22 @@ tests = [
     ]
   
 for idx, test in enumerate(tests):
-    print("=================================")
+    print("================================================================================")
     print("EXP: running test", idx)
     print("EXP: " + test.description)
-    print("=================================")
+    print("================================================================================")
+
     test.run()
+
+    V = input("please input mean voltage during trial: ")
+    test.results["V"] = V
+
     print("EXP: done")
+
+# save test parameters and results
+import pickle 
+pfile = open("trial_data.pck", "wb")
+pickle.dump(tests, pfile)
 
 
 

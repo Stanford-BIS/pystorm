@@ -469,23 +469,21 @@ class NeuronArray(object):
         return (py, px)
 
 class FPGASpikeFilters(object):
-    filters_used = 0
 
     def __init__(self):
-        pass
+        self.filters_used = 0
 
     def allocate(self, D):
-        base_idx = FPGASpikeFilters.filters_used
-        FPGASpikeFilters.filters_used += D
+        base_idx = self.filters_used
+        self.filters_used += D
         return np.array(range(base_idx, base_idx + D))
 
 class FPGASpikeGenerators(object):
-    gens_used = 0
 
     def __init__(self):
-        pass
+        self.gens_used = 0
 
     def allocate(self, D):
-        base_idx = FPGASpikeGenerators.gens_used
-        FPGASpikeGenerators.gens_used += D
+        base_idx = self.gens_used
+        self.gens_used += D
         return np.array(range(base_idx, base_idx + D))

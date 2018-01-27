@@ -356,6 +356,12 @@ void Driver::InitBD() {
   }
 }
 
+void Driver::ClearOutputs() {
+  std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
+  for (auto& it : up_eps) {
+    dec_bufs_out_.at(it)->PopAll();
+  }
+}
 
 void Driver::InitFIFO(unsigned int core_id) {
 

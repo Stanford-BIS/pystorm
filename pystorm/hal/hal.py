@@ -327,6 +327,16 @@ class HAL(object):
         print("HAL: programming mapping results to hardware")
         self.implement_core()
 
+        # clear dictionaries in case we're calling map more than once
+        # neuromorph graph Input -> tags
+        self.ng_input_to_tags = {}
+        # neuromorph graph Input -> spike generator idx
+        self.ng_input_to_SG_idxs_and_tags = {}
+        # spike filter idx -> Output/dim
+        self.spike_filter_idx_to_output = {}
+        # spike id -> pool/neuron_idx
+        self.spk_to_pool_nrn_idx = {}
+
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
@@ -442,6 +452,10 @@ class HAL(object):
         # exponential decay is also possible
         self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
+        
+        # remove any evidence of old network in driver queues
+        print("HAL: clearing queued-up outputs")
+        self.driver.ClearOutputs()
 
         # voodoo sleep, (wait for everything to go in) 
         time.sleep(2)

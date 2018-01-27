@@ -326,6 +326,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 		cl.def("InitFIFO", (void (pystorm::bddriver::Driver::*)(unsigned int)) &pystorm::bddriver::Driver::InitFIFO, "Clears BD FIFOs\n Calls Flush immediately\n\nC++: pystorm::bddriver::Driver::InitFIFO(unsigned int) --> void", py::arg("core_id"));
 
     // added manually
+		cl.def("ClearOutputs", &Driver::ClearOutputs, "Empties all output queues");
 		cl.def("InitDAC", &Driver::InitDAC, "Inits the DACs to default values", py::arg("core_id"), py::arg("flush") = true);
 
 		cl.def("Flush", (void (pystorm::bddriver::Driver::*)()) &pystorm::bddriver::Driver::Flush, "Flush queued up downstream traffic\n Commits queued-up messages (sends enough nops to flush the USB)\n By default, many configuration calls will call Flush()\n Notably, the Neuron config calls do not call Flush()\n\nC++: pystorm::bddriver::Driver::Flush() --> void");
