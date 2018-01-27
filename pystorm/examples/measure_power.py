@@ -8,6 +8,8 @@ from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
+from sys import exit
+
 np.random.seed(0)
 
 
@@ -29,46 +31,46 @@ CORE = 0
 ###########################################
 # misc driver parameters
 downstream_time_res = 10000 # ns
-upstream_time_res = 1000000 # ns
+upstream_time_res  = 100000 # ns
 
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 
 
 def create_decode_network(width=width, height=height, Din=Din, Dout=Dout, d_range=d_range):
-"""
-data flow with traffic on:
+    """
+    data flow with traffic on:
 
-input IO -> 
-tag horn ->
+    input IO -> 
+    tag horn ->
 
-(pre-fifo valve) ->
-FIFO ->
-(post-fifo valve) ->
+    (pre-fifo valve) ->
+    FIFO ->
+    (post-fifo valve) ->
 
-TAT -> 
+    TAT -> 
 
-AER_tx -> 
-neurons -> 
-AER_rx -> 
-(neuron output valve) -> 
+    AER_tx -> 
+    neurons -> 
+    AER_rx -> 
+    (neuron output valve) -> 
 
-PAT ->
-accumulator ->
+    PAT ->
+    accumulator ->
 
-(pre-fifo valve) ->
-FIFO ->
-(post-fifo valve) ->
+    (pre-fifo valve) ->
+    FIFO ->
+    (post-fifo valve) ->
 
-TAT ->
+    TAT ->
 
-tag funnel ->
-output IO
-"""
+    tag funnel ->
+    output IO
+    """
 
     net = graph.Network("net")
 
     min_d, max_d = d_range
-    decoders = np.ones((Dint, N)) * (max_d - min_d) - min_d
+    decoders = np.ones((Dint, N)) * (max_d - min_d) + min_d
 
     tap_matrix = np.zeros((N, Din))
     if Din == 1:
@@ -138,8 +140,8 @@ def create_trans_network(width=width, height=height, Din=Din, Dint=Dint, Dout=Do
 def ns_to_sec(ns):
     return ns * 1e-9
 
-def names_to_dict(names):
-  return dict( (name,eval(name)) for name in names )
+def names_to_dict(names, locs):
+  return dict( (name, locs[name]) for name in names )
 
 class Experiment(object):
 
@@ -154,27 +156,33 @@ class Experiment(object):
             HAL.driver.DisableSoma(CORE, i)
 
     def make_enabled_neurons_spike(self, bias):
+        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, bias)
         for i in range(4096):
             HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
             HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)
             HAL.driver.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.THREE)
-            HAL.driver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, bias)
+
 
     def check_outputs(self, outputs, obj, max_Dout):
-        if !np.all(outputs[:,0] == obj):
-            print('got unexpected output')
-        if !np.all(outputs[:,1] <= max_Dout):
-            print('got unexpected output dimension')
+        if not np.all(outputs[:,1] == obj):
+            print('ERROR: got unexpected output')
+            exit(-1)
+        if not np.all(outputs[:,2] <= max_Dout):
+            print('ERROR: got unexpected output dimension')
+            exit(-1)
 
     def compute_output_rate(self, outputs, obj, max_Dout):
-        self.check_outputs(outputs, obj, max_Dout)
+        if outputs.shape[0] > 0:
+            self.check_outputs(outputs, obj, max_Dout)
 
-        min_time = np.min(outputs[:,3])
-        max_time = np.max(outputs[:,3])
+            min_time = np.min(outputs[:,0])
+            max_time = np.max(outputs[:,0])
 
-        total_count = np.sum(outputs[:,2])
+            total_count = np.sum(outputs[:,3])
 
-        rate = total_count / ns_to_sec(max_time - min_time)
+            rate = total_count / ns_to_sec(max_time - min_time)
+        else:
+            rate = 0
 
         return rate
             
@@ -185,13 +193,13 @@ class AERRX(Experiment):
     # counting setup:
     # default
 
-    def __init__(self, soma_bias=50, duration=Experiment.duration):
-        self.pars = names_to_dict(["soma_bias", "duration"])
-        self.description = "measure AER xmitter power. Pars: " + str(pars)
+    def __init__(self, soma_bias=2, duration=Experiment.duration):
+        self.pars = names_to_dict(["soma_bias", "duration"], locals())
+        self.description = "measure AER xmitter power. Pars: " + str(self.pars)
 
     def run(self):
 
-        net = create_decoder_network()
+        net = create_decode_network()
         HAL.map(net)
         
         # give the neurons some juice
@@ -199,14 +207,15 @@ class AERRX(Experiment):
 
         # turn on traffic, count spikes
         print("enabling traffic, counting spikes")
-        HAL.start_traffic()
+        HAL.start_traffic(flush=False)
+        HAL.enable_output_recording()
 
         time.sleep(self.pars["duration"])
 
         HAL.stop_traffic()
         # all decoders and tranforms are 1, output count is spike count
         outputs = HAL.get_outputs()
-        rate = self.compute_output_rate(outputs, net.get_outputs[0], 0)
+        rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
         print("measured", rate, "spikes per second")
 
         print("only neurons and AER RX active, measure voltage now")
@@ -220,12 +229,22 @@ class Decode(Experiment):
     # power setup:
     # neurons -> AERRX -> PAT -> accumulator -> stopped at pre-FIFO valve
 
-    def __init__(self, soma_bias=50, d_val=.1, Dout=10, duration=Experiment.duration):
-        self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dout"])
+    def __init__(self, soma_bias=2, d_val=.1, Dout=10, duration=Experiment.duration):
+        self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dout"], locals())
         self.description = "measure power for decode operation: AER xmitter + PAT + accumulator. Pars: " + str(self.pars)
 
+    def count_after_experiment(self, net):
+        HAL.stop_traffic()
+        time.sleep(.1)
+        # all decoders are 1, output count is spike count
+        outputs = HAL.get_outputs()
+        tag_rate = self.compute_output_rate(outputs, net.get_outputs()[0], self.pars["Dout"])
+        print("measured", tag_rate, "accumulator outputs per second")
+        spike_rate = tag_rate / self.pars["d_val"] / self.pars["Dout"]
+        print("inferred", spike_rate, "spikes per second")
+
     def run(self):
-        net = create_decoder_network(d_range=(d_val, d_val))
+        net = create_decode_network(Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
         HAL.map(net)
         
         # give the neurons some juice
@@ -234,30 +253,29 @@ class Decode(Experiment):
         # turn on traffic
         print("enabling traffic, counting tags out")
         HAL.start_traffic()
+        HAL.enable_output_recording()
 
         time.sleep(self.pars["duration"])
 
-        HAL.stop_traffic()
-        # all decoders and tranforms are 1, output count is spike count
-        outputs = HAL.get_outputs()
-        tag_rate = self.compute_output_rate(outputs, net.get_outputs[0], self.pars["Dout"])
-        print("measured", tag_rate, "accumulator outputs per second")
-        spike_rate = tag_rate / self.pars["d_val"] / self.pars["Dout"]
-        print("inferred", spike_rate, "spikes per second")
+        self.count_after_experiment(net)
 
         print("disabling pre-FIFO valve, measure power now")
         HAL.start_traffic()
+        HAL.enable_output_recording()
         HAL.driver.SetPreFIFOTrafficState(CORE, False)
 
         time.sleep(self.pars["duration"])
 
+        print("sanity check: should expect no outputs with pre-FIFO valve closed")
+        self.count_after_experiment(net)
+
 
 tests = [
-  AERRX(soma_bias=10),
-  AERRX(soma_bias=50),
-  Decode(soma_bias=50, d_val=.1, Dout=1),
-  Decode(soma_bias=50, d_val=1., Dout=1),
-  Decode(soma_bias=50, d_val=.1, Dout=10),
+  #AERRX(soma_bias=2),
+  #AERRX(soma_bias=10),
+  Decode(soma_bias=10, d_val=.1, Dout=1),
+  #Decode(soma_bias=10, d_val=1., Dout=1),
+  #Decode(soma_bias=10, d_val=.1, Dout=10),
   ]
   
 for test in tests:

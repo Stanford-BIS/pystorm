@@ -50,7 +50,9 @@ class HAL(object):
         # default time resolution
         self.downstream_ns = 10000
         self.upstream_ns   = 1000000
-        self.init_hardware()
+
+        self.last_mapped_resources = None
+        self.last_mapped_core = None
 
 
     def init_hardware(self):
@@ -71,9 +73,6 @@ class HAL(object):
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution 
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
-
-        self.last_mapped_resources = None
-        self.last_mapped_core = None
 
 
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
@@ -170,7 +169,7 @@ class HAL(object):
     def get_outputs(self, timeout=1000):
         """Returns all pending output values gathered since this was last called.
 
-        Data format: a numpy array of : [(output, dim, counts, time), ...]
+        Data format: a numpy array of : [(time, output, dim, counts), ...]
         Timestamps are in microseconds
 
         Whether or not you get return values is enabled/disabled by 
@@ -318,18 +317,20 @@ class HAL(object):
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         """
+        print("HAL: doing logical mapping")
         ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
         self.last_mapped_resources = hardware_resources
         self.last_mapped_core = core
 
         # implement core objects, calling driver
+        print("HAL: programming mapping results to hardware")
         self.implement_core()
 
         # neuromorph graph Input -> tags
         for ng_inp in network.get_inputs():
             hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
-            print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
+            #print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
             self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
         # spike filter idx -> Output/dim
         for ng_out in network.get_outputs():
