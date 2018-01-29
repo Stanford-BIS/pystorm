@@ -187,6 +187,20 @@ class Experiment(object):
             rate = 0
 
         return rate
+
+###########################################
+# Get baseline static power
+
+class Static(Experiment):
+
+    def __init__(self, duration=Experiment.duration):
+        self.pars = names_to_dict(["duration"], locals())
+        self.results = {}
+        self.description = "don't map any network, just measure baseline power"
+
+    def run(self):
+        # nothing to do, neurons should be killed without mapping
+        time.sleep(self.pars["duration"])
             
 ###########################################
 # Get AER rx power
@@ -394,6 +408,7 @@ class TapPointAndAERTX(Experiment):
 
 
 tests = [
+    Static(),
     AERRX(soma_bias=2),
     AERRX(soma_bias=10),
     Decode(soma_bias=10, d_val=.1, Dout=1),
