@@ -465,18 +465,18 @@ class HAL(object):
         # voodoo sleep, (wait for everything to go in)
         sleep(2)
 
-def parse_hal_tags(hal_tags):
+def parse_hal_binned_tags(hal_binned_tags):
     """Parses the tag information from the output of HAL
 
     Parameters
     ----------
-    hal_tags: output of HAL.get_outputs() (list of tuples)
+    hal_binned_tags: output of HAL.get_outputs() (list of tuples)
 
     Returns a dictionary:
         [output_id][dimension] = list of (times, count) tuples
     """
     parsed_tags = {}
-    for time, output_id, dim, count in hal_tags:
+    for time, output_id, dim, count in hal_binned_tags:
         if output_id not in parsed_tags:
             parsed_tags[output_id] = {}
         if dim not in parsed_tags[output_id]:
@@ -504,7 +504,7 @@ def parse_hal_spikes(hal_spikes):
         parsed_spikes[pool][neuron].append((time, 1))
     return parsed_spikes
 
-def bin_tags_spikes(tagspikes, bin_time_boundaries):
+def bin_tags_spikes(tagspikes, bin_time_boundaries, time_scale=1e-9):
     """Bin tags or spikes into rates
 
     Parameters
@@ -512,8 +512,10 @@ def bin_tags_spikes(tagspikes, bin_time_boundaries):
     tagspikes: dict returned by parse_hal_tags or parse_hal_spikes
     bin_time_boundaries: list-like of floats
         boundaries of the time bins
+    time_scale: scaling factor to convert bin times into seconds
     """
     n_bins = len(bin_time_boundaries) - 1
+    bin_sizes = np.diff(bin_time_boundaries)*time_scale
     # initialize A matrices
     activity_matrices = {}
     for obj in tagspikes:
@@ -531,5 +533,5 @@ def bin_tags_spikes(tagspikes, bin_time_boundaries):
             counts = times_and_counts[:, 1]
             binned_counts = np.histogram(
                 times, bin_time_boundaries, weights=counts)[0]
-            activity_matrices[obj][obj_idx, :] = binned_counts
+            activity_matrices[obj][obj_idx, :] = binned_counts / bin_sizes
     return activity_matrices

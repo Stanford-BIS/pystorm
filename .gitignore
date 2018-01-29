@@ -36,3 +36,5 @@ pystorm/PyOK
 
 # doc outputs
 *.pdf
+
+.cache/*

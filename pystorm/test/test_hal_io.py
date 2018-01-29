@@ -5,7 +5,6 @@ import numpy as np
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
-from pystorm.hal.hal import parse_hal_tags, bin_tags_spikes
 
 def test_hal_io():
     """Perform the test"""
@@ -19,25 +18,23 @@ def test_hal_io():
     net.input = net.create_input("i", DIM)
     bucket = net.create_bucket("b", DIM)
     net.output = net.create_output("o", DIM)
-    net.create_connection("i_to_b", net.input, bucket, 1.)
+    net.create_connection("i_to_b", net.input, bucket, WEIGHT)
     net.create_connection("b_to_o", bucket, net.output, None)
     HAL.map(net)
 
     HAL.start_traffic(flush=False)
     HAL.disable_spike_recording(flush=False)
     HAL.enable_output_recording(flush=True)
-    start_time = HAL.get_time()
     HAL.set_input_rate(net.input, 0, RATE, time=0, flush=True)
     time.sleep(RUN_TIME)
     HAL.set_input_rate(net.input, 0, 0, time=int(RUN_TIME*1e9), flush=True)
-    stop_time = HAL.get_time()
     HAL.stop_traffic(flush=False)
     HAL.disable_spike_recording(flush=False)
     HAL.disable_output_recording(flush=True)
     binned_tags = HAL.get_outputs()
 
     measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
-    total_tags = np.sum(binned_tags[:,3])
+    total_tags = np.sum(binned_tags[:, 3])
     measured_rate = total_tags/measured_time
     relative_error = np.abs(measured_rate-RATE)/RATE
     print("hal_test_io measured {:.2%}% relative error between input and output rates".format(
