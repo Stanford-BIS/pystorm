@@ -345,20 +345,20 @@ class FIFO(Experiment):
         HAL.set_input_rate(inp, 0, self.pars["input_rate"])
 
         # sanity check, monitor pre-fifo spikes
-        HAL.driver.SetPreFIFODumpState(CORE, True)
+        #HAL.driver.SetPreFIFODumpState(CORE, True)
         time.sleep(.5)
         print("trying to get pre-fifo dump")
-        dumped = HAL.driver.GetPreFIFODump(CORE)
-        print("sanity check: with pre-fifo dump on, got", len(dumped), "pre-FIFO events (expect", self.pars["input_rate"]*.5, ")")
-        HAL.driver.SetPreFIFODumpState(CORE, False)
+        #dumped = HAL.driver.GetPreFIFODump(CORE)
+        #print("sanity check: with pre-fifo dump on, got", len(dumped), "pre-FIFO events (expect", self.pars["input_rate"]*.5, ")")
+        #HAL.driver.SetPreFIFODumpState(CORE, False)
         time.sleep(.1)
 
 
         print("measure power now")
         time.sleep(self.pars["duration"])
 
-        dumped = HAL.driver.GetPreFIFODump(CORE)
-        print("sanity check: make sure pre-FIFO dump actually turned off. Got", len(dumped), "pre-FIFO events (expect 0)")
+        #dumped = HAL.driver.GetPreFIFODump(CORE)
+        #print("sanity check: make sure pre-FIFO dump actually turned off. Got", len(dumped), "pre-FIFO events (expect 0)")
 
 ###########################################
 # tap point/txmitter  power
@@ -392,6 +392,7 @@ class TapPointAndAERTX(Experiment):
 ###########################################
 # run tests
 
+
 tests = [
     AERRX(soma_bias=2),
     AERRX(soma_bias=10),
@@ -400,8 +401,8 @@ tests = [
     Decode(soma_bias=10, d_val=.1, Dout=10),
     InputIO(input_rate=1000),
     FIFO(input_rate=1000),
-    TapPointAndAERTX(input_rate=1000, width=8, height=8),
-    TapPointAndAERTX(input_rate=1000, width=16, height=8),
+    #TapPointAndAERTX(input_rate=1000, width=8, height=8),
+    #TapPointAndAERTX(input_rate=1000, width=16, height=8),
     ]
   
 for idx, test in enumerate(tests):
@@ -423,10 +424,23 @@ for idx, test in enumerate(tests):
 
     print("EXP: done")
 
-# save test parameters and results
 import pickle 
-pfile = open("trial_data.pck", "wb")
+
+fname = "trial_data.pck"
+
+# load old tests to append to
+yn = input("append to old results (" + str(fname) + ") ? (y/n) > ")
+if yn == "n":
+    old_tests = []
+else:
+    pfile = open(fname, "rb")
+    old_tests = pickle.load(pfile)
+    pfile.close()
+
+# save test parameters and results
+pfile = open(fname, "wb")
 pickle.dump(tests, pfile)
+pfile.close()
 
 
 
