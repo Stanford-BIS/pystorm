@@ -186,12 +186,14 @@ class Experiment(object):
 
         return rate
             
+###########################################
+# Get AER rx power
 
 class AERRX(Experiment):
-    # power setup:
-    # neurons -> (stopped at post-neuron valve)
     # counting setup:
     # default
+    # power setup:
+    # neurons -> (stopped at post-neuron valve)
 
     def __init__(self, soma_bias=2, duration=Experiment.duration):
         self.pars = names_to_dict(["soma_bias", "duration"], locals())
@@ -213,7 +215,7 @@ class AERRX(Experiment):
 
         time.sleep(self.pars["duration"])
 
-        HAL.stop_traffic()
+        HAL.stop_traffic() # and keep it off
         # all decoders and tranforms are 1, output count is spike count
         outputs = HAL.get_outputs()
         rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
@@ -223,6 +225,8 @@ class AERRX(Experiment):
 
         time.sleep(self.pars["duration"])
 
+###########################################
+# Get decode operation (PAT + Acc) power
 
 class Decode(Experiment):
     # counting setup:
@@ -271,6 +275,97 @@ class Decode(Experiment):
         print("sanity check: should expect no outputs with pre-FIFO valve closed")
         self.count_after_experiment(net)
 
+###########################################
+# Get Input IO/horn
+
+class InputIO(Experiment):
+    # no counting setup, we use the SG to produce an exact rate
+    # power setups:
+    # IO/horn:
+    # IO -> horn -> (closed pre-FIFO valve)
+    def __init__(self, input_rate=1000, duration=Experiment.duration):
+        self.pars = names_to_dict(["input_rate"], locals())
+        self.results = {}
+        self.description = "Measure input IO + tag horn power. Pars: " + str(self.pars)
+
+    def run(self):
+        net = create_decode_network()
+        HAL.map(net)
+
+        # don't want any neuron power
+        self.kill_all_neurons()
+
+        time.sleep(.1)
+
+        # leave traffic off, that keeps the pre-FIFO valve closed
+        inp = net.get_inputs()[0]
+        HAL.set_input_rate(inp, 0, self.pars["input_rate"])
+
+        print("measure power now")
+        time.sleep(self.pars["duration"])
+
+###########################################
+# FIFO
+
+class FIFO(Experiment):
+    # no counting setup, we use the SG to produce an exact rate
+    # FIFO:
+    # IO -> horn -> FIFO -> (closed post-FIFO valve)
+    def __init__(self, input_rate=1000, duration=Experiment.duration):
+        self.pars = names_to_dict(["input_rate"], locals())
+        self.results = {}
+        self.description = "Measure FIFO power. Pars: " + str(self.pars)
+
+    def run(self):
+        net = create_decode_network()
+        HAL.map(net)
+
+        # don't want any neuron power
+        self.kill_all_neurons()
+
+        # turn off post-fifo traffic
+        HAL.start_traffic(flush=False)
+        HAL.driver.SetPostFIFOTrafficState(CORE, False)
+
+        time.sleep(.1)
+
+        inp = net.get_inputs()[0]
+        HAL.set_input_rate(inp, 0, self.pars["input_rate"])
+
+        print("measure power now")
+        time.sleep(self.pars["duration"])
+
+###########################################
+# tap point/txmitter  power
+class FIFO(Experiment):
+    # no counting setup, we use the SG to produce an exact rate
+    # tap point/AER TX
+    # IO -> horn -> FIFO -> TAT -> AER tx
+    def __init__(self, input_rate=1000, N=N, duration=Experiment.duration):
+        self.pars = names_to_dict(["input_rate", "N"], locals())
+        self.results = {}
+        self.description = "Measure tap point/AER tx power. Pars: " + str(self.pars)
+
+    def run(self):
+        net = create_decode_network(N=self.pars["N"])
+        HAL.map(net)
+
+        # don't want any neuron power
+        self.kill_all_neurons()
+
+        HAL.start_traffic(flush=False)
+
+        time.sleep(.1)
+
+        inp = net.get_inputs()[0]
+        HAL.set_input_rate(inp, 0, self.pars["input_rate"])
+
+        print("measure power now")
+        time.sleep(self.pars["duration"])
+        
+
+###########################################
+# run tests
 
 tests = [
     AERRX(soma_bias=2),
