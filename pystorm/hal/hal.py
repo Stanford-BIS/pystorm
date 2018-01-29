@@ -75,7 +75,7 @@ class HAL(object):
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
-        self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution 
+        self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
 
 
@@ -88,10 +88,10 @@ class HAL(object):
                        Also controls the time resolution of the FPGA tag stream generators
                        (set_input_rates() periods will be a multiple of this).
         upstream_ns: Controls the period of upstream heartbeats from the FPGA.
-                     Every upstream_ns, the FPGA reports the time current time.
+                     Every upstream_ns, the FPGA reports the current time.
                      The Driver uses the most recent HB to timestamp upstream traffic.
                      Also controls the period with which the FPGA emits filtered outputs.
-                     get_outputs() will have new values every upstream_ns.
+                     get_outputs() will have a new entry every upstream_ns.
         """
         self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
@@ -171,18 +171,18 @@ class HAL(object):
         self.driver.SetSpikeDumpState(CORE_ID, en=False, flush=flush)
 
     def get_outputs(self, timeout=1000):
-        """Returns all pending output values gathered since this was last called.
+        """Returns all binned output tags gathered since this was last called.
 
         Data format: a numpy array of : [(time, output, dim, counts), ...]
-        Timestamps are in microseconds
+        Timestamps are in nanoseconds
+        Counts are the number of tags received since the last report:
+            Every FPGA time unit, the Spike Filter array loops through N_SF
+            filters, reports the tallied tag counts since the last report,
+            and resets each count to 0
 
         Whether or not you get return values is enabled/disabled by
         enable/disable_output_recording()
         """
-        # every FPGA time unit, the Spike Filter array loops through N_SF
-        # filters, reports the tallied tag counts since the last report,
-        # and resets each count to 0
-
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
 
         # for now, working in count mode
@@ -457,7 +457,7 @@ class HAL(object):
         # exponential decay is also possible
         self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
-        
+
         # remove any evidence of old network in driver queues
         print("HAL: clearing queued-up outputs")
         self.driver.ClearOutputs()
