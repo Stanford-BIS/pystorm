@@ -1,4 +1,5 @@
 import numpy as np
+from numbers import Number
 from . import bucket
 from . import pool
 from . import input
@@ -82,7 +83,8 @@ class Network(object):
         if weights is not None and not isinstance(dest, bucket.Bucket):
             print("connection weights are only used when the destination node is a Bucket")
             raise NotImplementedError
-
+        if isinstance(weights, Number):
+            weights = np.array([[weights]])
         c = connection.Connection(label, src, dest, weights)
         self.connections.append(c)
         return c
