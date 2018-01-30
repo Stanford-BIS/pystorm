@@ -312,6 +312,7 @@ void Driver::InitBD() {
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
+    cout << "InitBD: disabling traffic flow" << endl;
     SetTagTrafficState(i, false);
     SetSpikeTrafficState(i, false);
 
@@ -322,8 +323,10 @@ void Driver::InitBD() {
     }
 
     // init the FIFO
+    cout << "InitBD: initializing FIFO" << endl;
     InitFIFO(i);
 
+    cout << "InitBD: programming memories to default values" << endl;
     // initialize memories to sane values (critically, that can't cause infinite loops)
     SetMem(i , bdpars::BDMemId::PAT  , GetDefaultPATEntries()  , 0);
     SetMem(i , bdpars::BDMemId::TAT0 , GetDefaultTAT0Entries() , 0);
@@ -332,8 +335,10 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::AM   , GetDefaultAMEntries()   , 0);
 
     // Initialize neurons
+    cout << "InitBD: setting default DAC settings" << endl;
     InitDAC(i, false);
 
+    cout << "InitBD: setting default neuron twiddle bits" << endl;
     // Disable all Somas
     for(unsigned int idx = 0; idx < 4096; ++idx){
       DisableSoma(i, idx);
@@ -385,7 +390,6 @@ void Driver::InitFIFO(unsigned int core_id) {
   }
   SendToEP(core_id, bdpars::BDHornEP::INIT_FIFO_DCT, all_tag_vals);
   Flush();
-  cout << "sent tags to push junk out of FIFO" << endl;
 
   // resume traffic will wait for the traffic drain timer before turning traffic regs back on
   std::this_thread::sleep_for(std::chrono::microseconds(1000000));
@@ -841,16 +845,25 @@ void Driver::SetMem(
     // pop out the last two words
     IssuePushWords();
 
-    unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+    double timeout_s = 2; // keep reading for 2s
+    auto start = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = now - start;
 
-    // XXX this might discard remainders
     unsigned int n_recvd = 0;
-    while (n_recvd < data.size()) {
-      std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
+    while (n_recvd < data.size() && diff.count() < timeout_s) {
+      std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, 10000);
       n_recvd += recvd.first.size();
+      now = std::chrono::high_resolution_clock::now();
+      diff = now - start;
     }
-    if (n_recvd > mem_size) {
-      cout << "WARNING! LOST SOME AM WORDS" << endl;
+    if (diff.count() > timeout_s) {
+      cout << "WARNING! while programming AM, got fewer words than we expected" << endl;
+      cout << "  got " << n_recvd << " vs " << data.size() << endl;
+    }
+    if (n_recvd > data.size()) {
+      cout << "WARNING! while programming AM, got more words than we expected" << endl;
+      cout << "  got " << n_recvd << " vs " << data.size() << endl;
     }
   }
 }

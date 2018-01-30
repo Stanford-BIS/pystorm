@@ -10,6 +10,7 @@ from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd
 
 CORE_ID = 0
+print("Setting Core_id to 0")
 
 # Set all the DACs to some default values
 # Use this function to determine what the default DAC values should be
@@ -130,7 +131,7 @@ SetADCsScale("large")
 #       bd.bdpars.BDHornEP.DAC_SOMA_OFFSET 250fA to 250pA
 #       bd.bdpars.BDHornEP.DAC_SOMA_REF    1pA to 1nA
 
-DAC_ID = bd.bdpars.BDHornEP.DAC_SOMA_REF
+DAC_ID = bd.bdpars.BDHornEP.DAC_SYN_EXC
 tsleep = 4
 
 # Enable the one DAC to ADC Connection that we want
