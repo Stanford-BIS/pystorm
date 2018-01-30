@@ -119,8 +119,10 @@ Then reboot or issue the following commands:
 
 # TEST
 
-From the build directory all module tests can be executed issuing the
-following command.
+## C Code Tests
+
+After the build, C code can be executed issuing the
+following command from the build directory.
 
 ```
     ctest -C Debug -j6 -T test -VV --timeout 300
@@ -131,6 +133,16 @@ following command.
 * `-T test` specifies the type of test (always `test` for us)
 * `-VV` specifies extra verbosity
 * `--timout 300` specifieds that the tests should be halted at 5 minutes if they're still running (i.e. in case the tests are hanging)
+
+Individual tests can be run from their executables in the `lib/<Release Type>/` directory.
+
+## Python tests 
+
+Tests of the python interface may be executed by running `pytest` from within
+
+`<Repository Root>/pystorm/test/`
+
+These tests require a Braindrop to be attached.
 
 # Dependencies
 
