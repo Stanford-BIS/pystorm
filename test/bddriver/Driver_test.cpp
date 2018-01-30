@@ -181,6 +181,7 @@ TEST_F(DriverFixture, TestDumpMM) {
   unsigned int size = driver->GetBDPars()->mem_info_.at(bdpars::BDMemId::MM).size;
   auto data = MakeRandomMMData(size);
   driver->SetMem(kCoreId, bdpars::BDMemId::MM, data, 0);
+  std::this_thread::sleep_for(std::chrono::seconds(2));
   auto dumped = driver->DumpMem(kCoreId, bdpars::BDMemId::MM);
   ASSERT_EQ(data, dumped);
 }
