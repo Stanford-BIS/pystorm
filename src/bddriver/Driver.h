@@ -151,10 +151,12 @@ class Driver {
   void InitFIFO(unsigned int core_id);
   /// Inits the DACs to default values
   void InitDAC(unsigned int core_id, bool flush=true);
-  /// Initializes hardware state
+  /// Initializes BD hardware state
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
   void InitBD();
+  /// Initializes FPGA state
+  void InitFPGA();
   /// Empties all driver output queues
   void ClearOutputs();
   
@@ -1033,24 +1035,29 @@ class Driver {
 
 
   /// array mapping SG generator idx -> enabled/disabled
-  std::array<bool, max_num_SG_> SG_en_;
-  void InitSGEn() {
-    for (auto& it : SG_en_) {
+  std::vector<std::array<bool, max_num_SG_>> SG_en_;
+  void InitSGEn(unsigned int core_id) {
+    for (auto& it : SG_en_.at(core_id)) {
       it = false;
     } 
   }
+  /// send current SG_en_ values
+  void SendSGEns(unsigned int core_id, BDTime time);
 
   /// FPGA time units per microsecond
   inline uint64_t NsToUnits(BDTime   ns)    { return ns / ns_per_unit_; }
   inline BDTime   UnitsToNs(uint64_t units) { return ns_per_unit_ * units; }
 
   /// FPGA SG_en_ max bit assigned helper
-  inline unsigned int GetHighestSGEn() const {
-    for (unsigned int i = SG_en_.size(); i > 0; i++) {
-      if (SG_en_.at(i)) return i;
+  inline int GetHighestSGEn(unsigned int core_id) const {
+    int highest = -1;
+    for (unsigned int i = 0; i < SG_en_.at(core_id).size(); i++) {
+      if (SG_en_.at(core_id).at(i)) highest = i;
     }
-    return 0;
+    return highest;
   }
+
+
 
   /// Number of upstream "push"s sent.
   /// There's a hardware bug where every upstream word has to be "pushed" out of the 

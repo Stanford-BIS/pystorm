@@ -121,13 +121,12 @@ Driver::Driver() {
     assert(false && "unhandled comm_type");
 #endif
 
-  // initialize FPGA stuff
-  InitSGEn();
-
   // OK appreciates a little sleep time?
   std::this_thread::sleep_for(std::chrono::microseconds(100));
   cout << "Driver constructor done" << endl;
 
+  // set up FPGA data structures
+  SG_en_.resize(bd_pars_->NumCores);
 
 }
 
@@ -304,10 +303,22 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
   if (flush) Flush();
 }
 
+void Driver::InitFPGA() {
+
+  cout << "InitFPGA: initializing SGs" << endl;
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    InitSGEn(i);
+    SendSGEns(i, 0);
+  }
+
+  cout << "InitFPGA: initializing SFs" << endl;
+
+}
 
 void Driver::InitBD() {
 
   // BD hard reset
+  cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
@@ -1141,6 +1152,28 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
   if (flush) Flush();
 }
 
+void Driver::SendSGEns(unsigned int core_id, BDTime time) {
+  // send all SG enables
+  assert(max_num_SG_ <= 256); // that's what this was written for
+  uint16_t en_word;
+  for (unsigned int gen_idx = 0; gen_idx < SG_en_.at(core_id).size(); gen_idx++) {
+    unsigned int bit_idx = gen_idx % 16;
+    uint16_t bit_sel = 1 << bit_idx;
+
+    if (bit_idx == 0) en_word = 0;
+
+    if (SG_en_[core_id][gen_idx]) {
+      en_word |= bit_sel;
+    }
+
+    if (bit_idx == 15) {
+      bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
+      //cout << "enable" << en_word << endl;
+      SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
+    }
+  }
+}
+
 void Driver::SetSpikeGeneratorRates(
     unsigned int core_id,
     const std::vector<unsigned int>& gen_idxs,
@@ -1201,34 +1234,16 @@ void Driver::SetSpikeGeneratorRates(
     unsigned int rate = rates.at(i);
 
     bool new_state = rate > 0;
-    SG_en_[gen_idx] = new_state;
+    SG_en_[core_id][gen_idx] = new_state;
   }
 
-  // set all SG enables, regardless of which ones we actually modified
-  uint16_t en_word;
-  unsigned int highest_used = 0;
-  for (unsigned int gen_idx = 0; gen_idx < SG_en_.size(); gen_idx++) {
-    unsigned int bit_idx = gen_idx % 16;
-    uint16_t bit_sel = 1 << bit_idx;
-
-    if (bit_idx == 0) en_word = 0;
-
-    if (SG_en_[gen_idx]) {
-      en_word |= bit_sel;
-      highest_used = gen_idx;
-    }
-
-    if (bit_idx == 15) {
-      bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      //cout << "enable" << en_word << endl;
-      SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
-    }
-  }
-  //cout << "number of generators: " << highest_used + 1 << endl;
-  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+  // send all SG enables, regardless if only one was changed
+  SendSGEns(core_id, time);
 
   // set number of SGs used
-
+  int highest_used = GetHighestSGEn(core_id);
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+  //cout << "number of generators: " << highest_used + 1 << endl;
 
   if (flush) Flush();
 
