@@ -408,16 +408,16 @@ class TapPointAndAERTX(Experiment):
 
 
 tests = [
-    #Static(),
-    #AERRX(soma_bias=2),
-    #AERRX(soma_bias=10),
-    #Decode(soma_bias=10, d_val=.1, Dout=1),
-    #Decode(soma_bias=10, d_val=1., Dout=1),
-    #Decode(soma_bias=10, d_val=.1, Dout=10),
-    #InputIO(input_rate=1000),
+    Static(),
+    AERRX(soma_bias=2),
+    AERRX(soma_bias=10),
+    Decode(soma_bias=10, d_val=.1, Dout=1),
+    Decode(soma_bias=10, d_val=1., Dout=1),
+    Decode(soma_bias=10, d_val=.1, Dout=10),
+    InputIO(input_rate=1000),
     FIFO(input_rate=1000),
     TapPointAndAERTX(input_rate=1000, width=8, height=8),
-    #TapPointAndAERTX(input_rate=1000, width=16, height=8),
+    TapPointAndAERTX(input_rate=1000, width=16, height=8),
     ]
   
 for idx, test in enumerate(tests):
