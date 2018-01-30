@@ -11,11 +11,11 @@ from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.hal import parse_hal_binned_tags, parse_hal_spikes, bin_tags_spikes
 
 CORE = 0
-# BIAS_OFFSETS = [64, 128, 256, 512, 1024]
-BIAS_OFFSET = 1024
+BIAS_OFFSETS = [128, 256, 512, 1024]
 BIAS_REF = 1024
 NNEURONS = 64
-RUN_TIME = 5.
+RUN_TIME = 15.
+REL_ERROR_TOLERANCE = 0.01  # tolerable relative error
 
 def set_analog_config():
     """Sets the DACs and soma configurations"""
@@ -87,20 +87,37 @@ def toggle_hal_recording(spikes, tags):
 
 def run_experiment():
     """run the test"""
+    raw_spike_rates = np.zeros(len(BIAS_OFFSETS))
     net = build_raw_spike_net()
-    start, stop = toggle_hal_recording(True, False)
-    spikes = parse_hal_spikes(HAL.get_spikes())
-    raw_spike_rate = bin_tags_spikes(spikes, [start, stop])[net.pool][0, 0]
+    for idx, bias_offset in enumerate(BIAS_OFFSETS):
+        HAL.driver.SetDACCount(0, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, bias_offset)
+        start, stop = toggle_hal_recording(True, False)
+        spikes = parse_hal_spikes(HAL.get_spikes())
+        raw_spike_rate = bin_tags_spikes(spikes, [start, stop])[net.pool][0, 0]
+        raw_spike_rates[idx] = raw_spike_rate
 
+    decode_spike_rates = np.zeros(len(BIAS_OFFSETS))
     net = build_decoded_net()
-    start, stop = toggle_hal_recording(False, True)
-    hal_binned_tags = HAL.get_outputs()
-    tags = parse_hal_binned_tags(hal_binned_tags)
-    decode_spike_rate = bin_tags_spikes(tags, [start, stop])[net.output][0, 0]
-    
-    print(raw_spike_rate)
-    print(decode_spike_rate)
-    print(raw_spike_rate / decode_spike_rate)
+    for idx, bias_offset in enumerate(BIAS_OFFSETS):
+        HAL.driver.SetDACCount(0, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, bias_offset)
+        start, stop = toggle_hal_recording(False, True)
+        hal_binned_tags = HAL.get_outputs()
+        tags = parse_hal_binned_tags(hal_binned_tags)
+        decode_spike_rate = bin_tags_spikes(tags, [start, stop])[net.output][0, 0]
+        decode_spike_rates[idx] = decode_spike_rate
+
+    relative_error = np.abs(raw_spike_rates - decode_spike_rates)/raw_spike_rates
+    print("Bias offsets tested:")
+    print("\t" + str(BIAS_OFFSETS))
+    print("Raw spike rates:")
+    print("\t" + str(raw_spike_rates))
+    print("Decoded spike rates:")
+    print("\t" + str(decode_spike_rates))
+    print("Relative error:")
+    print("\t" + str(relative_error))
+    assert np.all(relative_error < REL_ERROR_TOLERANCE), (
+        "Exceeded relative error tolerance in test_raw_spikes_vs_decode_1\n" +
+        "\tRelative error tolerance is {:.2%}".format(REL_ERROR_TOLERANCE))
 
 if __name__ == "__main__":
     run_experiment()
