@@ -44,7 +44,7 @@ wire bot_out_clk;
 
 
 localparam NPCcode = 7;
-localparam NPCdata =20;
+localparam NPCdata = 20;
 localparam NPCroute = 5;
 localparam NPCinout = NPCcode + NPCdata + NPCroute;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
@@ -104,8 +104,7 @@ assign PC_downstream.d = OK_downstream.d;
 ////////////////////////////////////////////
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
-OKIfc #(
-  NPCcode, 
+OKIfc #( 
   NOPcode) 
 ok_ifc(
 	.okUH(okUH),
