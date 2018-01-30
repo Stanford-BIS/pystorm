@@ -454,7 +454,7 @@ else:
 
 # save test parameters and results
 pfile = open(fname, "wb")
-pickle.dump(tests, pfile)
+pickle.dump(old_tests + tests, pfile)
 pfile.close()
 
 
