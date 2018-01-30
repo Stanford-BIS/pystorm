@@ -257,12 +257,7 @@ class HAL(object):
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
         out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
 
-        if rate == 0:
-            hack_rate = rate + 1 # XXX setting all rates to 0 seems to cause problems, SGs never turn back on
-        else:
-            hack_rate = rate
-
-        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [hack_rate], time, True)
+        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, True)
 
         # XXX there is a bug (probably with how inputs are sorted by time)
         # calling SetSpikeGeneratorRates with more than one element per list
