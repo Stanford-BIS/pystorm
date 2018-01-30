@@ -22,7 +22,6 @@ Din = 1
 Dint = 1
 Dout = 1
 width_height = (width, height)
-N = width * height
 d_range=(1,1)
 t_range=(1,1)
 exp_duration = 1
@@ -67,6 +66,8 @@ def create_decode_network(width=width, height=height, Din=Din, Dout=Dout, d_rang
     tag funnel ->
     output IO
     """
+
+    N = width * height
 
     net = graph.Network("net")
 
@@ -408,7 +409,7 @@ class TapPointAndAERTX(Experiment):
 
 
 tests = [
-    Static(),
+    #Static(),
     #AERRX(soma_bias=2),
     #AERRX(soma_bias=10),
     #Decode(soma_bias=10, d_val=.1, Dout=1),
