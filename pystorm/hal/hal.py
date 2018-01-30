@@ -58,6 +58,7 @@ class HAL(object):
         self.last_mapped_resources = None
         self.last_mapped_core = None
 
+        self.init_hardware()
 
     def init_hardware(self):
         print("HAL: clearing hardware state")
