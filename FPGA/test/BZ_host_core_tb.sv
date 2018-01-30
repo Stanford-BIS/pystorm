@@ -48,7 +48,7 @@ end
 always #3 osc =! osc;
 
 always begin
-	#1 //3x osc clk (50 vs 150)
+	#2 //3x osc clk (50 vs 150)
 	top_in_clk=!top_in_clk;
 end
 
@@ -138,17 +138,16 @@ initial begin
   	SendPacket(32'b00010000000011110000111000110010);
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
-  	#200
-  	@(posedge top_in_clk) #6;
+  	#202
   	top_valid_in = 1;
-	top_in=11'b00000100000; //send header
-	#6
+	top_in=11'b00111111111; //send header
+	#4
 	top_in=11'b00000000001; //send data
-	#6
+	#4
 	top_in=11'b00000000111;
-	#6
+	#4
 	top_in=11'b00000011111;
-	#6
+	#4
 	top_in=11'b0;
 	top_valid_in = 0;
 
