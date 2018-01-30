@@ -1057,8 +1057,6 @@ class Driver {
     return highest;
   }
 
-
-
   /// Number of upstream "push"s sent.
   /// There's a hardware bug where every upstream word has to be "pushed" out of the 
   /// synchronizer queue by subsequent BD traffic. The number of elements waiting to be

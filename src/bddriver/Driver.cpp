@@ -312,10 +312,19 @@ void Driver::InitFPGA() {
   }
 
   cout << "InitFPGA: initializing SFs" << endl;
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    SetSpikeFilterIncrementConst(i, 1, false);
+    SetSpikeFilterDecayConst(i, 0, false);
+    SetNumSpikeFilters(i, 0);
+  }
+  
 
 }
 
 void Driver::InitBD() {
+
+  // TODO: perhaps separate this out, eventually
+  InitFPGA();
 
   // BD hard reset
   cout << "InitBD: BD reset cycle" << endl;
