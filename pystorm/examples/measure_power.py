@@ -270,7 +270,7 @@ class Decode(Experiment):
         print("inferred", spike_rate, "spikes per second")
 
     def run(self):
-        net = create_decode_network(Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
+        net = create_decode_network(width=32, height=32, Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
         HAL.map(net)
         
         # give the neurons some juice
@@ -409,15 +409,15 @@ class TapPointAndAERTX(Experiment):
 
 tests = [
     Static(),
-    AERRX(soma_bias=2),
-    AERRX(soma_bias=10),
-    Decode(soma_bias=10, d_val=.1, Dout=1),
-    Decode(soma_bias=10, d_val=1., Dout=1),
-    Decode(soma_bias=10, d_val=.1, Dout=10),
-    InputIO(input_rate=1000),
-    FIFO(input_rate=1000),
-    TapPointAndAERTX(input_rate=1000, width=8, height=8),
-    TapPointAndAERTX(input_rate=1000, width=16, height=8),
+    #AERRX(soma_bias=2),
+    #AERRX(soma_bias=10),
+    #Decode(soma_bias=10, d_val=.1, Dout=1),
+    #Decode(soma_bias=10, d_val=1., Dout=1),
+    Decode(soma_bias=10, d_val=.001, Dout=10),
+    #InputIO(input_rate=1000),
+    #FIFO(input_rate=1000),
+    #TapPointAndAERTX(input_rate=1000, width=8, height=8),
+    #TapPointAndAERTX(input_rate=1000, width=16, height=8),
     ]
   
 for idx, test in enumerate(tests):
