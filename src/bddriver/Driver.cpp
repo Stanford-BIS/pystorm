@@ -1246,12 +1246,15 @@ void Driver::SetSpikeGeneratorRates(
     SG_en_[core_id][gen_idx] = new_state;
   }
 
+  // XXX mandatory flush, works around #81, for reasons I do not understand
+  Flush();
+
   // send all SG enables, regardless if only one was changed
   SendSGEns(core_id, time);
 
   // set number of SGs used
   int highest_used = GetHighestSGEn(core_id);
-  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {static_cast<unsigned int>(highest_used+1)}, {time});
   //cout << "number of generators: " << highest_used + 1 << endl;
 
   if (flush) Flush();
