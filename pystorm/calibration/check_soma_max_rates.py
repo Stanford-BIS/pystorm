@@ -7,6 +7,7 @@ Iterate through the somas, and collect spikes
 Plot results
 """
 import os
+import sys
 from time import sleep
 import argparse
 import numpy as np
@@ -14,14 +15,18 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 
+from pystorm.hal import HAL
+from pystorm.hal.hal import parse_hal_spikes
+from pystorm.hal.neuromorph import graph
+from pystorm.PyDriver import bddriver as bd
+
 CORE = 0
 MAX_NEURONS = 4096
 BIAS_REF = 1024
 BIAS_OFFSET = 1024
 TIME_SCALE = 1E-9
 
-# NEURONS = 4096
-NEURONS = 4
+NEURONS = 4096
 RUN_TIME = .1
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
@@ -117,9 +122,19 @@ def plot_max_rates(max_rates):
     fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
     fig_hist = plt.figure()
-    plt.hist(max_rates, bins=int(neurons/20))
+    bins = min(max(int(neurons/20), neurons), 80)
+    max_rates_mean = np.mean(max_rates)
+    max_rates_median = np.median(max_rates)
+    max_rates_min = np.min(max_rates)
+    max_rates_max = np.max(max_rates)
+    plt.hist(max_rates, bins=bins)
+    plt.axvline(max_rates_mean, color="k", label="mean")
+    plt.axvline(max_rates_median, color="r", label="median")
     plt.xlabel("Max firing Rate (Hz)")
     plt.ylabel("Counts")
+    plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
+        max_rates_mean, max_rates_median, max_rates_min, max_rates_max))
+    plt.legend()
 
     fig_1d.savefig(DATA_DIR + "nrn_idx_vs_max_rate.pdf")
     fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
@@ -130,12 +145,12 @@ def check_soma_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
+        try:
+            max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
+        except FileNotFoundError as err:
+            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
+            sys.exit(1)
     else:
-        from pystorm.hal import HAL
-        from pystorm.hal.hal import parse_hal_spikes
-        from pystorm.hal.neuromorph import graph
-        from pystorm.PyDriver import bddriver as bd
         pool = build_net()
         set_analog()
         max_rates = np.zeros(NEURONS)
