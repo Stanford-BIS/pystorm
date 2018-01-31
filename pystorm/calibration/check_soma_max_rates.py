@@ -33,7 +33,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Characterize the soma max firing rates')
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
     args = parser.parse_args()
-    return args.use_saved_data
+    return args
 
 def build_net():
     """Builds the HAL-level network for testing"""
@@ -103,7 +103,7 @@ def plot_max_rates(max_rates):
     plt.colorbar(ims)
     plt.xlabel("Soma X Coordinate")
     plt.ylabel("Soma Y Coordinate")
-    plt.title("Max Firing Rate")
+    plt.title("Max Firing Rate (Hz)")
 
     fig_2d_surf = plt.figure()
     axs = fig_2d_surf.add_subplot(111, projection='3d')
@@ -116,10 +116,19 @@ def plot_max_rates(max_rates):
     axs.set_zlabel("Soma Max Firing Rate (Hz)")
     fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
-    return fig_1d, fig_2d_heatmap, fig_2d_surf
+    fig_hist = plt.figure()
+    plt.hist(max_rates, bins=int(neurons/20))
+    plt.xlabel("Max firing Rate (Hz)")
+    plt.ylabel("Counts")
 
-def check_soma_max_rates(use_saved_data):
+    fig_1d.savefig(DATA_DIR + "nrn_idx_vs_max_rate.pdf")
+    fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
+    fig_2d_surf.savefig(DATA_DIR + "2d_surface.pdf")
+    fig_hist.savefig(DATA_DIR + "histogram.pdf")
+
+def check_soma_max_rates(parsed_args):
     """Run the check"""
+    use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
         max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
     else:
@@ -133,10 +142,7 @@ def check_soma_max_rates(use_saved_data):
         for nrn_idx in range(NEURONS):
             max_rates[nrn_idx] = measure_soma_max_rate(pool, nrn_idx)
 
-    fig_1d, fig_2d_heatmap, fig_2d_surf = plot_max_rates(max_rates)
-    fig_1d.savefig(DATA_DIR + "plot_1d.pdf")
-    fig_2d_heatmap.savefig(DATA_DIR + "plot_2d_heatmap.pdf")
-    fig_2d_surf.savefig(DATA_DIR + "plot_2d_surface.pdf")
+    plot_max_rates(max_rates)
     if not use_saved_data:
         np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
     print("Max firing rates:")
@@ -144,5 +150,5 @@ def check_soma_max_rates(use_saved_data):
     plt.show()
 
 if __name__ == "__main__":
-    use_saved_data = parse_args()
-    check_soma_max_rates(use_saved_data)
+    args = parse_args()
+    check_soma_max_rates(args)
