@@ -85,7 +85,7 @@ def toggle_hal_recording(spikes, tags):
     HAL.disable_output_recording(flush=True)
     return start_time, stop_time
 
-def run_experiment():
+def test_raw_spikes_vs_decode_1():
     """run the test"""
     raw_spike_rates = np.zeros(len(BIAS_OFFSETS))
     net = build_raw_spike_net()
@@ -120,4 +120,4 @@ def run_experiment():
         "\tRelative error tolerance is {:.2%}".format(REL_ERROR_TOLERANCE))
 
 if __name__ == "__main__":
-    run_experiment()
+    test_raw_spikes_vs_decode_1()
