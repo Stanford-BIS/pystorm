@@ -13,42 +13,38 @@ the software stack known as pystorm.
 
 The following diagram illustrates the structure
 
-    └── pystorm
-        │
-        ├── CMakeLists.txt
-        │
-        ├── Jenkinsfile
-        │
-        ├── docker
-        │   └── Dockerfile_JENKINS_CI
-        │
-        ├── ext                         (externally sourced libraries)
-        │   ├── yaml-cpp
-        │   └── gtest
-        │
-        ├── include                     (public shared headers)
-        │
-        ├── lib                         (public shared libs)
-        │
-        ├── pystorm                     (python package source)
-        │   └── bdhal
-        │
-        ├── src                         (c++ source)
-        │   ├── bddriver
-        │   ├── bdhal
-        │   └── bindings
-        │       └── python
-        │           └── 3.5
-        │
-        └── test
-            ├── bddriver
-            ├── bdhal
-            └── bindings
-                └── python
-                    └── 3.5
-
-
-Python code lives in the pystorm directory tree, C++ code lives in the src directory tree.
+    pystorm
+    ├── apps                        (applications)
+    │   └── eng_gui
+    ├── cmake
+    ├── docker
+    ├── ext                         (externally sourced libraries)
+    │   ├── gtest
+    │   ├── pybind11
+    │   └── yaml-cpp
+    ├── FPGA                        (FPGA source)
+    │   ├── docker
+    │   ├── ext
+    │   ├── quartus
+    │   ├── src
+    │   └── test
+    ├── include                     (public shared headers)
+    ├── lib                         (public shared libs)
+    ├── pystorm                     (python package source)
+    │   ├── calibration
+    │   ├── examples
+    │   ├── hal
+    │   ├── PyRawDriver
+    │   └── test                    (python package tests)
+    ├── src                         (c++ source)
+    │   ├── bddriver
+    │   ├── bdhal
+    │   └── bindings
+    └── test                        (tests for c++ source)
+        ├── bddriver
+        ├── bdhal
+        ├── bindings
+        └── neuron
 
 # Python package setup
 
