@@ -8,15 +8,11 @@ Plot results
 """
 import os
 from time import sleep
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
-
-from pystorm.hal import HAL
-from pystorm.hal.hal import parse_hal_spikes
-from pystorm.hal.neuromorph import graph
-from pystorm.PyDriver import bddriver as bd
 
 CORE = 0
 MAX_NEURONS = 4096
@@ -24,12 +20,20 @@ BIAS_REF = 1024
 BIAS_OFFSET = 1024
 TIME_SCALE = 1E-9
 
-NEURONS = 4096
+# NEURONS = 4096
+NEURONS = 4
 RUN_TIME = .1
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
 if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(description='Characterize the soma max firing rates')
+    parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
+    args = parser.parse_args()
+    return args.use_saved_data
 
 def build_net():
     """Builds the HAL-level network for testing"""
@@ -85,45 +89,60 @@ def measure_soma_max_rate(pool, nrn_idx):
 
 def plot_max_rates(max_rates):
     """Plot hte data"""
-    plt.plot(max_rates, 'o', linewidth=1)
-    plt.xlim(0, NEURONS-1)
+    neurons = len(max_rates)
+
+    fig_1d = plt.figure()
+    plt.plot(max_rates, 'o', markersize=1)
+    plt.xlim(0, neurons-1)
     plt.xlabel("Soma Index")
     plt.ylabel("Max Firing Rate (Hz)")
-    plt.savefig(DATA_DIR + "plot_1d.pdf")
 
-    max_rates_2d = max_rates.reshape((int(np.sqrt(NEURONS)), -1))
-    plt.figure()
+    max_rates_2d = max_rates.reshape((int(np.sqrt(neurons)), -1))
+    fig_2d_heatmap = plt.figure()
     ims = plt.imshow(max_rates_2d)
     plt.colorbar(ims)
     plt.xlabel("Soma X Coordinate")
     plt.ylabel("Soma Y Coordinate")
     plt.title("Max Firing Rate")
-    plt.savefig(DATA_DIR + "plot_2d_heatmap.pdf")
 
-    fig = plt.figure()
-    axs = fig.add_subplot(111, projection='3d')
-    xy_idx = np.arange(int(np.sqrt(NEURONS)))
+    fig_2d_surf = plt.figure()
+    axs = fig_2d_surf.add_subplot(111, projection='3d')
+    xy_idx = np.arange(int(np.sqrt(neurons)))
     x_mesh, y_mesh = np.meshgrid(xy_idx, xy_idx)
     surf = axs.plot_surface(
         x_mesh, y_mesh, max_rates_2d, linewidth=0, cmap=cm.viridis, antialiased=False)
     axs.set_xlabel("Soma X Coordinate")
     axs.set_ylabel("Soma Y Coordinate")
     axs.set_zlabel("Soma Max Firing Rate (Hz)")
-    fig.colorbar(surf, shrink=0.5, aspect=5)
-    plt.savefig(DATA_DIR + "plot_2d_surface.pdf")
+    fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
-def check_soma_max_rates():
+    return fig_1d, fig_2d_heatmap, fig_2d_surf
+
+def check_soma_max_rates(use_saved_data):
     """Run the check"""
-    pool = build_net()
-    set_analog()
-    max_rates = np.zeros(NEURONS)
-    for nrn_idx in range(NEURONS):
-        max_rates[nrn_idx] = measure_soma_max_rate(pool, nrn_idx)
-    plot_max_rates(max_rates)
-    np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
+    if use_saved_data:
+        max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
+    else:
+        from pystorm.hal import HAL
+        from pystorm.hal.hal import parse_hal_spikes
+        from pystorm.hal.neuromorph import graph
+        from pystorm.PyDriver import bddriver as bd
+        pool = build_net()
+        set_analog()
+        max_rates = np.zeros(NEURONS)
+        for nrn_idx in range(NEURONS):
+            max_rates[nrn_idx] = measure_soma_max_rate(pool, nrn_idx)
+
+    fig_1d, fig_2d_heatmap, fig_2d_surf = plot_max_rates(max_rates)
+    fig_1d.savefig(DATA_DIR + "plot_1d.pdf")
+    fig_2d_heatmap.savefig(DATA_DIR + "plot_2d_heatmap.pdf")
+    fig_2d_surf.savefig(DATA_DIR + "plot_2d_surface.pdf")
+    if not use_saved_data:
+        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
     print("Max firing rates:")
     print(max_rates)
     plt.show()
 
 if __name__ == "__main__":
-    check_soma_max_rates()
+    use_saved_data = parse_args()
+    check_soma_max_rates(use_saved_data)
