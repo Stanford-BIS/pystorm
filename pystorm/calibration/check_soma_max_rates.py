@@ -27,7 +27,8 @@ BIAS_OFFSET = 1024
 TIME_SCALE = 1E-9
 
 NEURONS = 4096
-RUN_TIME = .1
+RUN_TIME = 0.1
+INTER_RUN_TIME = 0.1
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
 if not os.path.isdir(DATA_DIR):
@@ -64,6 +65,7 @@ def set_analog():
 def toggle_hal_recording():
     """Start and stop HAL traffic"""
     # clear queues
+    sleep(INTER_RUN_TIME)
     _ = HAL.get_spikes()
     HAL.set_time_resolution(upstream_ns=10000)
     HAL.start_traffic(flush=False)
