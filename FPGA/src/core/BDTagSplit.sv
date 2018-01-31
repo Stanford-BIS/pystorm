@@ -2,12 +2,16 @@
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
 
+// splits decoded outputs into the following streams:
+// tag outputs with BD-to-BD routes
+// tag outputs with go-home routes (go to SF, possibly also copied to other outputs)
+// all other outputs 
 module BDTagSplit #(
   parameter NBDdata_in = 34,
   parameter Nglobal = 12,
   parameter Ntag = 11,
   parameter Nct = 9,
-  parameter GO_HOME_rt = -512) (
+  parameter GO_HOME_rt = -32) (
 
   TagCtChannel tag_out,
   GlobalTagCtChannel global_tag_out,
@@ -19,9 +23,11 @@ module BDTagSplit #(
 localparam unsigned RO_ACC_code = 11;
 localparam unsigned RO_TAT_code = 12;
 
-//get global tag kinda cleanly
+// break up input as if it were RO_ACC or RO_TAT
 logic [Nglobal - 1:0] global_tag;
-assign global_tag = BD_in.payload[Nglobal + Ntag + Nct - 1 : Ntag + Nct];
+logic [Ntag-1:0] local_tag; // unused
+logic [Nct-1:0] ct; // unused
+assign {global_tag, local_tag, ct} = BD_in.payload;
 
 //this guy is just a spaceholder for the combinational logic
 logic [Nglobal - 1:0] global_tag_spaceholder;

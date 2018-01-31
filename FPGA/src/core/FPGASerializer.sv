@@ -4,9 +4,9 @@
 `include "Serializer.sv"
 
 module FPGASerializer #(
-  parameter NPCcode = 8,
-  parameter NPCdata = 24,
-  parameter Ntime = 48,
+  parameter NPCcode = 7,
+  parameter NPCdata = 20,
+  parameter Ntime_full = 48,
   parameter N_SF_filts = 10,
   parameter N_SF_state = 27) (
 
@@ -15,7 +15,7 @@ module FPGASerializer #(
 
   // TimeMgr inputs
   input send_HB_up_pulse, // pulses every send_HB_up_every * time_unit, for 1 clk cycle
-  input [Ntime-1:0] time_elapsed, // current wall time, can pack into unused spike bits for higher resolution
+  input [Ntime_full-1:0] time_elapsed, // current wall time, can pack into unused spike bits for higher resolution
    
   // Filtered spikes
   SpikeFilterOutputChannel SF_in,
@@ -26,6 +26,11 @@ localparam logic [NPCcode-1:0] SF_code = 14;
 localparam logic [NPCcode-1:0] HB_lsb_code = 15;
 localparam logic [NPCcode-1:0] HB_msb_code = 16;
 
+// the packing and serialization of time is hardcoded 
+assert(NPCdata == 20);
+assert(Ntime_full == 48);
+localparam Ntime = NPCdata * 2;
+
 // 1. pack/convert inputs into Channels
 // 2. serialize, 
 // 3. append codes
@@ -35,7 +40,8 @@ localparam logic [NPCcode-1:0] HB_msb_code = 16;
 // doing step 2,3 in a loop
 // for now there are only 2 inputs, though
 
-Channel #(Ntime) HB_packed();
+Channel #(Ntime_full) HB_packed_full();
+Channel #(Ntime*2) HB_packed();
 Channel #(Ntime+2) HB_packed_with_lsb_msb();
 Channel #(N_SF_filts + N_SF_state) SF_packed();
 
@@ -49,7 +55,12 @@ Channel #(NPCcode + NPCdata) SF_coded();
 // Heartbeat
 
 // pulse -> channel
-PulseToChannel #(Ntime) HB_pulse_to_channel(HB_packed, time_elapsed, send_HB_up_pulse, clk, reset);
+PulseToChannel #(Ntime_full) HB_pulse_to_channel(HB_packed_full, time_elapsed, send_HB_up_pulse, clk, reset);
+
+// chop off highest order time bits
+assign HB_packed.v = HB_packed_full.v;
+assign HB_packed.d = HB_packed_full.d[Ntime-1:0];
+assign HB_packed_full.a = HB_packed.a;
 
 // pack in lsb/msb bit
 assign HB_packed_with_lsb_msb.v = HB_packed.v;

@@ -3,7 +3,7 @@
 `include "../lib/Interfaces.svh"
 
 module BDTagMerge #(
-  parameter NBDData_in = 24,
+  parameter NBDData_in = 20,
   parameter Ncode = 6, // leaf code
   parameter Ntag = 11,
   parameter Nct = 9) (

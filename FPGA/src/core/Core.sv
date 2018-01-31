@@ -64,7 +64,7 @@ localparam NBDdata_out = 21;
 
 // PCParser/configurator parameters
 localparam Nconf = 16;
-localparam Nreg = 64;
+localparam Nreg = 32;
 localparam Nchan = 2;
 
 // SpikeGenerator additional params
@@ -75,7 +75,7 @@ localparam N_SG_ct = Nct;
 localparam FIFOdepth = 4;
 
 //GO_HOME route
-localparam GO_HOME_rt = -512;
+localparam GO_HOME_rt = -32;
 
 // **THIS NEEDS TO BE EDITED TO ADD GLOBAL ROUTE STUFF**
 //
@@ -87,7 +87,7 @@ localparam GO_HOME_rt = -512;
 //                   +----------+                                                       
 //          ||||||   |          |                                                           BDTagMerge_out
 // PC_in ---|FIFO|-->| PCParser |          PCParser_BD_data_out                  +-----------+  v   +-----------+     
-//  32b     ||||||   |          |------------------------------------------------|           |  v   |           |     ||||||    
+//  27b     ||||||   |          |------------------------------------------------|           |  v   |           |     ||||||    
 //                   +----------+                                  ||||||        |BDTagMerge |------| BDEncoder |-----|FIFO|--> BD_out
 //                     | | |                                  +----|FIFO|------->|           |      |           |     ||||||   22b 
 //                +----+ | | conf_channel                     |    ||||||        +-----------+      +-----------+                 
@@ -329,7 +329,6 @@ BD_tag_split(
 
 // BDSerializer
 BDSerializer #(
-  .Ncode(NPCcode),
   .Ndata_out(NPCdata))
 BD_serializer(
   BDSerializer_out,
@@ -338,14 +337,9 @@ BD_serializer(
 
 // GlobalTagParser
 GlobalTagParser #(
-  NBDdata_in, 
-  Nglobal,
-  Ntag, 
-  Nct,
-  NPCcode,
-  NPCdata,
-  NPCroute
-  )
+  .NPCcode(NPCcode),
+  .NPCdata(NPCdata),
+  .NPCRoute(NPCroute))
 Global_tag_parser(
   BDTagSplit_out_global,
   Global_tag_parser_out,
