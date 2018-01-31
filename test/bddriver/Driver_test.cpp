@@ -207,7 +207,7 @@ TEST_F(DriverFixture, TestDumpTAT1) {
 TEST_F(DriverFixture, TestRecvSpikes) {
   auto to_send = MakeRandomNrnSpikes(M);
   model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::NRNI), to_send);
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   ASSERT_EQ(driver->RecvSpikes(kCoreId).first, to_send);
 }
@@ -215,7 +215,7 @@ TEST_F(DriverFixture, TestRecvSpikes) {
 TEST_F(DriverFixture, TestRecvTags) {
   auto to_send = MakeRandomInputTags(M);
   model->PushOutput(driver->GetBDPars()->UpEPCodeFor(bdpars::BDFunnelEP::RO_TAT), to_send); // XXX not testing acc, has a smaller gtag width, would have to limit gtag size
-  std::this_thread::sleep_for(std::chrono::seconds(1));
+  std::this_thread::sleep_for(std::chrono::seconds(2));
 
   ASSERT_EQ(driver->RecvTags(kCoreId).first, to_send);
 }
