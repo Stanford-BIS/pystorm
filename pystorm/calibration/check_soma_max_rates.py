@@ -52,14 +52,13 @@ def build_net():
 
 def set_analog():
     """Sets the soma config bits and the bias currents"""
-    for i in range(4096):
+    for n_idx in range(MAX_NEURONS):
         HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
         HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)
         HAL.driver.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.THREE)
+        HAL.driver.SetSomaEnableStatus(CORE, n_idx, bd.bdpars.SomaStatusId.DISABLED)
     HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
     HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, BIAS_OFFSET)
-    for n_idx in range(MAX_NEURONS):
-        HAL.driver.SetSomaEnableStatus(CORE, n_idx, bd.bdpars.SomaStatusId.DISABLED)
     HAL.flush()
 
 def toggle_hal_recording():
@@ -90,12 +89,12 @@ def measure_soma_max_rate(pool, nrn_idx):
     soma_spikes -= soma_spikes[0]
     soma_spikes = soma_spikes
     n_spks = len(soma_spikes)-1
-    time_period = ((soma_spikes[-1]+soma_spikes[-2])/2. - soma_spikes[0])*TIME_SCALE
+    time_period = (soma_spikes[-1]- soma_spikes[0])*TIME_SCALE
     max_rate = n_spks/time_period
     return max_rate
 
 def plot_max_rates(max_rates):
-    """Plot hte data"""
+    """Plot the data"""
     neurons = len(max_rates)
 
     fig_1d = plt.figure()
