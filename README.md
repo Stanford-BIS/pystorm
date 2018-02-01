@@ -13,42 +13,38 @@ the software stack known as pystorm.
 
 The following diagram illustrates the structure
 
-    └── pystorm
-        │
-        ├── CMakeLists.txt
-        │
-        ├── Jenkinsfile
-        │
-        ├── docker
-        │   └── Dockerfile_JENKINS_CI
-        │
-        ├── ext                         (externally sourced libraries)
-        │   ├── yaml-cpp
-        │   └── gtest
-        │
-        ├── include                     (public shared headers)
-        │
-        ├── lib                         (public shared libs)
-        │
-        ├── pystorm                     (python package source)
-        │   └── bdhal
-        │
-        ├── src                         (c++ source)
-        │   ├── bddriver
-        │   ├── bdhal
-        │   └── bindings
-        │       └── python
-        │           └── 3.5
-        │
-        └── test
-            ├── bddriver
-            ├── bdhal
-            └── bindings
-                └── python
-                    └── 3.5
-
-
-Python code lives in the pystorm directory tree, C++ code lives in the src directory tree.
+    pystorm
+    ├── apps                        (applications)
+    │   └── eng_gui
+    ├── cmake
+    ├── docker
+    ├── ext                         (externally sourced libraries)
+    │   ├── gtest
+    │   ├── pybind11
+    │   └── yaml-cpp
+    ├── FPGA                        (FPGA source)
+    │   ├── docker
+    │   ├── ext
+    │   ├── quartus
+    │   ├── src
+    │   └── test
+    ├── include                     (public shared headers)
+    ├── lib                         (public shared libs)
+    ├── pystorm                     (python package source)
+    │   ├── calibration
+    │   ├── examples
+    │   ├── hal
+    │   ├── PyRawDriver
+    │   └── test                    (python package tests)
+    ├── src                         (c++ source)
+    │   ├── bddriver
+    │   ├── bdhal
+    │   └── bindings
+    └── test                        (tests for c++ source)
+        ├── bddriver
+        ├── bdhal
+        ├── bindings
+        └── neuron
 
 # Python package setup
 
@@ -119,8 +115,10 @@ Then reboot or issue the following commands:
 
 # TEST
 
-From the build directory all module tests can be executed issuing the
-following command.
+## C Code Tests
+
+After the build, C code can be executed issuing the
+following command from the build directory.
 
 ```
     ctest -C Debug -j6 -T test -VV --timeout 300
@@ -131,6 +129,16 @@ following command.
 * `-T test` specifies the type of test (always `test` for us)
 * `-VV` specifies extra verbosity
 * `--timout 300` specifieds that the tests should be halted at 5 minutes if they're still running (i.e. in case the tests are hanging)
+
+Individual tests can be run from their executables in the `lib/<Release Type>/` directory.
+
+## Python tests 
+
+Tests of the python interface may be executed by running `pytest` from within
+
+`<Repository Root>/pystorm/test/`
+
+These tests require a Braindrop to be attached.
 
 # Dependencies
 
