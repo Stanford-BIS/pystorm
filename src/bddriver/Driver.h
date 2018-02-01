@@ -23,6 +23,15 @@
 namespace pystorm {
 namespace bddriver {
 
+// Opal Kelly parameters
+static const std::string OK_BITFILE = "OK_BITFILE.bit";
+static const std::string OK_SERIAL = "";
+struct OKPars {
+    OKPars() : ok_bitfile(OK_BITFILE), ok_serial(OK_SERIAL) {}
+    std::string ok_bitfile;
+    std::string ok_serial;
+};
+
 /**
  * \class Driver is a singleton; There should only be one instance of this.
  *
@@ -132,6 +141,8 @@ class Driver {
   }
   /// Returns driver (PC) time in ns
   BDTime GetDriverTime() const;
+  // Set the Opal Kelly bitfile location
+  void SetOKBitFile(std::string bitfile);
   /// Cycles BD pReset/sReset
   /// Useful for testing, but leaves memories in an indeterminate state
   void ResetBD();
@@ -140,10 +151,14 @@ class Driver {
   void InitFIFO(unsigned int core_id);
   /// Inits the DACs to default values
   void InitDAC(unsigned int core_id, bool flush=true);
-  /// Initializes hardware state
+  /// Initializes BD hardware state
   /// Calls Reset, InitFIFO, among other things
   /// Calls Flush immediately
   void InitBD();
+  /// Initializes FPGA state
+  void InitFPGA();
+  /// Empties all driver output queues
+  void ClearOutputs();
   
   ////////////////////////////////////////////////////////////////////////////
   // AER Address <-> Y,X mapping static member fns
@@ -218,7 +233,7 @@ class Driver {
   void SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP dac_signal_id, bool en, bool flush=true);
 
   /// Set large/small current scale for either ADC
-  void SetADCScale(unsigned int core_id, bool adc_id, const std::string &small_or_large);  // XXX not implemented
+  void SetADCScale(unsigned int core_id, unsigned int adc_id, const std::string &small_or_large);  // XXX not implemented
   /// Turn ADC output on
   void SetADCTrafficState(unsigned int core_id, bool en);  // XXX not implemented
 
@@ -779,9 +794,25 @@ class Driver {
   std::vector<BDWord> DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end);
 
   /// Dump copy of traffic pre-FIFO
-  void SetPreFIFODumpState(unsigned int core_id, bool dump_en);
-  /// Dump copy of traffic post-FIFO, tag msbs = 0
-  void SetPostFIFODumpState(unsigned int core_id, bool dump_en);
+  void SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
+  }
+  /// Sink traffic flowing into the FIFO
+  void SetPreFIFOTrafficState(unsigned int core_id, bool traffic_en) {
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, traffic_en);
+  }
+
+  /// Dump copy of traffic post-FIFO
+  void SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
+    SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
+  }
+  /// Sink traffic flowing out of the FIFO
+  void SetPostFIFOTrafficState(unsigned int core_id, bool en) {
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, en);
+    SetToggleTraffic(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, en);
+  }
+
 
   /// Get pre-FIFO tags recorded during dump
   std::vector<BDWord> GetPreFIFODump(unsigned int core_id);
@@ -1004,23 +1035,26 @@ class Driver {
 
 
   /// array mapping SG generator idx -> enabled/disabled
-  std::array<bool, max_num_SG_> SG_en_;
-  void InitSGEn() {
-    for (auto& it : SG_en_) {
+  std::vector<std::array<bool, max_num_SG_>> SG_en_;
+  void InitSGEn(unsigned int core_id) {
+    for (auto& it : SG_en_.at(core_id)) {
       it = false;
     } 
   }
+  /// send current SG_en_ values
+  void SendSGEns(unsigned int core_id, BDTime time);
 
   /// FPGA time units per microsecond
   inline uint64_t NsToUnits(BDTime   ns)    { return ns / ns_per_unit_; }
   inline BDTime   UnitsToNs(uint64_t units) { return ns_per_unit_ * units; }
 
   /// FPGA SG_en_ max bit assigned helper
-  inline unsigned int GetHighestSGEn() const {
-    for (unsigned int i = SG_en_.size(); i > 0; i++) {
-      if (SG_en_.at(i)) return i;
+  inline int GetHighestSGEn(unsigned int core_id) const {
+    int highest = -1;
+    for (unsigned int i = 0; i < SG_en_.at(core_id).size(); i++) {
+      if (SG_en_.at(core_id).at(i)) highest = i;
     }
-    return 0;
+    return highest;
   }
 
   /// Number of upstream "push"s sent.
@@ -1039,6 +1073,9 @@ class Driver {
   const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware
   std::vector<BDState> bd_state_;
+
+  /// parameters describing Opal Kelly hardware
+  OKPars ok_pars_;
 
   // downstream buffers
 

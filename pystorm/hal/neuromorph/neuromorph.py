@@ -177,7 +177,7 @@ class GraphHWMapper(object):
                 source = self.hardware_resource
                 tat_acc_resource = TATAccumulator(self.ps_obj.get_num_dimensions())
                 weight_resource = create_mm_weights(dest_node_weights)
-                am_bucket = dest_node_ps_obj.hardware_resource
+                am_bucket = dest_node[1].hardware_resource
 
                 source.connect(tat_acc_resource)
                 tat_acc_resource.connect(weight_resource)

@@ -29,10 +29,12 @@ class Core(object):
         self.NeuronArray_pool_size_y = ps_pars['NeuronArray_pool_size_y']
         self.NeuronArray_pool_size_x = ps_pars['NeuronArray_pool_size_x']
         self.NeuronArray_pool_size = self.NeuronArray_pool_size_y * self.NeuronArray_pool_size_x
+        self.NeuronArray_pools_y = self.NeuronArray_height // self.NeuronArray_pool_size_y
+        self.NeuronArray_pools_x = self.NeuronArray_width // self.NeuronArray_pool_size_x
         self.NeuronArray_neurons_per_tap = ps_pars['NeuronArray_neurons_per_tap']
         self.NeuronArray_size = self.NeuronArray_height * self.NeuronArray_width
 
-        self.PAT_size = self.NeuronArray_size // self.NeuronArray_pool_size
+        self.PAT_size = self.NeuronArray_pools_x * self.NeuronArray_pools_y
 
         self.num_threshold_levels = ps_pars['num_threshold_levels']
         self.min_threshold_value = ps_pars['min_threshold_value']
@@ -44,8 +46,7 @@ class Core(object):
         AM_shape = (self.AM_size,)
         TAT0_shape = (self.TAT_size,)
         TAT1_shape = (self.TAT_size,)
-        PAT_shape = (self.NeuronArray_height // self.NeuronArray_pool_size_y, 
-                     self.NeuronArray_width // self.NeuronArray_pool_size_x)
+        PAT_shape = (self.NeuronArray_pools_y * self.NeuronArray_pools_x,)
 
         self.MM = MM(MM_shape, self.NeuronArray_pool_size)
         self.AM = AM(AM_shape)
@@ -118,28 +119,31 @@ class NeuronAllocator(object):
         pid: int
             id(pool)
         """
-        self.packer.add_rect(py, px, rid=pid)
+        #print("added", pid, "at", px, ",", py)
+        self.packer.add_rect(px, py, rid=pid)
 
-    def allocate(self, pid):
+    def allocate(self, calling_pid):
         """Allocate neurons for a pool
 
         On first call, peforms the allocation for all pools and
         caches result for subsequent calls
         
-        Returns (y, x, w, h), the start coordinates, width and height of the allocated pool
+        Returns (y, x, h, w), the start coordinates, width and height of the allocated pool
 
         Parameters
         ----------
         pid: id(pool)
         """
         if not self.pack_called:
+            #print("called allocate")
             self.packer.pack()
             for rect in self.packer.rect_list():
-                _, y, x, w, h, pid = rect
-                self.alloc_results[pid] = (y, x, w, h)
+                _, x, y, w, h, pid = rect
+                #print(x, y, w, h, pid)
+                self.alloc_results[pid] = (y, x, h, w)
             self.pack_called = True
 
-        return self.alloc_results[pid]
+        return self.alloc_results[calling_pid]
 
     def Print(self):
         print(self.alloc_results)
@@ -281,10 +285,15 @@ class Memory(object):
         self.M = np.array(self.M, dtype=object)
 
     def assign_1d_block(self, mem, start):
-        if len(self.shape) == 2 and isinstance(start, tuple):
-            start = start[0] * self.shape[1] + start[1]
-        idx_slice = slice(start, start + mem.shape[0])
-        self.M.flat[idx_slice] = mem
+        if isinstance(mem, np.ndarray):
+            if len(self.shape) == 2 and isinstance(start, tuple):
+                start = start[0] * self.shape[1] + start[1]
+            idx_slice = slice(start, start + mem.shape[0])
+            self.M.flat[idx_slice] = mem
+        elif isinstance(mem, int):
+            self.M.flat[start] = mem
+        else:
+            assert(False and "bad <mem> data type in assign_1d_block")
 
     def assign_2d_block(self, mem, start):
         assert len(self.shape) == 2
@@ -402,17 +411,16 @@ class PAT(object):
         self.mem = PATMem(shape, 0)
 
     def assign(self, data, start):
-        self.mem.assign_2d_block(data, start)
+        self.mem.assign_1d_block(data, start)
 
     def __str__(self):
         s = "PAT : [ ama | mmax | mmay_base ]\n"
         for idx in range(self.mem.shape[0]):
-            for jdx in range(self.mem.shape[1]):
-                m         = self.mem.M[idx, jdx]
-                ama       = bd.GetField(m, bd.PATWord.AM_ADDRESS)
-                mmax      = bd.GetField(m, bd.PATWord.MM_ADDRESS_LO)
-                mmay_base = bd.GetField(m, bd.PATWord.MM_ADDRESS_HI)
-                s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
+            m         = self.mem.M[idx]
+            ama       = bd.GetField(m, bd.PATWord.AM_ADDRESS)
+            mmax      = bd.GetField(m, bd.PATWord.MM_ADDRESS_LO)
+            mmay_base = bd.GetField(m, bd.PATWord.MM_ADDRESS_HI)
+            s += "[ " + str(ama) + " | " + str(mmax) + " | " + str(mmay_base) + " ]\n"
         return s
 
 class NeuronArray(object):
@@ -458,29 +466,29 @@ class NeuronArray(object):
         Returns the start coordinates of the pool in units of minimum pool size
         """
         # coordinates and dimensions in units of minimum pool size
-        py, px, ph, pw = self.alloc.allocate(id(pool))
+        py, px, pw, ph = self.alloc.allocate(id(pool))
+        #print("in NeuronArray allocate for", id(pool))
+        #print(py, px, ph, pw)
         self.pool_allocations.append(dict(
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)
 
 class FPGASpikeFilters(object):
-    filters_used = 0
 
     def __init__(self):
-        pass
+        self.filters_used = 0
 
     def allocate(self, D):
-        base_idx = FPGASpikeFilters.filters_used
-        FPGASpikeFilters.filters_used += D
+        base_idx = self.filters_used
+        self.filters_used += D
         return np.array(range(base_idx, base_idx + D))
 
 class FPGASpikeGenerators(object):
-    gens_used = 0
 
     def __init__(self):
-        pass
+        self.gens_used = 0
 
     def allocate(self, D):
-        base_idx = FPGASpikeGenerators.gens_used
-        FPGASpikeGenerators.gens_used += D
+        base_idx = self.gens_used
+        self.gens_used += D
         return np.array(range(base_idx, base_idx + D))

@@ -37,10 +37,6 @@ using std::endl;
 namespace pystorm {
 namespace bddriver {
 
-// XXX BEGIN "this should REALLY be in BDPars"
-static const std::string OK_BITFILE = "OK_BITFILE.bit";
-static const std::string OK_SERIAL = "";
-
 // Driver * Driver::GetInstance()
 //{
 //    // In C++11, if control from two threads occurs concurrently, execution
@@ -53,6 +49,7 @@ static const std::string OK_SERIAL = "";
 Driver::Driver() {
   // load parameters
   bd_pars_     = new bdpars::BDPars();
+  ok_pars_     = OKPars();
 
   // one BDState object per core
   // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_));
@@ -124,13 +121,12 @@ Driver::Driver() {
     assert(false && "unhandled comm_type");
 #endif
 
-  // initialize FPGA stuff
-  InitSGEn();
-
   // OK appreciates a little sleep time?
   std::this_thread::sleep_for(std::chrono::microseconds(100));
   cout << "Driver constructor done" << endl;
 
+  // set up FPGA data structures
+  SG_en_.resize(bd_pars_->NumCores);
 
 }
 
@@ -158,7 +154,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   // update FPGA state
   ns_per_unit_ = ns_per_unit;
   clks_per_unit_ = ns_per_unit / ns_per_clk_;
-  cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
+  //cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
@@ -187,7 +183,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
 
-  if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
+  //if (ns_per_hb <= 100000) cout << "****************WARNING: <100 US PER HB SEEMS TO CAUSE PROBLEMS****************" << endl;
 
   BDWord units_per_HB_word = static_cast<uint64_t>(units_per_HB_);
   uint64_t w0 = GetField(units_per_HB_word, THREEFPGAREGS::W0);
@@ -278,6 +274,10 @@ BDTime Driver::GetDriverTime() const {
   return ns_now.count();
 }
 
+void Driver::SetOKBitFile(std::string bitfile) {
+    ok_pars_.ok_bitfile = bitfile;
+}
+
 void Driver::InitDAC(unsigned int core_id, bool flush) {
   // List of DAC
   std::array<bdpars::BDHornEP, 12> dac_list {
@@ -303,14 +303,36 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
   if (flush) Flush();
 }
 
+void Driver::InitFPGA() {
+
+  cout << "InitFPGA: initializing SGs" << endl;
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    InitSGEn(i);
+    SendSGEns(i, 0);
+  }
+
+  cout << "InitFPGA: initializing SFs" << endl;
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    SetSpikeFilterIncrementConst(i, 1, false);
+    SetSpikeFilterDecayConst(i, 0, false);
+    SetNumSpikeFilters(i, 0);
+  }
+  
+
+}
 
 void Driver::InitBD() {
 
+  // TODO: perhaps separate this out, eventually
+  InitFPGA();
+
   // BD hard reset
+  cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
   for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
+    cout << "InitBD: disabling traffic flow" << endl;
     SetTagTrafficState(i, false);
     SetSpikeTrafficState(i, false);
 
@@ -321,8 +343,10 @@ void Driver::InitBD() {
     }
 
     // init the FIFO
+    cout << "InitBD: initializing FIFO" << endl;
     InitFIFO(i);
 
+    cout << "InitBD: programming memories to default values" << endl;
     // initialize memories to sane values (critically, that can't cause infinite loops)
     SetMem(i , bdpars::BDMemId::PAT  , GetDefaultPATEntries()  , 0);
     SetMem(i , bdpars::BDMemId::TAT0 , GetDefaultTAT0Entries() , 0);
@@ -331,8 +355,10 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::AM   , GetDefaultAMEntries()   , 0);
 
     // Initialize neurons
+    cout << "InitBD: setting default DAC settings" << endl;
     InitDAC(i, false);
 
+    cout << "InitBD: setting default neuron twiddle bits" << endl;
     // Disable all Somas
     for(unsigned int idx = 0; idx < 4096; ++idx){
       DisableSoma(i, idx);
@@ -356,6 +382,12 @@ void Driver::InitBD() {
   }
 }
 
+void Driver::ClearOutputs() {
+  std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
+  for (auto& it : up_eps) {
+    dec_bufs_out_.at(it)->PopAll();
+  }
+}
 
 void Driver::InitFIFO(unsigned int core_id) {
 
@@ -378,7 +410,6 @@ void Driver::InitFIFO(unsigned int core_id) {
   }
   SendToEP(core_id, bdpars::BDHornEP::INIT_FIFO_DCT, all_tag_vals);
   Flush();
-  cout << "sent tags to push junk out of FIFO" << endl;
 
   // resume traffic will wait for the traffic drain timer before turning traffic regs back on
   std::this_thread::sleep_for(std::chrono::microseconds(1000000));
@@ -402,7 +433,7 @@ int Driver::Start() {
 
 #ifdef BD_COMM_TYPE_OPALKELLY
   // Initialize Opal Kelly Board
-  comm_state = static_cast<comm::CommOK*>(comm_)->Init(OK_BITFILE, OK_SERIAL);
+  comm_state = static_cast<comm::CommOK*>(comm_)->Init(ok_pars_.ok_bitfile, ok_pars_.ok_serial);
 #endif
 
   if (comm_state >= 0) {
@@ -546,15 +577,6 @@ void Driver::SetMemoryDelay(unsigned int core_id, bdpars::BDMemId mem_id, unsign
   SetBDRegister(core_id, bd_pars_->mem_info_.at(mem_id).delay_reg, word, flush);
 }
 
-void Driver::SetPreFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_PRE_FIFO, dump_en);
-}
-
-void Driver::SetPostFIFODumpState(unsigned int core_id, bool dump_en) {
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO0, dump_en);
-  SetToggleDump(core_id, bdpars::BDHornEP::TOGGLE_POST_FIFO1, dump_en);
-}
-
 std::vector<BDWord> Driver::GetPreFIFODump(unsigned int core_id) {
   return RecvFromEP(core_id, bdpars::BDFunnelEP::DUMP_PRE_FIFO, 1000).first;
 }
@@ -620,13 +642,42 @@ void Driver::SetDACtoADCConnectionState(unsigned int core_id, bdpars::BDHornEP s
 }
 
 /// Set large/small current scale for either ADC
-void Driver::SetADCScale(unsigned int core_id, bool adc_id, const std::string& small_or_large) {
-  assert(false && "not implemented");
+void Driver::SetADCScale(unsigned int core_id, unsigned int adc_id, const std::string& small_or_large) {
+  bool small = small_or_large.compare("small");
+  bool large = small_or_large.compare("large");
+  if (!small and !large) assert(false && "<small_or_large> must be \"small\" or \"large\"");
+  
+  BDWord curr_state = bd_state_.at(core_id).GetReg(bdpars::BDHornEP::ADC).first;
+  unsigned int curr_small_large_0 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_0);
+  unsigned int curr_small_large_1 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_1);
+  unsigned int curr_enable        = GetField(curr_state, ADCWord::ADC_OUTPUT_ENABLE);
+
+  assert((adc_id == 0 || adc_id == 1) && "<adc_id> must be 0 or 1");
+  BDWord word_to_prog;
+  unsigned int small_large_bit = static_cast<unsigned int>(large);
+  if (adc_id == 0) {
+      word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, small_large_bit},
+                                        {ADCWord::ADC_SMALL_LARGE_CURRENT_1, curr_small_large_1},
+                                        {ADCWord::ADC_OUTPUT_ENABLE,         curr_enable}});
+  } else {
+      word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, curr_small_large_0},
+                                        {ADCWord::ADC_SMALL_LARGE_CURRENT_1, small_large_bit},
+                                        {ADCWord::ADC_OUTPUT_ENABLE,         curr_enable}});
+  }
+  SetBDRegister(core_id, bdpars::BDHornEP::ADC, word_to_prog);
 }
 
 /// Turn ADC output on
 void Driver::SetADCTrafficState(unsigned int core_id, bool en) {
-  assert(false && "not implemented");
+  BDWord curr_state = bd_state_.at(core_id).GetReg(bdpars::BDHornEP::ADC).first;
+  unsigned int curr_small_large_0 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_0);
+  unsigned int curr_small_large_1 = GetField(curr_state, ADCWord::ADC_SMALL_LARGE_CURRENT_1);
+
+  BDWord word_to_prog = PackWord<ADCWord>({{ADCWord::ADC_SMALL_LARGE_CURRENT_0, curr_small_large_0},
+                                           {ADCWord::ADC_SMALL_LARGE_CURRENT_1, curr_small_large_1},
+                                           {ADCWord::ADC_OUTPUT_ENABLE, en}});
+
+  SetBDRegister(core_id, bdpars::BDHornEP::ADC, word_to_prog);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -814,16 +865,25 @@ void Driver::SetMem(
     // pop out the last two words
     IssuePushWords();
 
-    unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
+    double timeout_s = 2; // keep reading for 2s
+    auto start = std::chrono::high_resolution_clock::now();
+    auto now = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = now - start;
 
-    // XXX this might discard remainders
     unsigned int n_recvd = 0;
-    while (n_recvd < data.size()) {
-      std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep);
+    while (n_recvd < data.size() && diff.count() < timeout_s) {
+      std::pair<std::vector<BDWord>, std::vector<BDTime>> recvd = RecvFromEP(core_id, funnel_ep, 10000);
       n_recvd += recvd.first.size();
+      now = std::chrono::high_resolution_clock::now();
+      diff = now - start;
     }
-    if (n_recvd > mem_size) {
-      cout << "WARNING! LOST SOME AM WORDS" << endl;
+    if (diff.count() > timeout_s) {
+      cout << "WARNING! while programming AM, got fewer words than we expected" << endl;
+      cout << "  got " << n_recvd << " vs " << data.size() << endl;
+    }
+    if (n_recvd > data.size()) {
+      cout << "WARNING! while programming AM, got more words than we expected" << endl;
+      cout << "  got " << n_recvd << " vs " << data.size() << endl;
     }
   }
 }
@@ -1101,6 +1161,28 @@ void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, con
   if (flush) Flush();
 }
 
+void Driver::SendSGEns(unsigned int core_id, BDTime time) {
+  // send all SG enables
+  assert(max_num_SG_ <= 256); // that's what this was written for
+  uint16_t en_word;
+  for (unsigned int gen_idx = 0; gen_idx < SG_en_.at(core_id).size(); gen_idx++) {
+    unsigned int bit_idx = gen_idx % 16;
+    uint16_t bit_sel = 1 << bit_idx;
+
+    if (bit_idx == 0) en_word = 0;
+
+    if (SG_en_[core_id][gen_idx]) {
+      en_word |= bit_sel;
+    }
+
+    if (bit_idx == 15) {
+      bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
+      //cout << "enable" << en_word << endl;
+      SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
+    }
+  }
+}
+
 void Driver::SetSpikeGeneratorRates(
     unsigned int core_id,
     const std::vector<unsigned int>& gen_idxs,
@@ -1161,34 +1243,19 @@ void Driver::SetSpikeGeneratorRates(
     unsigned int rate = rates.at(i);
 
     bool new_state = rate > 0;
-    SG_en_[gen_idx] = new_state;
+    SG_en_[core_id][gen_idx] = new_state;
   }
 
-  // set all SG enables, regardless of which ones we actually modified
-  uint16_t en_word;
-  unsigned int highest_used = 0;
-  for (unsigned int gen_idx = 0; gen_idx < SG_en_.size(); gen_idx++) {
-    unsigned int bit_idx = gen_idx % 16;
-    uint16_t bit_sel = 1 << bit_idx;
+  // XXX mandatory flush, works around #81, for reasons I do not understand
+  Flush();
 
-    if (bit_idx == 0) en_word = 0;
-
-    if (SG_en_[gen_idx]) {
-      en_word |= bit_sel;
-      highest_used = gen_idx;
-    }
-
-    if (bit_idx == 15) {
-      bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      //cout << "enable" << en_word << endl;
-      SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
-    }
-  }
-  //cout << "number of generators: " << highest_used + 1 << endl;
-  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {highest_used+1}, {time});
+  // send all SG enables, regardless if only one was changed
+  SendSGEns(core_id, time);
 
   // set number of SGs used
-
+  int highest_used = GetHighestSGEn(core_id);
+  SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {static_cast<unsigned int>(highest_used+1)}, {time});
+  //cout << "number of generators: " << highest_used + 1 << endl;
 
   if (flush) Flush();
 

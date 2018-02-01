@@ -94,7 +94,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
             {{TWOFPGAPAYLOADS::MSB, payload},
              {TWOFPGAPAYLOADS::LSB, last_HB_LSB_recvd_}});
         if (this_HB - curr_HB_recvd_ != curr_HB_recvd_ - last_HB_recvd_) { 
-          cout << "WARNING: Decoder::Decode: possibly missed an upstream HB. Jump was" <<
+          cout << "WARNING: Decoder::Decode: possibly missed an upstream HB. Jump was " <<
             this_HB - curr_HB_recvd_ << ". Last jump was " << curr_HB_recvd_ - last_HB_recvd_ << endl;
         }
         last_HB_recvd_ = curr_HB_recvd_;
