@@ -227,6 +227,7 @@ class Neurons(Resource):
     def allocate(self, core):
         """neuron array allocation"""
         self.py_loc, self.px_loc = core.neuron_array.allocate(self)
+        #print("pool alloced to", self.py_loc, ",", self.px_loc)
         self.y_loc = self.py_loc * core.NeuronArray_pool_size_y
         self.x_loc = self.px_loc * core.NeuronArray_pool_size_x
 
@@ -258,11 +259,13 @@ class Neurons(Resource):
 
     def assign(self, core):
         """PAT assignment"""
+        #print("pool at", self.px_loc, ",", self.py_loc)
         if len(self.conns_out) == 1:
             for py_idx in range(self.py):
                 for px_idx in range(self.px):
                     aer_pool_addr_bits = Neurons.pool_yx_to_aer[py_idx + self.py_loc, px_idx + self.px_loc]
                     to_assign = self.PAT_contents[py_idx, px_idx]
+                    #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
 
 class MMWeights(Resource):

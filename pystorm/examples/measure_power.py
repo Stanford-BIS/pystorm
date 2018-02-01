@@ -168,8 +168,10 @@ def create_decode_encode_network(width=width, height=height, Dint=Dint, d_range=
 
                 for t in range(num_taps):
                     while True:
-                        n = np.random.randint(N)
-                        if np.all(tap_matrix[n, :] == 0): # keep trying until an unused neuron is found
+                        x = np.random.randint(width//2)
+                        y = np.random.randint(height//2)
+                        n = (2*y) * width + (2*x)
+                        if np.all(tap_matrix[n, :] == 0): # keep trying until an unused synapse is found
                             tap_matrix[n, d] = s
                             break
 
@@ -470,8 +472,8 @@ class DecodeEncode(Experiment):
     # neurons -> AERRX -> PAT -> accumulator -> FIFO -> TAT -> AERTX -> neurons
     # take care that there is no FIFO overflow in this setup, which would indicate TAT/AERTX/synapse backup
 
-    def __init__(self, soma_bias=2, d_val=.1, Dint=10, duration=Experiment.duration):
-        self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dint"], locals())
+    def __init__(self, soma_bias=2, d_val=.1, Dint=10, taps_per_dim=8, duration=Experiment.duration):
+        self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dint", "taps_per_dim"], locals())
         self.results = {}
         self.description = "measure power for decode operation: AER xmitter + PAT + accumulator. Pars: " + str(self.pars)
 
@@ -488,7 +490,13 @@ class DecodeEncode(Experiment):
         return spike_rate, tag_rate
 
     def run(self):
-        measure_net = create_decode_encode_network(width=16, height=16, Dint=self.pars["Dint"], d_range=(self.pars["d_val"], self.pars["d_val"]), measure_tags=True)
+        measure_net = create_decode_encode_network(
+                          width=16,
+                          height=16,
+                          Dint=self.pars["Dint"],
+                          d_range=(self.pars["d_val"], self.pars["d_val"]),
+                          taps_per_dim=self.pars["taps_per_dim"],
+                          measure_tags=True)
         HAL.map(measure_net)
         
         # give the neurons some juice
@@ -505,7 +513,13 @@ class DecodeEncode(Experiment):
         self.results["spike_rate"] = spike_rate
         self.results["tag_rate"] = tag_rate
 
-        power_net = create_decode_encode_network(width=16, height=16, Dint=self.pars["Dint"], d_range=(self.pars["d_val"], self.pars["d_val"]), measure_tags=False)
+        power_net = create_decode_encode_network(
+                         width=16,
+                         height=16,
+                         Dint=self.pars["Dint"],
+                         d_range=(self.pars["d_val"], self.pars["d_val"]),
+                         taps_per_dim=self.pars["taps_per_dim"],
+                         measure_tags=False)
         HAL.map(power_net)
 
         # give the neurons some juice
@@ -543,7 +557,7 @@ tests = [
     #FIFO(input_rate=1000),
     #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
-    DecodeEncode(soma_bias=10, d_val=.001, Dint=2),
+    DecodeEncode(soma_bias=10, d_val=.001, Dint=2, taps_per_dim=8),
     ]
   
 for idx, test in enumerate(tests):
