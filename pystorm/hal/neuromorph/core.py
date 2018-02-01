@@ -119,28 +119,31 @@ class NeuronAllocator(object):
         pid: int
             id(pool)
         """
-        self.packer.add_rect(py, px, rid=pid)
+        #print("added", pid, "at", px, ",", py)
+        self.packer.add_rect(px, py, rid=pid)
 
-    def allocate(self, pid):
+    def allocate(self, calling_pid):
         """Allocate neurons for a pool
 
         On first call, peforms the allocation for all pools and
         caches result for subsequent calls
         
-        Returns (y, x, w, h), the start coordinates, width and height of the allocated pool
+        Returns (y, x, h, w), the start coordinates, width and height of the allocated pool
 
         Parameters
         ----------
         pid: id(pool)
         """
         if not self.pack_called:
+            #print("called allocate")
             self.packer.pack()
             for rect in self.packer.rect_list():
-                _, y, x, w, h, pid = rect
-                self.alloc_results[pid] = (y, x, w, h)
+                _, x, y, w, h, pid = rect
+                #print(x, y, w, h, pid)
+                self.alloc_results[pid] = (y, x, h, w)
             self.pack_called = True
 
-        return self.alloc_results[pid]
+        return self.alloc_results[calling_pid]
 
     def Print(self):
         print(self.alloc_results)
@@ -463,7 +466,9 @@ class NeuronArray(object):
         Returns the start coordinates of the pool in units of minimum pool size
         """
         # coordinates and dimensions in units of minimum pool size
-        py, px, ph, pw = self.alloc.allocate(id(pool))
+        py, px, pw, ph = self.alloc.allocate(id(pool))
+        #print("in NeuronArray allocate for", id(pool))
+        #print(py, px, ph, pw)
         self.pool_allocations.append(dict(
             pool=pool, py=py, px=px, pw=pw, ph=ph))
         return (py, px)

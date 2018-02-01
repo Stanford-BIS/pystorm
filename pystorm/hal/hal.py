@@ -74,6 +74,7 @@ class HAL(object):
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 500)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
@@ -172,6 +173,11 @@ class HAL(object):
     def disable_spike_recording(self, flush=True):
         """Turns off spike recording from all neurons."""
         self.driver.SetSpikeDumpState(CORE_ID, en=False, flush=flush)
+
+    def get_overflow_counts(self):
+        """prints the total number of FIFO overflows"""
+        o0, o1 = self.driver.GetFIFOOverflowCounts(CORE_ID)
+        return o0 + o1
 
     def get_outputs(self, timeout=1000):
         """Returns all binned output tags gathered since this was last called.
