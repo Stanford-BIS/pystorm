@@ -584,4 +584,16 @@ pickle.dump(old_tests + tests, pfile)
 pfile.close()
 
 
+def print_pickle(fname):
+    pfile = open(fname, "rb")
+    old_tests = pickle.load(pfile)
+    pfile.close()
+ 
+    print("Length of old_tests: %d" % len(old_tests))
+    for idx, test in enumerate(old_tests):
+        print("Test Description: " + test.description)
+        print("Test Results: ")
+        print(test.results)
+
+print_pickle(fname)
 
