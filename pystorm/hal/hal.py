@@ -171,6 +171,11 @@ class HAL(object):
         """Turns off spike recording from all neurons."""
         self.driver.SetSpikeDumpState(CORE_ID, en=False, flush=flush)
 
+    def get_overflow_counts(self):
+        """prints the total number of FIFO overflows"""
+        o0, o1 = self.driver.GetFIFOOverflowCounts(CORE_ID)
+        return o0 + o1
+
     def get_outputs(self, timeout=1000):
         """Returns all binned output tags gathered since this was last called.
 
