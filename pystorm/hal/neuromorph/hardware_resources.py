@@ -259,9 +259,9 @@ class Neurons(Resource):
     def assign(self, core):
         """PAT assignment"""
         if len(self.conns_out) == 1:
-            for py_idx in range(self.py_loc, self.py_loc + self.py):
-                for px_idx in range(self.px_loc, self.px_loc + self.px):
-                    aer_pool_addr_bits = Neurons.pool_yx_to_aer[py_idx, px_idx]
+            for py_idx in range(self.py):
+                for px_idx in range(self.px):
+                    aer_pool_addr_bits = Neurons.pool_yx_to_aer[py_idx + self.py_loc, px_idx + self.px_loc]
                     to_assign = self.PAT_contents[py_idx, px_idx]
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
 
