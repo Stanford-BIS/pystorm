@@ -25,6 +25,7 @@ width_height = (width, height)
 d_range=(1,1)
 t_range=(1,1)
 exp_duration = 1
+taps_per_dim = 8
 
 CORE = 0
 
@@ -99,42 +100,93 @@ def create_decode_network(width=width, height=height, Din=Din, Dout=Dout, d_rang
 
     return net
 
-def create_trans_network(width=width, height=height, Din=Din, Dint=Dint, Dout=Dout, d_range=d_range, t_range=t_range):
+def create_transform_network(width=width, height=height, Din=Din, Dint=Dint, Dout=Dout, d_range=d_range, t_range=t_range):
 
-      net = graph.Network("net")
+    N = width * height
 
-      min_d, max_d = d_range
-      decoders = np.ones((Dint, N)) * (max_d - min_d) - min_d
+    net = graph.Network("net")
 
-      min_t, max_t = t_range
-      trains = np.ones((Dout, Dint)) * (max_t - min_t) - min_t
-      
-      tap_matrix = np.zeros((N, Din))
-      if Din == 1:
-          # one synapse per 4 neurons
-          for x in range(0, width, 2):
-              for y in range(0, height, 2):
-                  n = y * width + x
-                  if x < width // 2:
-                      tap_matrix[n, 0] = 1
-                  else:
-                      tap_matrix[n, 0] = -1
-      else:
-          print("need to implement reasonable taps for Din > 1")
-          assert(False)
+    min_d, max_d = d_range
+    decoders = np.ones((Dint, N)) * (max_d - min_d) - min_d
 
-      i1 = net.create_input("i1", Din)
-      p1 = net.create_pool("p1", tap_matrix, xy=(width, height))
-      b1 = net.create_bucket("b1", Dint)
-      b2 = net.create_bucket("b1", Dout)
-      o1 = net.create_output("o1", Dout)
+    min_t, max_t = t_range
+    trains = np.ones((Dout, Dint)) * (max_t - min_t) - min_t
+    
+    tap_matrix = np.zeros((N, Din))
+    if Din == 1:
+        # one synapse per 4 neurons
+        for x in range(0, width, 2):
+            for y in range(0, height, 2):
+                n = y * width + x
+                if x < width // 2:
+                    tap_matrix[n, 0] = 1
+                else:
+                    tap_matrix[n, 0] = -1
+    else:
+        print("need to implement reasonable taps for Din > 1")
+        assert(False)
 
-      net.create_connection("c_i1_to_p1", i1, p1, None)
-      net.create_connection("c_p1_to_b1", p1, b1, decoders)
-      net.create_connection("c_b1_to_b2", b1, b2, trans)
-      net.create_connection("c_b2_to_o1", b2, o1, None)
+    i1 = net.create_input("i1", Din)
+    p1 = net.create_pool("p1", tap_matrix, xy=(width, height))
+    b1 = net.create_bucket("b1", Dint)
+    b2 = net.create_bucket("b1", Dout)
+    o1 = net.create_output("o1", Dout)
 
-      return net
+    net.create_connection("c_i1_to_p1", i1, p1, None)
+    net.create_connection("c_p1_to_b1", p1, b1, decoders)
+    net.create_connection("c_b1_to_b2", b1, b2, trans)
+    net.create_connection("c_b2_to_o1", b2, o1, None)
+
+    return net
+
+def create_decode_encode_network(width=width, height=height, Dint=Dint, d_range=d_range, taps_per_dim=taps_per_dim, measure_tags=False):
+
+    N = width * height
+
+    net = graph.Network("net")
+
+    min_d, max_d = d_range
+    decoders = np.ones((Dint, N)) * (max_d - min_d) + min_d
+
+    tap_matrix = np.zeros((N, Dint))
+    if Dint == 1:
+        # one synapse per 4 neurons
+        for x in range(0, width, 2):
+            for y in range(0, height, 2):
+                n = y * width + x
+                if x < width // 2:
+                    tap_matrix[n, 0] = 1
+                else:
+                    tap_matrix[n, 0] = -1
+    else:
+        for d in range(Dint):
+            for s in [-1, 1]:
+                if s == -1:
+                    num_taps = taps_per_dim // 2
+                else:
+                    num_taps = taps_per_dim - taps_per_dim // 2
+
+                for t in range(num_taps):
+                    while True:
+                        n = np.random.randint(N)
+                        if np.all(tap_matrix[n, :] == 0): # keep trying until an unused neuron is found
+                            tap_matrix[n, d] = s
+                            break
+
+    p1 = net.create_pool("p1", tap_matrix)
+    b1 = net.create_bucket("b1", Dint)
+    p2 = net.create_pool("p2", tap_matrix)
+
+    if measure_tags:
+        o1 = net.create_output("o1", Dint)
+
+    net.create_connection("c_p1_to_b1", p1, b1, decoders)
+    net.create_connection("c_b1_to_p2", b1, p2, None)
+
+    if measure_tags:
+        net.create_connection("c_b1_to_o1", b1, o1, None)
+
+    return net
 
 ###########################################
 # define different experiments, each measuring the throughput of a different component
@@ -237,6 +289,7 @@ class AERRX(Experiment):
         outputs = HAL.get_outputs()
         rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
         print("measured", rate, "spikes per second")
+        self.results["rate"] = rate
 
         print("only neurons and AER RX active, measure voltage now")
 
@@ -269,6 +322,7 @@ class Decode(Experiment):
         print("measured", tag_rate, "accumulator outputs per second")
         spike_rate = tag_rate / self.pars["d_val"] / self.pars["Dout"]
         print("inferred", spike_rate, "spikes per second")
+        return spike_rate, tag_rate
 
     def run(self):
         net = create_decode_network(width=32, height=32, Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
@@ -284,7 +338,9 @@ class Decode(Experiment):
 
         time.sleep(self.pars["duration"])
 
-        self.count_after_experiment(net)
+        spike_rate, tag_rate = self.count_after_experiment(net)
+        self.results["spike_rate"] = spike_rate
+        self.results["tag_rate"] = tag_rate
 
         print("disabling pre-FIFO valve, measure power now")
         HAL.start_traffic(flush=False)
@@ -402,6 +458,74 @@ class TapPointAndAERTX(Experiment):
 
         print("measure power now")
         time.sleep(self.pars["duration"])
+
+###########################################
+# decode-encode
+class DecodeEncode(Experiment):
+    # need to map twice for this
+    # counting setup:
+    # neurons -> AERRX -> PAT -> accumulator -> TAT -> funnel -> out
+    #                                                  
+    # power setup:
+    # neurons -> AERRX -> PAT -> accumulator -> FIFO -> TAT -> AERTX -> neurons
+    # take care that there is no FIFO overflow in this setup, which would indicate TAT/AERTX/synapse backup
+
+    def __init__(self, soma_bias=2, d_val=.1, Dint=10, duration=Experiment.duration):
+        self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dint"], locals())
+        self.results = {}
+        self.description = "measure power for decode operation: AER xmitter + PAT + accumulator. Pars: " + str(self.pars)
+
+    def count_after_experiment(self, net):
+        HAL.stop_traffic()
+        time.sleep(.1)
+        # all decoders are 1, output count is spike count
+        outputs = HAL.get_outputs()
+        output_obj = net.get_outputs()[0]
+        tag_rate = self.compute_output_rate(outputs, output_obj, self.pars["Dint"])
+        print("measured", tag_rate, "accumulator outputs per second")
+        spike_rate = tag_rate / self.pars["d_val"] / self.pars["Dint"]
+        print("inferred", spike_rate, "spikes per second")
+        return spike_rate, tag_rate
+
+    def run(self):
+        measure_net = create_decode_encode_network(width=16, height=16, Dint=self.pars["Dint"], d_range=(self.pars["d_val"], self.pars["d_val"]), measure_tags=True)
+        HAL.map(measure_net)
+        
+        # give the neurons some juice
+        self.make_enabled_neurons_spike(self.pars["soma_bias"])
+
+        # turn on traffic
+        print("enabling traffic, counting tags out")
+        HAL.start_traffic()
+        HAL.enable_output_recording()
+
+        time.sleep(self.pars["duration"])
+
+        spike_rate, tag_rate = self.count_after_experiment(measure_net)
+        self.results["spike_rate"] = spike_rate
+        self.results["tag_rate"] = tag_rate
+
+        power_net = create_decode_encode_network(width=16, height=16, Dint=self.pars["Dint"], d_range=(self.pars["d_val"], self.pars["d_val"]), measure_tags=False)
+        HAL.map(power_net)
+
+        # give the neurons some juice
+        self.make_enabled_neurons_spike(self.pars["soma_bias"])
+
+        # turn on traffic
+        HAL.start_traffic()
+        HAL.enable_output_recording(flush=True)
+
+        time.sleep(self.pars["duration"])
+
+        print("sanity check: should expect no outputs with remapped network")
+        outputs = HAL.get_outputs()
+        total_count = np.sum(outputs[:,3])
+        print("total outputs:", total_count)
+
+        print("sanity check: FIFO should not overflow")
+        print("total overflows:", HAL.get_overflow_counts())
+
+        print("remapped network, measure power now")
         
 
 ###########################################
@@ -414,11 +538,12 @@ tests = [
     #AERRX(soma_bias=10),
     #Decode(soma_bias=10, d_val=.1, Dout=1),
     #Decode(soma_bias=10, d_val=1., Dout=1),
-    Decode(soma_bias=10, d_val=.001, Dout=10),
+    #Decode(soma_bias=10, d_val=.001, Dout=10),
     #InputIO(input_rate=1000),
     #FIFO(input_rate=1000),
     #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
+    DecodeEncode(soma_bias=10, d_val=.001, Dint=2),
     ]
   
 for idx, test in enumerate(tests):
