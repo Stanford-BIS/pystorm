@@ -98,7 +98,7 @@ BDPars::BDPars() {
 
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDFunnelEP::COUNT); i++) {
-    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))]  = 24; // don't care, shorter than 24b
+    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))]  = 20; // don't care, shorter than 20b
   }
   // serialization is 2 for a few others
   Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_AM)]           = 38;

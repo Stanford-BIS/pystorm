@@ -64,7 +64,7 @@ localparam NBDdata_out = 21;
 
 // PCParser/configurator parameters
 localparam Nconf = 16;
-localparam Nreg = 32;
+localparam Nreg = 33;
 localparam Nchan = 2;
 
 // SpikeGenerator additional params
