@@ -21,25 +21,27 @@ from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
 CORE = 0
-INIT_RATE = 10000
-
 NRN_N = 4096
-SYN_N = 64
-# SYN_N = 1024
+# SYN_N = 64
+SYN_N = 1024
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
-RATE_TOL = 0.0001
+RATE_TOL = 0.001
 BOUND_FINDING_SCALE = 2
 
-SPIKE_GEN_IDX = 0
+SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
+SPIKE_GEN_IDX = 0 # FPGA spike generator index
+# Tag Action Table settings
 TAT_IDX = 0
 TAT_START_ADDR = 0
 TAT_STOP_BIT = 1
 TAT_SIGN_0 = 0
 TAT_SIGN_1 = 1
 
-SYN_PD_PU = 1024
+SYN_PD_PU = 1024 # analog bias setting
+
+INIT_RATE = 10000 # initial rate to test
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
 if not os.path.isdir(DATA_DIR):
@@ -70,9 +72,10 @@ def set_analog():
         HAL.driver.SetSynapseEnableStatus(CORE, s_idx, bd.bdpars.SynapseStatusId.ENABLED)
     HAL.flush()
 
-def set_hal_recording():
+def set_hal():
     """Set the HAL traffic settings"""
     # clear queues
+    HAL.set_time_resolution(downstream_ns=SPIKE_GEN_TIME_UNIT_NS)
     HAL.start_traffic(flush=False)
     HAL.disable_spike_recording(flush=False)
     HAL.disable_output_recording(flush=True)
@@ -153,6 +156,20 @@ def plot_max_rates(max_rates):
     """Plot the data"""
     synapses = len(max_rates)
 
+    max_rates_mean = np.mean(max_rates)
+    max_rates_median = np.median(max_rates)
+    max_rates_min = np.min(max_rates)
+    max_rates_max = np.max(max_rates)
+
+    max_period_ns = 1E9/max_rates_min
+    min_period_ns = 1E9/max_rates_max
+
+    min_period_fpga_units = int(np.floor(min_period_ns/SPIKE_GEN_TIME_UNIT_NS))
+    max_period_fpga_units = int(np.ceil(max_period_ns/SPIKE_GEN_TIME_UNIT_NS))
+    fpga_periods = 1E-9*np.arange(
+        min_period_fpga_units, max_period_fpga_units+1)*SPIKE_GEN_TIME_UNIT_NS
+    fpga_rates = 1./fpga_periods
+
     fig_1d = plt.figure()
     plt.plot(max_rates, 'o', markersize=1)
     plt.xlim(0, synapses-1)
@@ -180,13 +197,11 @@ def plot_max_rates(max_rates):
 
     fig_hist = plt.figure()
     bins = min(max(10, synapses), 80)
-    max_rates_mean = np.mean(max_rates)
-    max_rates_median = np.median(max_rates)
-    max_rates_min = np.min(max_rates)
-    max_rates_max = np.max(max_rates)
     plt.hist(max_rates, bins=bins)
     plt.axvline(max_rates_mean, color="k", label="mean")
     plt.axvline(max_rates_median, color="r", label="median")
+    for fpga_rate in fpga_rates:
+        plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
     plt.xlabel("Max firing Rate (Hz)")
     plt.ylabel("Counts")
     plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
@@ -210,7 +225,7 @@ def check_synapse_max_rates(parsed_args):
     else:
         build_net()
         set_analog()
-        set_hal_recording()
+        set_hal()
         max_rates = np.zeros(SYN_N)
         bound_checks = np.zeros(SYN_N, dtype=bool)
         start_time = get_time()
