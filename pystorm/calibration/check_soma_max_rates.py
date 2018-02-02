@@ -123,7 +123,7 @@ def plot_max_rates(max_rates):
     fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
     fig_hist = plt.figure()
-    bins = min(max(int(neurons/20), neurons), 80)
+    bins = min(max(10, neurons), 80)
     max_rates_mean = np.mean(max_rates)
     max_rates_median = np.median(max_rates)
     max_rates_min = np.min(max_rates)
