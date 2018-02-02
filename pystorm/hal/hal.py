@@ -138,18 +138,20 @@ class HAL(object):
         self.driver.Flush()
 
     def start_traffic(self, flush=True):
+        """Start hardware's internal traffic flow"""
         self.driver.SetTagTrafficState(CORE_ID, True, flush=False)
         self.driver.SetSpikeTrafficState(CORE_ID, True, flush=flush)
 
     def stop_traffic(self, flush=True):
+        """Stop  hardware's internal traffic flow"""
         self.driver.SetTagTrafficState(CORE_ID, False, flush=False)
         self.driver.SetSpikeTrafficState(CORE_ID, False, flush=flush)
 
     def enable_output_recording(self, flush=True):
         """Turns on recording from all outputs.
 
-        These output values will go into a buffer that can be drained by calling
-        get_outputs().
+        These output values are binned and go into a buffer
+        that can be drained by calling get_outputs().
         """
         N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
         self.driver.SetNumSpikeFilters(CORE_ID, N_SF, flush=flush)
