@@ -30,7 +30,7 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 # sweep
 
 fmax = 1000
-num_training_points_per_dim = 20
+num_training_points_per_dim = 3
 training_hold_time = 2 # seconds
 
 Din = 1
@@ -236,7 +236,7 @@ if p1 in As:
     plt.savefig("hal_tuning_curves.pdf")
 
     plt.figure()
-    plt.imshow(A[:,total_training_points // 2].reshape((width, height)))
+    plt.imshow(A[:,total_training_points // 2].reshape((height, width)))
     plt.title("neuron activity at zero input")
     plt.savefig("zero_input_xy_counts.pdf")
 
