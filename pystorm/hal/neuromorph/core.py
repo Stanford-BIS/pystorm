@@ -438,6 +438,11 @@ class NeuronArray(object):
     pool_size_x: int
         minimum pool x size in number of neurons
     """
+    # XXX this implementation puts all the "work" of allocation/assignment
+    # in this object, instead of in hardware_resources (in Neurons), unlike most other core objs
+    # it does this by taking the object as the sole argument to each fn.
+    # I think I might like this more, it should keep any core parameters contained here
+    # most of the current "bleed" of driver stuff into hardware resources could be put in assignment, I think
     def __init__(self, y, x, pool_size_y, pool_size_x):
         self.y = y
         self.x = x
@@ -453,9 +458,14 @@ class NeuronArray(object):
 
         shape = (self.y, self.x)
         self.alloc = NeuronAllocator(self.pools_y, self.pools_x)
-        self.pool_allocations = [] # store pool allocation results
+        self.pool_allocations = {} # store pool allocation results
 
         self.syns_used = [] # list of synapses that are targeted
+
+        # filled in assign
+        self.gain_divisors = np.ones((self.y, self.x), dtype='int')
+        self.biases = np.zeros((self.y, self.x), dtype='int')
+        self.nrns_used = np.zeros((self.y, self.x), dtype='int')
 
     def add_pool(self, pool):
         self.alloc.add_pool(pool.py, pool.px, id(pool))
@@ -469,9 +479,24 @@ class NeuronArray(object):
         py, px, pw, ph = self.alloc.allocate(id(pool))
         #print("in NeuronArray allocate for", id(pool))
         #print(py, px, ph, pw)
-        self.pool_allocations.append(dict(
-            pool=pool, py=py, px=px, pw=pw, ph=ph))
+        self.pool_allocations[pool] = dict(py=py, px=px, pw=pw, ph=ph)
         return (py, px)
+    
+    def assign(self, pool):
+        alloc = self.pool_allocations[pool]
+        y_loc = alloc['py'] * self.pool_size_y
+        x_loc = alloc['px'] * self.pool_size_x
+
+        for y in range(pool.y):
+            for x in range(pool.x):
+                nrn_idx = y * pool.x + x
+                abs_idx = (y_loc + y, x_loc + x)
+                self.gain_divisors[abs_idx] = pool.gain_divisors[nrn_idx]
+                self.biases[abs_idx]        = pool.biases[nrn_idx]
+
+                assert(self.nrns_used[abs_idx] == 0)
+                self.nrns_used[abs_idx] = 1
+
 
 class FPGASpikeFilters(object):
 
