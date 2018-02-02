@@ -248,8 +248,12 @@ DEFHCWORD(FPGASGWORD,
 
 // for convenience/code reuse, this is used for the FPGA serdes in software
 DEFWORD(TWOFPGAPAYLOADS,
-    FIELDS(LSB, MSB ) ,
-    WIDTHS(24 ,  24 )   )
+    FIELDS(LSB , MSB ) ,
+    WIDTHS(20  ,  20 )   )
+
+DEFWORD(THREEFPGAPAYLOADS,
+    FIELDS(W0 , W1 , W2 ) ,
+    WIDTHS(20 , 20 , 20 )   )
 
 DEFWORD(THREEFPGAREGS,
     FIELDS(W0, W1, W2 ) ,

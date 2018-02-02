@@ -64,9 +64,9 @@ interface SpikeGeneratorProgChannel #(parameter Ngens = 8, parameter Nperiod = 1
   logic a;
 endinterface
 
-interface UnencodedBDWordChannel;
+interface UnencodedBDWordChannel #(parameter NPCdata = 20);
   logic [5:0] leaf_code; // there are 34 leaves
-  logic [23:0] payload; 
+  logic [NPCdata-1:0] payload; 
   logic v;
   logic a;
 endinterface
@@ -80,14 +80,14 @@ endinterface
 
 interface SerializedPCWordChannel #(parameter NPCcode = 7, parameter NPCdata = 20);
   logic [NPCcode-1:0] code;
-  logic [NPCData-1:0] payload;
+  logic [NPCdata-1:0] payload;
   logic v;
   logic a;
 endinterface
 
 interface SerializedPCWordChannelwithRoute #(parameter NPCcode = 7, parameter NPCdata = 20, NPCroute = 5);
   logic [NPCcode-1:0] code;
-  logic [NPCData-1:0] payload;
+  logic [NPCdata-1:0] payload;
   logic [NPCroute-1:0] route;
   logic v;
   logic a;
