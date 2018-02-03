@@ -37,8 +37,8 @@ def test_hal_io():
     total_tags = np.sum(binned_tags[:, 3])
     measured_rate = total_tags/measured_time
     relative_error = np.abs(measured_rate-RATE)/RATE
-    print("hal_test_io measured {:.2%}% relative error between input and output rates".format(
-        relative_error))
+    print("hal_test_io measured {:.2%}% relative error between ".format(relative_error) +
+          "target rate {} and measured rate {:.2}".format(RATE, measured_rate))
     assert relative_error < REL_ERROR_TOLERANCE, (
         "\tExceeded relative error tolerance in test_hal_io\n" +
         "\t\tExpected output rate to be within {:.2%}% of input rate, ".format(

@@ -26,6 +26,7 @@ np.set_printoptions(precision=2)
 CORE = 0
 NRN_N = 4096
 # SYN_N = 16
+# SYN_N = 64
 SYN_N = 1024
 
 RUN_TIME = 1.0
@@ -42,7 +43,7 @@ TAT_SIGN_1 = 1
 
 SYN_PD_PU = 1024 # analog bias setting
 
-INIT_RATE = 12500 # initial rate to test
+INIT_RATE = 9091 # initial rate to test
 MIN_RATE = 1000 # minimum rate to test
 MAX_RATE = 1000000 # maximum rate to test
 
@@ -55,7 +56,7 @@ def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     periods_spike_gen_time_units = np.arange(
         max_spike_gen_time_units, min_spike_gen_time_units-1, -1)
     fpga_rates = 1./(periods_spike_gen_time_units*SPIKE_GEN_TIME_UNIT_NS*1E-9)
-    fpga_rates = np.ceil(fpga_rates).astype(int)
+    fpga_rates = np.floor(fpga_rates).astype(int)
     return fpga_rates
 
 SPIKE_GEN_RATES = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
@@ -68,7 +69,7 @@ if not os.path.isdir(DATA_DIR):
 
 def parse_args():
     """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description='Characterize the synapse max firing rates')
+    parser = argparse.ArgumentParser(description='Characterize the synapse max input firing rates')
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
     args = parser.parse_args()
     return args
@@ -113,7 +114,11 @@ def set_tat(syn_idx):
 
 def toggle_spk_generator(rate_idx, sleep_time=RUN_TIME, inter_sleep_time=INTER_RUN_TIME):
     """Toggle the spike generator and check for overflow"""
-    HAL.driver.GetFIFOOverflowCounts(CORE) # clear any remaining overflow
+    while True:
+        overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE) # clear any remaining overflow
+        sleep(inter_sleep_time)
+        if not overflow:
+            break
     rate = SPIKE_GEN_RATES[rate_idx]
     HAL.driver.SetSpikeGeneratorRates(
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [rate], time=0, flush=True)
@@ -122,12 +127,12 @@ def toggle_spk_generator(rate_idx, sleep_time=RUN_TIME, inter_sleep_time=INTER_R
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [0], time=0, flush=True)
     sleep(inter_sleep_time)
     overflow_0, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    # print("Toggled {}, overflow_count:{}".format(rate_idx, overflow_0))
+    print("Toggled {}, overflow_count:{}".format(rate_idx, overflow_0))
     return overflow_0
 
 def find_syn_max_rate_bounds():
     """Find the minimum and maximum bounds of the max rate"""
-    # print("\nFinding bounds=============")
+    print("\nFinding bounds=============")
     idx = INIT_RATE_IDX
     upper_idx = None
     lower_idx = None
@@ -138,7 +143,7 @@ def find_syn_max_rate_bounds():
         upper_idx = idx
     else:
         lower_idx = idx
-    # print("Initial bounds {}, {}".format(lower_idx, upper_idx))
+    print("Initial bounds {}, {}".format(lower_idx, upper_idx))
     while not lower_idx:
         prev_idx = idx
         idx -= d_idx
@@ -168,7 +173,7 @@ def find_syn_max_rate_bounds():
         else:
             lower_idx = idx
             d_idx *= 2
-    # print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
+    print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
 
     return lower_idx, upper_idx
 
@@ -187,7 +192,7 @@ def check_syn_max_rate():
     elif not upper_idx:
         return N_RATES-1, True
 
-    # print("\nRefining bounds...=============")
+    print("\nRefining bounds...=============")
     while upper_idx-lower_idx > 1:
         idx = int(np.round((upper_idx+lower_idx)/2.))
         overflow = toggle_spk_generator(idx)
@@ -196,15 +201,14 @@ def check_syn_max_rate():
         else:
             lower_idx = idx
 
-    # print("\nDouble checking bounds...=============")
+    print("\nDouble checking bounds...=============")
     # check again
     checked = False
     while not checked:
         checked = check_rate(lower_idx)
         if not checked:
             lower_idx -= 1
-    # print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
-    # due to TAT configuration, 2 spikes sent to synapse per spike to TAT
+    print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
     return lower_idx, upper_idx
 
 def plot_max_rates(max_rates):
@@ -228,17 +232,17 @@ def plot_max_rates(max_rates):
     fig_1d = plt.figure()
     plt.plot(max_rates, 'o', markersize=1)
     plt.xlim(0, synapses-1)
-    plt.xlabel("Soma Index")
-    plt.ylabel("Max Firing Rate (Hz)")
+    plt.xlabel("Synapse Index")
+    plt.ylabel("Max Input Rate / 2 (Hz)")
 
     if synapses == NRN_N//4: # all synapses tested
         max_rates_2d = max_rates.reshape((int(np.sqrt(synapses)), -1))
         fig_2d_heatmap = plt.figure()
         ims = plt.imshow(max_rates_2d)
         plt.colorbar(ims)
-        plt.xlabel("Soma X Coordinate")
-        plt.ylabel("Soma Y Coordinate")
-        plt.title("Max Firing Rate (Hz)")
+        plt.xlabel("Synapse X Coordinate")
+        plt.ylabel("Synapse Y Coordinate")
+        plt.title("Max Input Rate / 2 (Hz)")
 
         fig_2d_surf = plt.figure()
         axs = fig_2d_surf.add_subplot(111, projection='3d')
@@ -246,9 +250,9 @@ def plot_max_rates(max_rates):
         x_mesh, y_mesh = np.meshgrid(xy_idx, xy_idx)
         surf = axs.plot_surface(
             x_mesh, y_mesh, max_rates_2d, linewidth=0, cmap=cm.viridis, antialiased=False)
-        axs.set_xlabel("Soma X Coordinate")
-        axs.set_ylabel("Soma Y Coordinate")
-        axs.set_zlabel("Soma Max Firing Rate (Hz)")
+        axs.set_xlabel("Synapse X Coordinate")
+        axs.set_ylabel("Synapse Y Coordinate")
+        axs.set_zlabel("Synapse Max Input Rate / 2 (Hz)")
         fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
         fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
@@ -260,7 +264,7 @@ def plot_max_rates(max_rates):
     plt.hist(max_rates, bins=80)
     plt.axvline(max_rates_mean, color="k", alpha=0.6, linewidth=1, label="mean")
     plt.axvline(max_rates_median, color="r", alpha=0.4, linewidth=1, label="median")
-    plt.xlabel("Max firing Rate (Hz)")
+    plt.xlabel("Max Input Rate / 2 (Hz)")
     plt.ylabel("Counts")
     plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
         max_rates_mean, max_rates_median, max_rates_min, max_rates_max))
@@ -307,7 +311,7 @@ def check_synapse_max_rates(parsed_args):
             print("syn:{} max_rate:{:.0f}".format(
                 syn_idx, max_rates[syn_idx]))
             report_time_remaining(start_time, syn_idx)
-        print("Max firing rates:")
+        print("Max Input rates:")
         print(max_rates)
         print("Min synapse spike consumption times:")
         print(1./max_rates)
