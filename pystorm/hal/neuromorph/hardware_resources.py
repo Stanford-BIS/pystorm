@@ -167,13 +167,15 @@ class Neurons(Resource):
 
     pool_yx_to_aer = None
 
-    def __init__(self, y, x):
+    def __init__(self, y, x, gain_divisors, biases):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
             max_conns_out=1)
         self.y = y
         self.x = x
+        self.gain_divisors = gain_divisors
+        self.biases = biases
         self.N = y * x
 
         # pretranslate_early
@@ -267,6 +269,8 @@ class Neurons(Resource):
                     to_assign = self.PAT_contents[py_idx, px_idx]
                     #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
+
+        core.neuron_array.assign(self)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory

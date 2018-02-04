@@ -47,7 +47,7 @@ class Network(object):
         assert x*y == n_neurons
         return x, y
 
-    def create_pool(self, label, encoders, xy=None):
+    def create_pool(self, label, encoders, gain_divisors=1, biases=0, xy=None):
         """Adds a Pool object to the network.
         
         Parameters
@@ -69,7 +69,7 @@ class Network(object):
         else:
             x, y = xy
 
-        p = pool.Pool(label, encoders, x, y)
+        p = pool.Pool(label, encoders, x, y, gain_divisors, biases)
         self.pools.append(p)
         return p
 

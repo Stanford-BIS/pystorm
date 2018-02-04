@@ -491,8 +491,8 @@ class DecodeEncode(Experiment):
 
     def run(self):
         measure_net = create_decode_encode_network(
-                          width=16,
-                          height=16,
+                          width=32,
+                          height=32,
                           Dint=self.pars["Dint"],
                           d_range=(self.pars["d_val"], self.pars["d_val"]),
                           taps_per_dim=self.pars["taps_per_dim"],
@@ -514,8 +514,8 @@ class DecodeEncode(Experiment):
         self.results["tag_rate"] = tag_rate
 
         power_net = create_decode_encode_network(
-                         width=16,
-                         height=16,
+                         width=32,
+                         height=32,
                          Dint=self.pars["Dint"],
                          d_range=(self.pars["d_val"], self.pars["d_val"]),
                          taps_per_dim=self.pars["taps_per_dim"],
@@ -557,7 +557,7 @@ tests = [
     #FIFO(input_rate=1000),
     #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
-    DecodeEncode(soma_bias=10, d_val=.001, Dint=2, taps_per_dim=8),
+    DecodeEncode(soma_bias=10, d_val=.001, Dint=16, taps_per_dim=8),
     ]
   
 for idx, test in enumerate(tests):
