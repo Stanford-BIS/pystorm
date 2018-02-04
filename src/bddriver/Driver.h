@@ -1028,6 +1028,7 @@ class Driver {
   unsigned int clks_per_unit_         = 1000; /// FPGA default
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
   BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
+  BDTime ns_per_HB_                   = units_per_HB_ * ns_per_unit_; 
   BDTime highest_ns_sent_             = 0;
 
   // basis of experiment time, set when ResetFPGAClock is called
