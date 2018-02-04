@@ -41,19 +41,19 @@ def create_decode_network(width=width, height=height, Din=Din, Dout=Dout, d_rang
     """
     data flow with traffic on:
 
-    input IO -> 
+    input IO ->
     tag horn ->
 
     (pre-fifo valve) ->
     FIFO ->
     (post-fifo valve) ->
 
-    TAT -> 
+    TAT ->
 
-    AER_tx -> 
-    neurons -> 
-    AER_rx -> 
-    (neuron output valve) -> 
+    AER_tx ->
+    neurons ->
+    AER_rx ->
+    (neuron output valve) ->
 
     PAT ->
     accumulator ->
@@ -111,7 +111,7 @@ def create_transform_network(width=width, height=height, Din=Din, Dint=Dint, Dou
 
     min_t, max_t = t_range
     trains = np.ones((Dout, Dint)) * (max_t - min_t) - min_t
-    
+
     tap_matrix = np.zeros((N, Din))
     if Din == 1:
         # one synapse per 4 neurons
@@ -258,9 +258,10 @@ class Static(Experiment):
         self.description = "don't map any network, just measure baseline power"
 
     def run(self):
+        HAL.driver.InitBD()
         # nothing to do, neurons should be killed without mapping
         time.sleep(self.pars["duration"])
-            
+
 ###########################################
 # Get AER rx power
 
@@ -279,7 +280,7 @@ class AERRX(Experiment):
 
         net = create_decode_network()
         HAL.map(net)
-        
+
         # give the neurons some juice
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
 
@@ -333,7 +334,7 @@ class Decode(Experiment):
     def run(self):
         net = create_decode_network(width=32, height=32, Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
         HAL.map(net)
-        
+
         # give the neurons some juice
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
 
@@ -356,7 +357,7 @@ class Decode(Experiment):
         time.sleep(self.pars["duration"])
 
         print("sanity check: should expect no outputs with pre-FIFO valve closed")
-        self.count_after_experiment(net)
+#        self.count_after_experiment(net)
 
 ###########################################
 # Get Input IO/horn
@@ -471,7 +472,7 @@ class DecodeEncode(Experiment):
     # need to map twice for this
     # counting setup:
     # neurons -> AERRX -> PAT -> accumulator -> TAT -> funnel -> out
-    #                                                  
+    #
     # power setup:
     # neurons -> AERRX -> PAT -> accumulator -> FIFO -> TAT -> AERTX -> neurons
     # take care that there is no FIFO overflow in this setup, which would indicate TAT/AERTX/synapse backup
@@ -502,7 +503,7 @@ class DecodeEncode(Experiment):
                           taps_per_dim=self.pars["taps_per_dim"],
                           measure_tags=True)
         HAL.map(measure_net)
-        
+
         # give the neurons some juice
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
         self.make_fast_synapse()
@@ -537,23 +538,23 @@ class DecodeEncode(Experiment):
 
         time.sleep(self.pars["duration"])
 
-        print("sanity check: should expect no outputs with remapped network")
-        outputs = HAL.get_outputs()
-        total_count = np.sum(outputs[:,3])
-        print("total outputs:", total_count)
-
-        print("sanity check: FIFO should not overflow")
-        print("total overflows:", HAL.get_overflow_counts())
-
+#        print("sanity check: should expect no outputs with remapped network")
+#        outputs = HAL.get_outputs()
+#        total_count = np.sum(outputs[:,3])
+#        print("total outputs:", total_count)
+#
+#        print("sanity check: FIFO should not overflow")
+#        print("total overflows:", HAL.get_overflow_counts())
+#
         print("remapped network, measure power now")
-        
+
 
 ###########################################
 # run tests
 
 
 tests = [
-    #Static(),
+    Static(),
     #AERRX(soma_bias=2),
     #AERRX(soma_bias=10),
     #Decode(soma_bias=10, d_val=.1, Dout=1),
@@ -565,27 +566,35 @@ tests = [
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
     DecodeEncode(soma_bias=50, d_val=.0068, Dint=16, taps_per_dim=2),
     ]
-  
+
+inter_test_duration = 5    # time between tests, in seconds
+input("Press Enter to start experiments...\n")
+
 for idx, test in enumerate(tests):
     print("================================================================================")
     print("EXP: running test", idx)
     print("EXP: " + test.description)
     print("================================================================================")
 
+    test.results["start_time"] = time.time()
     test.run()
+#    print("sleeping between tests")
+#    time.sleep(inter_test_duration)
+    input("Press Enter to continue experiments...\n")
+    test.results["end_time"] = time.time()
 
-    V = input("please input mean voltage during trial > ")
-    try:
-        V = float(V)
-    except:
-        print("ERROR: that wasn't a number, try again")
-        V = input("please input mean voltage during trial > ")
-        
-    test.results["V"] = V
+    #V = input("please input mean voltage during trial > ")
+    #try:
+    #    V = float(V)
+    #except:
+    #    print("ERROR: that wasn't a number, try again")
+    #    V = input("please input mean voltage during trial > ")
+
+    #test.results["V"] = V
 
     print("EXP: done")
 
-import pickle 
+import pickle
 
 fname = "trial_data.pck"
 
@@ -608,7 +617,7 @@ def print_pickle(fname):
     pfile = open(fname, "rb")
     old_tests = pickle.load(pfile)
     pfile.close()
- 
+
     print("Length of old_tests: %d" % len(old_tests))
     for idx, test in enumerate(old_tests):
         print("Test Description: " + test.description)
