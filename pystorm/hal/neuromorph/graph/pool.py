@@ -26,9 +26,10 @@ class Pool(object):
         self.biases = biases
 
         # if user supplied int for entire population, expand into array
-        for obj in [self.gain_divisors, self.biases]:
-            if isinstance(obj, int):
-                obj = np.ones((self.n_neurons,), dtype='int') * obj
+        if isinstance(self.gain_divisors, int):
+            self.gain_divisors = np.ones((self.n_neurons,), dtype='int') * self.gain_divisors
+        if isinstance(self.biases, int):
+            self.biases = np.ones((self.n_neurons,), dtype='int') * self.biases
 
         # check that it's an array now
         for obj in [self.gain_divisors, self.biases]:
