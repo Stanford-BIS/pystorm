@@ -495,6 +495,8 @@ class DecodeEncode(Experiment):
         return spike_rate, tag_rate
 
     def run(self):
+        #####################################
+        # measure rates 
         measure_net = create_decode_encode_network(
                           width=32,
                           height=32,
@@ -519,6 +521,8 @@ class DecodeEncode(Experiment):
         self.results["spike_rate"] = spike_rate
         self.results["tag_rate"] = tag_rate
 
+        #####################################
+        # go to power measurement configuration, make sure not overflowing
         power_net = create_decode_encode_network(
                          width=32,
                          height=32,
@@ -538,14 +542,26 @@ class DecodeEncode(Experiment):
 
         time.sleep(self.pars["duration"])
 
-#        print("sanity check: should expect no outputs with remapped network")
-#        outputs = HAL.get_outputs()
-#        total_count = np.sum(outputs[:,3])
-#        print("total outputs:", total_count)
-#
-#        print("sanity check: FIFO should not overflow")
-#        print("total overflows:", HAL.get_overflow_counts())
-#
+        print("sanity check: should expect no outputs with remapped network")
+        outputs = HAL.get_outputs()
+        total_count = np.sum(outputs[:,3])
+        print("total outputs:", total_count)
+
+        print("sanity check: FIFO should not overflow")
+        print("total overflows:", HAL.get_overflow_counts())
+
+        #####################################
+        # remap network again in power measurement configuration, measure power
+        HAL.map(power_net)
+
+        # give the neurons some juice
+        self.make_enabled_neurons_spike(self.pars["soma_bias"])
+        self.make_fast_synapse()
+
+        # turn on traffic
+        HAL.start_traffic()
+        HAL.enable_output_recording(flush=True)
+
         print("remapped network, measure power now")
 
 
@@ -554,7 +570,7 @@ class DecodeEncode(Experiment):
 
 
 tests = [
-    Static(),
+    #Static(),
     #AERRX(soma_bias=2),
     #AERRX(soma_bias=10),
     #Decode(soma_bias=10, d_val=.1, Dout=1),
