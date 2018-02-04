@@ -56,7 +56,7 @@ def _create_resources_ps_pool(ps_pool):
     We make the connection here, breaking convention, for simplicity
     """
     TAT_tap = TATTapPoint(ps_pool.encoders)
-    neurons = Neurons(ps_pool.y, ps_pool.x)
+    neurons = Neurons(ps_pool.y, ps_pool.x, ps_pool.gain_divisors, ps_pool.biases)
     TAT_tap.connect(neurons)
     return [TAT_tap, neurons]
 

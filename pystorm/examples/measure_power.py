@@ -560,11 +560,11 @@ tests = [
     #Decode(soma_bias=10, d_val=.1, Dout=1),
     #Decode(soma_bias=10, d_val=1., Dout=1),
     #Decode(soma_bias=10, d_val=.001, Dout=10),
-#    InputIO(input_rate=1000),
-#    FIFO(input_rate=1000),
-#    TapPointAndAERTX(input_rate=1000, width=8, height=8),
+    #InputIO(input_rate=1000),
+    #FIFO(input_rate=1000),
+    #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
-    #DecodeEncode(soma_bias=10, d_val=.001, Dint=16, taps_per_dim=8),
+    DecodeEncode(soma_bias=50, d_val=.006, Dint=16, taps_per_dim=4),
     ]
 
 inter_test_duration = 5    # time between tests, in seconds

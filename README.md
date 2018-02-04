@@ -5,59 +5,6 @@ communicate with Braindrop and Brainstorm by providing an API that abstracts
 away hardware-specific details. pystorm provides shared headers, libraries,
 and a python interface.
 
-# Product structure
-
-The Pystorm repository is structured to enable the development of two
-sub-projects, bddriver, and bdhal. These subprojects form
-the software stack known as pystorm.
-
-The following diagram illustrates the structure
-
-    pystorm
-    ├── apps                        (applications)
-    │   └── eng_gui
-    ├── cmake
-    ├── docker
-    ├── ext                         (externally sourced libraries)
-    │   ├── gtest
-    │   ├── pybind11
-    │   └── yaml-cpp
-    ├── FPGA                        (FPGA source)
-    │   ├── docker
-    │   ├── ext
-    │   ├── quartus
-    │   ├── src
-    │   └── test
-    ├── include                     (public shared headers)
-    ├── lib                         (public shared libs)
-    ├── pystorm                     (python package source)
-    │   ├── calibration
-    │   ├── examples
-    │   ├── hal
-    │   ├── PyRawDriver
-    │   └── test                    (python package tests)
-    ├── src                         (c++ source)
-    │   ├── bddriver
-    │   ├── bdhal
-    │   └── bindings
-    └── test                        (tests for c++ source)
-        ├── bddriver
-        ├── bdhal
-        ├── bindings
-        └── neuron
-
-# Python package setup
-
-To set up the python interface for Pystorm, first run the [Build](#build). Next, run
-
-`python setup.py develop`
-
-from the repository base directory so that you may import pystorm as a Python package.
-
-Note that if you want to install only for the current user, you should specify
-
-`python setup.py develop --user`
-
 # Build
 
 We recommend building the pystorm C++ modules by executing the following commands from the
@@ -101,6 +48,18 @@ As an example,
 `cmake --build . --config Release -- -j6`
 
 tells cmake to build the project in the current directory for the `Release` configuration and pass `-j6` to the compiler, which for g++ says to use 6 threads for the build.
+
+# Python package setup
+
+After the [Build](#build), you may set up the python interface for Pystorm by running
+
+`python setup.py develop`
+
+from the repository base directory. Afterwards, you may import pystorm as a Python package.
+
+Note that if you want to install only for the current user, you should specify
+
+`python setup.py develop --user`
 
 ## Opal Kelly udev Rules
 
@@ -155,3 +114,44 @@ used to build an image and build/test Pystorm on it.
 The following is an example of how to use Docker to run the build build
 
     sudo docker build --file docker/Dockerfile_compile_source .
+
+# Product structure
+
+The Pystorm repository is structured to enable the development of two
+sub-projects, bddriver, and bdhal. These subprojects form
+the software stack known as pystorm.
+
+The following diagram illustrates the structure
+
+    pystorm
+    ├── apps                        (applications)
+    │   └── eng_gui
+    ├── cmake
+    ├── docker
+    ├── ext                         (externally sourced libraries)
+    │   ├── gtest
+    │   ├── pybind11
+    │   └── yaml-cpp
+    ├── FPGA                        (FPGA source)
+    │   ├── docker
+    │   ├── ext
+    │   ├── quartus
+    │   ├── src
+    │   └── test
+    ├── include                     (public shared headers)
+    ├── lib                         (public shared libs)
+    ├── pystorm                     (python package source)
+    │   ├── calibration
+    │   ├── examples
+    │   ├── hal
+    │   ├── PyRawDriver
+    │   └── test                    (python package tests)
+    ├── src                         (c++ source)
+    │   ├── bddriver
+    │   ├── bdhal
+    │   └── bindings
+    └── test                        (tests for c++ source)
+        ├── bddriver
+        ├── bdhal
+        ├── bindings
+        └── neuron
