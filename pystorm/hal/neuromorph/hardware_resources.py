@@ -248,13 +248,14 @@ class Neurons(Resource):
                     # first nrn idx in block
                     nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
                     MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
+                    MMAY_prog = MMAY // core.NeuronArray_pool_size # MMAY will be in {0, 64, 128, 192}, we map to {0, 1, 2, 3}
 
                     AMA = buckets.start_addr
 
                     self.PAT_contents[py_idx, px_idx] = bddriver.PackWord([
                         (bddriver.PATWord.AM_ADDRESS, AMA),
                         (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
-                        (bddriver.PATWord.MM_ADDRESS_HI, MMAY)])
+                        (bddriver.PATWord.MM_ADDRESS_HI, MMAY_prog)])
         elif len(self.conns_out) > 1:
             print("ERROR: pool had", len(self.conns_out), "output connections")
             assert(False and "Neurons can have only one output connection")
