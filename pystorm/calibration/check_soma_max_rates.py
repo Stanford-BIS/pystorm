@@ -148,7 +148,7 @@ def check_soma_max_rates(parsed_args):
     if use_saved_data:
         try:
             max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
-        except FileNotFoundError as err:
+        except FileNotFoundError:
             print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
             sys.exit(1)
     else:

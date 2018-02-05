@@ -80,7 +80,6 @@ class HAL(object):
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
 
-
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
         """Controls Driver/FPGA time resolutions
 
@@ -318,7 +317,6 @@ class HAL(object):
 
         self.implement_core()
 
-
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
@@ -369,7 +367,6 @@ class HAL(object):
         #print('spike mapper')
         #for k in self.spk_to_pool_nrn_idx:
         #    print(k, ":", self.spk_to_pool_nrn_idx[k][1])
-
 
     def dump_core(self):
         print("PAT")
