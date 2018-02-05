@@ -265,6 +265,7 @@ class Static(Experiment):
     def run(self):
         HAL.driver.InitBD()
         # nothing to do, neurons should be killed without mapping
+        print("Unmapped network for baseline power, measure power now")
         time.sleep(self.pars["duration"])
 
 ###########################################
@@ -494,9 +495,9 @@ class DecodeEncode(Experiment):
         outputs = HAL.get_outputs()
         output_obj = net.get_outputs()[0]
         tag_rate = self.compute_output_rate(outputs, output_obj, self.pars["Dint"])
-        print("measured", tag_rate, "accumulator outputs per second")
+        print("[OUTPUT] measured", tag_rate, "accumulator outputs per second")
         spike_rate = tag_rate / self.pars["d_val"] / self.pars["Dint"]
-        print("inferred", spike_rate, "spikes per second")
+        print("[OUTPUT] inferred", spike_rate, "spikes per second")
         return spike_rate, tag_rate
 
     def run(self):
@@ -549,13 +550,13 @@ class DecodeEncode(Experiment):
 
         time.sleep(self.pars["duration"])
 
-        print("sanity check: should expect no outputs with remapped network")
+        print("[OUTPUT] sanity check: should expect no outputs with remapped network")
         outputs = HAL.get_outputs()
         total_count = np.sum(outputs[:,3])
-        print("total outputs:", total_count)
+        print("[OUTPUT] total outputs:", total_count)
 
-        print("sanity check: FIFO should not overflow")
-        print("total overflows:", HAL.get_overflow_counts())
+        print("[OUTPUT] sanity check: FIFO should not overflow")
+        print("[OUTPUT] total overflows:", HAL.get_overflow_counts())
 
         #####################################
         # remap network again in power measurement configuration, measure power
@@ -577,7 +578,7 @@ class DecodeEncode(Experiment):
 
 
 tests = [
-    #Static(),
+    Static(),
     #AERRX(soma_bias=2),
     #AERRX(soma_bias=10),
     #Decode(soma_bias=10, d_val=.1, Dout=1),
@@ -587,11 +588,12 @@ tests = [
     #FIFO(input_rate=1000),
     #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
-    #DecodeEncode(width=32, height=32, soma_bias=2, d_val=.0182, Dint=16, taps_per_dim=2, is_recur=False),
-    DecodeEncode(width=64, height=64, soma_bias=10, d_val=.00125, Dint=16, taps_per_dim=2, is_recur=True),
+    #DecodeEncode(soma_bias=75, d_val=.00125, Dint=16, taps_per_dim=8),
+    DecodeEncode(width=64, height=64, soma_bias=100, d_val=.00185, Dint=16, taps_per_dim=16, is_recur=True),
+    Static(),
     ]
 
-inter_test_duration = 5    # time between tests, in seconds
+inter_test_duration = 1026    # time between tests, in seconds
 input("Press Enter to start experiments...\n")
 
 for idx, test in enumerate(tests):
