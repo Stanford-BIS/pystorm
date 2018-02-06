@@ -80,7 +80,11 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
       enc_inputs.push_back(input);
 
       // pack
-      uint32_t packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, input.FPGA_ep_code}, {FPGAIO::PAYLOAD, input.payload}, {FPGAIO::ROUTE, input.core_id}});
+      uint32_t packed = 0;
+      if(pars->NumCores == 1){
+        packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, input.FPGA_ep_code}, {FPGAIO::PAYLOAD, input.payload}, {FPGAIO::ROUTE, 0}});}
+      else{
+        packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, input.FPGA_ep_code}, {FPGAIO::PAYLOAD, input.payload}, {FPGAIO::ROUTE, input.core_id + 1}});}
 
       enc_outputs_packed.push_back(packed);
     }
