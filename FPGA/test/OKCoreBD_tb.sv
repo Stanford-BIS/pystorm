@@ -198,22 +198,22 @@ initial begin
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // program SG
-  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
-  SendToEP(8'd134, {8'd0, 16'd1}); // enable
-  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
-  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
-  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
-  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+  SendToEP(8'd69, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd70, {8'd0, 16'd1}); // enable
+  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[3]});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   #(4000)
 
-  SendToEP(8'd133, {8'd0, 16'd2}); // gens used
-  SendToEP(8'd134, {8'd0, 16'd3}); // enable
-  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[0]});
-  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[1]});
-  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[2]});
-  SendToEP(8'd192, {8'd0, SG_word_slow_pieces[3]});
+  SendToEP(8'd69, {8'd0, 16'd2}); // gens used
+  SendToEP(8'd70, {8'd0, 16'd3}); // enable
+  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[0]});
+  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[1]});
+  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[2]});
+  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[3]});
   FlushAndSendPipeIn(); // send the stuff we queued up
   
   //SendToBD(0, 3'b101); // ADC 

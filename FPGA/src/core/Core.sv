@@ -328,9 +328,7 @@ BD_tag_split(
   clk, reset);
 
 // BDSerializer
-BDSerializer #(
-  .Ndata_out(NPCdata))
-BD_serializer(
+BDSerializer BD_serializer(
   BDSerializer_out,
   BDTagSplit_out_other,
   clk, reset);
@@ -339,7 +337,7 @@ BD_serializer(
 GlobalTagParser #(
   .NPCcode(NPCcode),
   .NPCdata(NPCdata),
-  .NPCRoute(NPCroute))
+  .NPCroute(NPCroute))
 Global_tag_parser(
   BDTagSplit_out_global,
   Global_tag_parser_out,
@@ -374,7 +372,7 @@ SF_array(
 FPGASerializer #(
   .NPCcode(NPCcode),
   .NPCdata(NPCdata),
-  .Ntime(N_TM_time),
+  .Ntime_full(N_TM_time),
   .N_SF_filts(N_SF_filts),
   .N_SF_state(N_SF_state)) 
 FPGA_serializer(
