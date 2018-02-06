@@ -78,17 +78,17 @@ interface DecodedBDWordChannel;
   logic a;
 endinterface
 
-interface SerializedPCWordChannel;
-  logic [7:0] code;
-  logic [23:0] payload;
+interface SerializedPCWordChannel #(parameter NPCcode = 7, parameter NPCdata = 20);
+  logic [NPCcode-1:0] code;
+  logic [NPCData-1:0] payload;
   logic v;
   logic a;
 endinterface
 
-interface SerializedPCWordChannelwithRoute;
-  logic [7:0] code;
-  logic [23:0] payload;
-  logic [9:0] route;
+interface SerializedPCWordChannelwithRoute #(parameter NPCcode = 7, parameter NPCdata = 20, NPCroute = 5);
+  logic [NPCcode-1:0] code;
+  logic [NPCData-1:0] payload;
+  logic [NPCroute-1:0] route;
   logic v;
   logic a;
 endinterface

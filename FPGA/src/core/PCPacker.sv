@@ -6,7 +6,7 @@
 // the BD traffic, and the SpikeGeneratorArray traffic,
 // and inserts heartbeat events signalsed by the TimeMgr
 
-module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCroute = 10, parameter GO_HOME_rt = -512) (
+module PCPacker #(parameter NPCcode = 7, parameter NPCdata = 20, parameter NPCroute = 5, parameter GO_HOME_rt = -32) (
   Channel PC_out,
 
   // BDSerializer inputs
@@ -25,8 +25,8 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCro
 //
 // All words look like this:
 //
-//    8      24 
-// [ code | data ]
+//     5      7      20 
+// [ route | code | data ]
 //
 // FPGA and BD codes share the same 4-bit space,
 // there's no FPGA/BD bit
@@ -36,9 +36,9 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCro
 //////////////////////////////////////////////
 // BD words
 //
-//  MSB            LSB
-//    8            24 
-// [ code | BD_payload_chunk ]
+//  MSB                          LSB
+//     5       7            20 
+// [ route | code | BD_payload_chunk ]
 //
 // BD words use codes 0-13 (13 funnel leaves + INVALID)
 //
@@ -48,25 +48,25 @@ module PCPacker #(parameter NPCcode = 8, parameter NPCdata = 24, parameter NPCro
 // 2 words per event:
 //
 //  MSB                  LSB
-//      8             
-// [ code=14 | state[23:0] ]
+//     5        7          20   
+// [ route | code=14 | state[19:0] ]
 // 
-//      8         21            3
-// [ code=14 | filt_idx | state[26:24]  ]
+//     5        7         13           7
+// [ route | code=14 | filt_idx | state[26:20]  ]
 //
 // (note: 27 state bits is unlikely to change, it's the DSP width
-//  21 is just the bits remaining for filt_idx, there may not be 2**21 filters)
+//  13 is just the bits remaining for filt_idx, there may not be 2**13 filters)
 //
 //////////////////////////////////////////////
 // FPGA-generated heartbeat
 // (split into two packets)
 //
 //  MSB                      LSB
-//      8             24
-// [ code=15 |  time_bits[23:0] ]
+//     5        7             20
+// [ route | code=15 |  time_bits[19:0] ]
 //
-//      8             24
-// [ code=16 |  time_bits[47:24] ]
+//      5       7             20
+// [ route | code=16 |  time_bits[39:20] ]
 
 // pack bits, then merge
 Channel #(NPCcode + NPCdata + NPCroute) BD_packed();

@@ -3,9 +3,9 @@
 `include "../lib/ChannelUtil.svh"
 
 module PCParser #(
-  parameter NPCin = 32,
+  parameter NPCin = 27,
   parameter Nconf = 16,
-  parameter Nreg = 64,
+  parameter Nreg = 32,
   parameter Nchan = 2) (
 
   // output registers
@@ -47,17 +47,17 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 // to their configured components, combining registers or channels to achieve
 // the needed width when necessary
 //
-//    8      24
+//    7     20 
 // [ code | data ]
 //
 /////////////////////////////////////////////////
 // BD-bound word
 //
-//  MSB                           LSB
-//           8           4     20
-// [        code       | X | BD_data ]
-//   1   1       6       4     20
-// [ 0 | 0 | leaf_code | X | BD_data ]
+//  MSB                   LSB
+//       7             20
+// [    code       | BD_data ]
+//   1       6         20
+// [ 0 | leaf_code | BD_data ]
 //
 // codes 0-34 are horn codes
 // the LSBs contain the data to be passed through
@@ -66,12 +66,12 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 // FPGA-bound reg config word
 //
 //  MSB                     LSB
-//          8         8    16
+//          7         4    16
 // [      code      | X | data ]
-//   1   1      6     8    16
+//   1   1      5     4    16
 // [ 1 | 0 | reg_id | X | data ]
 //
-// codes 128 - 191 address programmable registers
+// codes 64-95 address programmable registers
 // reg_id addresses an array of 16-bit registers
 //  bigger registers needed by the FPGA are composed of multiple 16-bit registers
 //  smaller registers just waste bits
@@ -84,32 +84,32 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 // FPGA-bound channel config word
 //
 //  MSB                     LSB
-//          8          8    16
+//          7          4    16
 // [       code      | X | data ]
-//   1   1       6     8    16
+//   1   1       5     4    16
 // [ 1 | 1 | chan_id | X | data ]
 //
-// codes = 192 - 255 address programmable channels
+// codes = 96-127 address programmable channels
 // channel_id addresses an array of 16-bit channels
 //  bigger channels are made by deserializing multiple transmissions
 //  smaller channels just waste bits
 // the LSBs contain (up to) 16 bits of channel data
 
 
-localparam NBDbiggest_data = 24;
+localparam NBDbiggest_data = 20;
 localparam Narray_id_max_bits = NPCin - 2 - Nconf;
 
 // unpack PC_in.d for FPGA-bound word 
 // (coincidentally the same for reg or chan)
 logic FPGA_or_BD; 
 logic reg_or_channel;
-logic [5:0] conf_array_id;
-logic [7:0] FPGA_unused;
+logic [4:0] conf_array_id;
+logic [3:0] FPGA_unused;
 logic [Nconf-1:0] conf_data;
 assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
 
 // unpack PC_in.d for BD-bound word
-logic [1:0] BD_unused;
+logic BD_unused;
 logic [5:0] leaf_code;
 logic [NBDbiggest_data-1:0] BD_data;
 assign {BD_unused, leaf_code, BD_data} = PC_in.d;
