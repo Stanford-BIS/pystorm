@@ -42,10 +42,10 @@ BDPars::BDPars() {
 
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDHornEP::COUNT); i++) {
-    Dn_EP_size_[DnEPCodeFor(static_cast<BDHornEP>(i))]        = 24; // don't care: shorter than 24b
+    Dn_EP_size_[DnEPCodeFor(static_cast<BDHornEP>(i))]        = 20; // don't care: shorter than 20b
   }
-  // is 2 for some leaves
-  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_AMMM)]               = 42;
+  // is 3 for some leaves
+  Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_AMMM)]               = 42; 
   Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_PAT)]                = 27;
   Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_TAT0)]               = 31;
   Dn_EP_size_[DnEPCodeFor(BDHornEP::PROG_TAT1)]               = 31;
@@ -98,7 +98,7 @@ BDPars::BDPars() {
 
   // serialization is 1 for most leaves
   for (unsigned int i = 0; i < static_cast<unsigned int>(BDFunnelEP::COUNT); i++) {
-    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))]  = 24; // don't care, shorter than 24b
+    Up_EP_size_[UpEPCodeFor(static_cast<BDFunnelEP>(i))]  = 20; // don't care, shorter than 20b
   }
   // serialization is 2 for a few others
   Up_EP_size_[UpEPCodeFor(BDFunnelEP::DUMP_AM)]           = 38;

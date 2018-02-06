@@ -56,11 +56,11 @@ module BDFunnelSerializer (
   UnencodedBDWordChannel words_in,
   input clk, reset);
 
-localparam unsigned NBDdata = 21;
-localparam unsigned Nbiggest_payload = 24;
-localparam unsigned Nhorn = 34;
-localparam unsigned Ncode = 6;
-localparam unsigned Nlongest_route = 8;
+localparam unsigned NBDdata = 21; // payload and variable-length route
+localparam unsigned Nbiggest_payload = 20; // longest payload input to BD, happens to be unencoded payload size
+localparam unsigned Nhorn = 34; // number of horn EPs in BD
+localparam unsigned Ncode = 6; // 2**6 >= 34
+localparam unsigned Nlongest_route = 8; // longest horn route
 
 genvar i;
 
@@ -106,10 +106,16 @@ assign other_split.leaf_code = (words_in.v == 1 && other_test == 1) ? words_in.l
 assign words_in.a = PROG_split[AMMM].a | PROG_split[PAT].a | PROG_split[TAT0].a | PROG_split[TAT1].a | other_split.a;
 
 ///////////////////////////////////////////
-// deserialize 2-to-1
+// deserialize 3-to-1 (barely needed for AMMM), 2-to-1 (for PAT and TAT0)
 
-Channel #(2*Nbiggest_payload) PROG_deser[0:3]();
-Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[0:3](PROG_deser, PROG_split, clk, reset);
+Channel #(3*Nbiggest_payload) PROG_deser_AMMM();
+Channel #(2*Nbiggest_payload) PROG_deser_PAT();
+Channel #(2*Nbiggest_payload) PROG_deser_TAT0();
+Channel #(2*Nbiggest_payload) PROG_deser_TAT1();
+Deserializer #(.Nin(Nbiggest_payload), .Nout(3*Nbiggest_payload)) deser_AMMM(PROG_deser_AMMM, PROG_split[AMMM], clk, reset);
+Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload))  deser_PAT(PROG_deser_PAT, PROG_split[PAT], clk, reset);
+Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser_TAT0(PROG_deser_TAT0, PROG_split[TAT0], clk, reset);
+Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser_TAT1(PROG_deser_TAT1, PROG_split[TAT1], clk, reset);
 
 ///////////////////////////////////////////
 // rearrange in preparation for serizlization 
@@ -130,12 +136,12 @@ Deserializer #(.Nin(Nbiggest_payload), .Nout(2*Nbiggest_payload)) deser[0:3](PRO
 localparam AMMM_N = 11;
 Channel #(4*AMMM_N) AMMM_rearr();
 assign AMMM_rearr.d = {
-  1'b0, PROG_deser[AMMM].d[3*AMMM_N-1 +: AMMM_N-1], // 0 inserted!
-        PROG_deser[AMMM].d[2*AMMM_N-1 +: AMMM_N  ],
-  1'b0, PROG_deser[AMMM].d[1*AMMM_N   +: AMMM_N-1], // 0 inserted!
-        PROG_deser[AMMM].d[0*AMMM_N   +: AMMM_N  ]};
-assign AMMM_rearr.v = PROG_deser[AMMM].v;
-assign PROG_deser[AMMM].a = AMMM_rearr.a;
+  1'b0, PROG_deser_AMMM.d[3*AMMM_N-1 +: AMMM_N-1], // 0 inserted!
+        PROG_deser_AMMM.d[2*AMMM_N-1 +: AMMM_N  ],
+  1'b0, PROG_deser_AMMM.d[1*AMMM_N   +: AMMM_N-1], // 0 inserted!
+        PROG_deser_AMMM.d[0*AMMM_N   +: AMMM_N  ]};
+assign AMMM_rearr.v = PROG_deser_AMMM.v;
+assign PROG_deser_AMMM.a = AMMM_rearr.a;
 
 
 // PAT  :  BD does :  7 - 14 - 27
@@ -149,12 +155,12 @@ assign PROG_deser[AMMM].a = AMMM_rearr.a;
 localparam PAT_N = 7;
 Channel #(4*PAT_N) PAT_rearr();
 assign PAT_rearr.d = {
-  1'b0, PROG_deser[PAT].d[3*PAT_N +: PAT_N-1], // 0 inserted!
-        PROG_deser[PAT].d[2*PAT_N +: PAT_N  ],
-        PROG_deser[PAT].d[1*PAT_N +: PAT_N  ], 
-        PROG_deser[PAT].d[0*PAT_N +: PAT_N  ]};
-assign PAT_rearr.v = PROG_deser[PAT].v;
-assign PROG_deser[PAT].a = PAT_rearr.a;
+  1'b0, PROG_deser_PAT.d[3*PAT_N +: PAT_N-1], // 0 inserted!
+        PROG_deser_PAT.d[2*PAT_N +: PAT_N  ],
+        PROG_deser_PAT.d[1*PAT_N +: PAT_N  ], 
+        PROG_deser_PAT.d[0*PAT_N +: PAT_N  ]};
+assign PAT_rearr.v = PROG_deser_PAT.v;
+assign PROG_deser_PAT.a = PAT_rearr.a;
 
 
 // TAT* :  BD does :  8 - 16 - 31
@@ -168,22 +174,22 @@ assign PROG_deser[PAT].a = PAT_rearr.a;
 localparam TAT0_N = 8;
 Channel #(4*TAT0_N) TAT0_rearr();
 assign TAT0_rearr.d = {
-  1'b0, PROG_deser[TAT0].d[3*TAT0_N +: TAT0_N-1], // 0 inserted!
-        PROG_deser[TAT0].d[2*TAT0_N +: TAT0_N  ],
-        PROG_deser[TAT0].d[1*TAT0_N +: TAT0_N  ], 
-        PROG_deser[TAT0].d[0*TAT0_N +: TAT0_N  ]};
-assign TAT0_rearr.v = PROG_deser[TAT0].v;
-assign PROG_deser[TAT0].a = TAT0_rearr.a;
+  1'b0, PROG_deser_TAT0.d[3*TAT0_N +: TAT0_N-1], // 0 inserted!
+        PROG_deser_TAT0.d[2*TAT0_N +: TAT0_N  ],
+        PROG_deser_TAT0.d[1*TAT0_N +: TAT0_N  ], 
+        PROG_deser_TAT0.d[0*TAT0_N +: TAT0_N  ]};
+assign TAT0_rearr.v = PROG_deser_TAT0.v;
+assign PROG_deser_TAT0.a = TAT0_rearr.a;
 
 localparam TAT1_N = 8;
 Channel #(4*TAT1_N) TAT1_rearr();
 assign TAT1_rearr.d = {
-  1'b0, PROG_deser[TAT1].d[3*TAT1_N +: TAT1_N-1], // 0 inserted!
-        PROG_deser[TAT1].d[2*TAT1_N +: TAT1_N  ],
-        PROG_deser[TAT1].d[1*TAT1_N +: TAT1_N  ],
-        PROG_deser[TAT1].d[0*TAT1_N +: TAT1_N  ]};
-assign TAT1_rearr.v = PROG_deser[TAT1].v;
-assign PROG_deser[TAT1].a = TAT1_rearr.a;
+  1'b0, PROG_deser_TAT1.d[3*TAT1_N +: TAT1_N-1], // 0 inserted!
+        PROG_deser_TAT1.d[2*TAT1_N +: TAT1_N  ],
+        PROG_deser_TAT1.d[1*TAT1_N +: TAT1_N  ],
+        PROG_deser_TAT1.d[0*TAT1_N +: TAT1_N  ]};
+assign TAT1_rearr.v = PROG_deser_TAT1.v;
+assign PROG_deser_TAT1.a = TAT1_rearr.a;
 
 
 ///////////////////////////////////////////

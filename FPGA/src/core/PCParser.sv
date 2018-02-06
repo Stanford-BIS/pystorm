@@ -5,7 +5,7 @@
 module PCParser #(
   parameter NPCin = 27,
   parameter Nconf = 16,
-  parameter Nreg = 32,
+  parameter Nreg = 33,
   parameter Nchan = 2) (
 
   // output registers
@@ -68,10 +68,10 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 //  MSB                     LSB
 //          7         4    16
 // [      code      | X | data ]
-//   1   1      5     4    16
-// [ 1 | 0 | reg_id | X | data ]
+//   1      6     4    16
+// [ 1 | reg_id | X | data ]
 //
-// codes 64-95 address programmable registers
+// codes 64-111 address programmable registers
 // reg_id addresses an array of 16-bit registers
 //  bigger registers needed by the FPGA are composed of multiple 16-bit registers
 //  smaller registers just waste bits
@@ -83,13 +83,13 @@ ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
 /////////////////////////////////////////////////
 // FPGA-bound channel config word
 //
-//  MSB                     LSB
-//          7          4    16
-// [       code      | X | data ]
-//   1   1       5     4    16
-// [ 1 | 1 | chan_id | X | data ]
+//  MSB                      LSB
+//          7           4    16
+// [       code       | X | data ]
+//   1      4      4    16
+// [ 1 | chan_id | X | data ]
 //
-// codes = 96-127 address programmable channels
+// codes = 112-127 address programmable channels
 // channel_id addresses an array of 16-bit channels
 //  bigger channels are made by deserializing multiple transmissions
 //  smaller channels just waste bits
@@ -102,11 +102,13 @@ localparam Narray_id_max_bits = NPCin - 2 - Nconf;
 // unpack PC_in.d for FPGA-bound word 
 // (coincidentally the same for reg or chan)
 logic FPGA_or_BD; 
-logic reg_or_channel;
-logic [4:0] conf_array_id;
+logic [5:0] conf_array_id;
 logic [3:0] FPGA_unused;
 logic [Nconf-1:0] conf_data;
-assign {FPGA_or_BD, reg_or_channel, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
+assign {FPGA_or_BD, conf_array_id, FPGA_unused, conf_data} = PC_in.d;
+
+logic is_chan;
+assign is_chan = conf_array_id[5] & conf_array_id[4];
 
 // unpack PC_in.d for BD-bound word
 logic BD_unused;
@@ -120,7 +122,7 @@ always_comb
   if (FPGA_or_BD == 0)
     word_type = BD_WORD;
   else
-    if (reg_or_channel == 0)
+    if (is_chan == 0)
       word_type = REG_WORD;
     else
       word_type = CHANNEL_WORD;

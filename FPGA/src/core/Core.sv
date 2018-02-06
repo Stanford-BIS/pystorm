@@ -64,7 +64,7 @@ localparam NBDdata_out = 21;
 
 // PCParser/configurator parameters
 localparam Nconf = 16;
-localparam Nreg = 32;
+localparam Nreg = 33;
 localparam Nchan = 2;
 
 // SpikeGenerator additional params
@@ -168,10 +168,10 @@ logic stall_dn;
 logic [N_TM_time-1:0] time_elapsed;
 
 // data channels: PC -> BD
-UnencodedBDWordChannel PCParser_BD_data_out();
+UnencodedBDWordChannel #(.NPCdata(NPCdata)) PCParser_BD_data_out();
 TagCtChannel #(Ntag, Nct) SG_tags_out();
 TagCtChannel #(Ntag, Nct) SG_tags_out_post_FIFO();
-UnencodedBDWordChannel BDTagMerge_out();
+UnencodedBDWordChannel #(.NPCdata(NPCdata)) BDTagMerge_out();
 
 // data channels: BD -> PC
 DecodedBDWordChannel BDDecoder_out();

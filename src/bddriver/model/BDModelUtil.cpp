@@ -55,11 +55,11 @@ std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned 
     for (auto& it : inputs) {
       words.push_back(it);
     }
-  } else if (D == 2) {
+  } else if (D == 2 || D == 3) {
     // we shouldn't have to worry about remainders with BDModel
     // use a VectorDeserializer anyway so we can copy-paste from RecvFromEP
     // XXX should maybe figure out a way to reuse this code better
-    VectorDeserializer<uint32_t> deserializer(2);
+    VectorDeserializer<uint32_t> deserializer(D);
 
     // XXX make a copy so we can get a unique_ptr
     auto input_copy = std::make_unique<std::vector<uint32_t>>(inputs);
@@ -71,13 +71,28 @@ std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned 
       // for now, D == 2 for all deserializers, so we can do this hack
       // if the width of a single data object returned from the FPGA ever
       // exceeds 64 bits, we may need to rethink this
-      assert(deserialized.size() == 2); // the only case to deal with for now
+      assert(deserialized.size() == D); // the only case to deal with for now
       
-      uint32_t payload_lsb = deserialized.at(0);
-      uint32_t payload_msb = deserialized.at(1);
+      BDWord payload_all;
+      if (D == 2) {
+        uint32_t payload_lsb = deserialized.at(0);
+        uint32_t payload_msb = deserialized.at(1);
 
-      // concatenate lsb and msb to make output word
-      BDWord payload_all = PackWord<TWOFPGAPAYLOADS>({{TWOFPGAPAYLOADS::LSB, payload_lsb}, {TWOFPGAPAYLOADS::MSB, payload_msb}});
+        // concatenate lsb and msb to make output word
+        payload_all = PackWord<TWOFPGAPAYLOADS>({
+            {TWOFPGAPAYLOADS::LSB, payload_lsb}, 
+            {TWOFPGAPAYLOADS::MSB, payload_msb}});
+      } else if (D == 3) {
+        uint32_t payload_w0 = deserialized.at(0);
+        uint32_t payload_w1 = deserialized.at(1);
+        uint32_t payload_w2 = deserialized.at(2);
+
+        // concatenate lsb and msb to make output word
+        payload_all = PackWord<THREEFPGAPAYLOADS>({
+            {THREEFPGAPAYLOADS::W0, payload_w0},
+            {THREEFPGAPAYLOADS::W1, payload_w1},
+            {THREEFPGAPAYLOADS::W2, payload_w2}});
+      }
       words.push_back(payload_all);
 
       deserializer.GetOneOutput(&deserialized);

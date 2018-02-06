@@ -1319,8 +1319,12 @@ void Driver::SendToEP(unsigned int core_id,
       } else if (D == 2) {
         payloads[0] = GetField(it, TWOFPGAPAYLOADS::LSB);
         payloads[1] = GetField(it, TWOFPGAPAYLOADS::MSB);
+      } else if (D == 3) {
+        payloads[0] = GetField(it, THREEFPGAPAYLOADS::W0);
+        payloads[1] = GetField(it, THREEFPGAPAYLOADS::W1);
+        payloads[2] = GetField(it, THREEFPGAPAYLOADS::W2);
       } else {
-        assert(false && "not implemented: no BD EP word has >2x FPGA serialization");
+        assert(false && "not implemented: no BD EP word has FPGA serialization != 1, 2 or 3");
       }
     } else { // FPGA channel or register (all regs should be 1x, only channel is 4x)
       if (D == 1) {
