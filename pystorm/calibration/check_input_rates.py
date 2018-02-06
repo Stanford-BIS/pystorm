@@ -37,8 +37,8 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def compute_rates():
-    """Compute the possible rates """
+def compute_base_rates():
+    """Compute the rates to test"""
     period_min_rate = 1./TGT_RATE_MIN
     period_max_rate = 1./TGT_RATE_MAX
 
@@ -48,7 +48,7 @@ def compute_rates():
     rates = 1./(unit_periods*UNIT_PERIOD)
     return rates
 
-RATES = compute_rates() # rate of input spikes
+BASE_RATES = compute_base_rates() # rate of input spikes
 
 def build_net():
     """Build a network for testing"""
@@ -74,31 +74,44 @@ def toggle_hal(net_input, rate):
     time.sleep(INTER_RUN_TIME)
     HAL.set_time_resolution(upstream_ns=1000000)
 
-def round_rates():
-    """HAL takes in integer rates values
-
+def compute_test_rates():
+    """Compute the exact rates to test
+    
+    HAL takes in integer rates values
     This function handles the floating point to integer issues
     """
-    int_rates = []
-    for rate in RATES:
+    intermediate_rates = BASE_RATES[:-1] + np.diff(BASE_RATES)/2.
+    print(BASE_RATES[:10])
+    print(intermediate_rates[:10])
+    test_rates = np.sort(list(BASE_RATES) + list(intermediate_rates))
+    print(test_rates[:10])
+    integer_rates = []
+    for rate in test_rates:
         rounded_rate = int(np.round(rate))
         if np.abs(rounded_rate - rate) < FLOAT_TOL:
-            int_rates += [rounded_rate-1, rounded_rate, rounded_rate+1]
+            integer_rates += [rounded_rate-1, rounded_rate, rounded_rate+1]
         else:
-            int_rates += [int(rate), int(rate)+1]
-    int_rates = np.array(int_rates)
-    int_rates = int_rates[int_rates <= TGT_RATE_MAX]
-    int_rates = int_rates[int_rates > 0]
-    return int_rates
+            integer_rates += [int(rate), int(rate)+1]
+    integer_rates = np.array(integer_rates)
+    integer_rates = integer_rates[integer_rates <= TGT_RATE_MAX]
+    integer_rates = integer_rates[integer_rates > 0]
+    integer_rates = np.unique(integer_rates)
+    return integer_rates
 
 def plot_rates(rates, measured_rates):
     """Plot results"""
     fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(8, 12))
+    for ax in axs:
+        for base_rate in BASE_RATES:
+            ax.axvline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
+            ax.axhline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
     axs[0].plot(rates, measured_rates, '-o', label="measured rate")
     axs[0].plot([0, rates[-1]], [0, rates[-1]], 'k-', linewidth=1, label="unity")
     axs[0].legend()
     axs[0].set_xlabel("Target Rate (Hz)")
     axs[0].set_ylabel("Measured Rate (Hz)")
+    axs[0].set_xlim((0, axs[0].get_xlim()[1]))
+    axs[0].set_ylim((0, axs[0].get_ylim()[1]))
 
     axs[1].loglog(rates, measured_rates, '-o', label="measured rate")
     axs[1].loglog(rates, rates, 'k-', linewidth=1, label="unity")
@@ -123,7 +136,7 @@ def check_input_rates(parsed_args):
         HAL.disable_spike_recording(flush=True)
         HAL.set_time_resolution(upstream_ns=100000)
 
-        rates = round_rates()
+        rates = compute_test_rates()
         n_rates = len(rates)
         print("checking {} rates {}".format(n_rates, rates))
         measured_rates = np.zeros(n_rates)
