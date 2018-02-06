@@ -123,7 +123,7 @@ def plot_max_rates(max_rates):
     fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
 
     fig_hist = plt.figure()
-    bins = min(max(int(neurons/20), neurons), 80)
+    bins = min(max(10, neurons), 80)
     max_rates_mean = np.mean(max_rates)
     max_rates_median = np.median(max_rates)
     max_rates_min = np.min(max_rates)
@@ -148,7 +148,7 @@ def check_soma_max_rates(parsed_args):
     if use_saved_data:
         try:
             max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
-        except FileNotFoundError as err:
+        except FileNotFoundError:
             print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
             sys.exit(1)
     else:
