@@ -42,13 +42,22 @@ module OKCoreBD (
 logic BD_in_valid;
 assign BD_in_valid = ~_BD_in_valid;
 
-localparam NPCcode = 8;
-localparam NPCdata = 24;
-localparam NPCinout = NPCcode + NPCdata;
+localparam NPCcode = 7;
+localparam NPCdata = 20;
+localparam NPCroute = 5;
+
+localparam NOKinout = NPCcode + NPCdata + NPCroute; 
+
+localparam NPCin = NPCcode + NPCdata; // discard route
+localparam NPCout = NPCcode + NPCdata + NPCroute;
+
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
 localparam NBDin = 21;
 localparam NBDout = 34;
+
+//GO_HOME route
+localparam logic[NPCroute-1:0] GO_HOME_rt = 32;
 
 // internal clocks
 wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest of the design
@@ -56,9 +65,38 @@ wire sys_clk; // to PLL input
 wire BD_in_clk_int; // clocks to BD's handshakers
 wire BD_out_clk_int;
 
+// XXX PC/OK isn't a great name anymore
+// OK refers to the data on the BD-facing side of the OK ifc
+// there's a transformation to/from the PC data with the route
+// PC refers to the data on the PC-facing side of the core
+
 // channels between OK ifc and core design
-Channel #(NPCinout) PC_downstream();
-Channel #(NPCinout) PC_upstream();
+Channel #(NOKinout) OK_downstream();
+Channel #(NOKinout) OK_upstream();
+
+Channel #(NPCin) PC_downstream();
+Channel #(NPCout) PC_upstream();
+
+// convert with route
+logic [NPCroute-1:0] route_down;
+logic [NPCcode-1:0] code_down;
+logic [NPCdata-1:0] data_down;
+
+logic [NPCroute-1:0] route_up;
+logic [NPCcode-1:0] code_up;
+logic [NPCdata-1:0] data_up;
+
+// discard route coming out of OKIfc, going to core
+assign {route_down, code_down, data_down} = OK_downstream.d;
+assign PC_downstream.v = OK_downstream.v;
+assign PC_downstream.d = {code_down, data_down};
+assign OK_downstream.a = PC_downstream.v;
+
+// discard route (set to GO_HOME_rt) coming out of core, going to OKIfc
+assign {code_up, data_up} = PC_upstream.d;
+assign OK_upstream.v = PC_upstream.v;
+assign OK_upstream.d = {GO_HOME_rt, code_up, data_up};
+assign PC_upstream.a = OK_upstream.v;
 
 // channels between core design and BD ifc
 Channel #(NBDin) BD_downstream();
@@ -84,8 +122,8 @@ ok_ifc(
 	.led_in(led_in),
   .okClk(okClk),
   .user_reset(user_reset),
-  .PC_downstream(PC_downstream),
-  .PC_upstream(PC_upstream));
+  .PC_downstream(OK_downstream),
+  .PC_upstream(OK_upstream));
 
 // core design
 Core core(

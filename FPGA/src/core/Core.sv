@@ -74,9 +74,6 @@ localparam N_SG_ct = Nct;
 // FIFO depth
 localparam FIFOdepth = 4;
 
-//GO_HOME route
-localparam GO_HOME_rt = -32;
-
 // **THIS NEEDS TO BE EDITED TO ADD GLOBAL ROUTE STUFF**
 //
 // Core includes all the components that are agnostic to both BD handshaking

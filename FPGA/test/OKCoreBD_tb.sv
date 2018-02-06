@@ -91,32 +91,29 @@ wire [31:0] ReadRegisterData;
 logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
+logic [4:0] zero_rt;
+assign zero_rt = 0;
+
 // functions for creating downstream words
-const logic[31:0] nop = {2'b10, 6'd63, 24'd1}; // 6'd63 is the highest register, which is unused
+const logic[31:0] nop = {zero_rt, 7'd96, 20'd1}; // 7'd96 is the highest register, which is unused
 
 // index into PipeIn
 int i = 0;
 
-task SendToEP(logic [7:0] ep_id, logic[23:0] data);
-  pipeInFlat[i] = {ep_id, data};
+task SendToEP(logic [6:0] ep_id, logic[23:0] data);
+  pipeInFlat[i] = {zero_rt, ep_id, data};
   assert(i < pipeInSize);
   i = i + 1;
 endtask
 
-task SetReg(logic [4:0] reg_id, logic[15:0] data);
-  pipeInFlat[i] = {2'b10, 1'b0, reg_id, 8'b0, data};
+task SendToBD(logic[5:0] code, logic[19:0] payload);
+  pipeInFlat[i] = {zero_rt, code, payload};
   assert(i < pipeInSize);
   i = i + 1;
 endtask
 
-task SetChan(logic [4:0] chan_id, logic[15:0] data);
-  pipeInFlat[i] = {2'b11, 1'b0, chan_id, 8'b0, data};
-  assert(i < pipeInSize);
-  i = i + 1;
-endtask
-
-task SendToBD(logic[5:0] code, logic[23:0] payload);
-  pipeInFlat[i] = {2'b00, code, payload};
+task SendToRegOrChan(logic[5:0] code, logic[15:0] payload);
+  pipeInFlat[i] = {zero_rt, code + 64, 4'b0, payload};
   assert(i < pipeInSize);
   i = i + 1;
 endtask
@@ -146,8 +143,8 @@ task SendToAllBD(int start, int num_words);
   localparam NumHornLeaves = 34;
   for (int i = 0; i < num_words; i++) begin
     automatic logic [5:0] leaf = (start + i) % NumHornLeaves;
-    automatic logic [23:0] payload = $urandom_range(0, 2**23-1);
-    SendToBD({2'b00, leaf}, payload);
+    automatic logic [19:0] payload = $urandom_range(0, 2**19-1);
+    SendToBD(leaf, payload);
   end
 endtask
 
@@ -174,46 +171,47 @@ initial begin
 
   // turn off resets
   // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
-  SetReg(31, 0); 
+  SendToRegOrChan(6'd31, 0);
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // send AM word
-  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd26}, {3{8'b11110000}});
+  SendToBD(6'd26, {2{10'b1111100000}});
+  SendToBD(6'd26, {2{10'b1111100000}});
+  SendToBD(6'd26, {2{10'b1111100000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // send PAT word
-  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd27}, {3{8'b11110000}});
+  SendToBD(6'd27, {2{10'b1111100000}});
+  SendToBD(6'd27, {2{10'b1111100000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // send TAT0 word
-  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd28}, {3{8'b11110000}});
+  SendToBD(6'd28, {2{10'b1111100000}});
+  SendToBD(6'd28, {2{10'b1111100000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // send TAT1 word
-  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
-  SendToBD({2'b00, 6'd29}, {3{8'b11110000}});
+  SendToBD(6'd29, {2{10'b1111100000}});
+  SendToBD(6'd29, {2{10'b1111100000}});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   // program SG
-  SendToEP(8'd69, {8'd0, 16'd1}); // gens used
-  SendToEP(8'd70, {8'd0, 16'd1}); // enable
-  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[0]});
-  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[1]});
-  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[2]});
-  SendToEP(8'd112, {8'd0, SG_word_fast_pieces[3]});
+  SendToEP(7'd69, {8'd0, 16'd1}); // gens used
+  SendToEP(7'd70, {8'd0, 16'd1}); // enable
+  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[3]});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
   #(4000)
 
-  SendToEP(8'd69, {8'd0, 16'd2}); // gens used
-  SendToEP(8'd70, {8'd0, 16'd3}); // enable
-  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[0]});
-  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[1]});
-  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[2]});
-  SendToEP(8'd112, {8'd0, SG_word_slow_pieces[3]});
+  SendToEP(7'd69, {8'd0, 16'd2}); // gens used
+  SendToEP(7'd70, {8'd0, 16'd3}); // enable
+  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[0]});
+  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[1]});
+  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[2]});
+  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[3]});
   FlushAndSendPipeIn(); // send the stuff we queued up
   
   //SendToBD(0, 3'b101); // ADC 
