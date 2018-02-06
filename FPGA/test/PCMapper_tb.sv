@@ -10,10 +10,10 @@ module PCMapper_tb;
 ///////////////////////
 // PCParser + shared pars
 
-parameter NPCin = 24;
+parameter NPCin = 27;
 parameter NBDdata = 21;
 parameter Nconf = 16;
-parameter Nreg = 32;
+parameter Nreg = 64;
 parameter Nchan = 2;
 
 ///////////////////////
@@ -30,8 +30,7 @@ parameter N_SG_period = 16;
 parameter N_SG_tag = 11;
 
 // paramters for TimeMgr
-parameter N_TM_time_hi = 20;
-parameter N_TM_time_lo = 20;
+parameter N_TM_time = 48;
 parameter N_TM_unit = 16;
 
 // reset values for PCParser
@@ -41,7 +40,7 @@ logic [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals;
 SpikeFilterConf SF_conf();
 
 // SpikeGenerator
-ProgramSpikeGeneratorChannel SG_program_mem();
+SpikeGeneratorProgChannel SG_program_mem();
 SpikeGeneratorConf SG_conf();
 
 // TimeMgr
@@ -72,13 +71,16 @@ initial begin
 end
 
 // PCParser input
-Channel #(NPCin) PC_in();
+Channel #(NPCin) PC_in_ext();
+
+logic stall;
+assign stall = 0;
 
 // PCParser passthrough output to BD
 UnencodedBDWordChannel BD_data_out();
 
 // PC sender
-RandomChannelSrc #(.N(NPCin)) PC_src(PC_in, clk, reset);
+RandomChannelSrc #(.N(NPCin)) PC_src(PC_in_ext, clk, reset);
 
 // BD receiver
 Channel #(26) BD_data_out_packed();
@@ -95,7 +97,7 @@ assign SG_program_mem_flat.v = SG_program_mem.v;
 assign SG_program_mem.a = SG_program_mem_flat.a;
 ChannelSink SG_program_mem_sink(SG_program_mem_flat, clk, reset);
 
-PCParser #(NPCin, NBDdata, Nconf, Nreg, Nchan) parser(.*);
+PCParser #(NPCin, Nconf, Nreg, Nchan) parser(.*);
 
 PCMapper #(
   Nconf,
@@ -107,8 +109,7 @@ PCMapper #(
   N_SG_gens,
   N_SG_period,
   N_SG_tag,
-  N_TM_time_hi,
-  N_TM_time_lo,
+  N_TM_time,
   N_TM_unit) dut(.*);
 
 endmodule
