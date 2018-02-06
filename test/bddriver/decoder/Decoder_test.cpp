@@ -43,8 +43,9 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
   std::uniform_int_distribution<> num_messages_dist(0, N);
   unsigned int num_messages = num_messages_dist(generator);
 
-  std::uniform_int_distribution<> payload_dist(0, UINT8_MAX);
+  std::uniform_int_distribution<> payload_dist(0, (1<<20)-1);
   std::uniform_int_distribution<> code_dist(0, up_eps.size()-1);
+  std::uniform_int_distribution<> core_id_dist(0, (1<<5)-1);
 
   // note that initialization only occurs on the first function invocation
   static BDTime last_time = 0;
@@ -55,11 +56,8 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
 
   for (unsigned int i = 0; i < N; i++) {
     // make random input data
-    uint8_t b[4];
-    for (unsigned int j = 0; j < 3; j++) {
-      b[j] = payload_dist(generator);
-      dec_inputs.push_back(b[j]);
-    }
+    uint32_t payload = payload_dist(generator);
+    uint8_t core_id = core_id_dist(generator);
 
     uint8_t code_idx = code_dist(generator);
     assert(code_idx < up_eps.size());
@@ -75,15 +73,10 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
       code = pars->UpEPCodeFor(bdpars::FPGAOutputEP::NOP);
     }
 
-    b[3] = code;
-    dec_inputs.push_back(code);
+    // dec_inputs.push_back(code);
 
     // pack
-    uint32_t packed = PackWord<FPGABYTES>(
-        {{FPGABYTES::B0, b[0]}, 
-         {FPGABYTES::B1, b[1]}, 
-         {FPGABYTES::B2, b[2]}, 
-         {FPGABYTES::B3, b[3]}});
+    uint32_t packed = PackWord<FPGAIO>({{FPGAIO::EP_CODE, code}, {FPGAIO::PAYLOAD, payload}, {FPGAIO::ROUTE, core_id}});
     //cout << " b[0] " << int(b[0]) << endl;
     //cout << " b[1] " << int(b[1]) << endl;
     //cout << " b[2] " << int(b[2]) << endl;
@@ -93,10 +86,14 @@ std::pair<DIVect, std::unordered_map<uint8_t, DOVect>> MakeDecInputAndOutputs(un
     //cout << " at1 " << GetField(packed, FPGABYTES::B1) << endl;
     //cout << " at2 " << GetField(packed, FPGABYTES::B2) << endl;
     //cout << " at3 " << GetField(packed, FPGABYTES::B3) << endl;
+    dec_inputs.push_back(GetField(packed, FPGABYTES::B0));
+    dec_inputs.push_back(GetField(packed, FPGABYTES::B1));
+    dec_inputs.push_back(GetField(packed, FPGABYTES::B2));
+    dec_inputs.push_back(GetField(packed, FPGABYTES::B3));
 
     // extract code, payload
-    assert(GetField(packed, FPGAIO::EP_CODE) == code);
-    uint32_t payload = GetField(packed, FPGAIO::PAYLOAD);
+    // assert(GetField(packed, FPGAIO::EP_CODE) == code);
+    // uint32_t payload = GetField(packed, FPGAIO::PAYLOAD);
     //cout << " code " << int(code) << endl;
     //cout << " payload " << payload << endl;
     
