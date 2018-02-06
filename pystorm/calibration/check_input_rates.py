@@ -103,8 +103,8 @@ def plot_rates(rates, measured_rates):
     fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(8, 12))
     for ax in axs:
         for base_rate in BASE_RATES:
-            ax.axvline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
-            ax.axhline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
+            ax.axvline(base_rate, color="k", linestyle="-", linewidth=0.5, alpha=0.2)
+            ax.axhline(base_rate, color="k", linestyle="-", linewidth=0.5, alpha=0.2)
     axs[0].plot(rates, measured_rates, '-o', label="measured rate")
     axs[0].plot([0, rates[-1]], [0, rates[-1]], 'k-', linewidth=1, label="unity")
     axs[0].legend()
@@ -115,7 +115,6 @@ def plot_rates(rates, measured_rates):
 
     axs[1].loglog(rates, measured_rates, '-o', label="measured rate")
     axs[1].loglog(rates, rates, 'k-', linewidth=1, label="unity")
-    axs[1].legend()
     axs[1].set_xlabel("Target Rate (Hz)")
     axs[1].set_ylabel("Measured Rate (Hz)")
 
