@@ -17,7 +17,8 @@ namespace bddriver {
 
 class Encoder : public Xcoder {
  public:
-  const static unsigned int bytesPerOutput = 4;  
+  const static unsigned int bytesPerOutput = 4; 
+  const unsigned int host_board_route = 0; 
 
   Encoder(
       MutexBuffer<EncInput>* in_buf,
@@ -47,6 +48,7 @@ class Encoder : public Xcoder {
   inline void PushWord(uint32_t word); // helper for Encode, does serialization into output_block_
   inline void PadNopsAndFlush(); // pushes nops until the output_block_ is a multiple of WORDS_PER_BLOCK
   inline void FlushWords(); // flushes words to comm, padding to complete the current block
+  inline unsigned int toRoute(unsigned int core_id);
   void Encode(const std::unique_ptr<std::vector<EncInput>> inputs);
 };
 

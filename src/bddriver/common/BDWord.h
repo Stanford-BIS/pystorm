@@ -230,8 +230,8 @@ DEFHCWORD(NeuronConfig,
 
 // FPGA words
 DEFWORD(FPGAIO,
-    FIELDS(PAYLOAD , EP_CODE ) ,
-    WIDTHS(24      , 8       )   )
+    FIELDS(PAYLOAD , EP_CODE , ROUTE) ,
+    WIDTHS(20      , 7       , 5    )   )
 
 DEFWORD(FPGABYTES,
     FIELDS(B0 , B1 , B2 , B3 ) ,

@@ -67,7 +67,7 @@ inline void Encoder::PadNopsAndFlush() {
 
   // construct FPGA nop word
   uint8_t nop_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
-  BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}});
+  BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}, {FPGAIO::ROUTE, 0}});
 
   // push nops
   for (unsigned int i = 0; i < to_complete_block / 4; i++) { // 4 words per nop, so / 4
@@ -91,6 +91,13 @@ inline void Encoder::FlushWords() {
   output_block_ = std::make_unique<std::vector<EncOutput>>();
 }
 
+//converts the core ID to the route
+inline unsigned int Encoder::toRoute(unsigned int core_id) {
+  if(bd_pars_->NumCores == 1)
+    return 0; //for one core, route is always zero
+  return core_id+1; //for multicore system, just add 1 for now
+}
+
 void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
   // if multiple flushes are in the same set of inputs, just flush once
@@ -107,7 +114,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       flush_pending = true;
 
     } else {
-      (void)core_id; // XXX this is where you would do something with core_id
+      unsigned int route = toRoute(core_id); // convert core ID to route
       (void)time;    // XXX this is where you would do something with time
 
       // pack into 32 bits
@@ -115,7 +122,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       //  MSB          LSB
       //    8b      24b
       // [ code | payload ]
-      uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}});
+      uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}, {FPGAIO::ROUTE, route}});
 
       // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
       // package the event's time into a spike
@@ -135,7 +142,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
         HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
 
         for (unsigned int i = 0; i < 3; i++) {
-          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}}));
+          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, host_board_route}}));
         }
       }
 
