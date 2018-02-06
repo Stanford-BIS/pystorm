@@ -37,7 +37,7 @@ std::pair<EIVect, EOVect> MakeEncInputAndOutputs(unsigned int N, const BDPars * 
   std::default_random_engine generator(0);
   std::uniform_int_distribution<> payload_dist(0, (1<<20)-1);
   std::uniform_int_distribution<> ep_code_dist(0, (1<<7)-1);
-  std::uniform_int_distribution<> core_id_dist(0, (1<<5)-1);
+  std::uniform_int_distribution<> core_id_dist(0, (1<<5)-2);
 
   for (unsigned int i = 0; i < N; i++) {
     // make random input data
