@@ -111,11 +111,11 @@ BDPars::BDPars() {
   //////////////////////////////////////////////////////
   // FPGA outputs
 
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_LSB)] = 24;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_MSB)] = 24;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::SF_OUTPUT)]       = 48;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::NOP)]             = 24;
-  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::DS_QUEUE_CT)]     = 24;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_LSB)] = 20;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::UPSTREAM_HB_MSB)] = 20;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::SF_OUTPUT)]       = 37;
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::NOP)]             = 20; // actually zero?
+  Up_EP_size_[UpEPCodeFor(FPGAOutputEP::DS_QUEUE_CT)]     = 20;
 
   //////////////////////////////////////////////////////
   // memory info
