@@ -9,9 +9,15 @@
 module OKIfc_tb;
 
 parameter NPC = 32;
-parameter NPCcode = 8;
+parameter NPCcode = 7;
+parameter NPCroute = 5;
+parameter NPCdata = 20;
+parameter logic [NCroute-1:0] GO_HOME_rt = 31;
 parameter logic [NPCcode-1:0] NOPcode = 64;
-parameter logic [NPCcode-1:0] DSQueueCode = 128;
+parameter logic [NPCcode-1:0] DSQueueCode = 65;
+
+logic [NPCinout-1:0] nop_word;
+assign nop_word = {GO_HOME_rt, NOPcode, {NPCdata{1'b0}}};
 
 wire [4:0]   okUH;
 wire [2:0]   okHU;
@@ -72,7 +78,7 @@ logic [(pipeInSize/4)-1:0][31:0] pipeInFlat;
 assign {<<8{pipeIn}} = pipeInFlat;
 
 // functions for creating downstream words
-const logic[NPC-1:0] ds_nop = {NOPcode, 24'd0};
+const logic[NPC-1:0] ds_nop = nop_word;
 
 // index into PipeIn
 int i = 0;
