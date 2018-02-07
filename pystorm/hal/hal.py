@@ -201,12 +201,7 @@ class HAL(object):
                 to_append = f - 2**27
             else:
                 to_append = f
-
-            if abs(to_append) < 100:
-                counts.append(to_append)
-            else:
-                print("discarding absurdly large spike filter value, probably a glitch")
-                counts.append(0)
+            counts.append(to_append)
 
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
