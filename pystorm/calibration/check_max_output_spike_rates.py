@@ -137,7 +137,7 @@ def plot_rates(rates, weights, offsets):
         invalid_idxs = np.nonzero(~valid_idxs[:, idx])[0]
         if invalid_idxs.shape[0] > 0:
             max_idxs[idx] = invalid_idxs[0]
-            valid_idxs[invalid_idxs[0]:] = False
+            valid_idxs[invalid_idxs[0]:, idx] = False
 
     max_rate = np.max(rates[valid_idxs])
     max_effective_rate = np.max(effective_rates[valid_idxs])
