@@ -180,7 +180,7 @@ enum class FPGAOutputEP {
   UPSTREAM_HB_LSB = 15,  // Upstream report of FPGA clock
   UPSTREAM_HB_MSB = 16,  // Upstream report of FPGA clock
   NOP             = 64,  // NOP, inserted to pad output pipe
-  DS_QUEUE_CT     = 128, // first word of each block
+  DS_QUEUE_CT     = 65,  // first word of each block sent upstream
   COUNT           = 4    // XXX hardcoded, be careful
 };
 

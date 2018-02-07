@@ -17,9 +17,10 @@
 `resetall
 
 module OKIfc #(
-  parameter NPCcode = 8,
-  parameter logic [NPCcode-1:0] NOPcode = 64, // upstream nop code
-  parameter logic [NPCcode-1:0] DSQueueCode = 128) // upstream nop code
+  parameter NPCroute = 5, 
+  parameter NPCcode = 7,
+  parameter NPCdata = 20,
+  parameter logic [NPCroute-1:0] GO_HOME_rt = 31)
 (
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,
@@ -31,6 +32,9 @@ module OKIfc #(
   input wire          user_reset,
   Channel             PC_downstream,
   Channel             PC_upstream);
+
+localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
+localparam logic [NPCcode-1:0] DSQueueCode = 65; // upstream nop code
 
 ////////////////////////////////////////
 // OK stuff
@@ -102,8 +106,7 @@ okBTPipeOut OK_pipe_out(
 ////////////////////////////////
 // channels to the rest of the design
 
-localparam NPCdata = 24;
-localparam NPCinout = NPCcode + NPCdata;
+localparam NPCinout = NPCdata + NPCroute + NPCcode;
 localparam Nfifo_in = 14; // 16K-word FIFO
 localparam Nfifo_out = 14; // 16K-word FIFO
 localparam Nblock = 7; // 128-word block size for BTPipe
@@ -208,15 +211,21 @@ always_ff @(posedge okClk, posedge user_reset)
   else
     pipe_out_data <= next_pipe_out_data;
 
+logic [NPCinout-1:0] nop_word;
+logic [NPCinout-1:0] DS_queue_count_word;
+
+assign nop_word = {GO_HOME_rt, NOPcode, {NPCdata{1'b0}}};
+assign DS_queue_count_word = {GO_HOME_rt, DSQueueCode, {(NPCdata-Nfifo_in){1'b0}}, FIFO_in_count}; // downstream fifo queue occupancy
+
 // FIFO -> pipe
 always_comb
   if (pipe_out_read == 1) // pipe needs data next cycle
     if (state == SEND_DS_QUEUE_STATE) begin
-      next_pipe_out_data = {DSQueueCode, {(NPCdata-Nfifo_in){1'b0}}, FIFO_in_count}; // downstream fifo queue occupancy
+      next_pipe_out_data = DS_queue_count_word;
       FIFO_out_rd_ack = 0;
     end
     else if (state == SEND_NOPS) begin // make an entire block of NOPS
-      next_pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
+      next_pipe_out_data = nop_word;
       FIFO_out_rd_ack = 0;
     end
     else begin // state == SEND_DATA
@@ -225,7 +234,7 @@ always_comb
         FIFO_out_rd_ack = 1;
       end
       else begin // otherwise, pad nops
-        next_pipe_out_data = {NOPcode, {NPCdata{1'b0}}};
+      next_pipe_out_data = nop_word;
         FIFO_out_rd_ack = 0;
       end
     end

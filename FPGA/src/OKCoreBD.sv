@@ -51,13 +51,11 @@ localparam NOKinout = NPCcode + NPCdata + NPCroute;
 localparam NPCin = NPCcode + NPCdata; // discard route
 localparam NPCout = NPCcode + NPCdata + NPCroute;
 
-localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
-
 localparam NBDin = 21;
 localparam NBDout = 34;
 
 //GO_HOME route
-localparam logic[NPCroute-1:0] GO_HOME_rt = 32;
+localparam logic [NPCroute-1:0] GO_HOME_rt = 31;
 
 // internal clocks
 wire okClk; // OKHost has a PLL inside it, generates 100MHz clock for the rest of the design
@@ -111,8 +109,10 @@ assign led_in[3] = PC_upstream.v;
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
-  NPCcode, 
-  NOPcode) 
+  NPCroute,
+  NPCcode,
+  NPCdata,
+  GO_HOME_rt)
 ok_ifc(
 	.okUH(okUH),
 	.okHU(okHU),

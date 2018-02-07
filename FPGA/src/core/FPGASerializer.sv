@@ -26,11 +26,14 @@ localparam logic [NPCcode-1:0] SF_code = 14;
 localparam logic [NPCcode-1:0] HB_lsb_code = 15;
 localparam logic [NPCcode-1:0] HB_msb_code = 16;
 
+// quartus doesn't like this
+`ifdef SIMULATION
 // the packing and serialization of time is hardcoded 
 if (NPCdata != 20)
   $error("illegal value for NPCdata != 20");
 if (Ntime_full != 48)
   $error("illegal value for Ntime_full != 48");
+`endif
 
 localparam Ntime = NPCdata * 2;
 

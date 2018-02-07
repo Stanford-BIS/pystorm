@@ -13,11 +13,14 @@ module GlobalTagParser #(
   SerializedPCWordChannelwithRoute ser_out, //channel that contains PC words & a route
   input clk, reset);
 
+// quartus doesn't like this
+`ifdef SIMULATION
 // break in simulation if these conditions aren't met
 if (NPCdata != 20)
   $error("illegal value for NPCdata != 20");
 if (NPCcode != 7)
   $error("illegal value for NPCcode != 7");
+`endif
 
 //output code is the same as RI, main tag input
 //a bit hacky but it works
