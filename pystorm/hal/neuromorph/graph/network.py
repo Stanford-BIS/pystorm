@@ -61,7 +61,11 @@ class Network(object):
         xy: tuple: (int, int)
             user-specified x, y shape. x * y must match encoder shape
         """
-        n_neurons, dimensions = encoders.shape
+        if isinstance(encoders, tuple):
+            n_neurons, tap_list = encoders
+            dimensions = len(tap_list)
+        else:
+            n_neurons, dimensions = encoders.shape
 
         # if xy
         if xy is None:
