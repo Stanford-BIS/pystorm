@@ -22,7 +22,7 @@ namespace bdmodel {
 std::vector<uint32_t> FPGAInput(std::vector<EncOutput> inputs, const bdpars::BDPars* pars);
 
 /// Does inverse of SendToEP's serialization (looks like RecvFromEP)
-std::vector<BDWord> DeserializeEP(const std::vector<uint32_t>& inputs, unsigned int D);
+std::vector<BDWord> DeserializeEP(uint8_t code, const std::vector<uint32_t>& inputs, unsigned int D);
 
 ////////////////////////////////////////
 // downstream functions

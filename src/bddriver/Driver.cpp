@@ -31,6 +31,8 @@
 #include "decoder/Decoder.h"
 #include "encoder/Encoder.h"
 
+//#include <bitset>
+
 using std::cout;
 using std::endl;
 
@@ -351,7 +353,7 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::PAT  , GetDefaultPATEntries()  , 0);
     SetMem(i , bdpars::BDMemId::TAT0 , GetDefaultTAT0Entries() , 0);
     SetMem(i , bdpars::BDMemId::TAT1 , GetDefaultTAT1Entries() , 0);
-    SetMem(i , bdpars::BDMemId::MM   , GetDefaultMMEntries()   , 0);
+    //SetMem(i , bdpars::BDMemId::MM   , GetDefaultMMEntries()   , 0);
     SetMem(i , bdpars::BDMemId::AM   , GetDefaultAMEntries()   , 0);
 
     // Initialize neurons
@@ -1119,6 +1121,9 @@ std::vector<BDWord> Driver::PackAMMMWord(const std::vector<BDWord>& payload_data
     BDWord word = PackWord<AMorMMEncapsulation>(
           {{AMorMMEncapsulation::PAYLOAD, payload_data[i]}, {AMorMMEncapsulation::AMMM_STOP, stop_bit}});
     retval.push_back(word);
+
+    //std::bitset<60> b(word);
+    //cout << "driver " << b << endl;
   }
   return retval;
 }
@@ -1323,8 +1328,13 @@ void Driver::SendToEP(unsigned int core_id,
         payloads[0] = GetField(it, THREEFPGAPAYLOADS::W0);
         payloads[1] = GetField(it, THREEFPGAPAYLOADS::W1);
         payloads[2] = GetField(it, THREEFPGAPAYLOADS::W2);
+
+        //std::bitset<20> b0(payloads[0]);
+        //std::bitset<20> b1(payloads[1]);
+        //std::bitset<20> b2(payloads[2]);
+        //cout << "serial " << b2 << b1 << b0 << endl;
       } else {
-        assert(false && "not implemented: no BD EP word has FPGA serialization != 1, 2 or 3");
+        assert(false && "not implemented: no BD EP word has FPGA serialization != 1x, 2x or 3x");
       }
     } else { // FPGA channel or register (all regs should be 1x, only channel is 4x)
       if (D == 1) {

@@ -119,9 +119,9 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
 
       // pack into 32 bits
       // FPGA word format:
-      //  MSB          LSB
-      //    8b      24b
-      // [ code | payload ]
+      //  MSB                  LSB
+      //    5b      7b      20b
+      // [ route | code | payload ]
       uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}, {FPGAIO::ROUTE, route}});
 
       // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 

@@ -51,7 +51,7 @@ void BDModel::ParseInput(const std::vector<uint8_t>& input_stream) {
         ep_data_size / FPGA_payload_width
       : ep_data_size / FPGA_payload_width + 1;
 
-    des_ep_words.insert({ep, DeserializeEP(it.second, D)});
+    des_ep_words.insert({ep, DeserializeEP(ep, it.second, D)});
   }
 
   // process each endpoint like FPGA/BD
@@ -275,9 +275,11 @@ void BDModel::ProcessBDHorn(bdpars::BDHornEP ep, uint64_t input) {
   using namespace bdpars;
 
   if (bd_pars_->BDHornEPIsReg(ep)) {
+    //cout << "got BD reg" << endl;
     ProcessBDReg(ep, input);
 
   } else if (bd_pars_->BDHornEPIsInputStream(ep)) {
+    //cout << "got BD input" << endl;
     ProcessBDInputStream(ep, input);
 
   } else if (bd_pars_->BDHornEPIsMem(ep)) {
@@ -287,8 +289,10 @@ void BDModel::ProcessBDHorn(bdpars::BDHornEP ep, uint64_t input) {
       {
         BDWord word(input);
         if (GetField<AMEncapsulation>(word, AMEncapsulation::FIXED_0) == 0) {
+          //cout << "got BD AM" << endl;
           ProcessAM(GetField<AMEncapsulation>(word, AMEncapsulation::PAYLOAD));
         } else if (GetField<MMEncapsulation>(word, MMEncapsulation::FIXED_1) == 1) {
+          //cout << "got BD MM" << endl;
           ProcessMM(GetField<MMEncapsulation>(word, MMEncapsulation::PAYLOAD));
         } else {
           assert(false);
@@ -296,14 +300,17 @@ void BDModel::ProcessBDHorn(bdpars::BDHornEP ep, uint64_t input) {
         break;
       }
       case BDHornEP::PROG_PAT: {
+        //cout << "got BD PAT" << endl;
         ProcessPAT(input);
         break;
       }
       case BDHornEP::PROG_TAT0: {
+        //cout << "got BD TAT0" << endl;
         ProcessTAT(0, input);
         break;
       }
       case BDHornEP::PROG_TAT1: {
+        //cout << "got BD TAT1" << endl;
         ProcessTAT(1, input);
         break;
       }
