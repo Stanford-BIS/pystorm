@@ -21,13 +21,16 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
+from utils import load_data
+
 np.set_printoptions(precision=2)
 
 CORE = 0
 NRN_N = 4096
 # SYN_N = 16
 # SYN_N = 64
-SYN_N = 1024
+# SYN_N = 1024
+SYN_N = 1
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2

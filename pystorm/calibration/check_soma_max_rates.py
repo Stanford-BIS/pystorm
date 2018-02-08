@@ -20,6 +20,8 @@ from pystorm.hal.hal import parse_hal_spikes
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
+from utils import load_data
+
 CORE = 0
 MAX_NEURONS = 4096
 BIAS_REF = 1024
@@ -146,11 +148,7 @@ def check_soma_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        try:
-            max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
-        except FileNotFoundError:
-            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
-            sys.exit(1)
+        max_rates = load_data(DATA_DIR + "max_rates.txt")
     else:
         pool = build_net()
         set_analog()

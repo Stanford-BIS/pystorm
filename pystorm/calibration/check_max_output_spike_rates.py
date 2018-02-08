@@ -21,6 +21,8 @@ from pystorm.hal.hal import parse_hal_binned_tags
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
+from utils import load_data
+
 CORE = 0
 DIM = 1
 N_NRN = 4096
@@ -188,18 +190,6 @@ def plot_rates(rates, weights, offsets):
     handles, labels = axs[0].get_legend_handles_labels()
     axs[0].legend(handles[::-1], labels[::-1], title="log2(decoders)")
     fig_rates.savefig(DATA_DIR + "rates.pdf")
-
-def load_data(fname, dtype=None):
-    """Load data from fname"""
-    try:
-        if dtype:
-            data = np.loadtxt(fname, dtype=dtype)
-        else:
-            data = np.loadtxt(fname)
-    except FileNotFoundError:
-        print("\nError: Could not find saved data {}\n".format(fname))
-        sys.exit(1)
-    return data
 
 def print_data(rates, weights, offsets, counts, time_periods):
     """Print out the results"""

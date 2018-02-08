@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
+from utils import load_data
+
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
 RUN_TIME = 5. # time to sample
@@ -124,13 +126,9 @@ def check_input_rates(parsed_args):
     """Perform the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        try:
-            data = np.loadtxt(DATA_DIR + "rates.txt")
-            rates = data[:, 0]
-            measured_rates = data[:, 1]
-        except FileNotFoundError:
-            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "rates.txt"))
-            sys.exit(1)
+        data = load_data(DATA_DIR + "rates.txt")
+        rates = data[:, 0]
+        measured_rates = data[:, 1]
     else:
         HAL.disable_spike_recording(flush=True)
         HAL.set_time_resolution(upstream_ns=100000)
