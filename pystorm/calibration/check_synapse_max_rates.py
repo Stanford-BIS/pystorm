@@ -168,6 +168,9 @@ def fit_max_rates(rates, overflows):
     for syn_idx in range(SYN_N):
         syn_overflows = np.array(overflows[syn_idx])
         syn_rates = np.array(rates[syn_idx])
+        nonzero_idx = syn_overflows>0
+        syn_overflows = syn_overflows[nonzero_idx]
+        syn_rates = syn_rates[nonzero_idx]
         dodrs = np.diff(syn_overflows) / np.diff(syn_rates)
         print("\nFitting synapse {}".format(syn_idx))
         dodr_clusters = {} # {slope: [indices], ...}
@@ -208,23 +211,6 @@ def report_time_remaining(start_time, syn_idx):
 def plot_data(rates, overflows, max_rates, overflow_slopes):
     """Plot the data"""
     syn_n = len(max_rates)
-    fig, axis = plt.subplots(nrows=1, ncols=1)
-    for syn_idx in range(syn_n):
-        axis.axhline(0, linewidth=0.5, color='k')
-        axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
-        ylims = axis.get_ylim()
-        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates[syn_idx]),
-                  "r", linewidth=0.7, label="fit")
-        axis.axvline(max_rates[syn_idx], linewidth=0.5, color='k')
-        axis.set_ylim(ylims)
-        axis.set_xlabel("Input Rate (Spks / s)")
-        axis.set_ylabel("FIFO Overflow Count")
-        axis.legend()
-        axis.set_title("Estimated Max Input Rate {:.1f}".format(max_rates[syn_idx]))
-        fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}".format(syn_idx))
-        plt.cla()
-    plt.close()
-
     max_rates_mean = np.mean(max_rates)
     max_rates_median = np.median(max_rates)
     max_rates_min = np.min(max_rates)
@@ -244,29 +230,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     plt.xlim(0, syn_n-1)
     plt.xlabel("Synapse Index")
     plt.ylabel("Max Input Rate / 2 (Hz)")
-
-    if syn_n == NRN_N//4: # all syn_n tested
-        max_rates_2d = max_rates.reshape((int(np.sqrt(syn_n)), -1))
-        fig_2d_heatmap = plt.figure()
-        ims = plt.imshow(max_rates_2d)
-        plt.colorbar(ims)
-        plt.xlabel("Synapse X Coordinate")
-        plt.ylabel("Synapse Y Coordinate")
-        plt.title("Max Input Rate / 2 (Hz)")
-
-        fig_2d_surf = plt.figure()
-        axs = fig_2d_surf.add_subplot(111, projection='3d')
-        xy_idx = np.arange(int(np.sqrt(syn_n)))
-        x_mesh, y_mesh = np.meshgrid(xy_idx, xy_idx)
-        surf = axs.plot_surface(
-            x_mesh, y_mesh, max_rates_2d, linewidth=0, cmap=cm.viridis, antialiased=False)
-        axs.set_xlabel("Synapse X Coordinate")
-        axs.set_ylabel("Synapse Y Coordinate")
-        axs.set_zlabel("Synapse Max Input Rate / 2 (Hz)")
-        fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
-
-        fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
-        fig_2d_surf.savefig(DATA_DIR + "2d_surface.pdf")
+    fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
 
     fig_hist = plt.figure()
     for fpga_rate in fpga_rates:
@@ -279,9 +243,36 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
         max_rates_mean, max_rates_median, max_rates_min, max_rates_max))
     plt.legend()
-
-    fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
     fig_hist.savefig(DATA_DIR + "histogram.pdf")
+
+    if syn_n == NRN_N//4: # all syn_n tested
+        sqrt_n = int(np.ceil(np.sqrt(syn_n)))
+        max_rates_2d = max_rates.reshape((sqrt_n, -1))
+        fig_2d_heatmap = plt.figure()
+        ims = plt.imshow(max_rates_2d)
+        plt.colorbar(ims)
+        plt.xlabel("Synapse X Coordinate")
+        plt.ylabel("Synapse Y Coordinate")
+        plt.title("Max Input Rate / 2 (Hz)")
+        fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
+
+    fig, axis = plt.subplots(nrows=1, ncols=1)
+    for syn_idx in range(syn_n):
+        axis.axhline(0, linewidth=0.5, color='k')
+        axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
+        ylims = axis.get_ylim()
+        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates[syn_idx]),
+                  "r", linewidth=0.7, label="fit")
+        axis.axvline(max_rates[syn_idx], linewidth=0.5, color='k')
+        axis.set_ylim(ylims)
+        axis.set_xlabel("Input Rate (Spks / s)")
+        axis.set_ylabel("FIFO Overflow Count")
+        axis.legend()
+        axis.set_title("Synapse {:04d} Estimated Max Input Rate {:.1f}".format(
+            syn_idx, max_rates[syn_idx]))
+        fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}.png".format(syn_idx))
+        plt.cla()
+    plt.close()
 
 def check_synapse_max_rates(parsed_args):
     """Run the check"""
