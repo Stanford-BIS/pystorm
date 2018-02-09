@@ -299,8 +299,9 @@ def check_synapse_max_rates(parsed_args):
     max_rates, overflow_slopes = fit_max_rates(rates, overflows)
     print("\nMax Input rates:")
     print(max_rates)
-    # print("Min synapse spike consumption times:")
-    # print(1./max_rates)
+    print("Min synapse spike consumption times:")
+    print(1./max_rates)
+    np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
 
     plot_data(rates, overflows, max_rates, overflow_slopes)
     plt.show()
