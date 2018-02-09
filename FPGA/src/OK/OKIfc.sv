@@ -20,7 +20,7 @@ module OKIfc #(
   parameter NPCroute = 5, 
   parameter NPCcode = 7,
   parameter NPCdata = 20,
-  parameter logic [NPCroute-1:0] GO_HOME_rt = 31)
+  parameter logic [NPCroute-1:0] GO_HOME_rt = -32)
 (
 	input  wire [4:0]   okUH,
 	output wire [2:0]   okHU,

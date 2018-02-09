@@ -115,7 +115,7 @@ assign led_in[3] = PC_upstream.v;
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
 OKIfc #(
-  NPCroute,
+  NOKroute,
   NPCcode,
   NPCdata,
   GO_HOME_rt)
