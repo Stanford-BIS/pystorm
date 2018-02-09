@@ -49,24 +49,40 @@ HAL.map(net)
 bddriver = HAL.driver
 
 CORE = 0
-#for addr in range(256):
-#    bddriver.CloseDiffusorAllCuts(CORE, addr)
+for addr in range(256):
+    bddriver.OpenDiffusorAllCuts(CORE, addr)
     
-#for addr in range(4096):
-#    bddriver.SetSomaGain(CORE, addr, bd.bdpars.SomaGainId.ONE_FOURTH)
-#    bddriver.SetSomaOffsetSign(CORE, addr, bd.bdpars.SomaOffsetSignId.NEGATIVE)
-#    bddriver.SetSomaOffsetMultiplier(CORE, addr, bd.bdpars.SomaOffsetMultiplierId.ONE)
+# Disable all soma that are not under a synapse
+xaddr, yaddr = [_x.flatten() for _x in np.meshgrid(np.arange(0, 64), np.arange(0, 64), indexing='xy')]
+for _x, _y in zip(xaddr, yaddr):
+    soma_addr = bddriver.GetSomaAERAddr(_x, _y)
+    syn_row = int(np.floor(_y / 2))
+    # Odd row somas are not under a synapse
+    if (_y % 2) == 1:
+        bddriver.DisableSoma(CORE, soma_addr)
+    # Odd row synapses have odd column somas under
+    if (syn_row % 2) == 0:
+       if (_x % 2)  == 1:
+           bddriver.DisableSoma(CORE, soma_addr)
+    # Even row synapses have even column somas under
+    else:
+        if (_x % 2)  == 0:
+            bddriver.DisableSoma(CORE, soma_addr)
+            
+    bddriver.SetSomaGain(CORE, soma_addr, bd.bdpars.SomaGainId.ONE)
+    bddriver.SetSomaOffsetSign(CORE, soma_addr, bd.bdpars.SomaOffsetSignId.POSITIVE)
+    bddriver.SetSomaOffsetMultiplier(CORE, soma_addr, bd.bdpars.SomaOffsetMultiplierId.ONE)
 
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 128)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_DC      , 496)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_INH     , 128)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PD      , 50)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_G      , 512)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_DIFF_R      , 512)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 10)
-bddriver.SetDACCount(CORE , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 512)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC     , 544)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_LK     , 10)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD     , 50)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PU     , 1024)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_G     , 512)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_R     , 1)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 10)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF   , 512)
 
 HAL.flush()
 
@@ -75,7 +91,7 @@ HAL.start_traffic()
 
 MIN_RATE = 0
 MAX_RATE = 1000
-BALANCE_TOL = 0.05  # 5%
+BALANCE_TOL = 0.01  # 5%
 
 def measure_rate(input_rate):
     # Set spike generator rate
@@ -144,6 +160,11 @@ def search_bias(bias_type):
 dc_val = search_bias(bd.bdpars.BDHornEP.DAC_SYN_DC)
 print("DC Value: %d" % dc_val)
 
+#bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_EXC, 1024)
+#bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC , 1)
+#bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_INH, 1)
+#HAL.flush()
+
 # validation
 print("Validating...")
 FREQ_LIST = np.array([int(_x) for _x in 10**np.linspace(0, 4, 10)], dtype=np.int)
@@ -157,16 +178,16 @@ for _idx, _freq in enumerate(FREQ_LIST):
     print("IN: %d, OUT: %g, ERR: %g" % (_freq, _res, _err))
     
 if np.amax(np.abs(res_error)) <= BALANCE_TOL:
-    print("INFO: Validation successful. Max Error %g perc." % np.amax(np.abs(res_error)))
+    print("INFO: [DC = %d], Validation successful. Max Error %g perc." % (dc_val, 100 * np.amax(np.abs(res_error))))
 else:
-    print("INFO: Validation failed. Max Error %g perc." % np.amax(np.abs(res_error)))
+    print("INFO: Validation failed. Max Error %g perc." % (100 * np.amax(np.abs(res_error))))
     
 plt.subplot(211)
 plt.semilogx(FREQ_LIST, results)
 plt.ylabel("Output Frequency (Hz)")
 
 plt.subplot(212)
-plt.semilogx(FREQ_LIST, 100 * (results - results[0]) / results[0])
+plt.semilogx(FREQ_LIST, 100 * res_error)
 plt.ylabel("100 * (f(in) - f(0)) / f(0)")
 plt.xlabel("Input Frequency (Hz)")
 
