@@ -358,7 +358,7 @@ void Driver::InitBD() {
     SetMem(i , bdpars::BDMemId::PAT  , GetDefaultPATEntries()  , 0);
     SetMem(i , bdpars::BDMemId::TAT0 , GetDefaultTAT0Entries() , 0);
     SetMem(i , bdpars::BDMemId::TAT1 , GetDefaultTAT1Entries() , 0);
-    //SetMem(i , bdpars::BDMemId::MM   , GetDefaultMMEntries()   , 0);
+    SetMem(i , bdpars::BDMemId::MM   , GetDefaultMMEntries()   , 0);
     SetMem(i , bdpars::BDMemId::AM   , GetDefaultAMEntries()   , 0);
 
     // Initialize neurons

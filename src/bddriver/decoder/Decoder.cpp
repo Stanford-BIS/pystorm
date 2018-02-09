@@ -60,11 +60,14 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
   DecInput * raw_data = input->data();
 
   unsigned int words_processed = 0;
+  unsigned int last_code = 0;
+  uint32_t code_count = 0;
   for (unsigned int block_idx = 0; block_idx < num_blocks; block_idx++) {
     unsigned int start = block_idx * driverpars::READ_BLOCK_SIZE;
     unsigned int end   = (block_idx + 1) * driverpars::READ_BLOCK_SIZE;
 
     had_nop = false; 
+
 
     for (unsigned int word_idx = start; word_idx < end; word_idx += BYTES_PER_WORD) { // iterating by 4!!
 
@@ -86,9 +89,14 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
       if(!bd_pars_->UpEPCodeIsBDFunnelEP(ep_code) && !bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code)){
-        cout<<(int)ep_code<<endl;
-        assert(false);
+        cout<<"WARNING: WEIRD CODE: "<<(int)ep_code<<endl;
+      }else{
+      if(ep_code != last_code){
+        if(code_count!=0 && (int)last_code != 64 && (int)last_code != 65 && (int)last_code != 15 && (int)last_code != 16){cout<<"Got code "<<(int)last_code<<" "<<(int)code_count<<" times"<<endl;}
+        last_code = ep_code;
+        code_count = 1;
       }
+      else{ code_count++; }
 
       // if it's a heartbeat, set last_HB_recvd
       // we send the HBs to the driver too, so it knows the time
@@ -143,7 +151,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
         words_processed++;
       }
-    }
+    }}
   }
 
   //cout << "decoder processed " << words_processed * 4 << " bytes" << endl;
