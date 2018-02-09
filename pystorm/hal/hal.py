@@ -232,17 +232,20 @@ class HAL(object):
     def set_input_rate(self, inp, dim, rate, time=0, flush=True):
         """Controls a single tag stream generator's rate (on the FPGA)
 
-        on startup, all rates are 0
+        On startup, all rates are 0.
+        Every FPGA time unit, the FPGA loops through the spike generators
+        and decides whether or not to emit a tag for each one.
+        The SGs can be reprogrammed to change their individual rates and targets
 
         inp: Input object
-        dim : ints
-            dimensions within each Input object to send to
-        rate: ints
-            desired tag rate for each Input/dimension in Hz
+        dim : int
+            dimension within the Input object to target
+        rate: int
+            desired tag rate for the Input/dimension in Hz
         time: int (default=0)
             time to send inputs, in microseconds. 0 means immediately
         flush: bool (default true)
-            whether or not to flush the inputs through the driver immediately.
+            whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
 
@@ -251,11 +254,8 @@ class HAL(object):
         If you're queing up rates, make sure you call this in the order of the times
         """
         if flush is False:
-            assert(False and "there's currently a Driver bug with set_input_rate flush=False")
+            assert False, "There's currently a Driver bug with set_input_rate flush=False"
 
-        # every FPGA time unit, the FPGA loops through the spike generators and decides whether or
-        # not to emit a tag for each one. The SGs can be reprogrammed to change their individual rates
-        # and to target different tags
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
         out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
 
@@ -278,20 +278,22 @@ class HAL(object):
         time: int (default=0)
             time to send inputs, in microseconds. 0 means immediately
         flush: bool (default true)
-            whether or not to flush the inputs through the driver immediately.
+            whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
 
-        WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
+        WARNING: If <flush> is True, calling this will block traffic until the max <time>
         provided has passed!
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        #gen_idxs = [self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
-        #out_tags = [self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
-        #self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+        # gen_idxs = [
+        #     self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
+        # out_tags = [
+        #     self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
+        # self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
-        # XXX see comment on set_input_rate(). For now this doesn't work as intended
+        # XXX see comment in set_input_rate(). For now this doesn't work as intended
         # this should work (with some negligible additional latency)
         for inp, dim, rate in zip(inputs, dims, rates):
             self.set_input_rate(inp, dim, rate, time, flush)
