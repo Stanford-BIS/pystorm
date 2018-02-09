@@ -7,7 +7,6 @@ Iterate through the somas, and collect spikes
 Plot results
 """
 import os
-import sys
 from time import sleep
 import argparse
 import numpy as np
@@ -20,7 +19,7 @@ from pystorm.hal.hal import parse_hal_spikes
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_data
+from utils import load_txt_data
 
 CORE = 0
 MAX_NEURONS = 4096
@@ -148,7 +147,7 @@ def check_soma_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        max_rates = load_data(DATA_DIR + "max_rates.txt")
+        max_rates = load_txt_data(DATA_DIR + "max_rates.txt")
     else:
         pool = build_net()
         set_analog()

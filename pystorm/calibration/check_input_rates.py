@@ -6,7 +6,6 @@ spike generator -> accumulator (weight 1) -> fpga -> pc
 Vary the input spike rates and measure the output spike rates
 """
 import os
-import sys
 import time
 import argparse
 import numpy as np
@@ -15,7 +14,7 @@ import matplotlib.pyplot as plt
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
-from utils import load_data
+from utils import load_txt_data
 
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
@@ -126,7 +125,7 @@ def check_input_rates(parsed_args):
     """Perform the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        data = load_data(DATA_DIR + "rates.txt")
+        data = load_txt_data(DATA_DIR + "rates.txt")
         rates = data[:, 0]
         measured_rates = data[:, 1]
     else:

@@ -10,7 +10,6 @@ Show observed output spike rate
 Show effective output spike rate = observed / weighting
 """
 import os
-import sys
 from time import sleep
 import argparse
 import numpy as np
@@ -21,7 +20,7 @@ from pystorm.hal.hal import parse_hal_binned_tags
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_data
+from utils import load_txt_data
 
 CORE = 0
 DIM = 1
@@ -207,9 +206,9 @@ def check_max_output_spike_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        rates = load_data(DATA_DIR + "rates.txt")
-        weights = load_data(DATA_DIR + "weights.txt")
-        offsets = load_data(DATA_DIR + "offsets.txt", dtype=int)
+        rates = load_txt_data(DATA_DIR + "rates.txt")
+        weights = load_txt_data(DATA_DIR + "weights.txt")
+        offsets = load_txt_data(DATA_DIR + "offsets.txt", dtype=int)
     else:
         weights = WEIGHTS
         offsets = BIAS_OFFSETS

@@ -8,7 +8,6 @@ For each rate: check if the FIFO buffer overflows, which indicates that spikes a
 faster than the synapse can be consumed
 """
 import os
-import sys
 from time import sleep
 from time import time as get_time
 import argparse
@@ -21,7 +20,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_data
+from utils import load_npy_data
 
 np.set_printoptions(precision=2)
 
@@ -29,8 +28,7 @@ CORE = 0
 NRN_N = 4096
 # SYN_N = 16
 # SYN_N = 64
-# SYN_N = 1024
-SYN_N = 1
+SYN_N = 1024
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
@@ -44,9 +42,10 @@ TAT_STOP_BIT = 1
 TAT_SIGN_0 = 0
 TAT_SIGN_1 = 1
 
+FIFO_BUFFER_SIZE = 512
+
 SYN_PD_PU = 1024 # analog bias setting
 
-INIT_RATE = 9091 # initial rate to test
 MIN_RATE = 1000 # minimum rate to test
 MAX_RATE = 1000000 # maximum rate to test
 
@@ -63,12 +62,15 @@ def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     return fpga_rates
 
 SPIKE_GEN_RATES = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
-INIT_RATE_IDX = np.argmin(np.abs(SPIKE_GEN_RATES-INIT_RATE))
-N_RATES = len(SPIKE_GEN_RATES)
+
+DIFF_TOL = 0.05 # tolerance between overflow differences
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
+DETAIL_DATA_DIR = DATA_DIR + "fits/"
 if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
+if not os.path.isdir(DETAIL_DATA_DIR):
+    os.makedirs(DETAIL_DATA_DIR, exist_ok=True)
 
 def parse_args():
     """Parse command line arguments"""
@@ -115,108 +117,113 @@ def set_tat(syn_idx):
     HAL.driver.SetMem(CORE, bd.bdpars.BDMemId.TAT0, [tat_entry], TAT_START_ADDR)
     HAL.flush()
 
-def toggle_spk_generator(rate_idx, sleep_time=RUN_TIME, inter_sleep_time=INTER_RUN_TIME):
+def clear_overflow(inter_overflow_sample_time):
+    """Clear any remaining overflow counts"""
+    overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
+    while overflow:
+        sleep(inter_overflow_sample_time)
+        overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
+
+def toggle_spk_generator(rate, run_sleep_time=RUN_TIME, inter_run_sleep_time=INTER_RUN_TIME):
     """Toggle the spike generator and check for overflow"""
-    while True:
-        overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE) # clear any remaining overflow
-        sleep(inter_sleep_time)
-        if not overflow:
-            break
-    rate = SPIKE_GEN_RATES[rate_idx]
+    clear_overflow(inter_run_sleep_time)
     HAL.driver.SetSpikeGeneratorRates(
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [rate], time=0, flush=True)
-    sleep(sleep_time)
+    sleep(run_sleep_time)
     HAL.driver.SetSpikeGeneratorRates(
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [0], time=0, flush=True)
-    sleep(inter_sleep_time)
+    sleep(inter_run_sleep_time)
     overflow_0, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    print("Toggled {}, overflow_count:{}".format(rate_idx, overflow_0))
+    print("\tRate {:.1f}, overflow_count:{}".format(rate, overflow_0))
     return overflow_0
 
-def find_syn_max_rate_bounds():
-    """Find the minimum and maximum bounds of the max rate"""
-    print("\nFinding bounds=============")
-    idx = INIT_RATE_IDX
-    upper_idx = None
-    lower_idx = None
-    d_idx = 1
+def test_rates(syn_idx):
+    """Deliver spikes to a synapse to find its spike consumption rate"""
+    set_tat(syn_idx)
+    overflows = []
+    rates = []
+    for rate in SPIKE_GEN_RATES[::-1]:
+        rates.append(rate)
+        overflows.append(toggle_spk_generator(rate))
+        if overflows[-1] > 0:
+            overflows[-1] += FIFO_BUFFER_SIZE
+        if len(overflows) >= 2 and np.all(np.array(overflows[-2:]) == 0):
+            break
+    rates = rates[::-1]
+    overflows = overflows[::-1]
+    return rates, overflows
 
-    overflow = toggle_spk_generator(idx)
-    if overflow:
-        upper_idx = idx
-    else:
-        lower_idx = idx
-    print("Initial bounds {}, {}".format(lower_idx, upper_idx))
-    while not lower_idx:
-        prev_idx = idx
-        idx -= d_idx
-        if idx < 0:
-            if prev_idx > 0:
-                idx = 0
-            else:
-                break
-        overflow = toggle_spk_generator(idx)
-        if overflow:
-            upper_idx = idx
-            d_idx *= 2
-        else:
-            lower_idx = idx
+def fit_max_rates(rates, overflows):
+    """Infer the max synapse input rate from the overflow data
 
-    while not upper_idx:
-        prev_idx = idx
-        idx += d_idx
-        if idx >= N_RATES:
-            if prev_idx < N_RATES-1:
-                idx = N_RATES-1
-            else:
-                break
-        overflow = toggle_spk_generator(idx)
-        if overflow:
-            upper_idx = idx
-        else:
-            lower_idx = idx
-            d_idx *= 2
-    print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
+    Parameters
+    ----------
+    rates: list of list of floats
+        list of list of rates tested for each synapse
+    overflows: list of list of ints
+        list of list of rates tested for each synapse
+    """
+    max_rates = np.zeros(SYN_N)
+    overflow_slopes = np.zeros(SYN_N)
+    for syn_idx in range(SYN_N):
+        syn_overflows = np.array(overflows[syn_idx])
+        syn_rates = np.array(rates[syn_idx])
+        dodrs = np.diff(syn_overflows) / np.diff(syn_rates)
+        print("\nFitting synapse {}".format(syn_idx))
+        dodr_clusters = {} # {slope: [indices], ...}
+        for dodr_idx, dodr in enumerate(dodrs):
+            if dodr > 0:
+                if not dodr_clusters:
+                    dodr_clusters[dodr] = [dodr_idx]
+                else:
+                    np_dodr_clusters = np.array(list(dodr_clusters.keys()))
+                    relative_diffs = np.abs(dodr-np_dodr_clusters)/np_dodr_clusters
+                    if np.all(relative_diffs > DIFF_TOL):
+                        dodr_clusters[dodr] = [dodr_idx]
+                    else:
+                        key = list(dodr_clusters.keys())[np.argmin(relative_diffs)]
+                        dodr_clusters[key].append(dodr_idx)
+        do_idxs = dodr_clusters[np.max(list(dodr_clusters.keys()))]
+        o_idxs = [do_idxs[0]] + list(np.array(do_idxs)+1)
+        print("d_overflows/d_rates {}".format(dodrs))
+        print("d_overflow/d_rate clusters:\n{}".format(dodr_clusters.keys()))
+        print("overflow rates for fitting: {}".format(syn_rates[o_idxs]))
+        print("overflows for fitting:      {}".format(syn_overflows[o_idxs]))
+        y = syn_overflows[o_idxs]
+        A = np.array([syn_rates[o_idxs], np.ones(len(o_idxs))]).T
+        x = np.dot(np.dot(np.linalg.inv(np.dot(A.T, A)), A.T), y) # x = (A_T*A)^-1*A_T*y
+        overflow_slopes[syn_idx] = x[0]
+        max_rates[syn_idx] = -x[1]/x[0]
+    return max_rates, overflow_slopes
 
-    return lower_idx, upper_idx
+def report_time_remaining(start_time, syn_idx):
+    """Occasionally estimate and report the remaining time"""
+    if syn_idx%4 == 0 and SYN_N > 1:
+        n_syn_completed = syn_idx+1
+        delta_time = get_time()-start_time
+        est_time_remaining = delta_time/(syn_idx+1) * (SYN_N-n_syn_completed)
+        print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
+            est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def check_rate(idx):
-    """Check that the upper and lower bounds are correct"""
-    sleep(2*INTER_RUN_TIME)
-    overflow = toggle_spk_generator(idx, RUN_TIME*2, INTER_RUN_TIME*5)
-    return overflow == 0
-
-def check_syn_max_rate():
-    """Deliver spikes to a pair of synapses to find the minimum of their maximum input rates"""
-    lower_idx, upper_idx = find_syn_max_rate_bounds()
-
-    if not lower_idx:
-        return -1, True
-    elif not upper_idx:
-        return N_RATES-1, True
-
-    print("\nRefining bounds...=============")
-    while upper_idx-lower_idx > 1:
-        idx = int(np.round((upper_idx+lower_idx)/2.))
-        overflow = toggle_spk_generator(idx)
-        if overflow:
-            upper_idx = idx
-        else:
-            lower_idx = idx
-
-    print("\nDouble checking bounds...=============")
-    # check again
-    checked = False
-    while not checked:
-        checked = check_rate(lower_idx)
-        if not checked:
-            lower_idx -= 1
-    print("Found bounds {}, {} =============".format(lower_idx, upper_idx))
-    return lower_idx, upper_idx
-
-def plot_max_rates(max_rates):
+def plot_data(rates, overflows, max_rates, overflow_slopes):
     """Plot the data"""
-    synapses = len(max_rates)
+    syn_n = len(max_rates)
+    fig, axis = plt.subplots(nrows=1, ncols=1)
+    for syn_idx in range(syn_n):
+        axis.axhline(0, linewidth=0.5, color='k')
+        axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
+        ylims = axis.get_ylim()
+        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates[syn_idx]),
+                  "r", linewidth=0.7, label="fit")
+        axis.axvline(max_rates[syn_idx], linewidth=0.5, color='k')
+        axis.set_ylim(ylims)
+        axis.set_xlabel("Input Rate (Spks / s)")
+        axis.set_ylabel("FIFO Overflow Count")
+        axis.legend()
+        axis.set_title("Estimated Max Input Rate {:.1f}".format(max_rates[syn_idx]))
+        fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}".format(syn_idx))
+        plt.cla()
+    plt.close()
 
     max_rates_mean = np.mean(max_rates)
     max_rates_median = np.median(max_rates)
@@ -234,12 +241,12 @@ def plot_max_rates(max_rates):
 
     fig_1d = plt.figure()
     plt.plot(max_rates, 'o', markersize=1)
-    plt.xlim(0, synapses-1)
+    plt.xlim(0, syn_n-1)
     plt.xlabel("Synapse Index")
     plt.ylabel("Max Input Rate / 2 (Hz)")
 
-    if synapses == NRN_N//4: # all synapses tested
-        max_rates_2d = max_rates.reshape((int(np.sqrt(synapses)), -1))
+    if syn_n == NRN_N//4: # all syn_n tested
+        max_rates_2d = max_rates.reshape((int(np.sqrt(syn_n)), -1))
         fig_2d_heatmap = plt.figure()
         ims = plt.imshow(max_rates_2d)
         plt.colorbar(ims)
@@ -249,7 +256,7 @@ def plot_max_rates(max_rates):
 
         fig_2d_surf = plt.figure()
         axs = fig_2d_surf.add_subplot(111, projection='3d')
-        xy_idx = np.arange(int(np.sqrt(synapses)))
+        xy_idx = np.arange(int(np.sqrt(syn_n)))
         x_mesh, y_mesh = np.meshgrid(xy_idx, xy_idx)
         surf = axs.plot_surface(
             x_mesh, y_mesh, max_rates_2d, linewidth=0, cmap=cm.viridis, antialiased=False)
@@ -276,54 +283,35 @@ def plot_max_rates(max_rates):
     fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
     fig_hist.savefig(DATA_DIR + "histogram.pdf")
 
-def report_time_remaining(start_time, syn_idx):
-    """Occasionally estimate and report the remaining time"""
-    if syn_idx%4 == 0 and SYN_N > 1:
-        n_syn_completed = syn_idx+1
-        delta_time = get_time()-start_time
-        est_time_remaining = delta_time/(syn_idx+1) * (SYN_N-n_syn_completed)
-        print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
-            est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
-
 def check_synapse_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        try:
-            max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
-        except FileNotFoundError:
-            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
-            sys.exit(1)
+        overflows = load_npy_data(DATA_DIR + "overflows.npy")
+        rates = load_npy_data(DATA_DIR + "rates.npy")
     else:
-        print("Checking maximum synaptic input rates over possible input rates \n" +
-              str(SPIKE_GEN_RATES) +
-              "\nStarting with rate {}".format(SPIKE_GEN_RATES[INIT_RATE_IDX]))
         build_net()
         set_analog()
         set_hal()
-        max_rates = np.zeros(SYN_N)
-        lower_idxs = np.zeros(SYN_N, dtype=int)
-        upper_idxs = np.zeros(SYN_N, dtype=int)
+        rates = [[] for _ in range(SYN_N)]
+        overflows = [[] for _ in range(SYN_N)]
         start_time = get_time()
         for syn_idx in range(SYN_N):
-            set_tat(syn_idx)
-            lower_idx, upper_idx = check_syn_max_rate()
-            lower_idxs[syn_idx] = lower_idx
-            upper_idxs[syn_idx] = upper_idx
-            max_rates[syn_idx] = SPIKE_GEN_RATES[lower_idx]
-            print("syn:{} max_rate:{:.0f}".format(
-                syn_idx, max_rates[syn_idx]))
+            print("Testing synapse {}".format(syn_idx))
+            rates[syn_idx], overflows[syn_idx] = test_rates(syn_idx)
             report_time_remaining(start_time, syn_idx)
-        print("Max Input rates:")
-        print(max_rates)
-        print("Min synapse spike consumption times:")
-        print(1./max_rates)
+        rates = np.array(rates)
+        overflows = np.array(overflows)
+        np.save(DATA_DIR + "overflows.npy", overflows)
+        np.save(DATA_DIR + "rates.npy", rates)
 
-    if not use_saved_data:
-        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
-        np.savetxt(DATA_DIR + "lower_idxs.txt", lower_idxs, fmt="%d")
-        np.savetxt(DATA_DIR + "upper_idxs.txt", upper_idxs, fmt="%d")
-    plot_max_rates(max_rates)
+    max_rates, overflow_slopes = fit_max_rates(rates, overflows)
+    print("\nMax Input rates:")
+    print(max_rates)
+    # print("Min synapse spike consumption times:")
+    # print(1./max_rates)
+
+    plot_data(rates, overflows, max_rates, overflow_slopes)
     plt.show()
 
 if __name__ == "__main__":
