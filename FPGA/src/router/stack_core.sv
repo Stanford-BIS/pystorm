@@ -77,7 +77,7 @@ assign BD_in_valid = ~_BD_in_valid;
 
 localparam NPCcode = 7;
 localparam NPCdata = 20;
-localparam NPCroute= 5;
+localparam NPCroute= 8;
 localparam NPCinout = NPCcode + NPCdata + NPCroute;
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 
