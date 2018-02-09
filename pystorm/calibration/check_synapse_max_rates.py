@@ -229,7 +229,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     plt.plot(max_rates, 'o', markersize=1)
     plt.xlim(0, syn_n-1)
     plt.xlabel("Synapse Index")
-    plt.ylabel("Max Input Rate / 2 (Hz)")
+    plt.ylabel("Max Input Rate / 2 (spks/s)")
     fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
 
     fig_hist = plt.figure()
@@ -238,7 +238,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     plt.hist(max_rates, bins=80)
     plt.axvline(max_rates_mean, color="k", alpha=0.6, linewidth=1, label="mean")
     plt.axvline(max_rates_median, color="r", alpha=0.4, linewidth=1, label="median")
-    plt.xlabel("Max Input Rate / 2 (Hz)")
+    plt.xlabel("Max Input Rate / 2 (spks/s)")
     plt.ylabel("Counts")
     plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
         max_rates_mean, max_rates_median, max_rates_min, max_rates_max))
@@ -253,7 +253,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
         plt.colorbar(ims)
         plt.xlabel("Synapse X Coordinate")
         plt.ylabel("Synapse Y Coordinate")
-        plt.title("Max Input Rate / 2 (Hz)")
+        plt.title("Max Input Rate / 2 (spks/s)")
         fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
 
     fig, axis = plt.subplots(nrows=1, ncols=1)
@@ -265,7 +265,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
                   "r", linewidth=0.7, label="fit")
         axis.axvline(max_rates[syn_idx], linewidth=0.5, color='k')
         axis.set_ylim(ylims)
-        axis.set_xlabel("Input Rate (Spks / s)")
+        axis.set_xlabel("Input Rate / 2 (spks/s)")
         axis.set_ylabel("FIFO Overflow Count")
         axis.legend()
         axis.set_title("Synapse {:04d} Estimated Max Input Rate {:.1f}".format(
