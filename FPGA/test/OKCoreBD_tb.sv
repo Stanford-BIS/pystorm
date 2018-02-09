@@ -174,6 +174,12 @@ initial begin
   SendToRegOrChan(6'd31, 0);
   FlushAndSendPipeIn(); // send the stuff we queued up
 
+  //// set HB resolution lower
+  //SendToRegOrChan(6'd30, 0);
+  //SendToRegOrChan(6'd29, 0);
+  //SendToRegOrChan(6'd28, 16'd2);
+  //SendToRegOrChan(6'd22, 16'd100);
+
   // send AM word
   SendToBD(6'd26, {2{10'b1111100000}});
   SendToBD(6'd26, {2{10'b1111100000}});

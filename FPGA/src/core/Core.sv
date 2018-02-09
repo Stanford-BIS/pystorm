@@ -19,7 +19,7 @@ module Core #(
   // common parameters (in/out names relative to FPGA)
   parameter NPCcode = 7,
   parameter NPCdata = 20,
-  parameter NPCroute = 5,
+  parameter NPCroute = 8, // longer than OKIfc takes, longest route possible from BD
   parameter NPCout = NPCcode + NPCdata + NPCroute,
   parameter NPCin = NPCcode + NPCdata,
 
@@ -34,7 +34,9 @@ module Core #(
 
   // parameters for TimeMgr
   parameter N_TM_time = 48,
-  parameter N_TM_unit = 16) 
+  parameter N_TM_unit = 16,
+
+  parameter logic [NPCroute-1:0] GO_HOME_rt = -32)
 (
   // PC-side
   Channel PC_out,
