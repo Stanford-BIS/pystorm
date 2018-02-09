@@ -139,7 +139,10 @@ int CommOK::ReadFromDevice() {
     //if (DS_queue_count_ > 0) {
     //  cout << "DS_queue_count_ measured as " << DS_queue_count_ << " bytes" << endl;
     //}
-    assert(raw_data[3] == 128);
+    unsigned short code = *(short*)&(raw_data[2]);
+    code = code >> 4;
+    code = code % 128;
+    assert(code == 65);
     
     //cout << "Comm reading words:" << endl;
     //cout << "comm read: " << num_bytes << endl;
