@@ -167,13 +167,15 @@ class Neurons(Resource):
 
     pool_yx_to_aer = None
 
-    def __init__(self, y, x):
+    def __init__(self, y, x, gain_divisors, biases):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
             max_conns_out=1)
         self.y = y
         self.x = x
+        self.gain_divisors = gain_divisors
+        self.biases = biases
         self.N = y * x
 
         # pretranslate_early
@@ -246,13 +248,14 @@ class Neurons(Resource):
                     # first nrn idx in block
                     nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
                     MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
+                    MMAY_prog = MMAY // core.NeuronArray_pool_size # MMAY will be in {0, 64, 128, 192}, we map to {0, 1, 2, 3}
 
                     AMA = buckets.start_addr
 
                     self.PAT_contents[py_idx, px_idx] = bddriver.PackWord([
                         (bddriver.PATWord.AM_ADDRESS, AMA),
                         (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
-                        (bddriver.PATWord.MM_ADDRESS_HI, MMAY)])
+                        (bddriver.PATWord.MM_ADDRESS_HI, MMAY_prog)])
         elif len(self.conns_out) > 1:
             print("ERROR: pool had", len(self.conns_out), "output connections")
             assert(False and "Neurons can have only one output connection")
@@ -267,6 +270,8 @@ class Neurons(Resource):
                     to_assign = self.PAT_contents[py_idx, px_idx]
                     #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
+
+        core.neuron_array.assign(self)
 
 class MMWeights(Resource):
     """Represents weight entries in Main Memory

@@ -179,9 +179,14 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
   SendToEP(0, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
   Flush();
+
+  // call SetTimePerUpHB with using old ns_per_HB_
+  // (the time unit may have just changed, need to update how often we send upstream HB)
+  Driver::SetTimePerUpHB(ns_per_HB_);
 }
 
 void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
+  ns_per_HB_ = ns_per_hb;
   units_per_HB_ = NsToUnits(ns_per_hb);
   cout << "setting HB reporting period to " << ns_per_hb << " ns = " << units_per_HB_ << " FPGA time units" << endl;
 

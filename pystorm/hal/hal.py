@@ -74,12 +74,11 @@ class HAL(object):
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 500)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
-
 
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
         """Controls Driver/FPGA time resolutions
@@ -318,7 +317,6 @@ class HAL(object):
 
         self.implement_core()
 
-
     def map(self, network):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
@@ -370,7 +368,6 @@ class HAL(object):
         #for k in self.spk_to_pool_nrn_idx:
         #    print(k, ":", self.spk_to_pool_nrn_idx[k][1])
 
-
     def dump_core(self):
         print("PAT")
         print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
@@ -404,12 +401,12 @@ class HAL(object):
         self.driver.SetMem(
             CORE_ID, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
 
-        # open diffusor around pools
+        # connect diffusor around pools
 
         for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
-            self.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
+            self.driver.CloseDiffusorAllCuts(CORE_ID, tile_id)
 
-        for pool_allocation in core.neuron_array.pool_allocations:
+        for pool, pool_allocation in core.neuron_array.pool_allocations.items():
             # convert minimum pool units into tile units
             x_min = pool_allocation['px']*2
             x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
@@ -424,37 +421,72 @@ class HAL(object):
             # cut top edge
             for x_idx in range(x_min, x_max+1):
                 tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
-                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
+                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
             # cut left edge
             for y_idx in range(y_min, y_max+1):
                 tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
-                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
+                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
             # cut bottom edge if not at edge of neuron array
             if y_max < core.NeuronArray_height_in_tiles-1:
                 for x_idx in range(x_min, x_max+1):
                     tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
-                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
+                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
             # cut right edge if not at edge of neuron array
             if x_max < core.NeuronArray_width_in_tiles-1:
                 for y_idx in range(y_min, y_max+1):
                     tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
-                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                    self.driver.CloseDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
+                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
 
-            # enable somas inside pool
-            # remember, x_min/x_max are tile units, 16 neurons per tile
-            for nrn_y_idx in range(4*y_min, 4*(y_max+1)):
-                for nrn_x_idx in range(4*x_min, 4*(x_max+1)):
+        # enable somas inside pool
+        # remember, x_min/x_max are tile units, 16 neurons per tile
+        assert(core.NeuronArray_width == core.neuron_array.nrns_used.shape[1])
+        assert(core.NeuronArray_height == core.neuron_array.nrns_used.shape[0])
+        for x in range(core.NeuronArray_width):
+            for y in range(core.NeuronArray_height):
+                if core.neuron_array.nrns_used[y, x] == 1:
                     #print("enabling soma", nrn_y_idx, nrn_x_idx)
-                    self.driver.EnableSomaXY(CORE_ID, nrn_x_idx, nrn_y_idx)
+                    self.driver.EnableSomaXY(CORE_ID, x, y)
 
         # enable used synapses
         for tx, ty in core.neuron_array.syns_used:
             #print("enabling synapse", tx, ty)
             self.driver.EnableSynapseXY(CORE_ID, tx, ty)
+
+        # set gain and bias twiddle bits
+        assert(core.NeuronArray_width == core.neuron_array.gain_divisors.shape[1])
+        assert(core.NeuronArray_height == core.neuron_array.gain_divisors.shape[0])
+        assert(core.NeuronArray_width == core.neuron_array.biases.shape[1])
+        assert(core.NeuronArray_height == core.neuron_array.biases.shape[0])
+
+        gain_ids = [
+                bd.bdpars.SomaGainId.ONE,
+                bd.bdpars.SomaGainId.ONE_HALF,
+                bd.bdpars.SomaGainId.ONE_THIRD,
+                bd.bdpars.SomaGainId.ONE_FOURTH]
+        bias_ids = [
+                bd.bdpars.SomaOffsetMultiplierId.ZERO,
+                bd.bdpars.SomaOffsetMultiplierId.ONE,
+                bd.bdpars.SomaOffsetMultiplierId.TWO,
+                bd.bdpars.SomaOffsetMultiplierId.THREE]
+        bias_signs = [
+                bd.bdpars.SomaOffsetSignId.NEGATIVE,
+                bd.bdpars.SomaOffsetSignId.POSITIVE]
+
+        for x in range(core.NeuronArray_width):
+            for y in range(core.NeuronArray_height):
+                gain_div_val = core.neuron_array.gain_divisors[y, x]
+                gain_id = gain_ids[gain_div_val - 1]
+                self.driver.SetSomaGainXY(CORE_ID, x, y, gain_id)
+
+                bias_val = core.neuron_array.biases[y, x]
+                bias_sign_id = bias_signs[int(bias_val > 0)]
+                bias_id = bias_ids[abs(bias_val)]
+                self.driver.SetSomaOffsetSignXY(CORE_ID, x, y, bias_sign_id)
+                self.driver.SetSomaOffsetMultiplierXY(CORE_ID, x, y, bias_id)
 
         # set spike filter decay constant
         # the following sets the filters to "count mode"
