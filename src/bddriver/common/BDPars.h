@@ -91,7 +91,7 @@ enum class BDHornEP {
 // FPGA Registers 
 // have different sizes
 // hardcoded enum is the start reg address
-// code is 128 + FPGARegEPId
+// code is 64 + FPGARegEPId
 enum class FPGARegEP {
   SF_FILTS_USED,           // highest SpikeFilter idx in use
   SF_INCREMENT_CONSTANT0,  // SpikeFilter increment per tag
@@ -181,7 +181,7 @@ enum class FPGAOutputEP {
   UPSTREAM_HB_MSB = 16,  // Upstream report of FPGA clock
   NOP             = 64,  // NOP, inserted to pad output pipe
   DS_QUEUE_CT     = 65,  // first word of each block sent upstream
-  COUNT           = 4    // XXX hardcoded, be careful
+  COUNT           = 5    // XXX hardcoded, be careful
 };
 
 
@@ -261,7 +261,7 @@ class BDPars {
  public:
 
   // misc constants
-  const unsigned int NumCores               = 3;
+  const unsigned int NumCores               = 1;
   const unsigned int DnEPFPGARegOffset      = 64;
   const unsigned int DnEPFPGANumReg         = 33; // including NOP reg
   const unsigned int DnEPFPGAChannelOffset  = 112;
@@ -326,8 +326,8 @@ class BDPars {
   inline bool DnEPCodeIsFPGAChannelEP(uint8_t ep) const { return ep >= DnEPFPGAChannelOffset; }
 
   // upstream ep code -> ep type
-  inline bool UpEPCodeIsBDFunnelEP(uint8_t ep)   const { return ep < static_cast<uint8_t>(BDFunnelEP::COUNT); }
-  inline bool UpEPCodeIsFPGAOutputEP(uint8_t ep) const { return ep >= static_cast<uint8_t>(BDFunnelEP::COUNT); }
+  inline bool UpEPCodeIsBDFunnelEP(uint8_t ep)   const { return Up_EP_size_.count(ep) > 0 &&  ep < static_cast<uint8_t>(BDFunnelEP::COUNT); }
+  inline bool UpEPCodeIsFPGAOutputEP(uint8_t ep) const { return Up_EP_size_.count(ep) > 0 &&  ep >= static_cast<uint8_t>(BDFunnelEP::COUNT); }
 
   // get used up ep codes
   std::vector<uint8_t> GetUpEPs() const {

@@ -26,7 +26,7 @@
 //////////////////////////////////////////////////////////////
 
 
-module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter NPCroute = 5)(
+module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter NPCroute = 8)(
 	Channel PC_in_channel, //channel from the Core that has data for us
 	input is_full, //full signal for the fifo this places stuff into
 	output reg [10:0] data_out, //data to write to fifo
@@ -35,7 +35,7 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 
 	//current header
 	wire [10:0] current_header;
-	assign current_header = {6'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
+	assign current_header = {1'b0, 2{PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1]}, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
 
 	//store header packet
 	reg [10:0] header_packet = 11'b0;
@@ -63,7 +63,7 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 			data <= 30'b0; //assign data
 		end
 		else if(state == 3'd0 | state == 3'd4) begin
-			header_packet <= {6'b0, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
+			header_packet <= {1'b0, 2{PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1]}, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
 			data <= PC_in_channel.d[NPCdata+NPCcode:0]; //assign data
 		end
 		if (reset==1) begin
@@ -85,12 +85,7 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 
 			3'd1: begin
 					wrreq = !is_full;
-					if (header_packet == {6'b0, 5'b10000}) begin
-						data_out = 11'b01000000000;
-					end
-					else begin
-						data_out = header_packet; //output header packet
-					end
+					data_out = header_packet; //output header packet
 					PC_in_channel.a = 1'b0;
 					end
 

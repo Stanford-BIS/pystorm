@@ -85,6 +85,11 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
       unsigned int ep_code = GetField<FPGAIO>(packed_word, FPGAIO::EP_CODE);
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
+      if(!bd_pars_->UpEPCodeIsBDFunnelEP(ep_code) && !bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code)){
+        cout<<(int)ep_code<<endl;
+        assert(false);
+      }
+
       // if it's a heartbeat, set last_HB_recvd
       // we send the HBs to the driver too, so it knows the time
       if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::UPSTREAM_HB_LSB)) {
