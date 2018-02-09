@@ -5,7 +5,7 @@ from pystorm.PyDriver import bddriver
 from pystorm import hal
 from copy import copy
 
-HOME_ROUTE = 255
+HOME_ROUTE = 64 # that's -32
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
