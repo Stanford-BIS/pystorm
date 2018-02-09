@@ -11,6 +11,7 @@
 #include <utility>
 #include <chrono>
 #include <thread>
+#include <math.h>
 
 #include "comm/Comm.h"
 #include "comm/CommSoft.h"
@@ -1221,7 +1222,7 @@ void Driver::SetSpikeGeneratorRates(
       sign = 1;
     }
 
-    unsigned int period = rate > 0 ? units_per_sec / rate : max_period;
+    unsigned int period = rate > 0 ? round(double(units_per_sec) / double(rate)) : max_period;
     period = period >= max_period ? max_period : period; // possible to get a period longer than the max programmable
     //cout << "programming SG " << gen_idx << " to target tag " << tag << " at rate " << rate << " sign " << sign << endl;
     //cout << "  period : " << period << " time units" << endl;
