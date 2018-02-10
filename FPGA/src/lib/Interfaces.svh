@@ -85,7 +85,7 @@ interface SerializedPCWordChannel #(parameter NPCcode = 7, parameter NPCdata = 2
   logic a;
 endinterface
 
-interface SerializedPCWordChannelwithRoute #(parameter NPCcode = 7, parameter NPCdata = 20, NPCroute = 5);
+interface SerializedPCWordChannelwithRoute #(parameter NPCcode = 7, parameter NPCdata = 20, NPCroute = 8);
   logic [NPCcode-1:0] code;
   logic [NPCdata-1:0] payload;
   logic [NPCroute-1:0] route;

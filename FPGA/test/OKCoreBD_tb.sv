@@ -163,6 +163,9 @@ const logic [63:0] SG_word_slow = {sign_slow, gen_idx_slow, period_slow, ticks, 
 const logic [3:0][15:0] SG_word_fast_pieces = SG_word_fast;
 const logic [3:0][15:0] SG_word_slow_pieces = SG_word_slow;
 
+reg [41:0] data = {42'b101100111000111100001111100000111111000000};
+reg [4:0] packets = 0;
+
 // OK program
 initial begin
   user_reset <= 1;
@@ -181,44 +184,74 @@ initial begin
   //SendToRegOrChan(6'd22, 16'd100);
 
   // send AM word
-  SendToBD(6'd26, {2{10'b1111100000}});
-  SendToBD(6'd26, {2{10'b1111100000}});
-  SendToBD(6'd26, {2{10'b1111100000}});
+  
+  SendToBD(6'd26, data[19:0]);
+  SendToBD(6'd26, data[39:20]);
+  SendToBD(6'd26, {18'b0, data[41:40]});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send PAT word
-  SendToBD(6'd27, {2{10'b1111100000}});
-  SendToBD(6'd27, {2{10'b1111100000}});
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  repeat(4) begin
+    @(negedge BD_out_ready) begin
+      if (packets == 0) begin
+        assert( BD_out_data == {4'b0, data[10:0], 6'b111001} );
+        $display("Expected %b",{4'b0, data[10:0], 6'b111001});
+        $display("Recieved %b",BD_out_data);
+        packets++;
+      end
+      else if (packets == 1) begin
+        assert( BD_out_data == {5'b0, data[20:11], 6'b111001} );
+        $display("Expected %b",{5'b0, data[20:11], 6'b111001});
+        $display("Recieved %b",BD_out_data);
+        packets++;
+      end
+      else if (packets == 2) begin
+        assert( BD_out_data == {4'b0, data[31:21], 6'b111001} );
+        $display("Expected %b",{4'b0, data[31:21], 6'b111001});
+        $display("Recieved %b",BD_out_data);
+        packets++;
+      end
+      else if (packets == 3) begin
+        assert( BD_out_data == {5'b0, data[41:32], 6'b111001} );
+        $display("Expected %b",{5'b0, data[41:32], 6'b111001});
+        $display("Recieved %b",BD_out_data);
+        packets++;
+      end
+    end
+  end
 
-  // send TAT0 word
-  SendToBD(6'd28, {2{10'b1111100000}});
-  SendToBD(6'd28, {2{10'b1111100000}});
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  // // send PAT word
+  // SendToBD(6'd27, {2{10'b1111100000}});
+  // SendToBD(6'd27, {2{10'b1111100000}});
+  // FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // send TAT1 word
-  SendToBD(6'd29, {2{10'b1111100000}});
-  SendToBD(6'd29, {2{10'b1111100000}});
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  // // send TAT0 word
+  // SendToBD(6'd28, {2{10'b1111100000}});
+  // SendToBD(6'd28, {2{10'b1111100000}});
+  // FlushAndSendPipeIn(); // send the stuff we queued up
 
-  // program SG
-  SendToEP(7'd69, {8'd0, 16'd1}); // gens used
-  SendToEP(7'd70, {8'd0, 16'd1}); // enable
-  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[0]});
-  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[1]});
-  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[2]});
-  SendToEP(7'd112, {8'd0, SG_word_fast_pieces[3]});
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  // // send TAT1 word
+  // SendToBD(6'd29, {2{10'b1111100000}});
+  // SendToBD(6'd29, {2{10'b1111100000}});
+  // FlushAndSendPipeIn(); // send the stuff we queued up
 
-  #(4000)
+  // // program SG
+  // SendToEP(7'd69, {8'd0, 16'd1}); // gens used
+  // SendToEP(7'd70, {8'd0, 16'd1}); // enable
+  // SendToEP(7'd112, {8'd0, SG_word_fast_pieces[0]});
+  // SendToEP(7'd112, {8'd0, SG_word_fast_pieces[1]});
+  // SendToEP(7'd112, {8'd0, SG_word_fast_pieces[2]});
+  // SendToEP(7'd112, {8'd0, SG_word_fast_pieces[3]});
+  // FlushAndSendPipeIn(); // send the stuff we queued up
 
-  SendToEP(7'd69, {8'd0, 16'd2}); // gens used
-  SendToEP(7'd70, {8'd0, 16'd3}); // enable
-  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[0]});
-  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[1]});
-  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[2]});
-  SendToEP(7'd112, {8'd0, SG_word_slow_pieces[3]});
-  FlushAndSendPipeIn(); // send the stuff we queued up
+  // #(4000)
+
+  // SendToEP(7'd69, {8'd0, 16'd2}); // gens used
+  // SendToEP(7'd70, {8'd0, 16'd3}); // enable
+  // SendToEP(7'd112, {8'd0, SG_word_slow_pieces[0]});
+  // SendToEP(7'd112, {8'd0, SG_word_slow_pieces[1]});
+  // SendToEP(7'd112, {8'd0, SG_word_slow_pieces[2]});
+  // SendToEP(7'd112, {8'd0, SG_word_slow_pieces[3]});
+  // FlushAndSendPipeIn(); // send the stuff we queued up
   
   //SendToBD(0, 3'b101); // ADC 
   //SendToBD(1, 11'b10101010101); // DAC0
@@ -240,10 +273,10 @@ initial begin
   //SendToAllBD(2*pipeInSize, pipeInSize);
   //FlushAndSendPipeIn();
 
-  forever begin
-    #(1000)
-    ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
-  end
+  // forever begin
+  //   #(1000)
+  //   ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
+  // end
 
 end
 
