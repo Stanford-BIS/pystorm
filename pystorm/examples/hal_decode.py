@@ -14,8 +14,8 @@ np.random.seed(0)
 # pool size parameters
 
 K = 8
-width = 16
-height = 16
+width = 8
+height = 8
 width_height = (width, height)
 N = width * height
 
@@ -30,7 +30,7 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 # training parameters
 
 fmax = 1000
-num_training_points_per_dim = 40
+num_training_points_per_dim = 20
 training_hold_time = .5 # seconds
 
 lams = [1e3, 1e4, 1e5, 1e6]
@@ -463,6 +463,7 @@ if Din == 1 and Dout == 1:
     yhat = acc_decode[0].flatten()
     yhat2 = raw_decode[0].flatten()
     plot_rmse = rmse(ytgt, yhat)
+    print("rmse for accumulator decode:", plot_rmse)
     plt.figure()
     plt.plot(plot_x, ytgt, color='b')
     plt.plot(plot_x, yhat, color='r')

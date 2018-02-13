@@ -483,6 +483,13 @@ class NeuronArray(object):
         return (py, px)
     
     def assign(self, pool):
+        if pool not in self.pool_allocations:
+            print("ERROR: did not find supplied pool in core.neuron_array.pool_allocations.")
+            print("  You are probably using neuromorph.map_resources_to_core with a premapped_neuron_aray argument")
+            print("  If this is the case, the network you are mapping is probably different than")
+            print("  the one that was used to map the core that premapped_neuron_array came from")
+            assert(False)
+
         alloc = self.pool_allocations[pool]
         y_loc = alloc['py'] * self.pool_size_y
         x_loc = alloc['px'] * self.pool_size_x

@@ -10,7 +10,7 @@ import numpy as np
 
 from .core_pars import CORE_PARAMETERS
 from .graph import (Bucket, Input, Output, Pool)
-from .core import Core
+from .core import Core, NeuronArray
 from .hardware_resources import (
     AMBuckets, MMWeights, Neurons, Sink, Source, TATAccumulator, TATTapPoint, TATFanout)
 
@@ -328,7 +328,7 @@ def create_network_resources(network):
 
     return ng_obj_to_ghw_mapper, hardware_resources
 
-def map_resources_to_core(hardware_resources, core, verbose=False):
+def map_resources_to_core(hardware_resources, core, premapped_neuron_array=None, verbose=False):
     """Annotate a Core object with hardware_resources.Resource objects
 
     Parameters
@@ -357,6 +357,12 @@ def map_resources_to_core(hardware_resources, core, verbose=False):
         resource.allocate(core)
     if verbose:
         print("finished allocate")
+
+    if premapped_neuron_array is not None:
+        assert(isinstance(premapped_neuron_array, NeuronArray))
+        core.NeuronArray = premapped_neuron_array
+        if verbose:
+            print("  replaced core.neuron_array with premapped_neuron_array")
 
     #core.Print()
 
@@ -420,7 +426,7 @@ def reassign_resources_to_core(hardware_resources, core, verbose=False):
     f.write(str(core))
     f.close()
 
-def map_network(network, verbose=False):
+def map_network(network, premapped_neuron_array=None, verbose=False):
     """Create a mapped core object given a neuromorph graph network objects
 
     Parameters
@@ -439,7 +445,7 @@ def map_network(network, verbose=False):
     """
     ng_obj_to_ghw_mapper, hardware_resources = create_network_resources(network)
     core = Core(CORE_PARAMETERS)
-    map_resources_to_core(hardware_resources, core, verbose)
+    map_resources_to_core(hardware_resources, core, premapped_neuron_array, verbose)
     return ng_obj_to_ghw_mapper, hardware_resources, core
 
 def remap_resources(hardware_resources, verbose=False):
