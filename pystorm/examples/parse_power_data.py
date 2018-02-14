@@ -84,22 +84,23 @@ def PlotPM(curPMs, bin_count=100, plot_stat_lines=False):
 
     return ax1, ax2
 
-def PlotPowerEachFullRange(PM_list, bin_count=100, save_path=''):
+def PlotPowerEachFullRange(PM_list, bin_count=100, save_path='', lbl_prefix=''):
     for j, curPMs in enumerate(PM_list):
         plt.figure(num="Full"+str(j),figsize=(14,7))
+        curPlotLabel = lbl_prefix+"Run"+curPMs[1]
         PlotPM(curPMs, plot_stat_lines=True)
 
         if save_path!='':
-            plt.savefig(save_path+"/PowerComsumptionPlots_%s.png" % curPMs[1])
+            plt.savefig(save_path+"/PowerConsumptionPlots_%s.png" % curPlotLabel)
 
 
-def PlotPowerFullRange(PM_list, bin_count=100, save_path=''):
+def PlotPowerFullRange(PM_list, bin_count=100, save_path='', lbl_prefix=''):
     plt.figure(num=1,figsize=(14,7))
     for j, curPMs in enumerate(PM_list):
         PlotPM(curPMs, bin_count)
 
     if save_path!='':
-        plt.savefig(save_path+"/PowerComsumptionPlots.png")
+        plt.savefig(save_path+"/PowerConsumptionPlots%s.png" % lbl_prefix)
 
 
 def PlotPowerSubRanges(PM_list, windowLen, bin_count=100, save_path='', lbl_prefix=''):
@@ -129,7 +130,7 @@ def PlotPowerSubRanges(PM_list, windowLen, bin_count=100, save_path='', lbl_pref
             PlotPowerHist(power_sub_sample, bin_count)
 
             if save_path!='':
-                plt.savefig(save_path+"/PowerComsumptionPlots_%s.png" % (curPlotLabel))
+                plt.savefig(save_path+"/PowerConsumptionPlots_%s.png" % (curPlotLabel))
 
 
 def PlotVoltVsTime(voltages, timestamps, runVal=None):
@@ -168,11 +169,12 @@ def PlotVM(curVMs, dc_offset=0.0, bin_count=100, plot_stat_lines=False):
 
     return ax1, ax2
 
-def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path=''):
+def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path='', lbl_prefix=''):
     if len(PM_list)==len(VM_list):
         for j in range(len(PM_list)):
             curPMs = PM_list[j]
             curVMs = VM_list[j]
+            curPlotLabel = lbl_prefix+"Run"+curPMs[1]
             powers, P_Indices, P_Voltages, P_Timestamps = getPowerVals(curPMs[0])
             V_Indices, V_Voltages, V_Timestamps = getVoltVals(curVMs[0], dc_offset)
 
@@ -208,15 +210,16 @@ def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path=''):
             ax4.set_xlabel("V (mV) (measV-%f V)" % dc_offset)
 
             if save_path!='':
-                plt.savefig(save_path+"/PowerComsumptionPlots_%s.png" % curPMs[1])
+                plt.savefig(save_path+"/PowervsVoltage_%s.png" % curPlotLabel)
     else:
         print("ERROR: Power measuerment list & voltage measurement list have different lengths")
 
-def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path=''):
+def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', lbl_prefix=''):
     if len(PM_list1)==len(PM_list2):
         for j in range(len(PM_list1)):
             curPMs1 = PM_list1[j]
             curPMs2 = PM_list2[j]
+            curPlotLabel = lbl_prefix+"Run"+curPMs1[1]
             powers1, P1_Indices, P1_Voltages, P1_Timestamps = getPowerVals(curPMs1[0])
             powers2, P2_Indices, P2_Voltages, P2_Timestamps = getPowerVals(curPMs2[0])
 
@@ -251,30 +254,29 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path=''):
             ax4.set_xlabel("P (mW)")
 
             if save_path!='':
-                plt.savefig(save_path+"/PowerComsumptionPlots_%s.png" % curPMs1[1])
+                plt.savefig(save_path+"/PowervsPower_%s.png" % curPlotLabel)
     else:
         print("ERROR: Power measuerment list & voltage measurement list have different lengths")
 
-index_array = ["000","001","002","003_0","003_1","003_2","004","005","006",]
-index_array = ["000","001","002"]
-index_array = ["000","001"]
+index_array = ["003"]
+test_type = "Static_Long"
 M1_list = []
 M2_list = []
 file_path = "TempControlled_10C_PowerComparisonTests"
 sv_path = "TempControlled_10C_PowerComparisonTests"
 
 for i in index_array:
-    PowerMeasurements = getData(file_path+"/smua1buffer%s.csv" % (i))
-    M1_list.append((PowerMeasurements,i))
-    VoltMeasurements = getData(file_path+"/smub1buffer%s.csv" % (i))
-    M2_list.append((VoltMeasurements,i))
+    L1Measurements = getData(file_path+"/smua1buffer%s.csv" % (i))
+    M1_list.append((L1Measurements,i))
+    L2Measurements = getData(file_path+"/smub1buffer%s.csv" % (i))
+    M2_list.append((L2Measurements,i))
 
 
-#PlotPowerFullRange(M1_list, save_path=sv_path)
-#PlotPowerEachFullRange(M1_list, save_path=sv_path)
+#PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+#PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
 #ComparePvsV(M1_list, M2_list, dc_offset=1.0, save_path=sv_path)
-ComparePvsP(M1_list, M2_list, dc_offset=0.0, save_path=sv_path)
-#PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix="1V0D_")
-#PlotPowerSubRanges(M2_list, 500, save_path=sv_path, lbl_prefix="1V0A_")
-plt.show()
+#ComparePvsP(M1_list, M2_list, dc_offset=0.0, save_path=sv_path, lbl_prefix=test_type+"_1V0Dvs1V0A_")
+PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+#PlotPowerSubRanges(M2_list, 2000, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
+#plt.show()
 

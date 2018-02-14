@@ -24,7 +24,7 @@ Dout = 1
 width_height = (width, height)
 d_range=(1,1)
 t_range=(1,1)
-exp_duration = 1
+exp_duration = 3
 taps_per_dim = 8
 
 CORE = 0
@@ -502,7 +502,7 @@ class DecodeEncode(Experiment):
 
     def run(self):
         #####################################
-        # measure rates 
+        # measure rates
         measure_net = create_decode_encode_network(
                           width=self.pars["width"],
                           height=self.pars["height"],
@@ -527,6 +527,19 @@ class DecodeEncode(Experiment):
         spike_rate, tag_rate = self.count_after_experiment(measure_net)
         self.results["spike_rate"] = spike_rate
         self.results["tag_rate"] = tag_rate
+
+        #for i in range(100):
+        #    print("[%d] enabling traffic, counting tags out" % i)
+        #    HAL.start_traffic()
+        #    HAL.enable_output_recording()
+
+        #    time.sleep(self.pars["duration"])
+
+        #    spike_rate, tag_rate = self.count_after_experiment(measure_net)
+        #    self.results["spike_rate"] = spike_rate
+        #    self.results["tag_rate"] = tag_rate
+        #    print("[OUTPUT] sanity check: FIFO should not overflow")
+        #    print("[OUTPUT] total overflows:", HAL.get_overflow_counts())
 
         #####################################
         # go to power measurement configuration, make sure not overflowing
@@ -589,12 +602,12 @@ tests = [
     #TapPointAndAERTX(input_rate=1000, width=8, height=8),
     #TapPointAndAERTX(input_rate=1000, width=16, height=8),
     #DecodeEncode(soma_bias=75, d_val=.00125, Dint=16, taps_per_dim=8),
-    DecodeEncode(width=64, height=64, soma_bias=100, d_val=.00185, Dint=16, taps_per_dim=16, is_recur=True),
-    Static(),
+    #DecodeEncode(width=64, height=64, soma_bias=100, d_val=.00185, Dint=16, taps_per_dim=16, is_recur=True),
+    #Static(),
     ]
 
 inter_test_duration = 1026    # time between tests, in seconds
-input("Press Enter to start experiments...\n")
+#input("Press Enter to start experiments...\n")
 
 for idx, test in enumerate(tests):
     print("================================================================================")
