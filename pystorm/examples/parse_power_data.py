@@ -58,8 +58,12 @@ def PlotPowerVsTime(powers, timestamps, runVal=None):
     else:
         plt.title("Power consumption over time - Run: %s" % runVal)
 
-def PlotPowerHist(powers, bin_count=100, runVal=None):
+def PlotPowerHist(powers, bin_count=100, runVal=None, plot_stat_lines=False):
     plt.hist(powers, bins=bin_count, alpha=0.4)
+    if plot_stat_lines:
+        plt.axvline(x=np.mean(powers), color='b')
+        plt.axvline(x=np.mean(powers)+np.std(powers), color='c')
+        plt.axvline(x=np.mean(powers)-np.std(powers), color='c')
     plt.xlabel("P (mW)")
     plt.ylabel("Count")
     if runVal == None:
@@ -68,21 +72,22 @@ def PlotPowerHist(powers, bin_count=100, runVal=None):
         plt.title("Power consumption histogram - Run: %s" % runVal)
 
 
-def PlotPM(curPMs, bin_count=100):
+def PlotPM(curPMs, bin_count=100, plot_stat_lines=False):
     powers, curIndices, curVoltages, curTimestamps = getPowerVals(curPMs[0])
-    print("Mean[%s]: %f" % (curPMs[1],np.mean(powers)))
+    print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+        % (curPMs[1],np.mean(powers),np.std(powers),np.mean(powers)/np.std(powers)))
 
     ax1 = plt.subplot(121)
     PlotPowerVsTime(powers, curTimestamps, curPMs[1])
     ax2 = plt.subplot(122)
-    PlotPowerHist(powers, bin_count, curPMs[1])
+    PlotPowerHist(powers, bin_count, curPMs[1], plot_stat_lines)
 
     return ax1, ax2
 
 def PlotPowerEachFullRange(PM_list, bin_count=100, save_path=''):
     for j, curPMs in enumerate(PM_list):
         plt.figure(num="Full"+str(j),figsize=(14,7))
-        PlotPM(curPMs)
+        PlotPM(curPMs, plot_stat_lines=True)
 
         if save_path!='':
             plt.savefig(save_path+"/PowerComsumptionPlots_%s.png" % curPMs[1])
@@ -109,12 +114,13 @@ def PlotPowerSubRanges(PM_list, windowLen, bin_count=100, save_path='', lbl_pref
             power_sub_sample = powers[i*windowLen:(i+1)*windowLen]
             timestamps_sub_sample = curTimestamps[i*windowLen:(i+1)*windowLen]
             norm_timestamps_sub_sample = curTimestamps[i*windowLen:(i+1)*windowLen] - curTimestamps[i*windowLen]
-            print("Mean[%s]: %f" % (curPlotLabel, np.mean(power_sub_sample)))
+            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+                    % (curPlotLabel, np.mean(power_sub_sample),np.std(power_sub_sample), np.mean(power_sub_sample)/np.std(power_sub_sample)))
 
             ax1 = plt.subplot(221)
             PlotPowerVsTime(power_sub_sample, timestamps_sub_sample, curPlotLabel)
             ax2 = plt.subplot(222)
-            PlotPowerHist(power_sub_sample, bin_count)
+            PlotPowerHist(power_sub_sample, bin_count, plot_stat_lines=True)
             ax3 = plt.subplot(223)
             PlotPowerVsTime(powers, curTimestamps, curPlotLabel)
             PlotPowerVsTime(power_sub_sample, timestamps_sub_sample)
@@ -136,9 +142,13 @@ def PlotVoltVsTime(voltages, timestamps, runVal=None):
         plt.title("Voltage over time - Run: %s" % runVal)
 
 
-def PlotVoltHist(voltages, bin_count=100, runVal=None):
+def PlotVoltHist(voltages, bin_count=100, runVal=None, plot_stat_lines=False):
     plt.hist(voltages, bins=bin_count, alpha=0.4)
-    plt.xlabel("P (mW)")
+    if plot_stat_lines:
+        plt.axvline(x=np.mean(voltages), color='b')
+        plt.axvline(x=np.mean(voltages)+np.std(voltages), color='c')
+        plt.axvline(x=np.mean(voltages)-np.std(voltages), color='c')
+    plt.xlabel("V (mV)")
     plt.ylabel("Count")
     if runVal == None:
         plt.title("Voltage histogram")
@@ -146,14 +156,15 @@ def PlotVoltHist(voltages, bin_count=100, runVal=None):
         plt.title("Voltage histogram - Run: %s" % runVal)
 
 
-def PlotVM(curVMs, dc_offset=0.0, bin_count=100):
+def PlotVM(curVMs, dc_offset=0.0, bin_count=100, plot_stat_lines=False):
     curIndices, curVoltages, curTimestamps = getVoltVals(curVMs[0], dc_offset)
-    print("Mean[%s]: %f" % (curVMs[1],np.mean(curVoltages)))
+    print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+        % (curVMs[1],np.mean(curVoltages),np.std(curVoltages),np.mean(curVoltages)/np.std(curVoltages)))
 
     ax1 = plt.subplot(121)
     PlotVoltVsTime(curVoltages, curTimestamps, curVMs[1])
     ax2 = plt.subplot(122)
-    PlotVoltHist(curVoltages, bin_count, curVMs[1])
+    PlotVoltHist(curVoltages, bin_count, curVMs[1], plot_stat_lines)
 
     return ax1, ax2
 
@@ -166,8 +177,11 @@ def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path=''):
             V_Indices, V_Voltages, V_Timestamps = getVoltVals(curVMs[0], dc_offset)
 
             plt.figure(num="Compare_Full_"+str(j),figsize=(16,8))
-            print("Mean Power[%s]: %f" % (curPMs[1],np.mean(powers)))
-            print("Mean Voltage[%s]: %f" % (curVMs[1],np.mean(V_Voltages)))
+            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+                    % (curPMs[1],np.mean(powers),np.std(powers),np.mean(powers)/np.std(powers)))
+
+            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+                    % (curVMs[1],np.mean(V_Voltages),np.std(V_Voltages),np.mean(V_Voltages)/np.std(V_Voltages)))
 
             ax1 = plt.subplot(121)
             plt.plot(P_Timestamps, powers, '.-', alpha=0.5)
@@ -176,16 +190,21 @@ def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path=''):
 
             ax2 = plt.subplot(122)
             plt.hist(powers, bins=bin_count, alpha=0.4)
+            plt.axvline(x=np.mean(powers), color='b')
+            plt.axvline(x=np.mean(powers)+np.std(powers), color='c')
+            plt.axvline(x=np.mean(powers)-np.std(powers), color='c')
             plt.xlabel("P (mW)")
             plt.ylabel("Count")
 
             ax3 = ax1.twinx()
             ax4 = ax2.twiny()
-            #PlotVM(curVMs, dc_offset)
             ax3.plot(V_Timestamps, V_Voltages, 'r.-', alpha=0.5)
             ax3.set_ylabel("V (mV) (measV-%f V)" % dc_offset)
 
             ax4.hist(V_Voltages, bins=bin_count, color='r', alpha=0.4)
+            ax4.axvline(x=np.mean(V_Voltages), color='r')
+            ax4.axvline(x=np.mean(V_Voltages)+np.std(V_Voltages), color='m')
+            ax4.axvline(x=np.mean(V_Voltages)-np.std(V_Voltages), color='m')
             ax4.set_xlabel("V (mV) (measV-%f V)" % dc_offset)
 
             if save_path!='':
@@ -202,8 +221,10 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path=''):
             powers2, P2_Indices, P2_Voltages, P2_Timestamps = getPowerVals(curPMs2[0])
 
             plt.figure(num="Compare_Full_"+str(j),figsize=(16,8))
-            print("Mean Power[%s]: %f" % (curPMs1[1],np.mean(powers1)))
-            print("Mean Voltage[%s]: %f" % (curPMs2[1],np.mean(P2_Voltages)))
+            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+                % (curPMs1[1],np.mean(powers1),np.std(powers1),np.mean(powers1)/np.std(powers1)))
+            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
+                % (curPMs2[1],np.mean(powers2),np.std(powers2),np.mean(powers2)/np.std(powers2)))
 
             ax1 = plt.subplot(121)
             plt.plot(P1_Timestamps, powers1, '.-', alpha=0.5)
@@ -212,15 +233,21 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path=''):
 
             ax2 = plt.subplot(122)
             plt.hist(powers1, bins=bin_count, alpha=0.4)
+            plt.axvline(x=np.mean(powers1), color='b')
+            plt.axvline(x=np.mean(powers1)+np.std(powers1), color='c')
+            plt.axvline(x=np.mean(powers1)-np.std(powers1), color='c')
             plt.xlabel("P (mW)")
             plt.ylabel("Count")
 
             ax3 = ax1.twinx()
             ax4 = ax2.twiny()
-            ax3.plot(P2_Timestamps, P2_Voltages, 'r.-', alpha=0.5)
+            ax3.plot(P2_Timestamps, powers2, 'r.-', alpha=0.5)
             ax3.set_ylabel("P (mW)")
 
-            ax4.hist(P2_Voltages, bins=bin_count, color='r', alpha=0.4)
+            ax4.hist(powers2, bins=bin_count, color='r', alpha=0.4)
+            plt.axvline(x=np.mean(powers2), color='r')
+            plt.axvline(x=np.mean(powers2)+np.std(powers2), color='m')
+            plt.axvline(x=np.mean(powers2)-np.std(powers2), color='m')
             ax4.set_xlabel("P (mW)")
 
             if save_path!='':
@@ -230,11 +257,11 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path=''):
 
 index_array = ["000","001","002","003_0","003_1","003_2","004","005","006",]
 index_array = ["000","001","002"]
-index_array = ["008"]
+index_array = ["000","001"]
 M1_list = []
 M2_list = []
-file_path = "PowerComparisonTests"
-sv_path = "PowerComparisonTests"
+file_path = "TempControlled_10C_PowerComparisonTests"
+sv_path = "TempControlled_10C_PowerComparisonTests"
 
 for i in index_array:
     PowerMeasurements = getData(file_path+"/smua1buffer%s.csv" % (i))
@@ -249,5 +276,5 @@ for i in index_array:
 ComparePvsP(M1_list, M2_list, dc_offset=0.0, save_path=sv_path)
 #PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix="1V0D_")
 #PlotPowerSubRanges(M2_list, 500, save_path=sv_path, lbl_prefix="1V0A_")
-#plt.show()
+plt.show()
 
