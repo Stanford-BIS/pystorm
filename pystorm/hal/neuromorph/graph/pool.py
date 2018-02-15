@@ -45,6 +45,12 @@ class Pool(object):
         assert(len(self.biases) == self.n_neurons)
         assert(self.n_neurons == x * y)
 
+    def __gt__(self, pool2):
+        return self.label > pool2.label
+
+    def __repr__(self):
+        return "Pool " + self.label
+
     def get_label(self):
         return self.label
 
