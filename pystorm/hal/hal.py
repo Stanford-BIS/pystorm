@@ -55,6 +55,7 @@ class HAL(object):
         self.downstream_ns = 10000
         self.upstream_ns   = 1000000
 
+        self.last_mapped_network = None
         self.last_mapped_resources = None
         self.last_mapped_core = None
 
@@ -62,6 +63,9 @@ class HAL(object):
 
     def init_hardware(self):
         print("HAL: clearing hardware state")
+
+        # stop spikes before resetting
+        #self.stop_all_inputs()
 
         self.driver.InitBD()
 
@@ -201,7 +205,12 @@ class HAL(object):
                 to_append = f - 2**27
             else:
                 to_append = f
-            counts.append(to_append)
+
+            if abs(to_append) < 1000:
+                counts.append(to_append)
+            else:
+                print("WARNING: discarding absurdly large tag filter value, possibly a glitch (or abuse of tag filter)")
+                counts.append(0)
 
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
         dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
@@ -228,6 +237,19 @@ class HAL(object):
                 timestamps.append(spk_time)
         ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
         return ret_data
+    
+    def stop_all_inputs(self, time=0, flush=True):
+        """Stop all tag stream generators"""
+
+        if flush is False:
+            assert False, "There's currently a Driver bug with set_input_rate flush=False"
+
+        if self.last_mapped_core is not None:
+            num_gens = self.last_mapped_core.FPGASpikeGenerators.gens_used
+            if num_gens > 0:
+                for gen_idx in range(num_gens):
+                    # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
+                    self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [0], [0], time, True)
 
     def set_input_rate(self, inp, dim, rate, time=0, flush=True):
         """Controls a single tag stream generator's rate (on the FPGA)
@@ -304,26 +326,34 @@ class HAL(object):
     ##############################################################################
 
     def remap_weights(self):
-        """Call a subset of map()'s functionality to reprogram weights
-        that have been modified in the network objects
+        """Reprogram weights that have been modified in the network objects
+        Effectively calls map again, but keeping pool allocations
         """
 
-        # generate a new core based on the new allocation, but assigning the new weights
-        core = remap_resources(self.last_mapped_resources)
-        self.last_mapped_core = core
+        # this call is deprecated, has the following effect
+        self.map(self.last_mapped_network, remap=True)
 
-        self.implement_core()
-
-    def map(self, network):
+    def map(self, network, remap=False):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
         ----------
         network: pystorm.hal.neuromorph.graph Network object
+        remap: reuse as much of the previous mapping as possible (e.g. pools will retain their physical locations on the chip)
         """
         print("HAL: doing logical mapping")
-        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
+        if remap:
+            if self.last_mapped_core is not None:
+                premapped_neuron_array = self.last_mapped_core.neuron_array
+            else:
+                print("  WARNING: remap=True used before map() was called at least once. Ignoring.")
+        else:
+            premapped_neuron_array = None
+
+        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, premapped_neuron_array=premapped_neuron_array, verbose=True)
+
+        self.last_mapped_network = network
         self.last_mapped_resources = hardware_resources
         self.last_mapped_core = core
 
