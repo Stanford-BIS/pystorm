@@ -19,7 +19,7 @@ REL_ERROR_TOLERANCE = 0.01  # tolerable relative error
 
 def set_analog_config():
     """Sets the DACs and soma configurations"""
-    HAL.driver.SetDACCount(0, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
+    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
     for i in range(4096):
         HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
         HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)

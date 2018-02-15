@@ -6,14 +6,16 @@ spike generator -> accumulator (weight 1) -> fpga -> pc
 Vary the input spike rates and measure the output spike rates
 """
 import os
-import sys
 import time
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+np.set_printoptions(precision=1)
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
+
+from utils import load_txt_data
 
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
@@ -21,7 +23,7 @@ RUN_TIME = 5. # time to sample
 INTER_RUN_TIME = 0.2 # time between samples
 
 UNIT_PERIOD = HAL.downstream_ns*1E-9
-TGT_RATE_MIN = 1000
+TGT_RATE_MIN = 10000
 TGT_RATE_MAX = 100000
 
 FLOAT_TOL = 0.000001 # for handling floating to integer comparisons
@@ -49,6 +51,20 @@ def compute_base_rates():
     return rates
 
 BASE_RATES = compute_base_rates() # rate of input spikes
+
+def compute_intermediate_rates():
+    """Compute the rates to test"""
+    period_min_rate = 1./TGT_RATE_MIN
+    period_max_rate = 1./TGT_RATE_MAX
+
+    periods_min_rate = int(np.ceil(period_min_rate/UNIT_PERIOD))
+    periods_max_rate = np.clip(int(np.floor(period_max_rate/UNIT_PERIOD)), 1, None)
+    unit_periods = np.arange(periods_max_rate, periods_min_rate)[::-1]
+    unit_periods = unit_periods[:-1] - 0.5
+    rates = 1./(unit_periods*UNIT_PERIOD)
+    return rates
+
+INTERMEDIATE_RATES = compute_intermediate_rates()
 
 def build_net():
     """Build a network for testing"""
@@ -80,11 +96,10 @@ def compute_test_rates():
     HAL takes in integer rates values
     This function handles the floating point to integer issues
     """
-    intermediate_rates = BASE_RATES[:-1] + np.diff(BASE_RATES)/2.
-    print(BASE_RATES[:10])
-    print(intermediate_rates[:10])
-    test_rates = np.sort(list(BASE_RATES) + list(intermediate_rates))
-    print(test_rates[:10])
+    test_rates = np.sort(list(BASE_RATES) + list(INTERMEDIATE_RATES))
+    print("Base rates:\n{}".format(BASE_RATES))
+    print("Intermediate rates:\n{}".format(INTERMEDIATE_RATES))
+    print("Test rates:\n{}".format(test_rates))
     integer_rates = []
     for rate in test_rates:
         rounded_rate = int(np.round(rate))
@@ -103,8 +118,8 @@ def plot_rates(rates, measured_rates):
     fig, axs = plt.subplots(nrows=2, ncols=1, figsize=(8, 12))
     for ax in axs:
         for base_rate in BASE_RATES:
-            ax.axvline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
-            ax.axhline(base_rate, linestyle="-", linewidth=0.5, alpha=0.2)
+            ax.axvline(base_rate, color="k", linestyle="-", linewidth=0.5, alpha=0.2)
+            ax.axhline(base_rate, color="k", linestyle="-", linewidth=0.5, alpha=0.2)
     axs[0].plot(rates, measured_rates, '-o', label="measured rate")
     axs[0].plot([0, rates[-1]], [0, rates[-1]], 'k-', linewidth=1, label="unity")
     axs[0].legend()
@@ -115,7 +130,6 @@ def plot_rates(rates, measured_rates):
 
     axs[1].loglog(rates, measured_rates, '-o', label="measured rate")
     axs[1].loglog(rates, rates, 'k-', linewidth=1, label="unity")
-    axs[1].legend()
     axs[1].set_xlabel("Target Rate (Hz)")
     axs[1].set_ylabel("Measured Rate (Hz)")
 
@@ -125,13 +139,9 @@ def check_input_rates(parsed_args):
     """Perform the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        try:
-            data = np.loadtxt(DATA_DIR + "rates.txt")
-            rates = data[:, 0]
-            measured_rates = data[:, 1]
-        except FileNotFoundError:
-            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "rates.txt"))
-            sys.exit(1)
+        data = load_txt_data(DATA_DIR + "rates.txt")
+        rates = data[:, 0]
+        measured_rates = data[:, 1]
     else:
         HAL.disable_spike_recording(flush=True)
         HAL.set_time_resolution(upstream_ns=100000)
@@ -148,7 +158,6 @@ def check_input_rates(parsed_args):
             measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
             total_tags = np.sum(binned_tags[:, 3])
             measured_rates[idx] = total_tags/measured_time
-
     plot_rates(rates, measured_rates)
 
     if not use_saved_data:

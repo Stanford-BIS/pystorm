@@ -14,8 +14,8 @@ np.random.seed(0)
 # pool size parameters
 
 K = 8
-width = 16
-height = 16
+width = 8
+height = 8
 width_height = (width, height)
 N = width * height
 
@@ -30,7 +30,7 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 # sweep
 
 fmax = 1000
-num_training_points_per_dim = 3
+num_training_points_per_dim = 10
 training_hold_time = 2 # seconds
 
 Din = 1
