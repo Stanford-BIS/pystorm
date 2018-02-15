@@ -91,7 +91,7 @@ HAL.start_traffic()
 
 MIN_RATE = 0
 MAX_RATE = 1000
-BALANCE_TOL = 0.01  # 5%
+BALANCE_TOL = 0.005  # 0.5%
 
 def measure_rate(input_rate):
     # Set spike generator rate
@@ -128,25 +128,27 @@ def search_bias(bias_type):
         bddriver.SetDACCount(CORE, bias_type, dac_val)
         HAL.flush()
 
-        # Measure output at 0Hz
-        lo_freq = measure_rate(0)
+        # Measure output at 1Hz
+        lo_freq = measure_rate(1)
         # Measure output at 1000Hz
         hi_freq = measure_rate(10000)
         
         err_freq = (hi_freq - lo_freq) / lo_freq
         # if difference within tolerance, done
         if abs(err_freq) <= BALANCE_TOL:
+            print("[INFO] error tolerance achieved")
             found_value = True
 
-        # if f(1000) > f(0), excitation is stronger => DOWN EXC
+        # if f(1000) > f(0), excitation is stronger => UP DC
         if hi_freq > lo_freq:
-            # if DOWN, new bound is (PREV_MIN, VAL)
-            sweep_bound[1] = dac_val
-        # else if f(1000) < f(0), inhibition is stronger => UP EXC
-        elif hi_freq < lo_freq:
-            # if UP, new bound is (VAl, PREV_MAX)
+            # if UP, new bound is (VAL, PREV_VAL)
             sweep_bound[0] = dac_val
+        # else if f(1000) < f(0), inhibition is stronger => DOWN DC
+        elif hi_freq < lo_freq:
+            # if DOWN, new bound is (PREV_MAX, VAL)
+            sweep_bound[1] = dac_val
         else:
+            print("[INFO] hi-freq = lo-freq")
             found_value = True
             
         print("err: %g, lo: %g(Hz), hi: %g(Hz), current-val: %d, new-bounds: (%d, %d)" %
@@ -174,20 +176,20 @@ for _idx, _freq in enumerate(FREQ_LIST):
     _res = measure_rate(_freq)
     results[_idx] = _res
     _err = _res / results[0] - 1
-    res_error[_idx] = _err
+    res_error[_idx] = 100 * _err
     print("IN: %d, OUT: %g, ERR: %g" % (_freq, _res, _err))
     
-if np.amax(np.abs(res_error)) <= BALANCE_TOL:
-    print("INFO: [DC = %d], Validation successful. Max Error %g perc." % (dc_val, 100 * np.amax(np.abs(res_error))))
+if np.amax(np.abs(res_error)) <= (100 * BALANCE_TOL):
+    print("INFO: [DC = %d], Validation successful. Max Error %g perc." % (dc_val, np.amax(np.abs(res_error))))
 else:
-    print("INFO: Validation failed. Max Error %g perc." % (100 * np.amax(np.abs(res_error))))
+    print("INFO: Validation failed. Max Error %g perc." % (np.amax(np.abs(res_error))))
     
 plt.subplot(211)
 plt.semilogx(FREQ_LIST, results)
 plt.ylabel("Output Frequency (Hz)")
 
 plt.subplot(212)
-plt.semilogx(FREQ_LIST, 100 * res_error)
+plt.semilogx(FREQ_LIST, res_error)
 plt.ylabel("100 * (f(in) - f(0)) / f(0)")
 plt.xlabel("Input Frequency (Hz)")
 
