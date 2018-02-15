@@ -88,10 +88,10 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
       unsigned int ep_code = GetField<FPGAIO>(packed_word, FPGAIO::EP_CODE);
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
-      if(!bd_pars_->UpEPCodeIsBDFunnelEP(ep_code) && !bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code)){
+      if(!(bd_pars_->UpEPCodeIsBDFunnelEP(ep_code)) && !(bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code))){
         cout<<"WARNING: WEIRD CODE: "<<(int)ep_code<<endl;
       }else{
-      if(ep_code != last_code){
+      if(ep_code != last_code || (block_idx == num_blocks-1 && word_idx == end - BYTES_PER_WORD)){
         if(code_count!=0 && (int)last_code != 64 && (int)last_code != 65 && (int)last_code != 15 && (int)last_code != 16){cout<<"Got code "<<(int)last_code<<" "<<(int)code_count<<" times"<<endl;}
         last_code = ep_code;
         code_count = 1;

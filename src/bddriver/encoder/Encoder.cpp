@@ -11,6 +11,7 @@
 #include "common/MutexBuffer.h"
 
 #include <iostream>
+#include <bitset>
 using std::cout;
 using std::endl;
 
@@ -146,6 +147,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
         }
       }
 
+      // cout<<std::bitset<32>(FPGA_encoded)<<endl;
       // serialize to bytes 
       PushWord(FPGA_encoded);
 

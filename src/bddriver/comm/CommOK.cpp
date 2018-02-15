@@ -178,6 +178,7 @@ bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial)
     // Download the configuration file.
     if (okCFrontPanel::NoError != dev.ConfigureFPGA(bitfile)) {
         cout << "FPGA configuration failed." << endl;
+        cout << bitfile << endl;
         return(false);
     }
 
