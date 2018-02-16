@@ -70,15 +70,39 @@ class HAL(object):
         self.driver.InitBD()
 
         # DAC settings (should be pretty close to driver defaults)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
+
+        # magnitude of the three synapse inputs (can be used to balance exc/inh)
+        # there are scale factors on each of the outputs
+        # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
+        # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
+
+        # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+
+        # synapse pulse extender rise time/fall time
+        # 1/DAC_SYN_PD ~ synapse PE fall time 
+        # 1/DAC_SYN_PU ~ synapse PE rise time
+        # the synapse is "on" during the fall, and "off" during the rise
+        # making the rise longer doesn't have much of a practical purpose
+        # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
+        # be careful setting these too small, you don't want to saturate the synapse
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
+
+        # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
+        # lower ratio is more spread out
+        # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+
+        # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
+
+        # DAC_SOMA_OFFSET scales the bias twiddle bits
+        # Ben says that increasing this beyond 10 could cause badness
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
