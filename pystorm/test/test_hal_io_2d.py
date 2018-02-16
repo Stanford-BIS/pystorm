@@ -15,10 +15,6 @@ INTER_RUN_TIME = 0.2 # time unit to wait for traffic to clear
 
 TEST_VECTORS = [
     [RATE, RATE],
-    [1, RATE],
-    [RATE, RATE],
-    [RATE, 1],
-    [RATE, RATE],
     [0, RATE],
     [RATE, RATE],
     [RATE, 0],
@@ -74,7 +70,7 @@ class ResultPrinter(object):
             print("".join(["dim {:<3d}                   ".format(dim) for dim in range(DIM)]))
             print("input_rate measured_rate  "*DIM)
             ResultPrinter.header = True
-        report_str  = "".join(["{:<6d}     {:<7.0f}        ".format(
+        report_str  = "".join(["{:<6d}     {:<8.1f}        ".format(
             input_rates[dim], measured_rates[dim]) for dim in range(DIM)])
         print(report_str)
 
@@ -98,20 +94,29 @@ def test_hal_io_2d():
         total_tags = np.zeros(DIM)
         for dim in range(DIM):
             dim_data = np.array(dim_binned_tags[dim])
-            measured_times[dim] = (dim_data[-1, 0] - dim_data[0, 0])/1e9
+            nonzero_idx = np.nonzero(dim_data[:, 1])[0]
+            if nonzero_idx.shape[0] > 1:
+                measured_times[dim] = (
+                    dim_data[nonzero_idx][-1, 0] - dim_data[nonzero_idx][0, 0])/1e9
+            else:
+                measured_times[dim] = (dim_data[-1, 0] - dim_data[0, 0])/1e9
             total_tags[dim] = np.sum(dim_data[:, 1])
         measured_rates = total_tags/measured_times
         errors = measured_rates - input_rates
         ResultPrinter.print_results(input_rates, measured_rates)
 
-        # relative_error = np.abs(measured_rate-RATE)/RATE
-        # print("hal_test_io measured {:.2%}% relative error between ".format(relative_error) +
-        #       "target rate {} and measured rate {:.2}".format(RATE, measured_rate))
-        # assert relative_error < REL_ERROR_TOLERANCE, (
-        #     "\tExceeded relative error tolerance in test_hal_io\n" +
-        #     "\t\tExpected output rate to be within {:.2%}% of input rate, ".format(
-        #         REL_ERROR_TOLERANCE) +
-        #     "\t\tbut relative error was {:.2%}%".format(relative_error))
+        for dim in range(DIM):
+            if input_rates[dim] > 0:
+                relative_error = np.abs(measured_rates[dim]-input_rates[dim])/input_rates[dim]
+                assert relative_error < REL_ERROR_TOLERANCE, (
+                    "\tExceeded relative error tolerance in test_hal_io_2d\n" +
+                    "\t\tExpected output rate to be within {:.2%}% of input rate, ".format(
+                        REL_ERROR_TOLERANCE) +
+                    "\t\tbut relative error was {:.2%}%".format(relative_error))
+            else:
+                assert measured_rates[dim] == 0, (
+                    "\tDetected output when no output was expected\n" +
+                    "\t\tMeasured output rate was {:.2%}%".format(measured_rates[dim]))
 
 if __name__ == "__main__":
     test_hal_io_2d()
