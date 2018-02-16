@@ -107,10 +107,13 @@ HAL.enable_output_recording(flush=True)
 spikes = HAL.get_spikes()
 print(len(spikes), "spikes before trial")
 
-
 def do_sweep(bin_time_boundaries):
     last_bin_start = None
     for bin_idx in range(len(stim_rates[0])):
+        inputs = []
+        dims = []
+        rates = []
+
         bin_start = bin_time_boundaries[bin_idx]
         if last_bin_start is None:
             pass
@@ -124,7 +127,12 @@ def do_sweep(bin_time_boundaries):
             r = stim_rates[d][bin_idx]
 
             #print("at", bin_start, "d", d, "is", r)
-            HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
+            #HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
+            inputs.append(i1)
+            dims.append(d)
+            rates.append(r)
+
+        HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
 
 do_sweep(bin_time_boundaries)
 
