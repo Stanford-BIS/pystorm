@@ -495,6 +495,12 @@ void Driver::Flush() {
   enc_buf_in_->Push(std::move(from_queue));
 
   // then send the sequenced traffic
+  
+  // sort first
+  std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
+  // now reset curr_sequence_num_ so it doesn't overflow
+  curr_sequence_num_ = 0;
+
   while (!sequenced_queue_.empty()) {
     num_words += sequenced_queue_.front()->size();
     enc_buf_in_->Push(std::move(sequenced_queue_.front()));
@@ -1344,27 +1350,27 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
-
-      to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
-                               // XXX the right way to fix this is to serialize AFTER sorting
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
+
+      // sequence number ascends as we run through the input vector
+      // time supercedes this in the sorting
+      // effectively, elements inserted with the same time will come out in order
+      to_push.time = time;
+      to_push.sequence_num = curr_sequence_num_ + j;
+
       serialized->push_back(to_push);
     }
+    curr_sequence_num_ += MaxD;
     i++;
   }
 
   if (timed) {
-    // push all the elements to the back of the vector then sort it
+    // push all the elements to the back of the vector
+    // defer sorting until Flush()
     for (auto& it : *serialized) {
       timed_queue_.push_back(it);
     }
-
-    std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
-
-    // update highest_ns_sent_
-    BDTime new_highest_ns = timed_queue_.back().time * ns_per_unit_;
-    highest_ns_sent_ = new_highest_ns > highest_ns_sent_ ? new_highest_ns : highest_ns_sent_; // max()
 
   } else {
     sequenced_queue_.push(std::move(serialized));

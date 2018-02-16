@@ -1085,6 +1085,7 @@ class Driver {
 
   // priority queue for timed traffic
   std::vector<EncInput> timed_queue_;
+  unsigned int curr_sequence_num_ = 0; // reset with each flush
 
   /// thread-safe, MPMC buffer between breadth of downstream driver API and the encoder
   MutexBuffer<EncInput> *enc_buf_in_;
