@@ -31,12 +31,18 @@ struct EncInput {
   uint8_t      FPGA_ep_code;
   uint32_t     payload;
   BDTime       time;
+  unsigned int sequence_num; // used in priority queue, encoder doesn't need this
 };
 typedef uint8_t EncOutput;
 
 // used for the priority queue
-inline bool operator<(const EncInput & e1, const EncInput & e2) 
-    { return e1.time < e2.time; }
+inline bool operator<(const EncInput & e1, const EncInput & e2) { 
+  if (e1.time == e2.time) {
+    return e1.sequence_num < e2.sequence_num;
+  } else {
+    return e1.time < e2.time; 
+  }
+}
 
 }  // bddriver
 }  // pystorm

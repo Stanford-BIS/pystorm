@@ -205,6 +205,22 @@ initial begin
   SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
   SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
   FlushAndSendPipeIn(); // send the stuff we queued up
+  
+  // double-zero: apparently kills SG
+  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd0}); // enable
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+
+  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd0}); // enable
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+  FlushAndSendPipeIn(); // send the stuff we queued up
 
   #(4000)
 

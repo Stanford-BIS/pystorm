@@ -652,14 +652,17 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    def __init__(self, encoders):
+    def __init__(self, encoders_or_taps):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
-
-        self.N, self.D = encoders.shape
         
         # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-        self.taps_and_signs = self.encoders_to_taps(encoders)
+        if isinstance(encoders_or_taps, tuple):
+            self.N, self.taps_and_signs = encoders_or_taps
+            self.D = len(self.taps_and_signs)
+        else:
+            self.N, self.D = encoders_or_taps.shape
+            self.taps_and_signs = self.encoders_to_taps(encoders_or_taps)
 
         self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 

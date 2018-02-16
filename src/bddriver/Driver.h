@@ -1029,7 +1029,6 @@ class Driver {
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
   BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
   BDTime ns_per_HB_                   = units_per_HB_ * ns_per_unit_; 
-  BDTime highest_ns_sent_             = 0;
 
   // basis of experiment time, set when ResetFPGAClock is called
   std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
@@ -1085,6 +1084,7 @@ class Driver {
 
   // priority queue for timed traffic
   std::vector<EncInput> timed_queue_;
+  unsigned int curr_sequence_num_ = 0; // reset with each flush
 
   /// thread-safe, MPMC buffer between breadth of downstream driver API and the encoder
   MutexBuffer<EncInput> *enc_buf_in_;
