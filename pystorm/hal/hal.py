@@ -265,9 +265,6 @@ class HAL(object):
     def stop_all_inputs(self, time=0, flush=True):
         """Stop all tag stream generators"""
 
-        if flush is False:
-            assert False, "There's currently a Driver bug with set_input_rate flush=False"
-
         if self.last_mapped_core is not None:
             num_gens = self.last_mapped_core.FPGASpikeGenerators.gens_used
             if num_gens > 0:
@@ -299,8 +296,6 @@ class HAL(object):
         provided has passed!
         If you're queing up rates, make sure you call this in the order of the times
         """
-        if flush is False:
-            assert False, "There's currently a Driver bug with set_input_rate flush=False"
 
         gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
         out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
@@ -333,16 +328,11 @@ class HAL(object):
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        # gen_idxs = [
-        #     self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
-        # out_tags = [
-        #     self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
-        # self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
-
-        # XXX see comment in set_input_rate(). For now this doesn't work as intended
-        # this should work (with some negligible additional latency)
-        for inp, dim, rate in zip(inputs, dims, rates):
-            self.set_input_rate(inp, dim, rate, time, flush)
+        gen_idxs = [
+            self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
+        out_tags = [
+            self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
+        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
 
     ##############################################################################
