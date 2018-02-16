@@ -12,25 +12,18 @@ WEIGHTS = np.eye(DIM) # weight of connection from input to output
 REL_ERROR_TOLERANCE = 0.01  # tolerable relative error
 RUN_TIME = 1. # time to sample
 INTER_RUN_TIME = 0.2 # time unit to wait for traffic to clear
+
 TEST_VECTORS = [
+    [RATE, RATE],
+    [1, RATE],
+    [RATE, RATE],
+    [RATE, 1],
     [RATE, RATE],
     [0, RATE],
     [RATE, RATE],
     [RATE, 0],
     [RATE, RATE],
 ]
-
-# TEST_VECTORS = [
-#     [RATE, RATE],
-#     [1, RATE],
-#     [RATE, RATE],
-#     [RATE, 1],
-#     [RATE, RATE],
-#     [0, RATE],
-#     [RATE, RATE],
-#     [RATE, 0],
-#     [RATE, RATE],
-# ]
 
 def clear_outputs():
     """Clear any remaining overflow counts"""
@@ -51,9 +44,22 @@ def toggle_hal(net_inputs, dims, rates):
     """Turn the inputs on and off via HAL"""
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
+
+    """how things should work"""
+    # HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
+    # time.sleep(RUN_TIME)
+    # HAL.set_input_rates(net_inputs, dims, [0 for _ in range(DIM)], time=0, flush=True)
+
+    """for working around buggy double 0"""
+    for net_input, dim, rate in zip(net_inputs, dims, rates):
+        if rate > 0:
+            HAL.set_input_rate(net_input, dim, rate, time=0, flush=True)
     HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
     time.sleep(RUN_TIME)
-    HAL.set_input_rates(net_inputs, dims, [0 for _ in range(DIM)], time=0, flush=True)
+    for net_input, dim, rate in zip(net_inputs, dims, rates):
+        if rate > 0:
+            HAL.set_input_rate(net_input, dim, 0, time=0, flush=True)
+
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
     time.sleep(INTER_RUN_TIME)
@@ -85,7 +91,7 @@ def test_hal_io_2d():
     inputs = [net_input for _ in range(DIM)]
     dims = [dim for dim in range(DIM)]
     for input_rates in TEST_VECTORS:
-        # clear_outputs()
+        clear_outputs()
         toggle_hal(inputs, dims, input_rates)
         dim_binned_tags = parse_hal_binned_tags(HAL.get_outputs())[net_output]
         measured_times = np.zeros(DIM)
