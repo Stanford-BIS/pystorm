@@ -31,7 +31,7 @@
 #include "decoder/Decoder.h"
 #include "encoder/Encoder.h"
 
-//#include <bitset>
+#include <bitset>
 
 using std::cout;
 using std::endl;
@@ -1334,10 +1334,10 @@ void Driver::SendToEP(unsigned int core_id,
         payloads[1] = GetField(it, THREEFPGAPAYLOADS::W1);
         payloads[2] = GetField(it, THREEFPGAPAYLOADS::W2);
 
-        //std::bitset<20> b0(payloads[0]);
-        //std::bitset<20> b1(payloads[1]);
-        //std::bitset<20> b2(payloads[2]);
-        //cout << "serial " << b2 << b1 << b0 << endl;
+        std::bitset<20> b0(payloads[0]);
+        std::bitset<20> b1(payloads[1]);
+        std::bitset<20> b2(payloads[2]);
+        cout << "serial " << b2 <<" " << b1<<" " << b0 << endl;
       } else {
         assert(false && "not implemented: no BD EP word has FPGA serialization != 1x, 2x or 3x");
       }
@@ -1357,11 +1357,14 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
-
+      if(timed){
       to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
                                // XXX the right way to fix this is to serialize AFTER sorting
+    }
+    else{to_push.time = time;}
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
+
       serialized->push_back(to_push);
     }
     i++;

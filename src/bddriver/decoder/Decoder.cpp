@@ -25,7 +25,7 @@ void Decoder::RunOnce() {
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
 
   if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
-    cout << "WARNING: Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
+    // cout << "WARNING: Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
   }
 
   if (popped_vect->size() > 0) {
