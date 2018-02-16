@@ -36,6 +36,8 @@ if Din > 1:
 else:
     stim_rates_mesh = [stim_rates_1d]
 stim_rates = [r.flatten() for r in stim_rates_mesh]
+print("stims")
+print(stim_rates)
 
 ###########################################
 # specify network using HAL

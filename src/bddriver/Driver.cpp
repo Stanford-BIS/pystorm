@@ -1186,7 +1186,7 @@ void Driver::SendSGEns(unsigned int core_id, BDTime time) {
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      cout << "enable" << en_word << endl;
+      //cout << "enable" << en_word << endl;
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
@@ -1259,7 +1259,7 @@ void Driver::SetSpikeGeneratorRates(
   // set number of SGs used
   int highest_used = GetHighestSGEn(core_id);
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {static_cast<unsigned int>(highest_used+1)}, {time});
-  cout << "number of generators: " << highest_used + 1 << endl;
+  //cout << "number of generators: " << highest_used + 1 << endl;
 
   if (flush) Flush();
 

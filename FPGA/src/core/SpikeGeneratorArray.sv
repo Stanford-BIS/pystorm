@@ -79,7 +79,7 @@ always_comb
 
     READY_OR_PROG: begin
       next_gen_idx = 0;
-      if (unit_pulse == 1)
+      if (unit_pulse == 1 && conf.gens_used != 0)
         next_state = UPDATE_A;
       else
         next_state = READY_OR_PROG;
@@ -91,10 +91,15 @@ always_comb
         next_gen_idx = gen_idx;
         next_state = UPDATE_B;
       end
-      else begin
-        next_gen_idx = gen_idx_p1;
-        next_state = UPDATE_A;
-      end
+      else
+        if (gen_idx_p1 < conf.gens_used) begin // note _p1
+          next_state <= UPDATE_A;
+          next_gen_idx <= gen_idx_p1;
+        end
+        else begin
+          next_state <= READY_OR_PROG;
+          next_gen_idx <= 'X;
+        end
     end
 
     UPDATE_B: begin
