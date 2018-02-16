@@ -69,7 +69,7 @@ parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer
                                   //           host interface checks for ready (0-255)
 parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
                                   //           check that the block transfer begins (0-255)
-parameter pipeInSize = 32;         // REQUIRED: byte (must be even) length of default
+parameter pipeInSize = 128;         // REQUIRED: byte (must be even) length of default
                                   //           PipeIn; Integer 0-2^32
 parameter pipeOutSize = 32;        // REQUIRED: byte (must be even) length of default
                                   //           PipeOut; Integer 0-2^32
@@ -183,41 +183,52 @@ initial begin
   //SendToRegOrChan(6'd28, 16'd2);
   //SendToRegOrChan(6'd22, 16'd100);
 
-  // send AM word
+  // send TAT0 word
   
-  SendToBD(6'd26, data[19:0]);
-  SendToBD(6'd26, data[39:20]);
-  SendToBD(6'd26, {18'b0, data[41:40]});
+  SendToBD(6'd28, {18'b0, 1'b1, 1'b0});
+  SendToBD(6'd28, {18'b0, 1'b0, 1'b0});
   FlushAndSendPipeIn(); // send the stuff we queued up
 
-  repeat(4) begin
-    @(negedge BD_out_ready) begin
-      if (packets == 0) begin
-        assert( BD_out_data == {4'b0, data[10:0], 6'b111001} );
-        $display("Expected %b",{4'b0, data[10:0], 6'b111001});
-        $display("Recieved %b",BD_out_data);
-        packets++;
-      end
-      else if (packets == 1) begin
-        assert( BD_out_data == {5'b0, data[20:11], 6'b111001} );
-        $display("Expected %b",{5'b0, data[20:11], 6'b111001});
-        $display("Recieved %b",BD_out_data);
-        packets++;
-      end
-      else if (packets == 2) begin
-        assert( BD_out_data == {4'b0, data[31:21], 6'b111001} );
-        $display("Expected %b",{4'b0, data[31:21], 6'b111001});
-        $display("Recieved %b",BD_out_data);
-        packets++;
-      end
-      else if (packets == 3) begin
-        assert( BD_out_data == {5'b0, data[41:32], 6'b111001} );
-        $display("Expected %b",{5'b0, data[41:32], 6'b111001});
-        $display("Recieved %b",BD_out_data);
-        packets++;
-      end
-    end
-  end
+  #(1000)
+
+  SendToBD(6'd28, {18'b0, 1'b0, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b1, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b0, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b1, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b0, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b1, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b0, 1'b1});
+  SendToBD(6'd28, {18'b0, 1'b1, 1'b1});
+  FlushAndSendPipeIn(); // send the stuff we queued up
+
+  // repeat(4) begin
+  //   @(negedge BD_out_ready) begin
+  //     if (packets == 0) begin
+  //       assert( BD_out_data == {4'b0, data[10:0], 6'b111001} );
+  //       $display("Expected %b",{4'b0, data[10:0], 6'b111001});
+  //       $display("Recieved %b",BD_out_data);
+  //       packets++;
+  //     end
+  //     else if (packets == 1) begin
+  //       assert( BD_out_data == {5'b0, data[20:11], 6'b111001} );
+  //       $display("Expected %b",{5'b0, data[20:11], 6'b111001});
+  //       $display("Recieved %b",BD_out_data);
+  //       packets++;
+  //     end
+  //     else if (packets == 2) begin
+  //       assert( BD_out_data == {4'b0, data[31:21], 6'b111001} );
+  //       $display("Expected %b",{4'b0, data[31:21], 6'b111001});
+  //       $display("Recieved %b",BD_out_data);
+  //       packets++;
+  //     end
+  //     else if (packets == 3) begin
+  //       assert( BD_out_data == {5'b0, data[41:32], 6'b111001} );
+  //       $display("Expected %b",{5'b0, data[41:32], 6'b111001});
+  //       $display("Recieved %b",BD_out_data);
+  //       packets++;
+  //     end
+  //   end
+  // end
 
   // // send PAT word
   // SendToBD(6'd27, {2{10'b1111100000}});
@@ -273,10 +284,10 @@ initial begin
   //SendToAllBD(2*pipeInSize, pipeInSize);
   //FlushAndSendPipeIn();
 
-  // forever begin
-  //   #(1000)
-  //   ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
-  // end
+  forever begin
+    #(1000)
+    ReadFromBlockPipeOut(8'ha0, pipeOutSize, pipeOutSize);
+  end
 
 end
 
