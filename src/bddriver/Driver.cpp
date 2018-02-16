@@ -486,23 +486,20 @@ void Driver::Flush() {
   // then SetMem(x) is guaranteed to occur before SetMem(y)
   // and the traffic of SendSpikes(a) is interleaved with SendSpikes(b) as necessary
 
-  unsigned int num_words = 0;
-  num_words += timed_queue_.size();
-
   // send the timed traffic first (it's more important, I guess)
-  auto from_queue = std::make_unique<std::vector<EncInput>>();
-  from_queue->swap(timed_queue_);
-  enc_buf_in_->Push(std::move(from_queue));
-
-  // then send the sequenced traffic
   
   // sort first
   std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
   // now reset curr_sequence_num_ so it doesn't overflow
   curr_sequence_num_ = 0;
 
+  auto from_queue = std::make_unique<std::vector<EncInput>>();
+  from_queue->swap(timed_queue_);
+  enc_buf_in_->Push(std::move(from_queue));
+
+  // then send the sequenced traffic
+  
   while (!sequenced_queue_.empty()) {
-    num_words += sequenced_queue_.front()->size();
     enc_buf_in_->Push(std::move(sequenced_queue_.front()));
     sequenced_queue_.pop();
   }
@@ -1189,7 +1186,7 @@ void Driver::SendSGEns(unsigned int core_id, BDTime time) {
 
     if (bit_idx == 15) {
       bdpars::FPGARegEP SG_reg_ep = bd_pars_->GenIdxToSG_GENS_EN(gen_idx);
-      //cout << "enable" << en_word << endl;
+      cout << "enable" << en_word << endl;
       SendToEP(core_id, bd_pars_->DnEPCodeFor(SG_reg_ep), {en_word}, {time});
     }
   }
@@ -1239,11 +1236,9 @@ void Driver::SetSpikeGeneratorRates(
 
   //std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
 
-  // XXX this is a hack to avoid misordering upon sorting
-  // we have the same problem here that the serializer does
   std::vector<BDTime> SG_prog_times;
   for (unsigned int i = 0; i < SG_prog_words.size(); i++) {
-    SG_prog_times.push_back(time + UnitsToNs(1));
+    SG_prog_times.push_back(time);
   }
 
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
@@ -1258,16 +1253,13 @@ void Driver::SetSpikeGeneratorRates(
     SG_en_[core_id][gen_idx] = new_state;
   }
 
-  // XXX mandatory flush, works around #81, for reasons I do not understand
-  Flush();
-
   // send all SG enables, regardless if only one was changed
   SendSGEns(core_id, time);
 
   // set number of SGs used
   int highest_used = GetHighestSGEn(core_id);
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SG_GENS_USED), {static_cast<unsigned int>(highest_used+1)}, {time});
-  //cout << "number of generators: " << highest_used + 1 << endl;
+  cout << "number of generators: " << highest_used + 1 << endl;
 
   if (flush) Flush();
 
@@ -1353,10 +1345,10 @@ void Driver::SendToEP(unsigned int core_id,
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
 
+      to_push.time = time;
       // sequence number ascends as we run through the input vector
       // time supercedes this in the sorting
       // effectively, elements inserted with the same time will come out in order
-      to_push.time = time;
       to_push.sequence_num = curr_sequence_num_ + j;
 
       serialized->push_back(to_push);
