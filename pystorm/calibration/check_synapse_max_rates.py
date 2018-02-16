@@ -208,16 +208,16 @@ def report_time_remaining(start_time, syn_idx):
         print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
             est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def plot_data(rates, overflows, max_rates, overflow_slopes):
+def plot_data(rates, overflows, max_rates_2, overflow_slopes):
     """Plot the data"""
-    syn_n = len(max_rates)
-    max_rates_mean = np.mean(max_rates)
-    max_rates_median = np.median(max_rates)
-    max_rates_min = np.min(max_rates)
-    max_rates_max = np.max(max_rates)
+    syn_n = len(max_rates_2)
+    max_rates_2_mean = np.mean(max_rates_2)
+    max_rates_2_median = np.median(max_rates_2)
+    max_rates_2_min = np.min(max_rates_2)
+    max_rates_2_max = np.max(max_rates_2)
 
-    max_period_ns = 1E9/max_rates_min
-    min_period_ns = 1E9/max_rates_max
+    max_period_ns = 1E9/max_rates_2_min
+    min_period_ns = 1E9/max_rates_2_max
 
     min_period_fpga_units = int(np.floor(min_period_ns/SPIKE_GEN_TIME_UNIT_NS))
     max_period_fpga_units = int(np.ceil(max_period_ns/SPIKE_GEN_TIME_UNIT_NS))
@@ -226,7 +226,7 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     fpga_rates = 1./fpga_periods
 
     fig_1d = plt.figure()
-    plt.plot(max_rates, 'o', markersize=1)
+    plt.plot(max_rates_2, 'o', markersize=1)
     plt.xlim(0, syn_n-1)
     plt.xlabel("Synapse Index")
     plt.ylabel("Max Input Rate / 2 (spks/s)")
@@ -235,21 +235,21 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
     fig_hist = plt.figure()
     for fpga_rate in fpga_rates:
         plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
-    plt.hist(max_rates, bins=80)
-    plt.axvline(max_rates_mean, color="k", alpha=0.6, linewidth=1, label="mean")
-    plt.axvline(max_rates_median, color="r", alpha=0.4, linewidth=1, label="median")
+    plt.hist(max_rates_2, bins=80)
+    plt.axvline(max_rates_2_mean, color="k", alpha=0.6, linewidth=1, label="mean")
+    plt.axvline(max_rates_2_median, color="r", alpha=0.4, linewidth=1, label="median")
     plt.xlabel("Max Input Rate / 2 (spks/s)")
     plt.ylabel("Counts")
     plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-        max_rates_mean, max_rates_median, max_rates_min, max_rates_max))
+        max_rates_2_mean, max_rates_2_median, max_rates_2_min, max_rates_2_max))
     plt.legend()
     fig_hist.savefig(DATA_DIR + "histogram.pdf")
 
     if syn_n == NRN_N//4: # all syn_n tested
         sqrt_n = int(np.ceil(np.sqrt(syn_n)))
-        max_rates_2d = max_rates.reshape((sqrt_n, -1))
+        max_rates_2_2d = max_rates_2.reshape((sqrt_n, -1))
         fig_2d_heatmap = plt.figure()
-        ims = plt.imshow(max_rates_2d)
+        ims = plt.imshow(max_rates_2_2d)
         plt.colorbar(ims)
         plt.xlabel("Synapse X Coordinate")
         plt.ylabel("Synapse Y Coordinate")
@@ -261,15 +261,15 @@ def plot_data(rates, overflows, max_rates, overflow_slopes):
         axis.axhline(0, linewidth=0.5, color='k')
         axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
         ylims = axis.get_ylim()
-        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates[syn_idx]),
+        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates_2[syn_idx]),
                   "r", linewidth=0.7, label="fit")
-        axis.axvline(max_rates[syn_idx], linewidth=0.5, color='k')
+        axis.axvline(max_rates_2[syn_idx], linewidth=0.5, color='k')
         axis.set_ylim(ylims)
         axis.set_xlabel("Input Rate / 2 (spks/s)")
         axis.set_ylabel("FIFO Overflow Count")
         axis.legend()
         axis.set_title("Synapse {:04d} Estimated Max Input Rate {:.1f}".format(
-            syn_idx, max_rates[syn_idx]))
+            syn_idx, max_rates_2[syn_idx]))
         fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}.png".format(syn_idx))
         plt.cla()
     plt.close()
@@ -296,13 +296,14 @@ def check_synapse_max_rates(parsed_args):
         np.save(DATA_DIR + "overflows.npy", overflows)
         np.save(DATA_DIR + "rates.npy", rates)
 
-    max_rates, overflow_slopes = fit_max_rates(rates, overflows)
-    print("\nMax Input rates:")
-    print(max_rates)
-    # print("Min synapse spike consumption times:")
-    # print(1./max_rates)
+    max_rates_2, overflow_slopes = fit_max_rates(rates, overflows)
+    print("\nMax input rates / 2:")
+    print(max_rates_2)
+    print("Min synapse spike consumption times x 2:")
+    print(1./max_rates_2)
+    np.savetxt(DATA_DIR + "max_rates.txt", max_rates_2*2)
 
-    plot_data(rates, overflows, max_rates, overflow_slopes)
+    plot_data(rates, overflows, max_rates_2, overflow_slopes)
     plt.show()
 
 if __name__ == "__main__":
