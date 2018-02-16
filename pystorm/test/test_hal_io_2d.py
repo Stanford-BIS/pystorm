@@ -41,20 +41,9 @@ def toggle_hal(net_inputs, dims, rates):
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
 
-    """how things should work"""
-    # HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
-    # time.sleep(RUN_TIME)
-    # HAL.set_input_rates(net_inputs, dims, [0 for _ in range(DIM)], time=0, flush=True)
-
-    """for working around buggy double 0"""
-    for net_input, dim, rate in zip(net_inputs, dims, rates):
-        if rate > 0:
-            HAL.set_input_rate(net_input, dim, rate, time=0, flush=True)
     HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
     time.sleep(RUN_TIME)
-    for net_input, dim, rate in zip(net_inputs, dims, rates):
-        if rate > 0:
-            HAL.set_input_rate(net_input, dim, 0, time=0, flush=True)
+    HAL.set_input_rates(net_inputs, dims, [0 for _ in range(DIM)], time=0, flush=True)
 
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
