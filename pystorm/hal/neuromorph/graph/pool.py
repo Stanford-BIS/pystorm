@@ -19,7 +19,13 @@ class Pool(object):
     def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0):
         self.label = label
         self.encoders = encoders
-        self.n_neurons, self.dimensions = encoders.shape
+
+        if isinstance(encoders, tuple):
+            self.n_neurons, tap_list = encoders
+            self.dimensions = len(tap_list)
+        else:
+            self.n_neurons, self.dimensions = encoders.shape
+
         self.x = x
         self.y = y
         self.gain_divisors = gain_divisors
@@ -44,6 +50,12 @@ class Pool(object):
 
         assert(len(self.biases) == self.n_neurons)
         assert(self.n_neurons == x * y)
+
+    def __gt__(self, pool2):
+        return self.label > pool2.label
+
+    def __repr__(self):
+        return "Pool " + self.label
 
     def get_label(self):
         return self.label

@@ -559,7 +559,7 @@ def parse_hal_binned_tags(hal_binned_tags):
     ----------
     hal_binned_tags: output of HAL.get_outputs() (list of tuples)
 
-    Returns a dictionary:
+    Returns a nested dictionary:
         [output_id][dimension] = list of (times, count) tuples
     """
     parsed_tags = {}
@@ -578,7 +578,7 @@ def parse_hal_spikes(hal_spikes):
     ----------
     hal_spikes: output of HAL.get_spikes() (list of tuples)
 
-    Returns a dictionary:
+    Returns a nested dictionary:
         [pool][neuron] = list of (times, 1) tuples
         The 1 is for consistency with the return of parse_hal_tags
     """

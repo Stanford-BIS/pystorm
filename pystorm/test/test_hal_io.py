@@ -1,5 +1,4 @@
-"""test whether we can inject and tags and loop them back
-"""
+"""Test whether we can inject and tags and loop them back"""
 import time
 import numpy as np
 

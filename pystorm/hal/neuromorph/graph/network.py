@@ -15,6 +15,12 @@ class Network(object):
         self.outputs = []
         self.connections = []
 
+    def __gt__(self, network2):
+        return self.label > network2.label
+
+    def __repr__(self):
+        return "Network " + self.label
+
     def get_label(self):
         return label
 
@@ -61,7 +67,11 @@ class Network(object):
         xy: tuple: (int, int)
             user-specified x, y shape. x * y must match encoder shape
         """
-        n_neurons, dimensions = encoders.shape
+        if isinstance(encoders, tuple):
+            n_neurons, tap_list = encoders
+            dimensions = len(tap_list)
+        else:
+            n_neurons, dimensions = encoders.shape
 
         # if xy
         if xy is None:
@@ -79,7 +89,7 @@ class Network(object):
         return i
 
     def create_connection(self, label, src, dest, weights):
-
+        """Add a connection to the network"""
         if weights is not None and not isinstance(dest, bucket.Bucket):
             print("connection weights are only used when the destination node is a Bucket")
             raise NotImplementedError

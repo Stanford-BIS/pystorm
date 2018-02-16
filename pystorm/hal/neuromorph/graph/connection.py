@@ -5,6 +5,12 @@ class Connection(object):
         self.dest = dest
         self.weights = weights
 
+    def __gt__(self, connection2):
+        return self.label > connection2.label
+
+    def __repr__(self):
+        return "Connection " + self.label
+
     def reassign_weights(self, new_weights):
         # note that self.weights = new_weights will not work
         self.weights[:] = new_weights
