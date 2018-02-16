@@ -79,7 +79,7 @@ always_comb
 
     READY_OR_PROG: begin
       next_gen_idx = 0;
-      if (unit_pulse == 1 && conf.gens_used != 0)
+      if (unit_pulse == 1) 
         next_state = UPDATE_A;
       else
         next_state = READY_OR_PROG;
