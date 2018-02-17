@@ -42,30 +42,25 @@ D.SetTimePerUpHB(upstream_hb_ns)
 # print("* Init the FIFO")
 # D.InitFIFO(0)
 print("* waiting")
-time.sleep(5)
+time.sleep(1)
 
-# print("* initalize PAT")
-# D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
+print("* initalize PAT")
+D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
 print("* initalize TAT0")
 D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT0Entries()  , 0);
-# time.sleep(1)
-# print(D.GetFPGATime())
-# time.sleep(1)
-# print(D.GetFPGATime())
-# time.sleep(1)
-# print(D.GetFPGATime())
-print("* waiting 2")
-time.sleep(3)
-# print(D.GetDefaultTAT0Entries())
-# print(D.DumpMem(0, bd.bdpars.BDMemId.TAT0))
-# print("* initalize TAT1")
-# D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
-# print("* initalize MM")
-# D.SetMem(0 , bd.bdpars.BDMemId.MM  , D.GetDefaultMMEntries()  , 0);
-# print("* initalize AM")
-# D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()[0:10]  , 0);
+print("* initalize TAT1")
+D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
+print("* initalize MM")
+D.SetMem(0 , bd.bdpars.BDMemId.MM  , D.GetDefaultMMEntries()  , 0);
+print("* initalize AM")
+D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
 
-time.sleep(1)
+# print("* waiting 2")
+# time.sleep(1)
+# print(D.GetDefaultMMEntries())
+# print(D.DumpMem(0, bd.bdpars.BDMemId.MM))
+
+time.sleep(5)
 
 print("* stopping driver")
 D.Stop();

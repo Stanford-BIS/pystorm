@@ -1335,10 +1335,10 @@ void Driver::SendToEP(unsigned int core_id,
         payloads[1] = GetField(it, THREEFPGAPAYLOADS::W1);
         payloads[2] = GetField(it, THREEFPGAPAYLOADS::W2);
 
-        std::bitset<20> b0(payloads[0]);
-        std::bitset<20> b1(payloads[1]);
-        std::bitset<20> b2(payloads[2]);
-        cout << "serial " << b2 <<" " << b1<<" " << b0 << endl;
+        // std::bitset<20> b0(payloads[0]);
+        // std::bitset<20> b1(payloads[1]);
+        // std::bitset<20> b2(payloads[2]);
+        // cout << "serial " << b2 <<" " << b1<<" " << b0 << endl;
       } else {
         assert(false && "not implemented: no BD EP word has FPGA serialization != 1x, 2x or 3x");
       }

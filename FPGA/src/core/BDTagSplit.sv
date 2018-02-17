@@ -8,7 +8,7 @@
 // all other outputs 
 module BDTagSplit #(
   parameter NBDdata_in = 34,
-  parameter Nglobal = 12,
+  parameter Nglobal = 8,
   parameter Ntag = 11,
   parameter Nct = 9,
   parameter GO_HOME_rt = -32) (
@@ -39,7 +39,7 @@ assign is_tag = (BD_in.leaf_code == RO_ACC_code) | (BD_in.leaf_code == RO_TAT_co
 
 //check global tag value for go home (also check valid)
 logic send_to_global_tag;
-assign send_to_global_tag = BD_in.v & is_tag & (global_tag != GO_HOME_rt);
+assign send_to_global_tag = BD_in.v & is_tag & ($signed(global_tag) != GO_HOME_rt);
 
 //use settings to determine other_out behavior
 logic send_to_other_out;

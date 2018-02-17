@@ -59,7 +59,7 @@ module Core #(
 // common parameters (in/out names relative to FPGA)
 localparam Ntag = 11;
 localparam Nct = 9;
-localparam Nglobal = 12;
+localparam Nglobal = 8;
 
 localparam NBDdata_in = 34;
 localparam NBDdata_out = 21;
