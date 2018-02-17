@@ -5,7 +5,7 @@ import sys
 
 D = bd.Driver()
 
-D.SetOKBitFile("../../FPGA/quartus/output_files/OKCoreBD.rbf")
+D.SetOKBitFile("../../FPGA/quartus/output_files/BZ_host_core.rbf")
 
 comm_state = D.Start()
 if (comm_state < 0):
@@ -14,11 +14,6 @@ if (comm_state < 0):
 
 # print("* FPGA init")
 # D.InitFPGA()
-# print(D.GetFPGATime())
-# time.sleep(1)
-# print(D.GetFPGATime())
-# time.sleep(1)
-# print(D.GetFPGATime())
 
 print("* Resetting BD")
 D.ResetBD()
@@ -29,6 +24,14 @@ upstream_hb_ns=10000000
 print("* Setting FPGA time units")
 D.SetTimeUnitLen(time_unit_ns)
 D.SetTimePerUpHB(upstream_hb_ns)
+
+print("* Check FPGA time")
+time.sleep(1)
+print(D.GetFPGATime())
+time.sleep(1)
+print(D.GetFPGATime())
+time.sleep(1)
+print(D.GetFPGATime())
 
 # print("* Disable tag & spike traffic")
 # D.SetTagTrafficState(0, False, False)
@@ -46,19 +49,19 @@ time.sleep(1)
 
 print("* initalize PAT")
 D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
-print("* initalize TAT0")
-D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT0Entries()  , 0);
-print("* initalize TAT1")
-D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
-print("* initalize MM")
-D.SetMem(0 , bd.bdpars.BDMemId.MM  , D.GetDefaultMMEntries()  , 0);
-print("* initalize AM")
-D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
+# print("* initalize TAT0")
+# D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT0Entries()  , 0);
+# print("* initalize TAT1")
+# D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
+# print("* initalize MM")
+# D.SetMem(0 , bd.bdpars.BDMemId.MM  , D.GetDefaultMMEntries()  , 0);
+# print("* initalize AM")
+# D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
 
-# print("* waiting 2")
-# time.sleep(1)
-# print(D.GetDefaultMMEntries())
-# print(D.DumpMem(0, bd.bdpars.BDMemId.MM))
+print("* waiting 2")
+time.sleep(1)
+print(D.GetDefaultPATEntries())
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 
 time.sleep(5)
 

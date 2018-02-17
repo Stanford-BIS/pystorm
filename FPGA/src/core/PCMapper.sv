@@ -8,7 +8,7 @@
   `define HB_DEFAULT 10
 `else
   `define TIME_UNIT_DEFAULT 10000
-  `define HB_DEFAULT 10
+  `define HB_DEFAULT 1000000000
 `endif
 
 module PCMapper #(

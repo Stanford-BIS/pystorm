@@ -180,7 +180,7 @@ BZ_deserializer deserializer (
 	.clk(bot_out_clk),
 	.reset(user_reset)
 );
-BZ_serializer serializer (
+BZ_serializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) serializer (
 	.PC_in_channel(Ser_in), //channel from the PC that has data for us
 	.is_full(~bot_ready_out), //full signal for the fifo this places stuff into
 	.data_out(bot_in), //data to write to fifo

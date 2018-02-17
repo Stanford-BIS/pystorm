@@ -95,7 +95,7 @@ inline void Encoder::FlushWords() {
 //converts the core ID to the route
 inline unsigned int Encoder::toRoute(unsigned int core_id) {
   if(bd_pars_->NumCores == 1)
-    return 0; //for one core, route is always zero
+    return 2; //THIS IS TEMPORARY, SHOULD BE 0
   return core_id+1; //for multicore system, just add 1 for now
 }
 

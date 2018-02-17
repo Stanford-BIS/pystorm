@@ -98,13 +98,13 @@ assign BD_out_clk_int=base_BD_clk;
 assign BD_in_clk_ifc=skewed_BD_clk;
 assign BD_out_clk_ifc=skewed_BD_clk;
 
-// // channels between OK ifc and core design
-// Channel #(NPCinout) PC_downstream();
-// Channel #(NPCinout + NPCroute) PC_upstream();
+// channels between OK ifc and core design
+Channel #(NPCinout) PC_downstream();
+Channel #(NPCinout + NPCroute) PC_upstream();
 
-// // channels between core design and BD ifc
-// Channel #(NBDin) BD_downstream();
-// Channel #(NBDout) BD_upstream();
+// channels between core design and BD ifc
+Channel #(NBDin) BD_downstream();
+Channel #(NBDout) BD_upstream();
 
 wire req_0, req_1;
 BrainDrizzle router_node (
@@ -157,9 +157,9 @@ tail_bit_reset gen_reset(
 Channel #(NPCinout) Des_out();
 Channel #(NPCinout) Ser_in();
 
-assign Des_out.a = Ser_in.a;
-assign Ser_in.v = Des_out.v;
-assign Ser_in.d = {5'b10000, Des_out.d[26:0]};
+// assign Des_out.a = Ser_in.a;
+// assign Ser_in.v = Des_out.v;
+// assign Ser_in.d = {5'b10000, Des_out.d[26:0]};
 
 BZ_deserializer deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
@@ -178,22 +178,22 @@ BZ_serializer serializer (
 	.reset(reset)
 );
 
-// DCChannelFIFO32 input_channel_fifo(Des_out, PC_downstream, router_clk, core_clk, reset);
-// DCChannelFIFO42 output_channel_fifo(PC_upstream, Ser_in, core_clk, router_clk, reset);
+DCChannelFIFO32 input_channel_fifo(Des_out, PC_downstream, router_clk, core_clk, reset);
+DCChannelFIFO42 output_channel_fifo(PC_upstream, Ser_in, core_clk, router_clk, reset);
 
-// // core design
-// Core core(
-//   .PC_out(PC_upstream),
-//   .PC_in(PC_downstream),
-//   .BD_out(BD_downstream),
-//   .BD_in(BD_upstream),
-//   .pReset(pReset),
-//   .sReset(sReset),
-//   .adc0(adc0),
-//   .adc1(adc1),
-//   .clk(core_clk),
-//   .reset(reset)
-//   );
+// core design
+Core core(
+  .PC_out(PC_upstream),
+  .PC_in(PC_downstream),
+  .BD_out(BD_downstream),
+  .BD_in(BD_upstream),
+  .pReset(pReset),
+  .sReset(sReset),
+  .adc0(adc0),
+  .adc1(adc1),
+  .clk(core_clk),
+  .reset(reset)
+  );
 
 //ADD NEW BDCLKGEN WHICH TAKES IN 50 MHz and generates 200 MHz, 100MHz, and 2 BD clks
 stack_BDIO_PLL stack_clockgen(
@@ -208,20 +208,20 @@ stack_BDIO_PLL stack_clockgen(
 assign top_out_clk = transmit_clk;
 assign bot_out_clk = transmit_clk;
 
-// // BD handshakers and FIFOs
-// BDIfc BD_ifc(
-//   .core_up(BD_upstream),
-//   .core_dn(BD_downstream),
-//   .BD_out_ready(BD_out_ready),
-//   .BD_out_valid(BD_out_valid),
-//   .BD_out_data(BD_out_data),
-//   .BD_in_ready(BD_in_ready),
-//   .BD_in_valid(BD_in_valid),
-//   .BD_in_data(BD_in_data),
-//   .core_clk(core_clk),
-//   .BD_in_clk_int(BD_in_clk_int),
-//   .BD_out_clk_int(BD_out_clk_int),
-//   .reset(reset)//NEW RESET STUFF
-// );
+// BD handshakers and FIFOs
+BDIfc BD_ifc(
+  .core_up(BD_upstream),
+  .core_dn(BD_downstream),
+  .BD_out_ready(BD_out_ready),
+  .BD_out_valid(BD_out_valid),
+  .BD_out_data(BD_out_data),
+  .BD_in_ready(BD_in_ready),
+  .BD_in_valid(BD_in_valid),
+  .BD_in_data(BD_in_data),
+  .core_clk(core_clk),
+  .BD_in_clk_int(BD_in_clk_int),
+  .BD_out_clk_int(BD_out_clk_int),
+  .reset(reset)//NEW RESET STUFF
+);
 
 endmodule
