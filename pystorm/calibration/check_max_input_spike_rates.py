@@ -366,10 +366,20 @@ def test_custom_rates(net_input, gen_rates, rate_syn):
 
     return total_rates, overflows
 
-def build_net_1d():
-    """Build a network for testing"""
+def build_net_1d(clip_rate, rate_group):
+    """Build a network with 1 spike generator for testing
+
+    Parameters
+    ----------
+    clip_rate: float
+        only target synapses capable of receiving at least clip_rate input
+    rate_group: dict {float rate: SynGroup syn_group}
+    """
     encoder_dim = 1
-    tap_matrix_syn = np.ones((SYN_N, encoder_dim))
+    tap_matrix_syn = np.zeros((SYN_N, encoder_dim))
+    for rate in rate_group:
+        if rate >= clip_rate:
+            tap_matrix_syn[rate_group[rate].idxs] = 1
     tap_matrix_soma = np.zeros((NRN_N, encoder_dim)) # tap matrix in soma address space
     soma_idxs = syn_to_soma_addr(SYN_N)
     tap_matrix_soma[soma_idxs] = tap_matrix_syn
@@ -381,36 +391,50 @@ def build_net_1d():
     set_analog()
     return net_input
 
-def test_1d(net_input, gen_rates, recv_data):
-    """Test the 1D pool"""
+def find_max_rate(net_input, gen_rates, init_rate):
+    """Find where FIFO starts overflowing"""
+    idx = compute_init_rate_idx(gen_rates, init_rate)
+
     test_rates = []
-    total_rates = []
     overflows = []
 
-    idx = compute_init_rate_idx(gen_rates, np.min(list(recv_data.rate_group))) - 1
     rate = gen_rates[idx]
     test_rates.append(rate)
-    total_rates.append(rate*recv_data.syn_n)
     overflows.append(toggle_input_rates(net_input, [gen_rates[idx]]))
 
     if overflows[0] > 0:
+        rate = gen_rates[idx+1]
+        test_rates.append(rate)
+        overflows.append(toggle_input_rates(net_input, [rate]))
         while overflows[-1] > 0 or len(overflows) < 5:
             idx -= 1
             rate = gen_rates[idx]
             test_rates.append(rate)
-            total_rates.append(rate*recv_data.syn_n)
-            overflows.append(toggle_input_rates(net_input, [gen_rates[idx]]))
+            overflows.append(toggle_input_rates(net_input, [rate]))
     elif overflows[0] == 0:
+        rate = gen_rates[idx-1]
+        test_rates.append(rate)
+        overflows.append(toggle_input_rates(net_input, [rate]))
         while overflows[-1] == 0 or len(overflows) < 5:
             idx += 1
             rate = gen_rates[idx]
             test_rates.append(rate)
-            total_rates.append(rate*recv_data.syn_n)
-            overflows.append(toggle_input_rates(net_input, [gen_rates[idx]]))
+            overflows.append(toggle_input_rates(net_input, [rate]))
 
     test_rates = np.array(test_rates)
-    total_rates = np.array(total_rates)
     overflows = np.array(overflows)
+
+    sort_idx = np.argsort(test_rates)
+    test_rates = test_rates[sort_idx]
+    overflows = overflows[sort_idx]
+    return test_rates, overflows
+
+def test_1d(gen_rates, recv_data):
+    """Test 1D pools"""
+    net_input = build_net_1d(0, recv_data.rate_group)
+    test_rates, overflows = find_max_rate(net_input, gen_rates, np.min(list(recv_data.rate_group)))
+    total_rates = test_rates * recv_data.syn_n
+
     measured_max_rate = np.max(total_rates[overflows == 0])
     fig, ax = plt.subplots()
     ax.axhline(0, color='k', linewidth=1)
@@ -436,8 +460,7 @@ def test_receiver():
     gen_rates, _ = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
     recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
 
-    net_input = build_net_1d()
-    test_1d(net_input, gen_rates, recv_data)
+    test_1d(gen_rates, recv_data)
 
     # net_input = build_net_grouped_syn(rate_syn)
     # group_data = test_syn_groups(net_input, gen_rates, rate_syn)
