@@ -6,12 +6,16 @@ the receiver with as much traffic as possible
 """
 import os
 from time import sleep
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import pickle
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
+
+from utils import load_txt_data
 
 CORE = 0
 NRN_N = 4096
@@ -47,6 +51,14 @@ def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
 def compute_init_rate_idx(gen_rates, init_rate):
     """Compute the initial spike generator rate to test"""
     return np.argmin(np.abs(gen_rates - init_rate))
+
+def parse_args():
+    """Parse command line arguments"""
+    parser = argparse.ArgumentParser(
+        description='Characterize the max input spike rate to the synapses')
+    parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
+    args = parser.parse_args()
+    return args
 
 def plot_input_rates(gen_rates, recv_data):
     """Plot the possible input rates and receiver traffic"""
@@ -321,7 +333,7 @@ def test_syn_groups(net_input, gen_rates, rate_syn):
 
     return rate_data
 
-def clip_rates(test_rate, rate_syn):
+def clip_input_rates(test_rate, rate_syn):
     """Clip the test rate to rates synapses can handle"""
     applied_rates = np.zeros(len(rate_syn))
     for dim, rate in enumerate(sorted(rate_syn)):
@@ -347,7 +359,7 @@ def test_custom_rates(net_input, gen_rates, rate_syn):
     n_syns = np.array(list(map(lambda x: len(rate_syn[x]), sorted(rate_syn))))
     print("\nTesting rates around synapse max consumption rates\n{}".format(test_rates))
     for idx, test_rate in enumerate(test_rates):
-        input_rates = clip_rates(test_rate, rate_syn)
+        input_rates = clip_input_rates(test_rate, rate_syn)
         total_rates[idx] = np.sum(input_rates*n_syns)
         overflows[idx] = toggle_input_rates(net_input, input_rates)
 
@@ -436,38 +448,56 @@ def find_max_rate(net_input, gen_rates, init_rate):
 def test_1d(gen_rates, recv_data):
     """Test 1D pools"""
     net_input = build_net_1d(0, recv_data.rate_group)
-    test_rates_low, overflows_low = find_max_rate(
+    min_test_rates, min_overflows = find_max_rate(
         net_input, gen_rates, np.min(list(recv_data.rate_group)))
-    total_rates_low = test_rates_low * recv_data.syn_n
-    measured_max_rate_low = np.max(total_rates_low[overflows_low == 0])
+    min_total_rates = min_test_rates * recv_data.syn_n
 
     net_input = build_net_1d(recv_data.clipped_max_rate, recv_data.rate_group)
-    test_rates_high, overflows_high = find_max_rate(
+    clip_test_rates, clip_overflows = find_max_rate(
         net_input, gen_rates, recv_data.clipped_max_rate)
-    total_rates_high = test_rates_high * recv_data.clipped_syn_n
-    measured_max_rate_high = np.max(total_rates_high[overflows_high == 0])
+    clip_total_rates = clip_test_rates * recv_data.clipped_syn_n
+    return min_total_rates, min_overflows, clip_total_rates, clip_overflows
 
+def plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows):
+    """Plot the data from test_1d"""
     fig, ax = plt.subplots()
     ax.axhline(0, color='k', linewidth=1)
     min_max_line = ax.axvline(recv_data.min_max_total_rate*1E-6, linewidth=1)
     clip_max_line = ax.axvline(recv_data.clipped_max_total_rate*1E-6, linewidth=1)
-    min_line = ax.plot(total_rates_low*1E-6, overflows_low, '-o', label="target all syn")[0]
-    clip_line = ax.plot(total_rates_high*1E-6, overflows_high, '-o', label="without slow syn")[0]
+    min_line = ax.plot(min_rates*1E-6, min_overflows, '-o', label="target all syn")[0]
+    clip_line = ax.plot(clip_rates*1E-6, clip_overflows, '-o', label="without slow syn")[0]
     min_max_line.set_color(min_line.get_color())
     clip_max_line.set_color(clip_line.get_color())
     ax.set_xlabel("Total Input Rate (Mspks/s)")
     ax.set_ylabel("Overflow Count")
     ax.legend(loc="best")
     ax.set_title("1 Spike Generator\nMax 0-Overflow Input Rate {:.1f} Mspks/s".format(
-        np.max(total_rates_high[overflows_high == 0])*1E-6))
+        np.max(clip_rates[clip_overflows == 0])*1E-6))
     fig.savefig(DATA_DIR + "test_1d_rates.pdf")
 
-def test_receiver():
+def test_receiver(parsed_args):
     """Run the test"""
-    gen_rates, _ = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
-    recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
+    use_saved_data = parsed_args.use_saved_data
+    if use_saved_data:
+        with open(DATA_DIR + "recv_data.p", "rb") as recv_file:
+            recv_data = pickle.load(recv_file)
+        min_rates = load_txt_data(DATA_DIR + "min_rates.txt")
+        min_overflows = load_txt_data(DATA_DIR + "min_overflows.txt")
+        clip_rates = load_txt_data(DATA_DIR + "clip_rates.txt")
+        clip_overflows  = load_txt_data(DATA_DIR + "clip_overflows.txt")
+    else:
+        gen_rates, _ = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
+        recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
+        min_rates, min_overflows, clip_rates, clip_overflows = test_1d(gen_rates, recv_data)
 
-    test_1d(gen_rates, recv_data)
+        with open(DATA_DIR + "recv_data.p", "wb") as recv_file:
+            pickle.dump(recv_data, recv_file)
+        np.savetxt(DATA_DIR + "min_rates.txt", min_rates)
+        np.savetxt(DATA_DIR + "min_overflows.txt", min_overflows)
+        np.savetxt(DATA_DIR + "clip_rates.txt", clip_rates)
+        np.savetxt(DATA_DIR + "clip_overflows.txt", clip_overflows)
+
+    plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows)
 
     # net_input = build_net_grouped_syn(rate_syn)
     # group_data = test_syn_groups(net_input, gen_rates, rate_syn)
@@ -478,4 +508,4 @@ def test_receiver():
     plt.show()
 
 if __name__ == "__main__":
-    test_receiver()
+    test_receiver(parse_args())
