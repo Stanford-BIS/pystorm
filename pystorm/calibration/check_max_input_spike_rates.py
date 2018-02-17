@@ -9,13 +9,12 @@ from time import sleep
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-import pickle
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_txt_data
+from utils import load_txt_data, load_pickle_data, save_pickle_data
 
 CORE = 0
 NRN_N = 4096
@@ -471,7 +470,7 @@ def plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows
     ax.set_xlabel("Total Input Rate (Mspks/s)")
     ax.set_ylabel("Overflow Count")
     ax.legend(loc="best")
-    ax.set_title("1 Spike Generator\nMax 0-Overflow Input Rate {:.1f} Mspks/s".format(
+    ax.set_title("1 Spike Generator\nMax Observed 0-Overflow Input Rate {:.1f} Mspks/s".format(
         np.max(clip_rates[clip_overflows == 0])*1E-6))
     fig.savefig(DATA_DIR + "test_1d_rates.pdf")
 
@@ -479,8 +478,7 @@ def test_receiver(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        with open(DATA_DIR + "recv_data.p", "rb") as recv_file:
-            recv_data = pickle.load(recv_file)
+        recv_data = load_pickle_data(DATA_DIR + "recv_data.p")
         min_rates = load_txt_data(DATA_DIR + "min_rates.txt")
         min_overflows = load_txt_data(DATA_DIR + "min_overflows.txt")
         clip_rates = load_txt_data(DATA_DIR + "clip_rates.txt")
@@ -490,8 +488,7 @@ def test_receiver(parsed_args):
         recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
         min_rates, min_overflows, clip_rates, clip_overflows = test_1d(gen_rates, recv_data)
 
-        with open(DATA_DIR + "recv_data.p", "wb") as recv_file:
-            pickle.dump(recv_data, recv_file)
+        save_pickle_data(DATA_DIR + "recv_data.p", recv_data)
         np.savetxt(DATA_DIR + "min_rates.txt", min_rates)
         np.savetxt(DATA_DIR + "min_overflows.txt", min_overflows)
         np.savetxt(DATA_DIR + "clip_rates.txt", clip_rates)
