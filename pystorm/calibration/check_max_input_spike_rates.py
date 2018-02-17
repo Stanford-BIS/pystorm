@@ -112,11 +112,15 @@ class RecvData(object):
             for rate in rate_group:
                 if rate >= min_max_rate:
                     clipped_max_total_rates[idx] += rate_group[rate].syn_n * min_max_rate
-        self.clipped_max_total_rate = np.max(clipped_max_total_rates)
+        clipped_max_idx = np.argmax(clipped_max_total_rates)
+        self.clipped_max_total_rate = clipped_max_total_rates[clipped_max_idx]
+        self.clipped_max_rate = list(sorted(rate_group))[clipped_max_idx]
 
         self.syn_max_gen_rate = np.zeros(self.syn_n)
         for rate in rate_group:
             self.syn_max_gen_rate[rate_group[rate].idxs] = rate
+
+        self.clipped_syn_n = np.sum(self.syn_max_gen_rate >= self.clipped_max_rate)
 
 class SynGroup(object):
     """Group of synapses sharing the same max spike generator rate"""
@@ -432,28 +436,31 @@ def find_max_rate(net_input, gen_rates, init_rate):
 def test_1d(gen_rates, recv_data):
     """Test 1D pools"""
     net_input = build_net_1d(0, recv_data.rate_group)
-    test_rates, overflows = find_max_rate(net_input, gen_rates, np.min(list(recv_data.rate_group)))
-    total_rates = test_rates * recv_data.syn_n
+    test_rates_low, overflows_low = find_max_rate(
+        net_input, gen_rates, np.min(list(recv_data.rate_group)))
+    total_rates_low = test_rates_low * recv_data.syn_n
+    measured_max_rate_low = np.max(total_rates_low[overflows_low == 0])
 
-    measured_max_rate = np.max(total_rates[overflows == 0])
+    net_input = build_net_1d(recv_data.clipped_max_rate, recv_data.rate_group)
+    test_rates_high, overflows_high = find_max_rate(
+        net_input, gen_rates, recv_data.clipped_max_rate)
+    total_rates_high = test_rates_high * recv_data.clipped_syn_n
+    measured_max_rate_high = np.max(total_rates_high[overflows_high == 0])
+
     fig, ax = plt.subplots()
     ax.axhline(0, color='k', linewidth=1)
-    ax.axvline(recv_data.min_max_total_rate*1E-6, color='b', alpha=0.5, linewidth=1,
-               label="this experiment")
-    ax.axvline(recv_data.clipped_max_total_rate*1E-6, color='r', alpha=0.5, linewidth=1,
-               label="tailoring rates to synapses")
-    ax.plot(total_rates*1E-6, overflows, '-o')
+    min_max_line = ax.axvline(recv_data.min_max_total_rate*1E-6, linewidth=1)
+    clip_max_line = ax.axvline(recv_data.clipped_max_total_rate*1E-6, linewidth=1)
+    min_line = ax.plot(total_rates_low*1E-6, overflows_low, '-o', label="target all syn")[0]
+    clip_line = ax.plot(total_rates_high*1E-6, overflows_high, '-o', label="without slow syn")[0]
+    min_max_line.set_color(min_line.get_color())
+    clip_max_line.set_color(clip_line.get_color())
     ax.set_xlabel("Total Input Rate (Mspks/s)")
     ax.set_ylabel("Overflow Count")
-    ax.legend(title="Predicted Max Input Rates", loc="upper center")
-    ax.set_title(
-        "1 Spike Generator Targeting All Synapses\n" +
-        "Predicted (Measured) Max Input Rate {:.1f} ({:.1f}) Mspks/s".format(
-            recv_data.min_max_total_rate*1E-6, measured_max_rate*1E-6)
-        )
+    ax.legend(loc="best")
+    ax.set_title("1 Spike Generator\nMax 0-Overflow Input Rate {:.1f} Mspks/s".format(
+        np.max(total_rates_high[overflows_high == 0])*1E-6))
     fig.savefig(DATA_DIR + "test_1d_rates.pdf")
-
-    return total_rates, overflows
 
 def test_receiver():
     """Run the test"""
