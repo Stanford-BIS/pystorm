@@ -14,7 +14,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_txt_data, load_pickle_data, save_pickle_data
+from utils import load_pickle_data, save_pickle_data
 
 CORE = 0
 NRN_N = 4096
@@ -29,6 +29,7 @@ if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
 
 SYN_MAX_RATE_FILE = DATA_DIR + "max_rates.txt"
+SYN_MAX_RATE_TOL = 0.01
 
 SYN_PD_PU = 1024 # analog bias setting
 
@@ -190,7 +191,7 @@ def compute_receiver_rates(gen_rates, syn_max_rate_file):
     max_syn_rates = np.loadtxt(syn_max_rate_file)
     syn_spike_gen_rates = np.zeros(max_syn_rates.shape)
     for rate in gen_rates:
-        syn_idxs = max_syn_rates > rate
+        syn_idxs = max_syn_rates > rate + rate*SYN_MAX_RATE_TOL
         syn_spike_gen_rates[syn_idxs] = rate
     rate_syn = make_tat_compatible(syn_spike_gen_rates)
     rate_group = {}
@@ -224,35 +225,74 @@ def syn_to_soma_addr(syn_n):
         soma_syn_addrs[syn_idx] = soma_y*sqrt_soma_n + soma_x
     return soma_syn_addrs
 
-def build_net_grouped_syn(rate_syn):
-    """Build a network for testing"""
-    syn_n = 0
-    encoder_dim = 0
-    for rate in rate_syn.keys():
-        syn_n += len(rate_syn[rate])
-        encoder_dim += 1
-    tap_matrix_syn = np.zeros((syn_n, encoder_dim))
-    for rate_idx, rate in enumerate(sorted(rate_syn.keys())):
-        syns = rate_syn[rate]
-        for syn in syns:
-            tap_matrix_syn[syn, rate_idx] = 1
-    tap_matrix_soma = np.zeros((NRN_N, encoder_dim)) # tap matrix in soma address space
-    sqrt_syn_n = int(np.round(np.sqrt(syn_n)))
-    sqrt_soma_n = int(np.round(np.sqrt(NRN_N)))
-    # print("syn         soma      encoders")
-    # print(" idx  x  y  idx  x  y")
-    for syn_idx in range(syn_n):
-        syn_x = syn_idx % sqrt_syn_n
-        syn_y = syn_idx // sqrt_syn_n
-        soma_x = syn_x * 2
-        soma_y = syn_y * 2
-        soma_idx = soma_y*sqrt_soma_n + soma_x
-        # print("{:04d} {:02d} {:02d} {:04d} {:02d} {:02d} {}".format(
-        #     syn_idx, syn_x, syn_y, soma_idx, soma_x, soma_y, tap_matrix_syn[syn_idx]))
-        tap_matrix_soma[soma_idx] = tap_matrix_syn[syn_idx]
+def find_max_rate(net_input, gen_rates, init_rate, update_idxs=None):
+    """Find where FIFO starts overflowing
 
-    np.savetxt(DATA_DIR + "tap_matrix_syn.txt", tap_matrix_syn, "%.0f")
-    np.savetxt(DATA_DIR + "tap_matrix_soma.txt", tap_matrix_soma, "%.0f")
+    Parameters
+    ----------
+    net_input: hal neuormorph Input object
+    gen_rates: array of possible spike generator rates
+    init_rate: desired initial rate to test
+        actual initial rate with be closest rate in gen_rates to init_rate
+    update_idxs: array indices indicating which dimension(s) to update
+    """
+    if isinstance(update_idxs, int):
+        update_idxs = np.array([update_idxs])
+    elif not update_idxs:
+        update_idxs = np.arange(net_input.dimensions)
+    rates = np.zeros(net_input.dimensions, dtype=int)
+
+    base_rates = []
+    test_rates = []
+    overflows = []
+
+    idx = compute_init_rate_idx(gen_rates, init_rate)
+    base_rates.append(gen_rates[idx])
+    rates[update_idxs] = base_rates[-1]
+    test_rates.append(rates.copy())
+    overflows.append(toggle_input_rates(net_input, rates))
+
+    if overflows[0] > 0:
+        base_rates.append(gen_rates[idx+1])
+        rates[update_idxs] = base_rates[-1]
+        test_rates.append(rates.copy())
+        overflows.append(toggle_input_rates(net_input, rates))
+        while overflows[-1] > 0 or len(overflows) < 5:
+            idx -= 1
+            base_rates.append(gen_rates[idx])
+            rates[update_idxs] = base_rates[-1]
+            test_rates.append(rates.copy())
+            overflows.append(toggle_input_rates(net_input, rates))
+    elif overflows[0] == 0:
+        base_rates.append(gen_rates[idx-1])
+        rates[update_idxs] = base_rates[-1]
+        test_rates.append(rates.copy())
+        overflows.append(toggle_input_rates(net_input, rates))
+        while overflows[-1] == 0 or len(overflows) < 5:
+            idx += 1
+            base_rates.append(gen_rates[idx])
+            rates[update_idxs] = base_rates[-1]
+            test_rates.append(rates.copy())
+            overflows.append(toggle_input_rates(net_input, rates))
+
+    test_rates = np.array(test_rates)
+    overflows = np.array(overflows)
+
+    sort_idx = np.argsort(base_rates)
+    for dim in range(net_input.dimensions):
+        test_rates[:, dim] = test_rates[:, dim][sort_idx]
+    overflows = overflows[sort_idx]
+    return test_rates, overflows
+
+def build_net_group(recv_data):
+    """Build a network for testing"""
+    encoder_dim = len(recv_data.rate_group)
+    tap_matrix_syn = np.zeros((SYN_N, encoder_dim))
+    for rate_idx, rate in enumerate(sorted(recv_data.rate_group)):
+        tap_matrix_syn[recv_data.rate_group[rate].idxs, rate_idx] = 1
+    tap_matrix_soma = np.zeros((NRN_N, encoder_dim)) # tap matrix in soma address space
+    soma_idxs = syn_to_soma_addr(SYN_N)
+    tap_matrix_soma[soma_idxs] = tap_matrix_syn
     net = graph.Network("net")
     net_pool = net.create_pool("p", tap_matrix_soma)
     net_input = net.create_input("i", encoder_dim)
@@ -270,67 +310,59 @@ def clear_overflow():
 
 def toggle_input_rates(net_input, rates):
     """Toggle the spike generator and check for overflow"""
-    print("Applying input rates {}".format(rates))
     clear_overflow()
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
-    for dim, rate in enumerate(rates):
-        HAL.set_input_rate(net_input, dim, int(rate), time=0, flush=True)
+    net_inputs = [net_input for _ in rates]
+    dims = [dim for dim in range(len(rates))]
+    HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
     sleep(RUN_TIME)
-    for dim, _ in enumerate(rates):
-        HAL.set_input_rate(net_input, dim, 0, time=0, flush=True)
+    HAL.set_input_rates(net_inputs, dims, [0 for _ in rates], time=0, flush=True)
     HAL.flush()
     sleep(INTER_RUN_TIME)
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
     overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    print("\toverflow {}".format(overflow))
+    print("Applied input rates {} overflow {}".format(rates, overflow))
     return overflow
 
-def test_syn_groups(net_input, gen_rates, rate_syn):
+def test_group(gen_rates, recv_data):
     """Test the synapses as clustered by their quantized max rates
 
-    Returns a dictionary
-    max_rate : R x 3 array
-        for each rate R, record R, the total input rate, and the overflow count
+    Returns
+    -------
+    {max_rate: (test_rates, overflows)}
     """
+    net_input = build_net_group(recv_data)
+
     rate_data = {} # return data
-    for max_rate_idx, max_rate in enumerate(rate_syn):
-        syn_n = len(rate_syn[max_rate])
-        # input_rates = np.zeros(len(rate_syn))
-        input_rates = np.ones(len(rate_syn))
-        idxs = np.logical_and(
-            gen_rates <= max_rate * 4,
-            gen_rates >= max_rate / 2)
-        test_rates = gen_rates[idxs]
-        print("\nTesting rates within consumption rates of single synapse cluster\n{}".format(
-            test_rates))
-        rate_data[max_rate] = np.zeros((len(test_rates), 3))
-        for test_idx, test_rate in enumerate(test_rates):
-            input_rates[max_rate_idx] = test_rate
-            total_rate = test_rate * syn_n
-            overflow = toggle_input_rates(net_input, input_rates)
-            rate_data[max_rate][test_idx, 0] = test_rate
-            rate_data[max_rate][test_idx, 1] = total_rate
-            rate_data[max_rate][test_idx, 2] = overflow
+    for rate_idx, max_rate in enumerate(recv_data.rate_group):
+        test_rates, overflows = find_max_rate(
+            net_input, gen_rates, max_rate, update_idxs=rate_idx)
+        rate_data[max_rate] = (test_rates[:, rate_idx], overflows)
+    return rate_data
 
-    fig, axs = plt.subplots(nrows=2)
-    for max_rate in sorted(rate_data):
-        input_rates = rate_data[max_rate][:, 0]
-        total_rates = rate_data[max_rate][:, 1]
-        overflows = rate_data[max_rate][:, 2]
+def plot_test_group(recv_data, test_group_data):
+    """Plot the data from test_groups"""
+    fig, axs = plt.subplots(nrows=2, figsize=(8, 9))
+    axs[0].axhline(0, color='k', linewidth=0.5)
+    axs[1].axhline(0, color='k', linewidth=0.5)
+    axs[1].axvline(recv_data.min_max_total_rate*1E-6, color='k', linewidth=0.5)
+    axs[1].axvline(recv_data.clipped_max_total_rate*1E-6, color='k', linewidth=0.5)
+    for rate in sorted(recv_data.rate_group):
+        input_rates = test_group_data[rate][0]
+        overflows = test_group_data[rate][1]
+        total_rates = input_rates * recv_data.rate_group[rate].syn_n
 
-        total_rates_mhz = total_rates * 1E-6
-        line = axs[0].plot(input_rates, overflows, '-o')[0]
-        axs[0].axvline(max_rate, color=line.get_color(), linewidth=0.5)
-        axs[1].plot(total_rates_mhz, overflows, '-o')[0]
+        axvline = axs[0].axvline(rate, linewidth=0.5)
+        line = axs[0].plot(input_rates, overflows, '-o', linewidth=1)[0]
+        axvline.set_color(line.get_color())
+        axs[1].plot(total_rates*1E-6, overflows, '-o')
         axs[0].set_xlabel("Spike Generator Rate (spks/s)")
         axs[1].set_xlabel("Total Input Rate (Mspks/s)")
         axs[0].set_ylabel("Overflow Counts")
         axs[1].set_ylabel("Overflow Counts")
-    fig.savefig(DATA_DIR + "syn_group_by_group_test.pdf")
-
-    return rate_data
+    fig.savefig(DATA_DIR + "test_group.pdf")
 
 def clip_input_rates(test_rate, rate_syn):
     """Clip the test rate to rates synapses can handle"""
@@ -341,45 +373,6 @@ def clip_input_rates(test_rate, rate_syn):
         else:
             applied_rates[dim] = rate
     return applied_rates
-
-def test_custom_rates(net_input, gen_rates, rate_syn):
-    """Test input to all synapses grouped by their quantized max rates
-
-    Clip input to each groups qantized max rate as needed
-    """
-    min_max_rate = np.min(list(rate_syn))
-    max_max_rate = np.max(list(rate_syn))
-    idxs = np.logical_and(
-        gen_rates <= max_max_rate * 4,
-        gen_rates >= min_max_rate / 3)
-    test_rates = gen_rates[idxs]
-    overflows = np.zeros(len(test_rates))
-    total_rates = np.zeros(len(test_rates))
-    n_syns = np.array(list(map(lambda x: len(rate_syn[x]), sorted(rate_syn))))
-    print("\nTesting rates around synapse max consumption rates\n{}".format(test_rates))
-    for idx, test_rate in enumerate(test_rates):
-        input_rates = clip_input_rates(test_rate, rate_syn)
-        total_rates[idx] = np.sum(input_rates*n_syns)
-        overflows[idx] = toggle_input_rates(net_input, input_rates)
-
-    min_total_rate = np.sum(np.min(list(rate_syn)) * n_syns)
-    max_total_rate = np.sum(np.array(sorted(rate_syn.keys()))*n_syns)
-
-    total_rates_mhz = total_rates * 1E-6
-    min_total_rate_mhz = min_total_rate * 1E-6
-    max_total_rate_mhz = max_total_rate * 1E-6
-    fig, ax = plt.subplots()
-    ax.axvline(min_total_rate_mhz, color='k', linewidth=1, label="{:.1f}".format(
-        min_total_rate_mhz))
-    ax.axvline(max_total_rate_mhz, color='r', linewidth=1, label="{:.1f}".format(
-        max_total_rate_mhz))
-    ax.plot(total_rates_mhz, overflows, '-o')
-    ax.set_xlabel("Total Input Rate (Mspks/s)")
-    ax.set_ylabel("Overflow Count")
-    ax.legend()
-    fig.savefig(DATA_DIR + "custom_rates_test.pdf")
-
-    return total_rates, overflows
 
 def build_net_1d(clip_rate, rate_group):
     """Build a network with 1 spike generator for testing
@@ -406,44 +399,6 @@ def build_net_1d(clip_rate, rate_group):
     set_analog()
     return net_input
 
-def find_max_rate(net_input, gen_rates, init_rate):
-    """Find where FIFO starts overflowing"""
-    idx = compute_init_rate_idx(gen_rates, init_rate)
-
-    test_rates = []
-    overflows = []
-
-    rate = gen_rates[idx]
-    test_rates.append(rate)
-    overflows.append(toggle_input_rates(net_input, [gen_rates[idx]]))
-
-    if overflows[0] > 0:
-        rate = gen_rates[idx+1]
-        test_rates.append(rate)
-        overflows.append(toggle_input_rates(net_input, [rate]))
-        while overflows[-1] > 0 or len(overflows) < 5:
-            idx -= 1
-            rate = gen_rates[idx]
-            test_rates.append(rate)
-            overflows.append(toggle_input_rates(net_input, [rate]))
-    elif overflows[0] == 0:
-        rate = gen_rates[idx-1]
-        test_rates.append(rate)
-        overflows.append(toggle_input_rates(net_input, [rate]))
-        while overflows[-1] == 0 or len(overflows) < 5:
-            idx += 1
-            rate = gen_rates[idx]
-            test_rates.append(rate)
-            overflows.append(toggle_input_rates(net_input, [rate]))
-
-    test_rates = np.array(test_rates)
-    overflows = np.array(overflows)
-
-    sort_idx = np.argsort(test_rates)
-    test_rates = test_rates[sort_idx]
-    overflows = overflows[sort_idx]
-    return test_rates, overflows
-
 def test_1d(gen_rates, recv_data):
     """Test 1D pools"""
     net_input = build_net_1d(0, recv_data.rate_group)
@@ -457,8 +412,9 @@ def test_1d(gen_rates, recv_data):
     clip_total_rates = clip_test_rates * recv_data.clipped_syn_n
     return min_total_rates, min_overflows, clip_total_rates, clip_overflows
 
-def plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows):
+def plot_test_1d(recv_data, test_1d_data):
     """Plot the data from test_1d"""
+    min_rates, min_overflows, clip_rates, clip_overflows = test_1d_data
     fig, ax = plt.subplots()
     ax.axhline(0, color='k', linewidth=1)
     min_max_line = ax.axvline(recv_data.min_max_total_rate*1E-6, linewidth=1)
@@ -470,39 +426,34 @@ def plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows
     ax.set_xlabel("Total Input Rate (Mspks/s)")
     ax.set_ylabel("Overflow Count")
     ax.legend(loc="best")
-    ax.set_title("1 Spike Generator\nMax Observed 0-Overflow Input Rate {:.1f} Mspks/s".format(
+    ax.set_title("1 Spike Generator\nMax Observed Zero-Overflow Input Rate {:.1f} Mspks/s".format(
         np.max(clip_rates[clip_overflows == 0])*1E-6))
-    fig.savefig(DATA_DIR + "test_1d_rates.pdf")
+    fig.savefig(DATA_DIR + "test_1d.pdf")
 
-def test_receiver(parsed_args):
+def check_max_input_spike_rates(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
         recv_data = load_pickle_data(DATA_DIR + "recv_data.p")
-        min_rates = load_txt_data(DATA_DIR + "min_rates.txt")
-        min_overflows = load_txt_data(DATA_DIR + "min_overflows.txt")
-        clip_rates = load_txt_data(DATA_DIR + "clip_rates.txt")
-        clip_overflows  = load_txt_data(DATA_DIR + "clip_overflows.txt")
+        test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
+        test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
     else:
         gen_rates, _ = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
         recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
-        min_rates, min_overflows, clip_rates, clip_overflows = test_1d(gen_rates, recv_data)
+        test_1d_data = test_1d(gen_rates, recv_data)
+        test_group_data = test_group(gen_rates, recv_data)
 
         save_pickle_data(DATA_DIR + "recv_data.p", recv_data)
-        np.savetxt(DATA_DIR + "min_rates.txt", min_rates)
-        np.savetxt(DATA_DIR + "min_overflows.txt", min_overflows)
-        np.savetxt(DATA_DIR + "clip_rates.txt", clip_rates)
-        np.savetxt(DATA_DIR + "clip_overflows.txt", clip_overflows)
+        save_pickle_data(DATA_DIR + "test_1d_data.p", test_1d_data)
+        save_pickle_data(DATA_DIR + "test_group_data.p", test_group_data)
 
-    plot_test_1d(recv_data, min_rates, min_overflows, clip_rates, clip_overflows)
+    plot_test_1d(recv_data, test_1d_data)
+    plot_test_group(recv_data, test_group_data)
 
-    # net_input = build_net_grouped_syn(rate_syn)
-    # group_data = test_syn_groups(net_input, gen_rates, rate_syn)
-    # np.save(DATA_DIR + "group_rates_data.npy", group_data)
     # clip_rate_data = test_custom_rates(net_input, gen_rates, rate_syn)
     # np.save(DATA_DIR + "clip_rates_data.npy", clip_rate_data)
 
     plt.show()
 
 if __name__ == "__main__":
-    test_receiver(parse_args())
+    check_max_input_spike_rates(parse_args())
