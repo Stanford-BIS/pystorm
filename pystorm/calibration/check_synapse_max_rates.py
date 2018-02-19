@@ -82,7 +82,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Characterize the synapse max input firing rates')
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
     parser.add_argument("-nf", action="store_true", dest="no_fit_plots",
-                        help="Skip plotting of fits. " + 
+                        help="Skip plotting of fits. " +
                         "Plotting and saving the fits of many synapses can take a long time")
     parser.add_argument("--ammend", type=str, dest="ammend_file",
                         help="Redo measurements on the synapse indices in the ammend file")
@@ -172,16 +172,21 @@ def fit_max_rates(rates, overflows):
         list of list of rates tested for each synapse
     overflows: list of list of ints
         list of list of rates tested for each synapse
+
+    Returns the max rates as estimated by the slope fit
+    as well as a conservative estimate from the highest
+    zero-overflow condition
     """
     max_rates = np.zeros(SYN_N)
     overflow_slopes = np.zeros(SYN_N)
+    max_rates_conservative = np.zeros(SYN_N)
     for syn_idx in range(SYN_N):
         syn_overflows = np.array(overflows[syn_idx])
         syn_rates = np.array(rates[syn_idx])
         nonzero_idx = syn_overflows>0
         syn_overflows = syn_overflows[nonzero_idx]
-        syn_rates = syn_rates[nonzero_idx]
-        dodrs = np.diff(syn_overflows) / np.diff(syn_rates)
+        syn_rates_nonzero = syn_rates[nonzero_idx]
+        dodrs = np.diff(syn_overflows) / np.diff(syn_rates_nonzero)
         print("\nFitting synapse {}".format(syn_idx))
         dodr_clusters = {} # {slope: [indices], ...}
         for dodr_idx, dodr in enumerate(dodrs):
@@ -200,14 +205,21 @@ def fit_max_rates(rates, overflows):
         o_idxs = [do_idxs[0]] + list(np.array(do_idxs)+1)
         print("d_overflows/d_rates {}".format(dodrs))
         print("d_overflow/d_rate clusters:\n{}".format(dodr_clusters.keys()))
-        print("overflow rates for fitting: {}".format(syn_rates[o_idxs]))
+        print("overflow rates for fitting: {}".format(syn_rates_nonzero[o_idxs]))
         print("overflows for fitting:      {}".format(syn_overflows[o_idxs]))
         y = syn_overflows[o_idxs]
-        A = np.array([syn_rates[o_idxs], np.ones(len(o_idxs))]).T
+        A = np.array([syn_rates_nonzero[o_idxs], np.ones(len(o_idxs))]).T
         x = np.dot(np.dot(np.linalg.inv(np.dot(A.T, A)), A.T), y) # x = (A_T*A)^-1*A_T*y
         overflow_slopes[syn_idx] = x[0]
         max_rates[syn_idx] = -x[1]/x[0]
-    return max_rates, overflow_slopes
+
+        # build a conservative estimate of the max rates
+        zero_idx = ~nonzero_idx
+        max_zero_overflow_rate = syn_rates[zero_idx][-1]
+        idx = SPIKE_GEN_RATES <= max_zero_overflow_rate - FIFO_BUFFER_SIZE / RUN_TIME
+        max_rates_conservative[syn_idx] = SPIKE_GEN_RATES[idx][-1]
+
+    return max_rates, overflow_slopes, max_rates_conservative
 
 def report_time_remaining(start_time, syn_idx):
     """Occasionally estimate and report the remaining time"""
@@ -218,7 +230,9 @@ def report_time_remaining(start_time, syn_idx):
         print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
             est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def plot_data(rates, overflows, max_rates_2, overflow_slopes, syn_idxs, no_fit_plots=False):
+def plot_data(
+        rates, overflows, max_rates_2, overflow_slopes,
+        max_rates_conservative_2, syn_idxs, no_fit_plots=False):
     """Plot the data"""
     syn_n = len(max_rates_2)
     max_rates_2_mean = np.mean(max_rates_2)
@@ -300,6 +314,8 @@ def plot_data(rates, overflows, max_rates_2, overflow_slopes, syn_idxs, no_fit_p
             axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates_2[syn_idx]),
                       "r", linewidth=0.7, label="fit")
             axis.axvline(max_rates_2[syn_idx], linewidth=0.5, color='k')
+            axis.axvline(max_rates_conservative_2[syn_idx], linestyle=':', linewidth=0.5,
+                         color='k')
             axis.set_ylim(ylims)
             axis.set_xlabel("Input Rate / 2 (spks/s)")
             axis.set_ylabel("FIFO Overflow Count + FIFO Depth")
@@ -318,6 +334,7 @@ def check_synapse_max_rates(parsed_args):
     if use_saved_data:
         overflows = load_npy_data(DATA_DIR + "overflows.npy")
         rates = load_npy_data(DATA_DIR + "rates.npy")
+        syn_idxs = range(SYN_N)
     else:
         if ammend_file:
             syn_idxs = load_txt_data(ammend_file, dtype=int)
@@ -347,14 +364,17 @@ def check_synapse_max_rates(parsed_args):
         np.save(DATA_DIR + "overflows.npy", overflows)
         np.save(DATA_DIR + "rates.npy", rates)
 
-    max_rates_2, overflow_slopes = fit_max_rates(rates, overflows)
+    max_rates_2, overflow_slopes, max_rates_conservative_2 = fit_max_rates(rates, overflows)
     print("\nMax input rates / 2:")
     print(max_rates_2)
     print("Min synapse spike consumption times x 2:")
     print(1./max_rates_2)
     np.savetxt(DATA_DIR + "max_rates.txt", max_rates_2*2)
+    np.savetxt(DATA_DIR + "max_rates_conservative.txt", max_rates_conservative_2*2)
 
-    plot_data(rates, overflows, max_rates_2, overflow_slopes, syn_idxs, no_fit_plots=no_fit_plots)
+    plot_data(
+        rates, overflows, max_rates_2, overflow_slopes,
+        max_rates_conservative_2, syn_idxs, no_fit_plots=no_fit_plots)
     plt.show()
 
 if __name__ == "__main__":

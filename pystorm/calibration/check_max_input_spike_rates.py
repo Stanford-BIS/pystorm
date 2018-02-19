@@ -29,7 +29,7 @@ if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
 
 SYN_MAX_RATE_FILE = DATA_DIR + "max_rates.txt"
-SYN_MAX_RATE_TOL = 0.0
+SYN_MAX_RATE_FRAC = 0.90
 
 SYN_PD_PU = 1024 # analog bias setting
 
@@ -194,7 +194,7 @@ def compute_receiver_rates(gen_rates, syn_max_rate_file):
     max_syn_rates = np.loadtxt(syn_max_rate_file)
     syn_spike_gen_rates = np.zeros(max_syn_rates.shape)
     for rate in gen_rates:
-        syn_idxs = max_syn_rates > rate + rate*SYN_MAX_RATE_TOL
+        syn_idxs = max_syn_rates*SYN_MAX_RATE_FRAC > rate
         syn_spike_gen_rates[syn_idxs] = rate
     rate_syn = make_tat_compatible(syn_spike_gen_rates)
     rate_group = {}
