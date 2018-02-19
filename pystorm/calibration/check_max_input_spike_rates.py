@@ -14,13 +14,14 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_pickle_data, save_pickle_data
+from utils.file_io import load_pickle_data, save_pickle_data
+from utils.exp import clear_overflows, compute_spike_gen_rates
 
 CORE = 0
 NRN_N = 4096
 SYN_N = 1024
 
-SPIKE_GEN_TIME_UNIT_NS = 5000 # time unit of fpga spike generator
+SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
 MIN_RATE = 1000
 MAX_RATE = 100000
 
@@ -35,21 +36,6 @@ SYN_PD_PU = 1024 # analog bias setting
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
-
-def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
-    """Compute the fpga spike generator rates between the min and max rates"""
-    max_period = 1./min_rate
-    min_period = 1./max_rate
-    spike_gen_time_unit = spike_gen_time_unit_ns*1E-9
-    max_spike_gen_time_units = max_period/spike_gen_time_unit
-    min_spike_gen_time_units = min_period/spike_gen_time_unit
-    max_spike_gen_time_units = int(np.round(max_spike_gen_time_units))
-    min_spike_gen_time_units = max(int(np.round(min_spike_gen_time_units)), 1)
-    periods_spike_gen_time_units = np.arange(
-        max_spike_gen_time_units, min_spike_gen_time_units-1, -1)
-    fpga_rates = 1./(periods_spike_gen_time_units*spike_gen_time_unit_ns*1E-9)
-    fpga_rates = np.round(fpga_rates).astype(int)
-    return fpga_rates
 
 def compute_init_rate_idx(gen_rates, init_rate):
     """Compute the initial spike generator rate to test"""
@@ -262,10 +248,13 @@ def find_max_rate(net_input, gen_rates, init_rate, update_idxs=None):
         overflows.append(toggle_input_rates(net_input, rates))
         while overflows[-1] > 0 or len(overflows) < 5:
             idx -= 1
-            base_rates.append(gen_rates[idx])
-            rates[update_idxs] = base_rates[-1]
-            test_rates.append(rates.copy())
-            overflows.append(toggle_input_rates(net_input, rates))
+            if idx >= 0:
+                base_rates.append(gen_rates[idx])
+                rates[update_idxs] = base_rates[-1]
+                test_rates.append(rates.copy())
+                overflows.append(toggle_input_rates(net_input, rates))
+            else:
+                break
     elif overflows[0] == 0:
         base_rates.append(gen_rates[idx-1])
         rates[update_idxs] = base_rates[-1]
@@ -273,10 +262,13 @@ def find_max_rate(net_input, gen_rates, init_rate, update_idxs=None):
         overflows.append(toggle_input_rates(net_input, rates))
         while overflows[-1] == 0 or len(overflows) < 5:
             idx += 1
-            base_rates.append(gen_rates[idx])
-            rates[update_idxs] = base_rates[-1]
-            test_rates.append(rates.copy())
-            overflows.append(toggle_input_rates(net_input, rates))
+            if idx < len(gen_rates):
+                base_rates.append(gen_rates[idx])
+                rates[update_idxs] = base_rates[-1]
+                test_rates.append(rates.copy())
+                overflows.append(toggle_input_rates(net_input, rates))
+            else:
+                break
 
     test_rates = np.array(test_rates)
     overflows = np.array(overflows)
@@ -304,16 +296,9 @@ def build_net_group(recv_data):
     set_analog()
     return net_input
 
-def clear_overflow():
-    """Clear any remaining overflow counts"""
-    overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    while overflow:
-        sleep(INTER_RUN_TIME)
-        overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-
 def toggle_input_rates(net_input, rates):
     """Toggle the spike generator and check for overflow"""
-    clear_overflow()
+    clear_overflows(HAL, INTER_RUN_TIME)
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
     net_inputs = [net_input for _ in rates]
@@ -441,7 +426,7 @@ def check_max_input_spike_rates(parsed_args):
         test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
         test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
     else:
-        gen_rates = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
+        gen_rates = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
         recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
         test_1d_data = test_1d(gen_rates, recv_data)
         test_group_data = test_group(gen_rates, recv_data)

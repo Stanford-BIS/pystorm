@@ -1,7 +1,7 @@
-"""Utility functions for calibration modules"""
+"""Utility functions for file IO in calibration modules"""
 import sys
-import numpy as np
 import pickle
+import numpy as np
 
 def load_txt_data(fname, dtype=None):
     """Load numpy text data from fname"""
@@ -15,7 +15,7 @@ def load_txt_data(fname, dtype=None):
         sys.exit(1)
     return data
 
-def load_npy_data(fname, dtype=None):
+def load_npy_data(fname):
     """Load numpy npy data from fname"""
     try:
         data = np.load(fname)

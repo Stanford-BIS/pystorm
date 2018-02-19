@@ -20,7 +20,8 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_npy_data, load_txt_data
+from utils.file_io import load_npy_data, load_txt_data
+from utils.exp import clear_overflows, compute_spike_gen_rates
 
 np.set_printoptions(precision=2)
 
@@ -51,22 +52,7 @@ SYN_PD_PU = 1024 # analog bias setting
 MIN_RATE = 5000 # minimum rate to test
 MAX_RATE = 100000 # maximum rate to test
 
-def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
-    """Compute the fpga spike generator rates between the min and max rates"""
-    max_period = 1./min_rate
-    min_period = 1./max_rate
-    spike_gen_time_unit = spike_gen_time_unit_ns*1E-9
-    max_spike_gen_time_units = max_period/spike_gen_time_unit
-    min_spike_gen_time_units = min_period/spike_gen_time_unit
-    max_spike_gen_time_units = int(np.round(max_spike_gen_time_units))
-    min_spike_gen_time_units = max(int(np.round(min_spike_gen_time_units)), 1)
-    periods_spike_gen_time_units = np.arange(
-        max_spike_gen_time_units, min_spike_gen_time_units-1, -1)
-    fpga_rates = 1./(periods_spike_gen_time_units*spike_gen_time_unit_ns*1E-9)
-    fpga_rates = np.round(fpga_rates).astype(int)
-    return fpga_rates
-
-SPIKE_GEN_RATES = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
+SPIKE_GEN_RATES = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
 
 DIFF_TOL = 0.05 # tolerance between overflow differences
 
@@ -127,16 +113,9 @@ def set_tat(syn_idx):
     HAL.driver.SetMem(CORE, bd.bdpars.BDMemId.TAT0, [tat_entry], TAT_START_ADDR)
     HAL.flush()
 
-def clear_overflow(inter_overflow_sample_time):
-    """Clear any remaining overflow counts"""
-    overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    while overflow:
-        sleep(inter_overflow_sample_time)
-        overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-
 def toggle_spk_generator(rate, run_sleep_time=RUN_TIME, inter_run_sleep_time=INTER_RUN_TIME):
     """Toggle the spike generator and check for overflow"""
-    clear_overflow(inter_run_sleep_time)
+    clear_overflows(HAL, inter_run_sleep_time)
     HAL.driver.SetSpikeGeneratorRates(
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [rate], time=0, flush=True)
     sleep(run_sleep_time)
