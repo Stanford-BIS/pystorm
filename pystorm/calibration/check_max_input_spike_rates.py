@@ -20,7 +20,7 @@ CORE = 0
 NRN_N = 4096
 SYN_N = 1024
 
-SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
+SPIKE_GEN_TIME_UNIT_NS = 5000 # time unit of fpga spike generator
 MIN_RATE = 1000
 MAX_RATE = 100000
 
@@ -29,7 +29,7 @@ if not os.path.isdir(DATA_DIR):
     os.makedirs(DATA_DIR, exist_ok=True)
 
 SYN_MAX_RATE_FILE = DATA_DIR + "max_rates.txt"
-SYN_MAX_RATE_TOL = 0.01
+SYN_MAX_RATE_TOL = 0.0
 
 SYN_PD_PU = 1024 # analog bias setting
 
@@ -38,15 +38,18 @@ INTER_RUN_TIME = 0.2
 
 def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     """Compute the fpga spike generator rates between the min and max rates"""
-    max_spike_gen_time_units = 1./min_rate*1E9/spike_gen_time_unit_ns
-    min_spike_gen_time_units = 1./max_rate*1E9/spike_gen_time_unit_ns
-    max_spike_gen_time_units = int(np.ceil(max_spike_gen_time_units))
-    min_spike_gen_time_units = max(int(np.floor(min_spike_gen_time_units)), 1)
+    max_period = 1./min_rate
+    min_period = 1./max_rate
+    spike_gen_time_unit = spike_gen_time_unit_ns*1E-9
+    max_spike_gen_time_units = max_period/spike_gen_time_unit
+    min_spike_gen_time_units = min_period/spike_gen_time_unit
+    max_spike_gen_time_units = int(np.round(max_spike_gen_time_units))
+    min_spike_gen_time_units = max(int(np.round(min_spike_gen_time_units)), 1)
     periods_spike_gen_time_units = np.arange(
         max_spike_gen_time_units, min_spike_gen_time_units-1, -1)
-    fpga_rates = 1./(periods_spike_gen_time_units*SPIKE_GEN_TIME_UNIT_NS*1E-9)
-    fpga_rates = np.floor(fpga_rates).astype(int)
-    return fpga_rates, periods_spike_gen_time_units
+    fpga_rates = 1./(periods_spike_gen_time_units*spike_gen_time_unit_ns*1E-9)
+    fpga_rates = np.round(fpga_rates).astype(int)
+    return fpga_rates
 
 def compute_init_rate_idx(gen_rates, init_rate):
     """Compute the initial spike generator rate to test"""
@@ -438,7 +441,7 @@ def check_max_input_spike_rates(parsed_args):
         test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
         test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
     else:
-        gen_rates, _ = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
+        gen_rates = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
         recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
         test_1d_data = test_1d(gen_rates, recv_data)
         test_group_data = test_group(gen_rates, recv_data)

@@ -20,12 +20,14 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_npy_data
+from utils import load_npy_data, load_txt_data
 
 np.set_printoptions(precision=2)
 
 CORE = 0
 NRN_N = 4096
+# SYN_N = 1
+# SYN_N = 4
 # SYN_N = 16
 # SYN_N = 64
 SYN_N = 1024
@@ -33,7 +35,7 @@ SYN_N = 1024
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
 
-SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
+SPIKE_GEN_TIME_UNIT_NS = 5000 # time unit of fpga spike generator
 SPIKE_GEN_IDX = 0 # FPGA spike generator index
 # Tag Action Table settings
 TAT_IDX = 0
@@ -46,19 +48,22 @@ FIFO_BUFFER_SIZE = 512
 
 SYN_PD_PU = 1024 # analog bias setting
 
-MIN_RATE = 1000 # minimum rate to test
-MAX_RATE = 1000000 # maximum rate to test
+MIN_RATE = 5000 # minimum rate to test
+MAX_RATE = 100000 # maximum rate to test
 
 def compute_fpga_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     """Compute the fpga spike generator rates between the min and max rates"""
-    max_spike_gen_time_units = 1./min_rate*1E9/spike_gen_time_unit_ns
-    min_spike_gen_time_units = 1./max_rate*1E9/spike_gen_time_unit_ns
-    max_spike_gen_time_units = int(np.ceil(max_spike_gen_time_units))
-    min_spike_gen_time_units = max(int(np.floor(min_spike_gen_time_units)), 1)
+    max_period = 1./min_rate
+    min_period = 1./max_rate
+    spike_gen_time_unit = spike_gen_time_unit_ns*1E-9
+    max_spike_gen_time_units = max_period/spike_gen_time_unit
+    min_spike_gen_time_units = min_period/spike_gen_time_unit
+    max_spike_gen_time_units = int(np.round(max_spike_gen_time_units))
+    min_spike_gen_time_units = max(int(np.round(min_spike_gen_time_units)), 1)
     periods_spike_gen_time_units = np.arange(
         max_spike_gen_time_units, min_spike_gen_time_units-1, -1)
-    fpga_rates = 1./(periods_spike_gen_time_units*SPIKE_GEN_TIME_UNIT_NS*1E-9)
-    fpga_rates = np.floor(fpga_rates).astype(int)
+    fpga_rates = 1./(periods_spike_gen_time_units*spike_gen_time_unit_ns*1E-9)
+    fpga_rates = np.round(fpga_rates).astype(int)
     return fpga_rates
 
 SPIKE_GEN_RATES = compute_fpga_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
@@ -76,6 +81,11 @@ def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Characterize the synapse max input firing rates')
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
+    parser.add_argument("-nf", action="store_true", dest="no_fit_plots",
+                        help="Skip plotting of fits. " + 
+                        "Plotting and saving the fits of many synapses can take a long time")
+    parser.add_argument("--ammend", type=str, dest="ammend_file",
+                        help="Redo measurements on the synapse indices in the ammend file")
     args = parser.parse_args()
     return args
 
@@ -208,7 +218,7 @@ def report_time_remaining(start_time, syn_idx):
         print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
             est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def plot_data(rates, overflows, max_rates_2, overflow_slopes):
+def plot_data(rates, overflows, max_rates_2, overflow_slopes, syn_idxs, no_fit_plots=False):
     """Plot the data"""
     syn_n = len(max_rates_2)
     max_rates_2_mean = np.mean(max_rates_2)
@@ -232,42 +242,43 @@ def plot_data(rates, overflows, max_rates_2, overflow_slopes):
         min_period_fpga_units, max_period_fpga_units+1)*SPIKE_GEN_TIME_UNIT_NS
     fpga_rates = 1./fpga_periods
 
-    fig_hist_half_rate = plt.figure()
-    for fpga_rate in fpga_rates:
-        plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
-    plt.hist(max_rates_2, bins=80)
-    plt.axvline(max_rates_2_mean, color="k", alpha=0.6, linewidth=1, label="mean")
-    plt.axvline(max_rates_2_median, color="r", alpha=0.4, linewidth=1, label="median")
-    plt.xlabel("Max Input Rate / 2 (spks/s)")
-    plt.ylabel("Counts")
-    plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-        max_rates_2_mean, max_rates_2_median, max_rates_2_min, max_rates_2_max))
-    plt.legend()
-    fig_hist_half_rate.suptitle("Half Rate Histogram")
-    fig_hist_half_rate.savefig(DATA_DIR + "histogram_half_rate.pdf")
+    if syn_n > 1: # make histograms
+        fig_hist_half_rate = plt.figure()
+        for fpga_rate in fpga_rates:
+            plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
+        plt.hist(max_rates_2, bins=80)
+        plt.axvline(max_rates_2_mean, color="k", alpha=0.6, linewidth=1, label="mean")
+        plt.axvline(max_rates_2_median, color="r", alpha=0.4, linewidth=1, label="median")
+        plt.xlabel("Max Input Rate / 2 (spks/s)")
+        plt.ylabel("Counts")
+        plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
+            max_rates_2_mean, max_rates_2_median, max_rates_2_min, max_rates_2_max))
+        plt.legend()
+        fig_hist_half_rate.suptitle("Half Rate Histogram")
+        fig_hist_half_rate.savefig(DATA_DIR + "histogram_half_rate.pdf")
 
-    max_period_ns = 1E9/(max_rates_2_min*2)
-    min_period_ns = 1E9/(max_rates_2_max*2)
+        max_period_ns = 1E9/(max_rates_2_min*2)
+        min_period_ns = 1E9/(max_rates_2_max*2)
 
-    min_period_fpga_units = int(np.floor(min_period_ns/SPIKE_GEN_TIME_UNIT_NS))
-    max_period_fpga_units = int(np.ceil(max_period_ns/SPIKE_GEN_TIME_UNIT_NS))
-    fpga_periods = 1E-9*np.arange(
-        min_period_fpga_units, max_period_fpga_units+1)*SPIKE_GEN_TIME_UNIT_NS
-    fpga_rates = 1./fpga_periods
+        min_period_fpga_units = int(np.floor(min_period_ns/SPIKE_GEN_TIME_UNIT_NS))
+        max_period_fpga_units = int(np.ceil(max_period_ns/SPIKE_GEN_TIME_UNIT_NS))
+        fpga_periods = 1E-9*np.arange(
+            min_period_fpga_units, max_period_fpga_units+1)*SPIKE_GEN_TIME_UNIT_NS
+        fpga_rates = 1./fpga_periods
 
-    fig_hist_full_rate = plt.figure()
-    for fpga_rate in fpga_rates:
-        plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
-    plt.hist(max_rates_2*2, bins=80)
-    plt.axvline(max_rates_2_mean*2, color="k", alpha=0.6, linewidth=1, label="mean")
-    plt.axvline(max_rates_2_median*2, color="r", alpha=0.4, linewidth=1, label="median")
-    plt.xlabel("Max Input Rate (spks/s)")
-    plt.ylabel("Counts")
-    plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-        max_rates_2_mean*2, max_rates_2_median*2, max_rates_2_min*2, max_rates_2_max*2))
-    plt.legend()
-    fig_hist_full_rate.suptitle("Full Rate Histogram")
-    fig_hist_full_rate.savefig(DATA_DIR + "histogram_full_rate.pdf")
+        fig_hist_full_rate = plt.figure()
+        for fpga_rate in fpga_rates:
+            plt.axvline(fpga_rate, color=(0.8, 0.8, 0.8), linewidth=1)
+        plt.hist(max_rates_2*2, bins=80)
+        plt.axvline(max_rates_2_mean*2, color="k", alpha=0.6, linewidth=1, label="mean")
+        plt.axvline(max_rates_2_median*2, color="r", alpha=0.4, linewidth=1, label="median")
+        plt.xlabel("Max Input Rate (spks/s)")
+        plt.ylabel("Counts")
+        plt.title("Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
+            max_rates_2_mean*2, max_rates_2_median*2, max_rates_2_min*2, max_rates_2_max*2))
+        plt.legend()
+        fig_hist_full_rate.suptitle("Full Rate Histogram")
+        fig_hist_full_rate.savefig(DATA_DIR + "histogram_full_rate.pdf")
 
     if syn_n == NRN_N//4: # all syn_n tested
         sqrt_n = int(np.ceil(np.sqrt(syn_n)))
@@ -280,43 +291,59 @@ def plot_data(rates, overflows, max_rates_2, overflow_slopes):
         plt.title("Max Input Rate / 2 (spks/s)")
         fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
 
-    fig, axis = plt.subplots(nrows=1, ncols=1)
-    for syn_idx in range(syn_n):
-        axis.axhline(0, linewidth=0.5, color='k')
-        axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
-        ylims = axis.get_ylim()
-        axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates_2[syn_idx]),
-                  "r", linewidth=0.7, label="fit")
-        axis.axvline(max_rates_2[syn_idx], linewidth=0.5, color='k')
-        axis.set_ylim(ylims)
-        axis.set_xlabel("Input Rate / 2 (spks/s)")
-        axis.set_ylabel("FIFO Overflow Count + FIFO Depth")
-        axis.legend()
-        axis.set_title("Synapse {:04d} Estimated Max Input Rate / 2 = {:.1f}".format(
-            syn_idx, max_rates_2[syn_idx]))
-        fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}.png".format(syn_idx))
-        plt.cla()
-    plt.close()
+    if not no_fit_plots:
+        fig, axis = plt.subplots(nrows=1, ncols=1)
+        for syn_idx in syn_idxs:
+            axis.axhline(0, linewidth=0.5, color='k')
+            axis.plot(rates[syn_idx], overflows[syn_idx], 'o', label="measured")
+            ylims = axis.get_ylim()
+            axis.plot(rates[syn_idx], overflow_slopes[syn_idx]*(rates[syn_idx]-max_rates_2[syn_idx]),
+                      "r", linewidth=0.7, label="fit")
+            axis.axvline(max_rates_2[syn_idx], linewidth=0.5, color='k')
+            axis.set_ylim(ylims)
+            axis.set_xlabel("Input Rate / 2 (spks/s)")
+            axis.set_ylabel("FIFO Overflow Count + FIFO Depth")
+            axis.legend()
+            axis.set_title("Synapse {:04d} Estimated Max Input Rate / 2 = {:.1f}".format(
+                syn_idx, max_rates_2[syn_idx]))
+            fig.savefig(DETAIL_DATA_DIR + "syn_{:04d}.png".format(syn_idx))
+            plt.cla()
+        plt.close()
 
 def check_synapse_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
+    no_fit_plots = parsed_args.no_fit_plots
+    ammend_file = parsed_args.ammend_file
     if use_saved_data:
         overflows = load_npy_data(DATA_DIR + "overflows.npy")
         rates = load_npy_data(DATA_DIR + "rates.npy")
     else:
+        if ammend_file:
+            syn_idxs = load_txt_data(ammend_file, dtype=int)
+            ref_overflows = load_npy_data(DATA_DIR + "overflows.npy")
+            ref_rates = load_npy_data(DATA_DIR + "rates.npy")
+        else:
+            syn_idxs = range(SYN_N)
         build_net()
         set_analog()
         set_hal()
         rates = [[] for _ in range(SYN_N)]
         overflows = [[] for _ in range(SYN_N)]
         start_time = get_time()
-        for syn_idx in range(SYN_N):
+        for syn_idx in syn_idxs:
             print("Testing synapse {}".format(syn_idx))
             rates[syn_idx], overflows[syn_idx] = test_rates(syn_idx)
             report_time_remaining(start_time, syn_idx)
-        rates = np.array(rates)
-        overflows = np.array(overflows)
+        if ammend_file:
+            for syn_idx in syn_idxs:
+                ref_rates[syn_idx] = rates[syn_idx]
+                ref_overflows[syn_idx] = overflows[syn_idx]
+            rates = ref_rates
+            overflows = ref_overflows
+        else:
+            rates = np.array(rates)
+            overflows = np.array(overflows)
         np.save(DATA_DIR + "overflows.npy", overflows)
         np.save(DATA_DIR + "rates.npy", rates)
 
@@ -327,7 +354,7 @@ def check_synapse_max_rates(parsed_args):
     print(1./max_rates_2)
     np.savetxt(DATA_DIR + "max_rates.txt", max_rates_2*2)
 
-    plot_data(rates, overflows, max_rates_2, overflow_slopes)
+    plot_data(rates, overflows, max_rates_2, overflow_slopes, syn_idxs, no_fit_plots=no_fit_plots)
     plt.show()
 
 if __name__ == "__main__":
