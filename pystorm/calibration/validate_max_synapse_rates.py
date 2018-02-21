@@ -16,12 +16,14 @@ from pystorm.PyDriver import bddriver as bd
 from utils.exp import clear_overflows, compute_spike_gen_rates
 from utils.file_io import load_txt_data
 
+np.set_printoptions(precision=2)
+
 CORE = 0
 NRN_N = 4096
 SYN_N = 1024
 
-RUN_TIME = 1. # time to sample
-RUN_TIME_CAUTIOUS = 2.0 # time to sample when being cautious
+RUN_TIME = 5. # time to sample
+RUN_TIME_CAUTIOUS = 5.0 # time to sample when being cautious
 INTER_RUN_TIME = 0.1 # time between samples
 
 SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
@@ -33,8 +35,7 @@ SPIKE_GEN_RATES = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNI
 FIFO_BUFFER_SIZE = 512
 CAUTION_THRESHOLD = 2 * FIFO_BUFFER_SIZE
 
-# GROUP_SIZES = [4, 2] # sizes of groups to test
-GROUP_SIZES = [4] # sizes of groups to test
+GROUP_SIZES = [4, 2] # sizes of groups to test
 
 SYN_PD_PU = 1024 # analog bias setting
 
@@ -203,11 +204,19 @@ def run_tests(max_rates):
     u_rates = np.unique(binned_max_rates)
     validated_max_rates = np.zeros_like(binned_max_rates, dtype=int)
     for group_size in GROUP_SIZES:
+        print("\nRunning tests with group_size {}".format(group_size))
         syn_idxs = np.nonzero(binned_max_rates != validated_max_rates)[0]
         validated_max_rates[syn_idxs] = test_groups(
             u_rates, max_rates[syn_idxs], binned_max_rates[syn_idxs], group_size=group_size)
+        skipped_syns = np.nonzero(validated_max_rates == 0)[0]
+        mismatched_syns = np.setdiff1d(
+            np.nonzero(validated_max_rates != binned_max_rates)[0],
+            skipped_syns)
+        print("\nTests with group_size {} ".format(group_size) +
+              "detected {} mismatched rates ".format(len(mismatched_syns)) +
+              "and skipped {} synapses".format(len(skipped_syns)))
 
-    # find bins where max_rates_binne != max_rates_validated and do test with good synapse
+    # find bins where max_rates_binned != max_rates_validated and do test with good synapse
     return binned_max_rates, validated_max_rates
 
 def plot_data(max_rates, binned_max_rates, validated_max_rates):
@@ -229,7 +238,7 @@ def plot_data(max_rates, binned_max_rates, validated_max_rates):
     for rate in gen_rates_to_plot:
         axs.axhline(rate, color='k', alpha=0.5, linewidth=1)
     for idx in mismatched_idxs:
-        axs.plot([idx, idx], [binned_max_rates[idx], validated_max_rates[idx]], 'r-_')
+        axs.plot([idx, idx], [max_rates[idx], validated_max_rates[idx]], 'r-_', linewidth=1)
     fig.savefig(DATA_DIR + "max_rates_flat_idx.pdf")
 
     fig, axs = plt.subplots(nrows=2, sharex=True, figsize=(8, 10))
@@ -275,7 +284,7 @@ def validate_max_synapse_rates(parsed_args):
     else:
         binned_max_rates, validated_max_rates = run_tests(max_rates)
         np.savetxt(DATA_DIR + "binned_max_rates.txt", binned_max_rates)
-        np.savetxt(DATA_DIR + "max_rates_binned_validated.txt", validated_max_rates)
+        np.savetxt(DATA_DIR + "validated_max_rates.txt", validated_max_rates)
 
     plot_data(max_rates, binned_max_rates, validated_max_rates)
     plt.show()
