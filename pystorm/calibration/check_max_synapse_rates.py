@@ -13,6 +13,7 @@ from time import time as get_time
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
@@ -238,7 +239,7 @@ def plot_data(
     fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
 
     if syn_n > 1: # make histograms
-        fig_hist, axs = plt.subplots(ncols=2, figsize=(14, 6))
+        fig_hist, axs = plt.subplots(ncols=2, figsize=(16, 6))
         for gen_rate in gen_rates_half:
             axs[0].axvline(gen_rate, color=(0.8, 0.8, 0.8), linewidth=1)
         axs[0].hist(max_rates_2, bins=80)
@@ -271,13 +272,77 @@ def plot_data(
     if syn_n == NRN_N//4: # all syn_n tested
         sqrt_n = int(np.ceil(np.sqrt(syn_n)))
         max_rates_2_2d = max_rates_2.reshape((sqrt_n, -1))
-        fig_2d_heatmap, axs = plt.subplots()
+        fig_heatmap, axs = plt.subplots()
         ims = axs.imshow(max_rates_2_2d*2)
         plt.colorbar(ims)
         axs.set_xlabel("Synapse X Coordinate")
         axs.set_ylabel("Synapse Y Coordinate")
         axs.set_title("Max Input Rate (spks/s)")
-        fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
+        fig_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
+
+        max_rates_2_hex = np.nan*np.ones((sqrt_n*2, sqrt_n*2))
+        max_rates_2_hex[0::4, 0::2] = max_rates_2_2d[0::2, :]
+        max_rates_2_hex[2::4, 1::2] = max_rates_2_2d[1::2, :]
+        fig_hex_heatmap, axs = plt.subplots()
+        matplotlib.cm.get_cmap().set_bad(color='w')
+        ims = axs.imshow(max_rates_2_hex*2)
+        axs.set_xticks([])
+        axs.set_yticks([])
+        plt.colorbar(ims)
+        axs.set_title("Max Input Rate (spks/s)")
+        fig_hex_heatmap.savefig(DATA_DIR + "2d_hex_heatmap.pdf")
+
+
+        tile_max_rates = dict(
+            upper_left=max_rates_2_2d[0::2, 0::2].flatten()*2,
+            upper_right=max_rates_2_2d[0::2, 1::2].flatten()*2,
+            lower_left=max_rates_2_2d[1::2, 0::2].flatten()*2,
+            lower_right=max_rates_2_2d[1::2, 1::2].flatten()*2,)
+        fig_tile, axs = plt.subplots(ncols=3, figsize=(20, 6))
+        for pos in tile_max_rates:
+            axs[0].hist(tile_max_rates[pos], bins=40, alpha=0.4, label=pos)
+        axs[0].set_xlabel("Max Input Rate (spks/s)")
+        axs[0].set_ylabel("Counts")
+        axs[0].set_title("Histograms")
+        axs[0].legend()
+        for pos in tile_max_rates:
+            pdf, bin_edges = np.histogram(tile_max_rates[pos], density=True)
+            bin_widths = np.diff(bin_edges)
+            bin_centers = bin_edges[:-1] + bin_widths/2
+            cdf = np.cumsum(pdf*bin_widths)
+            axs[1].plot(bin_centers, cdf, alpha=0.4, label=pos)
+        axs[1].set_xlabel("Max Input Rate (spks/s)")
+        axs[1].set_ylabel("Probability")
+        axs[1].set_title("Cumulative Distribution Functions")
+        axs[1].legend()
+        qq_quantiles = {}
+        quantiles = np.linspace(0, 1, 80)
+        for pos in tile_max_rates:
+            qq_pdf, bin_edges = np.histogram(
+                tile_max_rates[pos], range=(max_rates_2_min*2, max_rates_2_max*2), bins=80,
+                density=True)
+            bin_widths = np.diff(bin_edges)
+            bin_centers = bin_edges[:-1] + bin_widths/2
+            qq_cdf = np.cumsum(qq_pdf*bin_widths)
+            qq_quantiles[pos] = np.interp(quantiles, qq_cdf, bin_centers)
+        positions = list(qq_quantiles.keys())
+        for idx0, pos0 in enumerate(positions):
+            for pos1 in positions[idx0+1:]:
+                axs[2].plot(qq_quantiles[pos0], qq_quantiles[pos1],
+                            linewidth=1, label="{} : {}".format(pos0, pos1))
+        xlim = axs[2].get_xlim()
+        ylim = axs[2].get_ylim()
+        min_val = np.min(xlim + ylim)
+        max_val = np.max(xlim + ylim)
+        axs[2].plot([min_val, max_val], [min_val, max_val], 'k', linewidth=1)
+        axs[2].set_xlim(xlim)
+        axs[2].set_ylim(ylim)
+        axs[2].set_xlabel("Position 0's Max Input Rate (spks/s)")
+        axs[2].set_ylabel("Position 1's Max Input Rate (spks/s)")
+        axs[2].set_title("Quantile-Quantiles")
+        axs[2].legend(title="Position 0 : Position 1")
+        fig_tile.suptitle("Dividing Synapses by Position in Tile")
+        fig_tile.savefig(DATA_DIR + "syn_tile.pdf")
 
     if not no_fit_plots:
         fig, axis = plt.subplots(nrows=1, ncols=1)
