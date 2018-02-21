@@ -13,15 +13,13 @@ from time import time as get_time
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils.file_io import load_npy_data, load_txt_data
 from utils.exp import clear_overflows, compute_spike_gen_rates
+from utils.file_io import load_npy_data, load_txt_data
 
 np.set_printoptions(precision=2)
 
@@ -276,12 +274,12 @@ def plot_data(
     if syn_n == NRN_N//4: # all syn_n tested
         sqrt_n = int(np.ceil(np.sqrt(syn_n)))
         max_rates_2_2d = max_rates_2.reshape((sqrt_n, -1))
-        fig_2d_heatmap = plt.figure()
-        ims = plt.imshow(max_rates_2_2d)
+        fig_2d_heatmap, axs = plt.subplots()
+        ims = axs.imshow(max_rates_2_2d)
         plt.colorbar(ims)
-        plt.xlabel("Synapse X Coordinate")
-        plt.ylabel("Synapse Y Coordinate")
-        plt.title("Max Input Rate / 2 (spks/s)")
+        axs.set_xlabel("Synapse X Coordinate")
+        axs.set_ylabel("Synapse Y Coordinate")
+        axs.set_title("Max Input Rate / 2 (spks/s)")
         fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
 
     if not no_fit_plots:
