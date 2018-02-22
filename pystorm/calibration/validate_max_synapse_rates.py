@@ -23,10 +23,10 @@ NRN_N = 4096
 SYN_N = 1024
 
 RUN_TIME = 5. # time to sample
-RUN_TIME_CAUTIOUS = 5.0 # time to sample when being cautious
 INTER_RUN_TIME = 0.1 # time between samples
 
 SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
+MAX_SPIKE_GEN = 256 # depends on SPIKE_GEN_TIME_UNIT_NS
 
 MIN_RATE = 5000 # minimum rate to test
 MAX_RATE = 100000 # maximum rate to test
@@ -82,9 +82,10 @@ def build_net_groups(u_rates, binned_rates, syn_idxs, group_size):
     """Build a network for testing groups of synapses
 
     Parameters
+    ----------
     u_rates: array
         lists the rate bin values
-    binned_max_rates: array
+    binned_max_rates: array of numbers
         array of synapse max rates binned to the rates in u_rates
     syn_idxs: array of ints
         indices of synapses corresponeding to binned_max_rates entries
@@ -115,24 +116,32 @@ def build_net_groups(u_rates, binned_rates, syn_idxs, group_size):
     HAL.map(net)
     set_analog()
     return net_input, dim_rate_idxs
-#
-# def build_net_ref_syn(syn_idxs, group_size):
-#     """Build a network for testing pairs of synapses"""
-#     encoder_dim = len(syn_idxs)//2
-#     tap_matrix_syn = np.zeros((SYN_N, encoder_dim))
-#     for dim in range(encoder_dim):
-#         tap_matrix_syn[syn_idxs[2*dim], dim] = 1
-#         tap_matrix_syn[syn_idxs[2*dim+1], dim] = 1
-#     tap_matrix_soma = np.zeros((NRN_N, encoder_dim))
-#     soma_idxs = syn_to_soma_addr(SYN_N)
-#     tap_matrix_soma[soma_idxs] = tap_matrix_syn
-#     net = graph.Network("net")
-#     net_pool = net.create_pool("p", tap_matrix_soma)
-#     net_input = net.create_input("i", encoder_dim)
-#     net.create_connection("c: i to p", net_input, net_pool, None)
-#     HAL.map(net)
-#     set_analog()
-#     return net_input
+
+def build_net_ref_syn(syn_idxs, ref_syn_idx):
+    """Build a network for testing pairs of synapses
+
+    Parameters
+    ----------
+    syn_idxs: array of ints
+        indices of synapses to test
+    ref_syn_idx: int
+        index of synapse to use as reference
+    """
+    encoder_dim = len(syn_idxs)
+    tap_matrix_syn = np.zeros((SYN_N, encoder_dim))
+    tap_matrix_syn[ref_syn_idx, :] = 1
+    for dim in range(encoder_dim):
+        tap_matrix_syn[syn_idxs[dim], dim] = 1
+    tap_matrix_soma = np.zeros((NRN_N, encoder_dim))
+    soma_idxs = syn_to_soma_addr(SYN_N)
+    tap_matrix_soma[soma_idxs] = tap_matrix_syn
+    net = graph.Network("net")
+    net_pool = net.create_pool("p", tap_matrix_soma)
+    net_input = net.create_input("i", encoder_dim)
+    net.create_connection("c: i to p", net_input, net_pool, None)
+    HAL.map(net)
+    set_analog()
+    return net_input
 
 def toggle_input(net_input, dim, rate, run_time):
     """Toggle the spike generator and check for overflow"""
@@ -170,32 +179,57 @@ def bin_max_rates(spike_gen_rates, max_rates, max_rate_margin=0.):
         binned_max_rates[idxs] = rate
     return binned_max_rates
 
-def test_groups(u_rates, max_rates, binned_max_rates, group_size):
+def test_groups(u_rates, max_rates, binned_max_rates, test_idxs, group_size):
     """Bin synapses by spike gen rates and then test by groups within each bin
 
     Parameters
+    ----------
     u_rates: array of floats
         unique rate values of binned_max_rates
     max_rates: array of floats
         synapse max input firing rates
     binned_max_rates: array of floats
-
+    test_idxs: array of ints
+        synapse indeices to test
     """
-    print("Testing {} synapses by binning in group_size {}".format(len(max_rates), group_size))
-    sort_idxs = np.argsort(max_rates)
-    sorted_binned_max_rates = binned_max_rates[sort_idxs]
+    print("Testing {} synapses by binning in group_size {}".format(
+        len(max_rates[test_idxs]), group_size))
+    sort_idxs = np.argsort(max_rates[test_idxs])
+    sorted_test_idxs = test_idxs[sort_idxs]
+    sorted_binned_max_rates = binned_max_rates[sorted_test_idxs]
     validated_max_rates = np.zeros_like(binned_max_rates)
     net_input, dim_rate_idxs = build_net_groups(
-        u_rates, sorted_binned_max_rates, sort_idxs, group_size)
+        u_rates, sorted_binned_max_rates, sorted_test_idxs, group_size)
     for dim, rate_idxs in dim_rate_idxs.items():
-        bin_rate, idxs = rate_idxs
-        if np.any(max_rates[idxs]-bin_rate < CAUTION_THRESHOLD):
-            run_time = RUN_TIME_CAUTIOUS
-        else:
-            run_time = RUN_TIME
-        print("Testing dim {} of {} bin rate {} synapses {} with max rates {} for {}s".format(
-            dim, net_input.dimensions, bin_rate, idxs, max_rates[idxs], run_time))
-        validated_max_rates[idxs] = test_max_rate(net_input, dim, bin_rate, run_time)
+        rate, idxs = rate_idxs
+        print("Testing dim {} of {} bin rate {} synapses {} with max rates {}".format(
+            dim, net_input.dimensions, rate, idxs, max_rates[idxs]))
+        validated_max_rates[idxs] = test_max_rate(net_input, dim, rate, RUN_TIME)
+    return validated_max_rates
+
+def test_with_ref(max_rates, binned_max_rates, test_idxs, ref_syn_idx):
+    """Test synapses against a reference synapse with validated, binned max rate
+
+    Parameters
+    ----------
+    ref_idx: int
+        index of reference synapse in neuron array
+    max_rates: array of floats
+        synapse max input firing rates
+    binned_max_rates: array of floats
+        max_rates binned to the spike generator rate within each synapes' capacity
+    ref_syn_idx: int
+        index of synapse to use as reference
+    """
+    validated_max_rates = np.zeros_like(binned_max_rates)
+    net_input = build_net_ref_syn(test_idxs, ref_syn_idx)
+    for dim, in range(net_input.dimensions):
+        idx = test_idxs[dim]
+        rate = binned_max_rates[idx]
+        print("Reference testing dim {} of {} ".format(dim, net_input.dimensions) +
+              "with rate {} for synapse {} max rate {} ".format(rate, idx, max_rates[idx]) +
+              "against synapse {} with max rate {}".format(ref_syn_idx, max_rates[ref_syn_idx]))
+        validated_max_rates[idx] = test_max_rate(net_input, dim, rate, RUN_TIME)
     return validated_max_rates
 
 def run_tests(max_rates):
@@ -203,11 +237,13 @@ def run_tests(max_rates):
     binned_max_rates = bin_max_rates(SPIKE_GEN_RATES, max_rates, MAX_RATE_MARGIN)
     u_rates = np.unique(binned_max_rates)
     validated_max_rates = np.zeros_like(binned_max_rates, dtype=int)
+    # Test groups of synapses according to their binned rate
     for group_size in GROUP_SIZES:
         print("\nRunning tests with group_size {}".format(group_size))
-        syn_idxs = np.nonzero(binned_max_rates != validated_max_rates)[0]
-        validated_max_rates[syn_idxs] = test_groups(
-            u_rates, max_rates[syn_idxs], binned_max_rates[syn_idxs], group_size=group_size)
+        test_idxs = np.nonzero(binned_max_rates != validated_max_rates)[0]
+        test_group_results = test_groups(
+            u_rates, max_rates, binned_max_rates, test_idxs, group_size=group_size)
+        validated_max_rates[test_idxs] = test_group_results[test_idxs]
         skipped_syns = np.nonzero(validated_max_rates == 0)[0]
         mismatched_syns = np.setdiff1d(
             np.nonzero(validated_max_rates != binned_max_rates)[0],
@@ -216,7 +252,20 @@ def run_tests(max_rates):
               "detected {} mismatched rates ".format(len(mismatched_syns)) +
               "and skipped {} synapses".format(len(skipped_syns)))
 
-    # find bins where max_rates_binned != max_rates_validated and do test with good synapse
+    # Assume that there is at least 1 validated synapse in the fastest max rate bin
+    # Find bins where max_rates_binned != max_rates_validated and do test with good synapse
+    sort_idxs = np.argsort(max_rates)
+    ref_sorted_idx = np.nonzero(
+        validated_max_rates[sort_idxs] == binned_max_rates[sort_idxs])[0][-1]
+    ref_idx = np.arange(SYN_N)[sort_idxs][ref_sorted_idx] # highest spike rate, valid syn
+    assert validated_max_rates[ref_idx] == binned_max_rates[ref_idx]
+    print("\nRunning tests with synapse {} with max rate {:.2f} as reference".format(
+        ref_idx, max_rates[ref_idx]))
+    test_idxs = np.nonzero(binned_max_rates != validated_max_rates)[0]
+    for subset_idx in range(len(test_idxs)//MAX_SPIKE_GEN):
+        sub_test_idxs = test_idxs[subset_idx*MAX_SPIKE_GEN:(subset_idx+1)*MAX_SPIKE_GEN]
+        test_ref_results = test_with_ref(max_rates, binned_max_rates, sub_test_idxs, ref_idx)
+        validated_max_rates[sub_test_idxs] = test_ref_results[sub_test_idxs]
     return binned_max_rates, validated_max_rates
 
 def plot_data(max_rates, binned_max_rates, validated_max_rates):
@@ -228,18 +277,27 @@ def plot_data(max_rates, binned_max_rates, validated_max_rates):
 
     mismatched_idxs = np.nonzero(binned_max_rates != validated_max_rates)[0]
 
-    fig, axs = plt.subplots(figsize=(8, 6))
-    axs.plot(max_rates, 'o', markersize=1.5, label="max rates")
-    axs.plot(binned_max_rates, 'o', markersize=1.5, label="binned max rates")
-    axs.plot(validated_max_rates, 'o', markersize=1.5, label="validated max rates")
-    axs.set_xlabel("Synapse Index")
-    axs.set_ylabel("Rate (spks/s)")
-    axs.legend()
+    fig, axs = plt.subplots(cols=2, figsize=(8, 6))
+    axs[0].plot(max_rates, 'o', markersize=1.5, label="max rates")
+    axs[0].plot(binned_max_rates, 'o', markersize=1.5, label="binned max rates")
+    axs[0].plot(validated_max_rates, 'o', markersize=1.5, label="validated max rates")
+    axs[1].plot(max_rates, binned_max_rates, 'o', markersize=1.5, label='predicted')
+    axs[1].plot(max_rates, validated_max_rates, 'o', markersize=1.5, label='validated')
     for rate in gen_rates_to_plot:
-        axs.axhline(rate, color='k', alpha=0.5, linewidth=1)
+        axs[0].axhline(rate, color='k', alpha=0.5, linewidth=1)
+        axs[1].axhline(rate, color='k', alpha=0.5, linewidth=1)
     for idx in mismatched_idxs:
-        axs.plot([idx, idx], [max_rates[idx], validated_max_rates[idx]], 'r-_', linewidth=1)
-    fig.savefig(DATA_DIR + "max_rates_flat_idx.pdf")
+        axs[0].plot([idx, idx], [max_rates[idx], validated_max_rates[idx]], 'r', linewidth=1)
+        axs[1].plot([max_rates[idx], max_rates[idx]],
+                    [binned_max_rates[idx], validated_max_rates[idx]],
+                    'r', linewidth=1)
+    axs[0].set_xlabel("Synapse Index")
+    axs[0].set_ylabel("Rate (spks/s)")
+    axs[0].legend()
+    axs[1].set_xlabel("Estimated Max Rate (spks/s)")
+    axs[1].set_ylabel("Binned Max Rate (spks/s)")
+    axs[1].legend()
+    fig.savefig(DATA_DIR + "max_rates.pdf")
 
     fig, axs = plt.subplots(nrows=2, sharex=True, figsize=(8, 10))
     axs[0].hist(max_rates, bins=80)

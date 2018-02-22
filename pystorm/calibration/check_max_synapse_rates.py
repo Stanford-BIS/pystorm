@@ -35,7 +35,7 @@ SYN_N = 1024
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
 
-SPIKE_GEN_TIME_UNIT_NS = 5000 # time unit of fpga spike generator
+SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
 SPIKE_GEN_IDX = 0 # FPGA spike generator index
 # Tag Action Table settings
 TAT_IDX = 0
@@ -214,7 +214,6 @@ def plot_data(
     """Plot the data"""
     syn_n = len(max_rates_2)
     max_rates_2_mean = np.mean(max_rates_2)
-    max_rates_2_median = np.median(max_rates_2)
     max_rates_2_min = np.min(max_rates_2)
     max_rates_2_max = np.max(max_rates_2)
 
@@ -239,34 +238,36 @@ def plot_data(
     fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
 
     if syn_n > 1: # make histograms
-        fig_hist, axs = plt.subplots(ncols=2, figsize=(16, 6))
+        fig_hist, axs = plt.subplots(ncols=3, figsize=(20, 6))
         for gen_rate in gen_rates_half:
             axs[0].axvline(gen_rate, color=(0.8, 0.8, 0.8), linewidth=1)
         axs[0].hist(max_rates_2, bins=80)
-        axs[0].axvline(max_rates_2_mean, color="k", alpha=0.6, linewidth=1, label="mean")
-        axs[0].axvline(max_rates_2_median, color="r", alpha=0.4, linewidth=1, label="median")
+        axs[0].axvline(max_rates_2_mean, color="k", linewidth=1, label="mean")
         axs[0].set_xlabel("Max Input Rate / 2 (spks/s)")
         axs[0].set_ylabel("Counts")
         axs[0].set_title(
             "Half Rate Histogram\n"+
-            "Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-                max_rates_2_mean, max_rates_2_median, max_rates_2_min, max_rates_2_max))
+            "Mean:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
+                max_rates_2_mean, max_rates_2_min, max_rates_2_max))
         axs[0].legend()
 
         for gen_rate in gen_rates_full:
             axs[1].axvline(gen_rate, color=(0.8, 0.8, 0.8), linewidth=1)
         axs[1].hist(max_rates_2*2, bins=80)
-        axs[1].axvline(max_rates_2_mean*2, color="k", alpha=0.6, linewidth=1, label="mean")
-        axs[1].axvline(max_rates_2_median*2, color="r", alpha=0.4, linewidth=1, label="median")
+        axs[1].axvline(max_rates_2_mean*2, color="k", linewidth=1, label="mean")
         axs[1].set_xlabel("Max Input Rate (spks/s)")
         axs[1].set_ylabel("Counts")
         axs[1].set_title(
             "Full Rate Histogram\n"+
-            "Mean:{:,.0f} Median:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-                max_rates_2_mean*2, max_rates_2_median*2, max_rates_2_min*2, max_rates_2_max*2))
-        axs[1].legend()
+            "Mean:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
+                max_rates_2_mean*2, max_rates_2_min*2, max_rates_2_max*2))
+        axs[2].plot(np.sort(max_rates_2)*2, (np.arange(syn_n)+1)/syn_n)
+        axs[2].axvline(max_rates_2_mean*2, color="k", linewidth=1, label="mean")
+        axs[2].set_xlabel("Max Input Rate (spks/s)")
+        axs[2].set_ylabel("Cumulative Probability")
+        axs[2].set_title("Full Rate Cumulative Distribution Function")
 
-        fig_hist.suptitle("All Synapse Histogram")
+        fig_hist.suptitle("All Synapses")
         fig_hist.savefig(DATA_DIR + "histogram.pdf")
 
     if syn_n == NRN_N//4: # all syn_n tested
@@ -280,12 +281,14 @@ def plot_data(
         axs.set_title("Max Input Rate (spks/s)")
         fig_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
 
-        max_rates_2_hex = np.nan*np.ones((sqrt_n*2, sqrt_n*2))
-        max_rates_2_hex[0::4, 0::2] = max_rates_2_2d[0::2, :]
-        max_rates_2_hex[2::4, 1::2] = max_rates_2_2d[1::2, :]
+        max_rates_2_hex = np.nan*np.ones((sqrt_n, sqrt_n*2+1))
+        max_rates_2_hex[0::2, 0:sqrt_n*2:2] = max_rates_2_2d[0::2, :]
+        max_rates_2_hex[0::2, 1:sqrt_n*2:2] = max_rates_2_2d[0::2, :]
+        max_rates_2_hex[1::2, 1:sqrt_n*2:2] = max_rates_2_2d[1::2, :]
+        max_rates_2_hex[1::2, 2:sqrt_n*2+1:2] = max_rates_2_2d[1::2, :]
         fig_hex_heatmap, axs = plt.subplots()
         matplotlib.cm.get_cmap().set_bad(color='w')
-        ims = axs.imshow(max_rates_2_hex*2)
+        ims = axs.imshow(max_rates_2_hex*2, aspect=2)
         axs.set_xticks([])
         axs.set_yticks([])
         plt.colorbar(ims)
@@ -299,36 +302,30 @@ def plot_data(
             lower_left=max_rates_2_2d[1::2, 0::2].flatten()*2,
             lower_right=max_rates_2_2d[1::2, 1::2].flatten()*2,)
         fig_tile, axs = plt.subplots(ncols=3, figsize=(20, 6))
+        offset = 0
         for pos in tile_max_rates:
-            axs[0].hist(tile_max_rates[pos], bins=40, alpha=0.4, label=pos)
+            hist_values, bin_edges = np.histogram(tile_max_rates[pos], bins=50)
+            bin_centers = bin_edges[:-1] + np.diff(bin_edges)/2
+            offset -= np.max(hist_values)
+            axs[0].fill_between(bin_centers, np.ones_like(hist_values)*offset, hist_values+offset, label=pos)
         axs[0].set_xlabel("Max Input Rate (spks/s)")
-        axs[0].set_ylabel("Counts")
+        axs[0].set_yticks([])
         axs[0].set_title("Histograms")
         axs[0].legend()
+        cdf_idxs = {}
         for pos in tile_max_rates:
-            pdf, bin_edges = np.histogram(tile_max_rates[pos], density=True)
-            bin_widths = np.diff(bin_edges)
-            bin_centers = bin_edges[:-1] + bin_widths/2
-            cdf = np.cumsum(pdf*bin_widths)
-            axs[1].plot(bin_centers, cdf, alpha=0.4, label=pos)
+            n_syn = len(tile_max_rates[pos])
+            cdf_values = (np.arange(n_syn)+1) / n_syn
+            cdf_idxs[pos] = np.sort(tile_max_rates[pos])
+            axs[1].plot(cdf_idxs[pos], cdf_values, alpha=1.0, label=pos)
         axs[1].set_xlabel("Max Input Rate (spks/s)")
         axs[1].set_ylabel("Probability")
         axs[1].set_title("Cumulative Distribution Functions")
         axs[1].legend()
-        qq_quantiles = {}
-        quantiles = np.linspace(0, 1, 80)
-        for pos in tile_max_rates:
-            qq_pdf, bin_edges = np.histogram(
-                tile_max_rates[pos], range=(max_rates_2_min*2, max_rates_2_max*2), bins=80,
-                density=True)
-            bin_widths = np.diff(bin_edges)
-            bin_centers = bin_edges[:-1] + bin_widths/2
-            qq_cdf = np.cumsum(qq_pdf*bin_widths)
-            qq_quantiles[pos] = np.interp(quantiles, qq_cdf, bin_centers)
-        positions = list(qq_quantiles.keys())
+        positions = list(tile_max_rates.keys())
         for idx0, pos0 in enumerate(positions):
             for pos1 in positions[idx0+1:]:
-                axs[2].plot(qq_quantiles[pos0], qq_quantiles[pos1],
+                axs[2].plot(cdf_idxs[pos0], cdf_idxs[pos1],
                             linewidth=1, label="{} : {}".format(pos0, pos1))
         xlim = axs[2].get_xlim()
         ylim = axs[2].get_ylim()
