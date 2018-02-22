@@ -55,14 +55,10 @@ wire sys_clk; // 100 MHz clock, send to PLL to generate 200MHz clock for router 
 
 
 //signals for reset
-reg [10:0] r1;
-reg [10:0] r2;
-reg [10:0] r3;
-reg [10:0] r4;
-reg v1, v2, v3, v4;
-wire [10:0] top_out_reset;
+reg [8:0] clk_count;
+reg [10:0] top_out_reset;
 wire [10:0] top_out_router;
-wire valid_reset;
+reg valid_reset;
 wire top_valid_out_router;
 
 assign top_valid_out = top_valid_out_router & valid_reset;
@@ -200,18 +196,23 @@ BZ_serializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) serial
 
 
 //sending reset to boards above
-always @ (posedge router_clk) begin
-	r1<={11{user_reset}};
-	r2<=r1;
-	r3<=r2;
-	r4<=r3;
-	v1<=!user_reset;
-	v2<=v1;
-	v3<=v2;
-	v4<=v3;
+always @ (posedge transmit_clk or posedge user_reset) begin
+	if(user_reset) begin
+		clk_count <= 8'b1;
+		top_out_reset = {11{1'b1}};
+		valid_reset = 1'b0;
+	end
+	else if(8'b1<= clk_count & clk_count <= 8'd100) begin
+		clk_count <= clk_count + 8'b1;
+		top_out_reset = {11{1'b1}};
+		valid_reset = 1'b0;
+	end
+	else begin
+		clk_count <= 8'b0;
+		top_out_reset = 11'b0;
+		valid_reset = 1'b1;
+	end
 end
 
-assign top_out_reset=r1|r2|r3|r4;
-assign valid_reset = v1&v2&v3&v4;
 
 endmodule
