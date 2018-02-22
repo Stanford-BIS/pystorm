@@ -59,14 +59,14 @@ module BZ_deserializer #(parameter NPCcode = 7, parameter NPCdata = 20, paramete
 		end
 	end
 
-	reg [31:0] to_transmit;
+	reg [NPCroute + NPCdata + NPCcode - 1:0] to_transmit;
 	assign PC_out_channel.d = to_transmit;
 
 	always @(posedge clk) begin //do these synchronously to avoid issues
 		case(state)
 			3'd0: begin
 				if (!isempty) begin
-					to_transmit[31:27] <= data_in[4:0];
+					to_transmit[NPCroute + 26:27] <= data_in[NPCroute-1:0];
 				end
 				else begin
 					to_transmit[31:0] <= to_transmit[31:0];

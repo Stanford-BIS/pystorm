@@ -164,9 +164,9 @@ Channel #(NPCinout) Ser_in();
 
 assign Des_out.a = Ser_in.a;
 assign Ser_in.v = Des_out.v;
-assign Ser_in.d = {5'b10000, Des_out.d[26:0]};
+assign Ser_in.d = {8'b11100000, Des_out.d[NPCcode+NPCdata:0]};
 
-BZ_deserializer deserializer (
+BZ_deserializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
 	.isempty(~BD_valid_out), //isempty signal for the fifo feeding us packets
 	.data_in(BD_out), //data from the fifo
@@ -174,7 +174,7 @@ BZ_deserializer deserializer (
 	.clk(BD_out_clk),
 	.reset(reset)
 );
-BZ_serializer serializer (
+BZ_serializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) serializer (
 	.PC_in_channel(Ser_in), //channel from the BD that has data for us
 	.is_full(~BD_ready_out), //full signal for the fifo this places stuff into
 	.data_out(BD_in), //data to write to fifo

@@ -177,7 +177,7 @@ DCChannelFIFO32 input_channel_fifo(Des_out, PC_upstream, router_clk, okClk, user
 DCChannelFIFO42 output_channel_fifo(PC_downstream, Ser_in, okClk, router_clk, user_reset);
 
 
-BZ_deserializer deserializer (
+BZ_deserializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) deserializer (
 	.PC_out_channel(Des_out), //output channel for the Core
 	.isempty(~bot_valid_out), //isempty signal for the fifo feeding us packets ???????
 	.data_in(bot_out), //data from the fifo
