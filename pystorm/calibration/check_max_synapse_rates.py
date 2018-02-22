@@ -34,6 +34,8 @@ SYN_N = 1024
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
+RUN_TIME_NS = int(RUN_TIME*1E9)
+INTER_RUN_TIME_NS = int(INTER_RUN_TIME*1E9)
 
 SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
 SPIKE_GEN_IDX = 0 # FPGA spike generator index
@@ -115,12 +117,12 @@ def set_tat(syn_idx):
 def toggle_spk_generator(rate, run_sleep_time=RUN_TIME, inter_run_sleep_time=INTER_RUN_TIME):
     """Toggle the spike generator and check for overflow"""
     clear_overflows(HAL, inter_run_sleep_time)
+    cur_time = HAL.get_time()
     HAL.driver.SetSpikeGeneratorRates(
-        CORE, [SPIKE_GEN_IDX], [TAT_IDX], [rate], time=0, flush=True)
-    sleep(run_sleep_time)
+        CORE, [SPIKE_GEN_IDX], [TAT_IDX], [rate], time=cur_time+INTER_RUN_TIME_NS)
     HAL.driver.SetSpikeGeneratorRates(
-        CORE, [SPIKE_GEN_IDX], [TAT_IDX], [0], time=0, flush=True)
-    sleep(inter_run_sleep_time)
+        CORE, [SPIKE_GEN_IDX], [TAT_IDX], [0], time=cur_time+RUN_TIME_NS+INTER_RUN_TIME_NS)
+    sleep(RUN_TIME+2*INTER_RUN_TIME)
     overflow_0, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
     print("\tRate {:.1f}, overflow_count:{}".format(rate, overflow_0))
     return overflow_0
@@ -135,7 +137,7 @@ def test_rates(syn_idx):
         overflows.append(toggle_spk_generator(rate))
         if overflows[-1] > 0:
             overflows[-1] += FIFO_BUFFER_SIZE
-        if len(overflows) >= 2 and np.all(np.array(overflows[-2:]) == 0):
+        if len(overflows) > 2 and overflows[-1] == 0:
             break
     rates = rates[::-1]
     overflows = overflows[::-1]
