@@ -227,12 +227,12 @@ def plot_data(
     gen_rates_full = SPIKE_GEN_RATES[low_idx:high_idx+1]
 
     fig_1d, axs = plt.subplots(ncols=2, figsize=(14, 6))
-    axs[0].plot(max_rates_2, 'o', markersize=1)
+    axs[0].plot(max_rates_2, 'o', markersize=1.5)
     axs[0].set_xlabel("Synapse Index")
     axs[0].set_ylabel("Max Input Rate / 2 (spks/s)")
     for gen_rate in gen_rates_half:
         axs[0].axhline(gen_rate, color=(0.8, 0.8, 0.8), linewidth=1)
-    axs[1].plot(max_rates_2*2, 'o', markersize=1)
+    axs[1].plot(max_rates_2*2, 'o', markersize=1.5)
     axs[1].set_xlabel("Synapse Index")
     axs[1].set_ylabel("Max Input Rate (spks/s)")
     for gen_rate in gen_rates_full:
