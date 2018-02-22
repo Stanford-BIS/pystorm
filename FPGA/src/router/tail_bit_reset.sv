@@ -10,9 +10,9 @@ module tail_bit_reset#(parameter N = 3)(
 	input our_clk, //this board's clock
 	input [10:0] bot_in, //the value of the tail bit pin
 	input bot_valid_in, //valid signal
-	output reset, //reset signal for this board
-	output [10:0] top_out_reset, //the tail bit to send to the next board
-	output valid_reset
+	output reg reset, //reset signal for this board
+	output reg[10:0] top_out_reset, //the tail bit to send to the next board
+	output reg valid_reset
 	);
 
 always @(posedge below_clk) begin

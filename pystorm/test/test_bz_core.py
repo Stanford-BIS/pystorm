@@ -31,7 +31,7 @@ D.SetTimePerUpHB(upstream_hb_ns)
 
 print("* Check FPGA time")
 old_time = D.GetFPGATime()
-for n in range(0, 10):
+for n in range(0, 3):
 	time.sleep(1)
 	new_time = D.GetFPGATime()
 	print(new_time - old_time)
@@ -52,10 +52,12 @@ print("* waiting")
 time.sleep(1)
 print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 time.sleep(1)
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+time.sleep(1)
 
 
 print("* initalize PAT")
-D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
+D.SetMem(0 , bd.bdpars.BDMemId.PAT  , range(64) , 0);
 # print("* initalize TAT0")
 # D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT0Entries()  , 0);
 # print("* initalize TAT1")
@@ -67,8 +69,13 @@ D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
 
 print("* waiting 2")
 time.sleep(1)
-print(D.GetDefaultPATEntries())
-print(len(D.GetDefaultPATEntries()))
+
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+time.sleep(1)
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+time.sleep(1)
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+time.sleep(1)
 print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 
 time.sleep(5)
