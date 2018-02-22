@@ -55,10 +55,19 @@ wire sys_clk; // 100 MHz clock, send to PLL to generate 200MHz clock for router 
 
 
 //signals for reset
-reg r1,r2,r3,r4;
-wire tail_out_reset;
+reg [10:0] r1;
+reg [10:0] r2;
+reg [10:0] r3;
+reg [10:0] r4;
+reg v1, v2, v3, v4;
+wire [10:0] top_out_reset;
 wire [10:0] top_out_router;
-assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
+wire valid_reset;
+wire top_valid_out_router;
+
+assign top_valid_out = top_valid_out_router & valid_reset;
+assign top_out = top_out_router | top_out_reset;
+
 wire bot_ready_out;
 
 // channels between OK ifc and core design
@@ -139,7 +148,7 @@ BrainDrizzle router_node (
  .top_out		(top_out_router),
  .bot_out		(bot_out),
  .BD_out			(),//No BD
- .top_valid_out(top_valid_out),
+ .top_valid_out(top_valid_out_router),
  .bot_valid_out(bot_valid_out),
  .BD_valid_out	(BD_valid_out),//No BD
  .top_ready_out(top_ready_out),
@@ -192,12 +201,17 @@ BZ_serializer #(.NPCcode(NPCcode),.NPCdata(NPCdata), .NPCroute(NPCroute)) serial
 
 //sending reset to boards above
 always @ (posedge router_clk) begin
-	r1<=user_reset;
+	r1<={11{user_reset}};
 	r2<=r1;
 	r3<=r2;
 	r4<=r3;
+	v1<=!user_reset;
+	v2<=v1;
+	v3<=v2;
+	v4<=v3;
 end
 
-assign tail_out_reset=r1|r2|r3|r4;
+assign top_out_reset=r1|r2|r3|r4;
+assign valid_reset = v1&v2&v3&v4;
 
 endmodule
