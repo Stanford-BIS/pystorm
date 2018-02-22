@@ -5,7 +5,11 @@ import sys
 
 D = bd.Driver()
 
+print("* Done with reset sequence")
+time.sleep(1)
+
 D.SetOKBitFile("../../FPGA/quartus/output_files/BZ_host_core.rbf")
+#D.SetOKBitFile("../../FPGA/quartus/output_files/OKCoreBD.rbf")
 
 comm_state = D.Start()
 if (comm_state < 0):
@@ -26,12 +30,12 @@ D.SetTimeUnitLen(time_unit_ns)
 D.SetTimePerUpHB(upstream_hb_ns)
 
 print("* Check FPGA time")
-time.sleep(1)
-print(D.GetFPGATime())
-time.sleep(1)
-print(D.GetFPGATime())
-time.sleep(1)
-print(D.GetFPGATime())
+old_time = D.GetFPGATime()
+for n in range(0, 10):
+	time.sleep(1)
+	new_time = D.GetFPGATime()
+	print(new_time - old_time)
+	old_time = new_time
 
 # print("* Disable tag & spike traffic")
 # D.SetTagTrafficState(0, False, False)
@@ -46,6 +50,9 @@ print(D.GetFPGATime())
 # D.InitFIFO(0)
 print("* waiting")
 time.sleep(1)
+print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+time.sleep(1)
+
 
 print("* initalize PAT")
 D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
@@ -61,6 +68,7 @@ D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries()  , 0);
 print("* waiting 2")
 time.sleep(1)
 print(D.GetDefaultPATEntries())
+print(len(D.GetDefaultPATEntries()))
 print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 
 time.sleep(5)

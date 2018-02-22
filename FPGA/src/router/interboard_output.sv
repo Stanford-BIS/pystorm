@@ -31,7 +31,7 @@ always @(posedge input_clk or posedge reset) begin
 		send_data <= 11'b0;
 	end
 	else begin
-		if (valid_ff) begin
+		if (~empty & valid_ff) begin
 			send_data <= fifo_data;
 		end
 		else begin

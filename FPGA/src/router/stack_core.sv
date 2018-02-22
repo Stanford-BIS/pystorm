@@ -67,10 +67,10 @@ wire BD_ready_out;
 
 //Signals for reset
 wire reset;
-wire tail_out_reset;
+wire [10:0] top_out_reset;
 wire [10:0] top_out_router;
 
-assign top_out = {tail_out_reset | top_out_router[10], top_out_router[9:0]};
+assign top_out = top_out_router | top_out_reset;
 
 logic BD_in_valid;
 assign BD_in_valid = ~_BD_in_valid;
@@ -148,9 +148,10 @@ BrainDrizzle router_node (
 tail_bit_reset gen_reset(
 	.below_clk		(bot_in_clk),
 	.our_clk			(router_clk),
-	.tail_bit		(bot_in[10]),
+	.bot_in		(bot_in),
+	.bot_valid_in (bot_valid_in),
 	.reset			(reset),
-	.next_tail_bit	(tail_out_reset)
+	.top_out_reset(top_out_reset)
 	);
 
 // channels between serdes and core design

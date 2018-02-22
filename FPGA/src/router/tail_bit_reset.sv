@@ -8,26 +8,20 @@
 module tail_bit_reset#(parameter N = 3)(
 	input below_clk, //clock from the board below us
 	input our_clk, //this board's clock
-	input tail_bit, //the value of the tail bit pin
+	input [10:0] bot_in, //the value of the tail bit pin
+	input bot_valid_in, //valid signal
 	output reset, //reset signal for this board
-	output next_tail_bit //the tail bit to send to the next board
+	output [10:0] top_out_reset //the tail bit to send to the next board
 	);
 
-reg [N-1:0] in; //intermediate input signals
-//wire mid = &in; //reset is high if all of these are high
-
-assign reset = &in;
-assign next_tail_bit = reset;
-
-reg [N-1:0] sc; //sync (totally not brute force, this is very nuanced)
-
-reg [N-1:0] out; //intermediate output signals
-
-
-//input ffs
-always @(posedge our_clk) begin
-	in[0] <= tail_bit;
-	for(int i=1; i<N; i++) in[i] <= in[i-1];
+always @(posedge below_clk) begin
+	reset = (&bot_in) & (~bot_valid_in);
+	if(reset) begin
+		top_out_reset = bot_in;
+	end
+	else begin
+		top_out_reset = 11'b0;
+	end
 end
 
 //output ffs
