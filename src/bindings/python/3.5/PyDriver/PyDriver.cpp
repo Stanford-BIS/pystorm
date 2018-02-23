@@ -437,6 +437,9 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikeFilterStates", &Driver::RecvSpikeFilterStates, "Get FPGA SpikeFilter outputs",
         py::arg("core_id"), py::arg("timeout_us"));
 
+    cl.def("SetSpikeFilterDebug",&Driver::SetSpikeFilterDebug, "enable or disable dumping of raw tags entering spike filter", 
+        py::arg("core_id"), py::arg("en"));
+
     // added manually
 		cl.def("RecvTags", &Driver::RecvTags, "Receive a stream of tags\n receive from both tag output leaves, the Acc and TAT", py::arg("core_id"), py::arg("timeout_us")=1000);
 		cl.def("RecvUnpackedTags", &Driver::RecvUnpackedTags, "Receive unpacked tags from both tag output leaves, the Acc and TAT\nreturns {counts, tags, routes, times}", py::arg("core_id"), py::arg("timeout_us")=1000);
