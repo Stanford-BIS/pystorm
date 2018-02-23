@@ -70,14 +70,14 @@ module DCChannelFIFO42(
   input wrclk, rdclk, reset);
 
   //handshake fifo input
-  wire [47:0] data = {6'b0, in.d};
+  wire [47:0] data = in.d;
   reg wrfull;
   wire wrreq = in.v & ~wrfull;
   assign in.a = in.v & ~wrfull;
 
   //handshake fifo output
   reg [47:0] q;
-  assign out.d = q[41:0];
+  assign out.d = q;
   wire rdreq = out.a;
   reg rdempty;
   assign out.v = ~rdempty;
