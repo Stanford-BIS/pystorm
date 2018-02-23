@@ -15,7 +15,7 @@ np.set_printoptions(precision=1)
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
-from utils import load_txt_data
+from utils.file_io import load_txt_data
 
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
