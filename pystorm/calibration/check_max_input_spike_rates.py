@@ -22,8 +22,14 @@ NRN_N = 4096
 SYN_N = 1024
 
 SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
+MAX_SPIKE_GENS = 256 # update with SPIKE_GEN_TIME_UNIT_NS
 MIN_RATE = 1000
 MAX_RATE = 100000
+
+SLOT_TEST_MAX_RATE = 11111
+SLOT_TEST_N_RATES = 20
+SLOT_TEST_MIN_RATE = 8000
+MAX_TAT_ENTRIES = 2048
 
 DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
 if not os.path.isdir(DATA_DIR):
@@ -36,6 +42,10 @@ SYN_PD_PU = 1024 # analog bias setting
 
 RUN_TIME = 1.0
 INTER_RUN_TIME = 0.2
+RUN_TIME_NS = int(RUN_TIME*1E9)
+INTER_RUN_TIME_NS = int(INTER_RUN_TIME*1E9)
+
+FIFO_SIZE = 512
 
 def compute_init_rate_idx(gen_rates, init_rate):
     """Compute the initial spike generator rate to test"""
@@ -161,7 +171,7 @@ def make_tat_compatible(syn_spike_gen_rates):
     #     print("{:8.1f}: {:d}".format(rate, len(rate_syn[rate])))
     return rate_syn
 
-def compute_receiver_rates(gen_rates, syn_max_rate_file):
+def compute_receiver_rates(gen_rates, max_syn_rates):
     """Compute the overall input rates given the synapse max input rates
 
     capable of receiving the
@@ -169,15 +179,14 @@ def compute_receiver_rates(gen_rates, syn_max_rate_file):
     ----------
     gen_rates: array of floats
         possible rates output by the spike generators
-    syn_max_rate_file: string filename
-        data file containing the maximum input rate of the synapses
+    max_syn_rates: array of numbers
+        maximum input rates of the synapses
 
     Returns
     -------
     rate_group: dictionary of [rate] : SynGroup object
         mapping between spike generator rates and synapse groups
     """
-    max_syn_rates = np.loadtxt(syn_max_rate_file)
     syn_spike_gen_rates = np.zeros(max_syn_rates.shape)
     for rate in gen_rates:
         syn_idxs = max_syn_rates*SYN_MAX_RATE_FRAC > rate
@@ -187,7 +196,6 @@ def compute_receiver_rates(gen_rates, syn_max_rate_file):
     for rate in rate_syn:
         rate_group[rate] = SynGroup(gen_rates, rate, rate_syn[rate])
     recv_data = RecvData(rate_group)
-    plot_input_rates(gen_rates, recv_data)
     return recv_data
 
 def set_analog():
@@ -215,17 +223,25 @@ def syn_to_soma_addr(syn_n):
     return soma_syn_addrs
 
 def toggle_input_rates(net_input, rates):
-    """Toggle the spike generator and check for overflow"""
+    """Toggle the spike generator and check for overflow
+
+    Parameters
+    ----------
+    net_input: hal neuromorph Input object
+        Input object to toggle
+    rates: list of rates
+        one entry for each dimension
+    """
     clear_overflows(HAL, INTER_RUN_TIME)
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
     net_inputs = [net_input for _ in rates]
     dims = [dim for dim in range(len(rates))]
-    HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
-    sleep(RUN_TIME)
-    HAL.set_input_rates(net_inputs, dims, [0 for _ in rates], time=0, flush=True)
-    HAL.flush()
-    sleep(INTER_RUN_TIME)
+    cur_time = HAL.get_time()
+    HAL.set_input_rates(net_inputs, dims, rates, time=cur_time+INTER_RUN_TIME_NS)
+    HAL.set_input_rates(
+        net_inputs, dims, [0 for _ in rates], time=cur_time+INTER_RUN_TIME_NS+RUN_TIME_NS)
+    sleep(RUN_TIME+2*INTER_RUN_TIME)
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
     overflow, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
@@ -417,7 +433,7 @@ def plot_test_group(recv_data, test_group_data):
         input_rates = test_group_data[rate][0]
         overflows = test_group_data[rate][1]
         total_rates = input_rates * recv_data.rate_group[rate].syn_n
-        max_total_rate = max(max_total_rate, np.max(total_rates))
+        max_total_rate = max(max_total_rate, np.max(total_rates[overflows == 0]))
         axvline = axs[0].axvline(rate, linewidth=0.5)
         line = axs[0].plot(input_rates, overflows, '-o', linewidth=1)[0]
         axvline.set_color(line.get_color())
@@ -425,17 +441,12 @@ def plot_test_group(recv_data, test_group_data):
         axs[0].set_xlabel("Spike Generator Rate (spks/s)")
         axs[1].set_xlabel("Total Input Rate (Mspks/s)")
         axs[0].set_ylabel("Overflow Counts")
-    fig.suptitle("Test Synapse Groups Individually\nMax Observed Total Input Rate {:.1f}".format(
-        ))
+    fig.suptitle("Test Synapse Groups Individually\n" +
+                 "Max Observed No-Overflow Total Input Rate {:.1f}".format(max_total_rate))
     fig.savefig(DATA_DIR + "test_group.pdf")
 
 def test_all_groups(gen_rates, recv_data):
-    """Test all synapses simultaneously as grouped by their quantized max rates
-
-    Returns
-    -------
-    {test_rate: ([clipped_rates], overflows)}
-    """
+    """Test all synapses simultaneously as grouped by their quantized max rates"""
     net_input = build_net_group(recv_data)
 
     rate_limits = np.sort(list(recv_data.rate_group))
@@ -465,6 +476,96 @@ def plot_test_all_groups(recv_data, test_all_groups_data):
     fig.suptitle("Test All Synapses Groups Together")
     fig.savefig(DATA_DIR + "test_all_groups.pdf")
 
+def build_net_slots(max_syn_rates):
+    """Build a network for testing with synapses grouped by their binned max spike rates
+
+    All input dimensions will provide the same rate
+    Synapses targeted by number of dimensions in proportion to their max firing rate
+
+    Returns a neuromorph Network Input object.
+    """
+    syn_dims = (max_syn_rates*.93 // SLOT_TEST_MAX_RATE).astype(int)
+    encoder_dim = np.max(syn_dims)
+    assert encoder_dim <= MAX_SPIKE_GENS
+
+    tap_matrix_syn = np.zeros((SYN_N, encoder_dim))
+    for syn_idx, syn_dim in enumerate(syn_dims):
+        tap_matrix_syn[syn_idx, np.arange(syn_dim)] = 1
+    # tap matrices must have even number of nonzero entries per dim
+    for dim in range(encoder_dim):
+        nonzero_idx = np.nonzero(tap_matrix_syn[:, dim])[0]
+        if len(nonzero_idx)%2 > 0:
+            tap_matrix_syn[nonzero_idx[-1], dim] = 0
+    tat_entries = np.sum(tap_matrix_syn)
+    print(np.sum(tap_matrix_syn, axis=0))
+    assert tat_entries <= MAX_TAT_ENTRIES, (
+        "Too many tag action table entries requested.\n" +
+        "\t{} requested but only {} available.\n".format(int(tat_entries), MAX_TAT_ENTRIES) +
+        "\tTry increasing SLOT_TEST_MAX_RATE, which is currently set at {}".format(
+            SLOT_TEST_MAX_RATE))
+
+    syn_dims = np.sum(tap_matrix_syn, axis=1)
+    tap_matrix_soma = np.zeros((NRN_N, encoder_dim)) # tap matrix in soma address space
+    soma_idxs = syn_to_soma_addr(SYN_N)
+    tap_matrix_soma[soma_idxs] = tap_matrix_syn
+    net = graph.Network("net")
+    net_pool = net.create_pool("p", tap_matrix_soma)
+    net_input = net.create_input("i", encoder_dim)
+    net.create_connection("c: i to p", net_input, net_pool, None)
+    HAL.map(net)
+    set_analog()
+    return net_input, syn_dims
+
+def test_slots(max_syn_rates):
+    """Test all synapses simultaneously as grouped by their quantized max_rates
+
+    Give syanpses different rates by putting them into different numbers of slots
+    """
+    net_input, syn_dims = build_net_slots(max_syn_rates)
+    test_rates = compute_spike_gen_rates(
+        SLOT_TEST_MIN_RATE, SLOT_TEST_MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
+    overflows = np.zeros_like(test_rates)
+
+    for rate_idx, rate in enumerate(test_rates):
+        input_rates = [rate for _ in range(net_input.dimensions)]
+        overflows[rate_idx] = toggle_input_rates(net_input, input_rates)
+    return syn_dims, test_rates, overflows
+
+def plot_test_slots(recv_data, test_slots_data):
+    """Plot data from test_slots"""
+    syn_dims, test_rates, overflows = test_slots_data
+    o_idxs = overflows > 0
+    overflows[o_idxs] = overflows[o_idxs] + FIFO_SIZE
+    total_rates = np.sum(syn_dims)*test_rates
+    max_total_rate = np.max(total_rates[overflows == 0])
+
+    y = overflows[o_idxs]
+    A = np.array([total_rates[o_idxs], np.ones(len(y))]).T
+    x = np.dot(np.dot(np.linalg.inv(np.dot(A.T, A)), A.T), y) # x = (A_T*A)^-1*A_T*y
+    overflow_slope = x[0]
+    max_rate = -x[1]/x[0]
+
+    fig, axs = plt.subplots(figsize=(8, 6))
+    axs.plot(total_rates*1E-6, overflows, 'o', linewidth=1)
+    axs.axhline(0, color='k', linewidth=0.5)
+    axs.axvline(recv_data.min_max_total_rate*1E-6, color='y', linewidth=1,
+        label="all syn, same rate")
+    axs.axvline(recv_data.clipped_max_total_rate*1E-6, color='c', linewidth=1,
+        label="no slow syn, same rate")
+    axs.axvline(recv_data.max_max_total_rate*1E-6, color='m', linewidth=1,
+        label="all syn, custom rates")
+    ylim = axs.get_ylim()
+    axs.plot(total_rates*1E-6, overflow_slope*(total_rates-max_rate), 'r')
+    axs.set_ylim(ylim)
+    axs.legend(loc="upper left", title="Predicted\nSynapse-Limited Input Rates")
+    axs.set_xlabel("Total Input Rates (Mspks/s)")
+    axs.set_ylabel("Overflow Counts (+ FIFO SIZE if nonzero)")
+    axs.set_title(
+        "Dims per Synapse $\propto$ Synapse's Max Rate\n"+
+        "Max Observed No-Overflow Total Input Rate {:.1f} Mspks/s\n".format(max_total_rate*1E-6) +
+        "Estimated Max Input Rate {:.1f} Mspks/s".format(max_rate*1E-6))
+    fig.savefig(DATA_DIR + "test_slots.pdf")
+
 def check_max_input_spike_rates(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
@@ -473,21 +574,28 @@ def check_max_input_spike_rates(parsed_args):
         test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
         test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
         test_all_group_data = load_pickle_data(DATA_DIR + "test_all_group_data.p")
+        test_slots_data = load_pickle_data(DATA_DIR + "test_slots_data.p")
     else:
+        max_syn_rates = np.loadtxt(SYN_MAX_RATE_FILE)
+        HAL.set_time_resolution(downstream_ns=SPIKE_GEN_TIME_UNIT_NS)
         gen_rates = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
-        recv_data = compute_receiver_rates(gen_rates, SYN_MAX_RATE_FILE)
+        recv_data = compute_receiver_rates(gen_rates, max_syn_rates)
         test_1d_data = test_1d(gen_rates, recv_data)
         test_group_data = test_group(gen_rates, recv_data)
         test_all_group_data = test_all_groups(gen_rates, recv_data)
+        test_slots_data = test_slots(max_syn_rates)
 
         save_pickle_data(DATA_DIR + "recv_data.p", recv_data)
         save_pickle_data(DATA_DIR + "test_1d_data.p", test_1d_data)
         save_pickle_data(DATA_DIR + "test_group_data.p", test_group_data)
         save_pickle_data(DATA_DIR + "test_all_group_data.p", test_all_group_data)
+        save_pickle_data(DATA_DIR + "test_slots_data.p", test_slots_data)
 
+    plot_input_rates(gen_rates, recv_data)
     plot_test_1d(recv_data, test_1d_data)
     plot_test_group(recv_data, test_group_data)
     plot_test_all_groups(recv_data, test_all_group_data)
+    plot_test_slots(recv_data, test_slots_data)
 
     plt.show()
 
