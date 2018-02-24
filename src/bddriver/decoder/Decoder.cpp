@@ -111,9 +111,6 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         had_nop = true;
         break; // all further words in the block are guaranteed to be nops!
 
-      } else if (ep_code == bd_pars_->DnEPCodeFor(bdpars::BDHornEP::RI)) { // note, Dn, not UpEPCode
-        cout << "WARNING: Decoder: got tag intended for another BD (a few on startup is normal)" << endl;
-      
       // otherwise, forward to Driver
       } else {
         //cout << "decoder got something that wasn't a HB" << endl;
@@ -124,6 +121,13 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         //if (had_nop) {
         //  cout << "had real data after nop" << endl;
         //}
+
+        // SPECIAL HACK FOR NICK
+        if (ep_code == bd_pars_->DnEPCodeFor(bdpars::BDHornEP::RI)) { // note, Dn, not UpEPCode
+          // this board mangles global routes, making stuff that should go to the PC get the code to go to another board
+          // we undo that here
+          ep_code = bd_pars_->UpEPCodeFor(bdpars::BDFunnelEP::RO_TAT);
+        }
 
         DecOutput to_push;
         to_push.payload = payload;
