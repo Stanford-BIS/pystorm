@@ -34,8 +34,7 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 	input clk, reset);
 
 	//current header
-	wire [10:0] current_header;
-	assign current_header = {1'b0, {(10-NPCroute){PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1]}}, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
+	reg [10:0] current_header;
 
 	//store header packet
 	reg [10:0] header_packet = 11'b0;
@@ -61,10 +60,14 @@ module BZ_serializer #(parameter NPCcode = 7, parameter NPCdata = 20, parameter 
 		if (reset==1) begin
 			header_packet <= 11'b0; //assign header packet
 			data <= 30'b0; //assign data
+			current_header <= 11'b0;
 		end
 		else if(state == 3'd0 | state == 3'd4) begin
 			header_packet <= {1'b0, {(10-NPCroute){PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1]}}, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]}; //assign header packet
 			data <= PC_in_channel.d[NPCdata+NPCcode:0]; //assign data
+		end
+		else if(state == 3'd3) begin
+			current_header <= {1'b0, {(10-NPCroute){PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1]}}, PC_in_channel.d[NPCroute + NPCdata + NPCcode - 1 : NPCcode + NPCdata]};
 		end
 		if (reset==1) begin
 			state <= 3'b0;
