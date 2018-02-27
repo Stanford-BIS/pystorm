@@ -84,7 +84,7 @@ derive_clock_uncertainty
 # Set False Path
 #**************************************************************
 set_false_path -from reset -to *
-
+set_false_path -from tail_bit_reset:gen_reset|reset -to *
 
 #**************************************************************
 # Set Multicycle Path

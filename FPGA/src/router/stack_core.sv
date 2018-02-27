@@ -66,7 +66,7 @@ wire BD_out_clk;
 wire BD_ready_out;
 
 //Signals for reset
-wire reset;
+logic reset;
 wire [10:0] top_out_reset;
 wire [10:0] top_out_router;
 wire valid_reset;

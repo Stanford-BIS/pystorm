@@ -10,20 +10,20 @@ module tail_bit_reset#(parameter N = 3)(
 	input our_clk, //this board's clock
 	input [10:0] bot_in, //the value of the tail bit pin
 	input bot_valid_in, //valid signal
-	output reg reset, //reset signal for this board
+	output logic reset, //reset signal for this board
 	output reg[10:0] top_out_reset, //the tail bit to send to the next board
 	output reg valid_reset
 	);
 
 always @(posedge below_clk) begin
-	reset = (&bot_in) & (~bot_valid_in);
-	if(reset) begin
-		top_out_reset = bot_in;
-		valid_reset = 0;
+	reset <= (&bot_in) & (~bot_valid_in);
+	if((&bot_in) & (~bot_valid_in)) begin
+		top_out_reset <= bot_in;
+		valid_reset <= 0;
 	end
 	else begin
-		top_out_reset = 11'b0;
-		valid_reset = 1;
+		top_out_reset <= 11'b0;
+		valid_reset <= 1;
 	end
 end
 

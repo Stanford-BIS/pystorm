@@ -18,7 +18,7 @@ if (comm_state < 0):
 
 # print("* FPGA init")
 # D.InitFPGA()
-
+time.sleep(1)
 print("* Resetting BD")
 D.ResetBD()
 
@@ -52,8 +52,8 @@ print("* waiting")
 time.sleep(1)
 print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 time.sleep(1)
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
 
 
 print("* initalize PAT")
@@ -71,12 +71,12 @@ print("* waiting 2")
 time.sleep(1)
 
 print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-time.sleep(1)
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-time.sleep(1)
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-time.sleep(1)
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 
 time.sleep(5)
 
