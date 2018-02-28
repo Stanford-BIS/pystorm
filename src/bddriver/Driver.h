@@ -976,6 +976,12 @@ class Driver {
     return {filter_ids, filter_states, words_times.second};
   }
 
+  // enable or disable dumping of raw tags entering spike filter
+  void SetSpikeFilterDebug(unsigned int core_id, bool en) {
+    uint64_t en_int = static_cast<unsigned int>(en);
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TS_REPORT_TAGS), {en_int});
+  }
+
   //////////////////////////////////////////////////////////////////////////
   // Utility
   //////////////////////////////////////////////////////////////////////////

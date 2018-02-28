@@ -284,9 +284,9 @@ def plot_data(max_rates, binned_max_rates, validated_max_rates):
         axs.axhline(rate, color='k', alpha=0.5, linewidth=1)
     for idx in mismatched_idxs:
         axs.plot([idx, idx], [max_rates[idx], validated_max_rates[idx]], 'r', linewidth=1)
-    axs.plot(max_rates, 'o', markersize=1.5, label="max rates")
+    axs.plot(max_rates, 'o', markersize=2.0, label="max rates")
     axs.plot(binned_max_rates, 'o', markersize=1.5, label="binned max rates")
-    axs.plot(validated_max_rates, 'o', markersize=1.5, label="validated max rates")
+    axs.plot(validated_max_rates, 'o', markersize=1.0, label="validated max rates")
     axs.set_xlabel("Synapse Index")
     axs.set_ylabel("Rate (spks/s)")
     axs.legend()
@@ -301,8 +301,8 @@ def plot_data(max_rates, binned_max_rates, validated_max_rates):
         axs.plot([max_rates[idx], max_rates[idx]],
                     [binned_max_rates[idx], validated_max_rates[idx]],
                     'r', linewidth=1)
-    axs.plot(max_rates, binned_max_rates, 'o', markersize=1.5, label='predicted')
-    axs.plot(max_rates, validated_max_rates, 'o', markersize=1.5, label='validated')
+    axs.plot(max_rates, binned_max_rates, 'o', markersize=2.0, label='predicted')
+    axs.plot(max_rates, validated_max_rates, 'o', markersize=1.0, label='validated')
     axs.set_xlabel("Estimated Max Rate (spks/s)")
     axs.set_ylabel("Binned Max Rate (spks/s)")
     axs.legend()

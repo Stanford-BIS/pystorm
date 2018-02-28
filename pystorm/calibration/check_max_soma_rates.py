@@ -19,7 +19,7 @@ from pystorm.hal.hal import parse_hal_spikes
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils import load_txt_data
+from utils.file_io import load_txt_data
 
 CORE = 0
 MAX_NEURONS = 4096
