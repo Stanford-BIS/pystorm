@@ -56,6 +56,11 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='Characterize the max input spike rate to the synapses')
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
+    default_max_rates_file = DATA_DIR + "max_rates.txt"
+    parser.add_argument(
+        "--max_rates", dest="max_rates", type=str, default=default_max_rates_file,
+        help="name of file containing the synapse's maximum input rates. " +
+        'Default file: "{}"'.format(default_max_rates_file))
     args = parser.parse_args()
     return args
 
@@ -151,10 +156,6 @@ def make_tat_compatible(syn_spike_gen_rates):
     rate_syn = {}
     for rate in rates:
         rate_syn[rate] = list(np.nonzero(syn_spike_gen_rates == rate)[0])
-    # print("Before even-number restriction applied:")
-    # print("    rate: synapses")
-    # for rate in rates:
-    #     print("{:8.1f}: {:d}".format(rate, len(rate_syn[rate])))
 
     move_syn = None
     for rate in sorted(rates)[::-1]:
@@ -165,10 +166,6 @@ def make_tat_compatible(syn_spike_gen_rates):
             else:
                 move_syn = rate_syn[rate][-1]
                 rate_syn[rate] = rate_syn[rate][:-1]
-    # print("After even-number restriction applied:")
-    # print("    rate: synapses")
-    # for rate in rates:
-    #     print("{:8.1f}: {:d}".format(rate, len(rate_syn[rate])))
     return rate_syn
 
 def compute_receiver_rates(gen_rates, max_syn_rates):
