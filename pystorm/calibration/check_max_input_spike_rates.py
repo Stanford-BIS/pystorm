@@ -26,7 +26,9 @@ MAX_SPIKE_GENS = 256 # update with SPIKE_GEN_TIME_UNIT_NS
 MIN_RATE = 1000
 MAX_RATE = 100000
 
-SLOT_TEST_MAX_RATE = 11111
+MAX_RATE_SCALE = 0.91 # account for error in max rates measurements
+SLOT_TEST_MAX_RATE = 20000
+SLOT_TEST_BASE_RATE = 11111
 SLOT_TEST_N_RATES = 20
 SLOT_TEST_MIN_RATE = 8000
 MAX_TAT_ENTRIES = 2048
@@ -45,11 +47,9 @@ INTER_RUN_TIME = 0.2
 RUN_TIME_NS = int(RUN_TIME*1E9)
 INTER_RUN_TIME_NS = int(INTER_RUN_TIME*1E9)
 
-FIFO_SIZE = 512
+FIFO_SIZE = 255
 
-def compute_init_rate_idx(gen_rates, init_rate):
-    """Compute the initial spike generator rate to test"""
-    return np.argmin(np.abs(gen_rates - init_rate))
+DEFAULT_TEST_SET = ["all_together", "bin_by_bin", "all_bins", "bin_by_slots"]
 
 def parse_args():
     """Parse command line arguments"""
@@ -61,8 +61,16 @@ def parse_args():
         "--max_rates", dest="max_rates", type=str, default=default_max_rates_file,
         help="name of file containing the synapse's maximum input rates. " +
         'Default file: "{}"'.format(default_max_rates_file))
+    parser.add_argument(
+        "--tests", dest="test_set", type=str, nargs="+",
+        help="list of tests to conduct. Choose from {}. ".format(DEFAULT_TEST_SET) +
+        "Default is to test everything")
     args = parser.parse_args()
     return args
+
+def compute_init_rate_idx(gen_rates, init_rate):
+    """Compute the initial spike generator rate to test"""
+    return np.argmin(np.abs(gen_rates - init_rate))
 
 def plot_input_rates(gen_rates, recv_data):
     """Plot the possible input rates and receiver traffic"""
@@ -88,11 +96,9 @@ def plot_input_rates(gen_rates, recv_data):
     ax_rates.tick_params('y', colors='k')
     ax_syn.tick_params('y', colors='b')
     ax_rates.set_title(
-        "Max Receiver Test Rate {:.1f} Mspks/s ".format(recv_data.min_max_total_rate*1E-6) +
-        "(including all synapses)\n" +
-        "Max Receiver Test Rate {:.1f} Mspks/s\n".format(recv_data.clipped_max_total_rate*1E-6) +
-        "(excluding synapses unable to handle a given rate)"
-        )
+        "Max Receiver Test Rates\n" + 
+        "{:.1f} Mspks/s (including all synapses)\n".format(recv_data.min_max_total_rate*1E-6) +
+        "{:.1f} Mspks/s (excluding slow synapses)".format(recv_data.clipped_max_total_rate*1E-6))
     fig.savefig(DATA_DIR + "receiver_rates_same_input.pdf")
 
     fig, ax_syns = plt.subplots(ncols=2, figsize=(14, 5))
@@ -481,7 +487,7 @@ def build_net_slots(max_syn_rates):
 
     Returns a neuromorph Network Input object.
     """
-    syn_dims = (max_syn_rates*.93 // SLOT_TEST_MAX_RATE).astype(int)
+    syn_dims = (max_syn_rates*MAX_RATE_SCALE // SLOT_TEST_BASE_RATE).astype(int)
     encoder_dim = np.max(syn_dims)
     assert encoder_dim <= MAX_SPIKE_GENS
 
@@ -546,53 +552,65 @@ def plot_test_slots(recv_data, test_slots_data):
     axs.plot(total_rates*1E-6, overflows, 'o', linewidth=1)
     axs.axhline(0, color='k', linewidth=0.5)
     axs.axvline(recv_data.min_max_total_rate*1E-6, color='y', linewidth=1,
-        label="all syn, same rate")
+                label="all syn, same rate")
     axs.axvline(recv_data.clipped_max_total_rate*1E-6, color='c', linewidth=1,
-        label="no slow syn, same rate")
+                label="no slow syn, same rate")
     axs.axvline(recv_data.max_max_total_rate*1E-6, color='m', linewidth=1,
-        label="all syn, custom rates")
+                label="all syn, custom rates")
     ylim = axs.get_ylim()
     axs.plot(total_rates*1E-6, overflow_slope*(total_rates-max_rate), 'r')
     axs.set_ylim(ylim)
     axs.legend(loc="upper left", title="Predicted\nSynapse-Limited Input Rates")
     axs.set_xlabel("Total Input Rates (Mspks/s)")
     axs.set_ylabel("Overflow Counts (+ FIFO SIZE if nonzero)")
-    axs.set_title(
-        "Dims per Synapse $\propto$ Synapse's Max Rate\n"+
-        "Max Observed No-Overflow Total Input Rate {:.1f} Mspks/s\n".format(max_total_rate*1E-6) +
-        "Estimated Max Input Rate {:.1f} Mspks/s".format(max_rate*1E-6))
+    axs.set_title(r"Dims per Synapse $\propto$ Synapse's Max Rate" + "\n" +
+                  "Max Observed No-Overflow Total Input Rate {:.1f} Mspks/s\n".format(
+                      max_total_rate*1E-6) +
+                  "Estimated Max Input Rate {:.1f} Mspks/s".format(max_rate*1E-6))
     fig.savefig(DATA_DIR + "test_slots.pdf")
 
 def check_max_input_spike_rates(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
+    test_set = parsed_args.test_set
     if use_saved_data:
         recv_data = load_pickle_data(DATA_DIR + "recv_data.p")
-        test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
-        test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
-        test_all_group_data = load_pickle_data(DATA_DIR + "test_all_group_data.p")
-        test_slots_data = load_pickle_data(DATA_DIR + "test_slots_data.p")
+        if "all_together" in test_set:
+            test_1d_data = load_pickle_data(DATA_DIR + "test_1d_data.p")
+        if "bin_by_bin" in test_set:
+            test_group_data = load_pickle_data(DATA_DIR + "test_group_data.p")
+        if "all_bins" in test_set:
+            test_all_group_data = load_pickle_data(DATA_DIR + "test_all_group_data.p")
+        if "bin_by_slots" in test_set:
+            test_slots_data = load_pickle_data(DATA_DIR + "test_slots_data.p")
     else:
         max_syn_rates = np.loadtxt(SYN_MAX_RATE_FILE)
         HAL.set_time_resolution(downstream_ns=SPIKE_GEN_TIME_UNIT_NS)
         gen_rates = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
         recv_data = compute_receiver_rates(gen_rates, max_syn_rates)
-        test_1d_data = test_1d(gen_rates, recv_data)
-        test_group_data = test_group(gen_rates, recv_data)
-        test_all_group_data = test_all_groups(gen_rates, recv_data)
-        test_slots_data = test_slots(max_syn_rates)
-
         save_pickle_data(DATA_DIR + "recv_data.p", recv_data)
-        save_pickle_data(DATA_DIR + "test_1d_data.p", test_1d_data)
-        save_pickle_data(DATA_DIR + "test_group_data.p", test_group_data)
-        save_pickle_data(DATA_DIR + "test_all_group_data.p", test_all_group_data)
-        save_pickle_data(DATA_DIR + "test_slots_data.p", test_slots_data)
+        if "all_together" in test_set:
+            test_1d_data = test_1d(gen_rates, recv_data)
+            save_pickle_data(DATA_DIR + "test_1d_data.p", test_1d_data)
+        if "bin_by_bin" in test_set:
+            test_group_data = test_group(gen_rates, recv_data)
+            save_pickle_data(DATA_DIR + "test_group_data.p", test_group_data)
+        if "all_bins" in test_set:
+            test_all_group_data = test_all_groups(gen_rates, recv_data)
+            save_pickle_data(DATA_DIR + "test_all_group_data.p", test_all_group_data)
+        if "bin_by_slots" in test_set:
+            test_slots_data = test_slots(max_syn_rates)
+            save_pickle_data(DATA_DIR + "test_slots_data.p", test_slots_data)
 
     plot_input_rates(gen_rates, recv_data)
-    plot_test_1d(recv_data, test_1d_data)
-    plot_test_group(recv_data, test_group_data)
-    plot_test_all_groups(recv_data, test_all_group_data)
-    plot_test_slots(recv_data, test_slots_data)
+    if "all_together" in test_set:
+        plot_test_1d(recv_data, test_1d_data)
+    if "bin_by_bin" in test_set:
+        plot_test_group(recv_data, test_group_data)
+    if "all_bins" in test_set:
+        plot_test_all_groups(recv_data, test_all_group_data)
+    if "bin_by_slots" in test_set:
+        plot_test_slots(recv_data, test_slots_data)
 
     plt.show()
 
