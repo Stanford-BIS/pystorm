@@ -7,12 +7,13 @@
 module stack_core_tb();
 
 reg osc; //signal for oscillator
+reg test;
 
 //input from other boards
 reg top_in_clk;
 reg bot_in_clk;
 reg top_valid_in;
-reg bot_valid_in;
+wire bot_valid_in;
 reg top_ready_in;
 reg bot_ready_in;
 reg [10:0] top_in;
@@ -42,6 +43,8 @@ reg adc1;
 
 reg reset = 0; //for srcs
 
+assign bot_valid_in = test & bot_ready_out;
+
 //basic routing tests for router -> BD
 initial
 begin
@@ -51,15 +54,15 @@ begin
 	bot_in_clk=0;
 	BD_in_clk_ifc=0;
 	bot_in=11'b11111111111; //reset
-	bot_valid_in = 0;
 	bot_ready_in = 1;
+	test = 0;
 	#600
 	bot_in=11'b0; //stop reset
 	
 	#300
 	bot_in=11'b00111111100; //try sending data
+	test = 1;
 	top_ready_in = 1;
-	bot_valid_in = 1;
 
 	#600
 	bot_in=11'b10111111100; //try sending data
@@ -73,18 +76,36 @@ begin
 	bot_in=11'b10000000111; //tail
 	#10
 	bot_in=11'b00000000000; //try sending data to BD
+	repeat(10000) begin
+		#10
+		bot_in=11'b00000001111;
+		#10
+		bot_in=11'b00000011111;
+		#10
+		bot_in=11'b00000111111;
+	end
 	#10
 	bot_in=11'b00000001111;
 	#10
 	bot_in=11'b00000011111;
 	#10
 	bot_in=11'b10000111111;
-	#10
-	bot_valid_in = 0;
+	repeat(1000) begin
+		#10
+		bot_in=11'b00000000000; //try sending data to BD
+		#10
+		bot_in=11'b00000001111;
+		#10
+		bot_in=11'b00000011111;
+		#10
+		bot_in=11'b10000111111;
+	end
 end
 
 // BD src
 BD_Source #(.NUM_BITS(34), .DelayMin(0), .DelayMax(200)) src(BD_in_data, _BD_in_valid, BD_in_ready, reset, BD_in_clk_ifc);
+// BD sink
+BD_Sink #(.NUM_BITS(21), .DelayMin(0), .DelayMax(200)) sink(BD_out_ready, BD_out_valid, BD_out_data, reset, BD_out_clk);
 initial begin
 	reset = 0;
 	#15

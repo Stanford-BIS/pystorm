@@ -50,16 +50,36 @@ for n in range(0, 3):
 # D.InitFIFO(0)
 print("* waiting")
 time.sleep(1)
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-time.sleep(1)
 # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 # time.sleep(1)
 
 
 print("* initalize PAT")
-D.SetMem(0 , bd.bdpars.BDMemId.PAT  , range(64) , 0);
-# print("* initalize TAT0")
-# D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT0Entries()  , 0);
+# D.SetMem(0 , bd.bdpars.BDMemId.PAT  , range(64) , 0);
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+print("* initalize TAT0")
+D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(200)  , 0);
+time.sleep(1)
+D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(200,400)  , 200);
+time.sleep(1)
+print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 0, 200))
+time.sleep(1)
+print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 200, 400))
+time.sleep(1)
+print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 0, 400))
+time.sleep(3)
+print(D.GetOutputQueueCounts())
+# time.sleep(1)
+# print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 100, 200))
+
+# print(D.DumpMem(0, bd.bdpars.BDMemId.TAT0))
 # print("* initalize TAT1")
 # D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
 # print("* initalize MM")
@@ -68,10 +88,19 @@ D.SetMem(0 , bd.bdpars.BDMemId.PAT  , range(64) , 0);
 # D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
 
 print("* waiting 2")
-time.sleep(1)
 
-print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 # time.sleep(1)
+# print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# print("PAT diffs:")
+# print(set(D.DumpMem(0, bd.bdpars.BDMemId.PAT)).symmetric_difference(set(range(64))))
+# time.sleep(1)
+# print("TAT0 diffs:")
+# print(set(D.GetDefaultTAT0Entries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.TAT0))))
+# time.sleep(1)
+# print("TAT1 diffs:")
+# print(set(D.GetDefaultTAT1Entries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.TAT1))))
+
+
 # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 # time.sleep(1)
 # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
