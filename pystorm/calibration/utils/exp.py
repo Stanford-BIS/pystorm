@@ -16,6 +16,20 @@ def clear_overflows(hal, sample_time, core_id=0):
         sleep(sample_time)
         overflow_0, overflow_1 = hal.driver.GetFIFOOverflowCounts(core_id)
 
+def clear_outputs(hal, sample_time):
+    """Repeatedly clear outputs until no more output bins detected
+
+    Parameters
+    ----------
+    hal: HAL instance
+    sample_time: float
+        time between samples of output bins
+    """
+    outputs = hal.get_outputs()
+    while outputs.shape[0] > 0:
+        sleep(sample_time)
+        outputs = hal.get_outputs()
+
 def clear_spikes(hal, sample_time):
     """Repeatedly clear spike counts until no more spikes detected
 
