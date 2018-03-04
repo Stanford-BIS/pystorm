@@ -2,19 +2,33 @@
 from time import sleep
 import numpy as np
 
-def clear_overflows(hal, overflow_sample_time, core_id=0):
+def clear_overflows(hal, sample_time, core_id=0):
     """Repeatedly clear overflow counts until no more overflow events detected
 
     Parameters
     ----------
     hal: HAL instance
-    overflow_sample_time: float
+    sample_time: float
         time between samples of overflow counts
     """
     overflow_0, overflow_1 = hal.driver.GetFIFOOverflowCounts(core_id)
     while overflow_0 or overflow_1:
-        sleep(overflow_sample_time)
+        sleep(sample_time)
         overflow_0, overflow_1 = hal.driver.GetFIFOOverflowCounts(core_id)
+
+def clear_spikes(hal, sample_time):
+    """Repeatedly clear spike counts until no more spikes detected
+
+    Parameters
+    ----------
+    hal: HAL instance
+    sample_time: float
+        time between samples get_spikes
+    """
+    spikes = hal.get_spikes()
+    while spikes.shape[0] > 0:
+        sleep(sample_time)
+        spikes = hal.get_spikes()
 
 def compute_spike_gen_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     """Compute the FPGA's spike generator rates between the min and max rates
