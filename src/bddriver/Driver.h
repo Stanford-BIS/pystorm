@@ -852,9 +852,9 @@ class Driver {
 
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
+        if (_addr < 4096) {
             xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
-        }else {
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
@@ -873,10 +873,10 @@ class Driver {
 
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
+        if (_addr < 4096) {
             xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
             xy_times[idx] = static_cast<float>(aer_times[idx]) * 1e-9;
-        }else {
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
