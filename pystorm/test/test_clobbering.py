@@ -206,32 +206,41 @@ def sweep_tag_input_rates(parsed_args):
                 total_tags = len(tag_tags)
                 measured_rates_tags[cycle_idx*len(rates)+rate_idx] = 1.*total_tags/measured_time
 
-                print("\nReceived Tags:")
+                print("\nReceived Tags for Rate {}:".format(rate))
                 #print("[OUTPUT] [{}]\t{}".format(rate, tag_tags[:N_TAGS_TO_SEND*4]))
 
                 for tag_idx, cur_output in enumerate(net_outputs):
                     cur_total_tags = np.sum(filtered_tags[filtered_tags[:, 1] == tag_idx, 0])
-                    print("[OUTPUT] [{}]\tCount of output [{}]".format(rate, tag_idx)+
-                          " tags: {} ({:5.2f}%)".format(cur_total_tags, cur_total_tags/total_tags*100))
-                print("[OUTPUT] [{}]\tMeasured time: {}".format(rate, measured_time) +
-                      "\tNum of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
-                print("[OUTPUT] [{}]".format(rate) +
-                      "\tMeasured rate: {}".format( measured_rates_tags[cycle_idx*len(rates)+rate_idx]))
+                    print("[OUTPUT] [{}]\tCount of output [{}]\t".format(rate, tag_idx)+
+                          "tags: {} ({:5.2f}%)".format(cur_total_tags, cur_total_tags/total_tags*100))
+                print("[OUTPUT] [{}]\tMeasured time: {}\t".format(rate, measured_time) +
+                      "Num of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
+                print("[OUTPUT] [{}]\t".format(rate) +
+                      "Measured rate: {}".format( measured_rates_tags[cycle_idx*len(rates)+rate_idx]))
 
-                print("[OUTPUT] [{}] total overflows: {}\n".format(rate, HAL.get_overflow_counts()))
+                print("[OUTPUT] [{}]\tTotal overflows: {}\n".format(rate, HAL.get_overflow_counts()))
 
                 # Assert test for automatic pytest compatibility
                 non_padded_tag_idx = 0
-                input_tag_list = range(N_TAGS_TO_SEND)
+                input_tag_list = np.array(range(N_TAGS_TO_SEND))
                 for tag_i, tag in enumerate(tag_tags):
                     if tag == IGNORE_TAG_VAL:
+                        #print("Ignored a padded tag output entry")
                         pass
                     else:
                         cur_tag_idx = non_padded_tag_idx % N_TAGS_TO_SEND
-                        assert input_tag_list[cur_tag_idx] == tag, (
-                                "Received unexpected tag {} (expected".format(tag) +
-                                " tag {}) at index {}\n".format(input_tag_list[cur_tag_idx], tag_i) +
-                                "Tag Stream: {}".format(tag_tags[tag_i-N_TAGS_TO_SHOW:tag_i+N_TAGS_TO_SHOW]))
+                        if tag_i < N_TAGS_TO_SHOW:
+                            assert input_tag_list[cur_tag_idx] == tag, (
+                                "Received unexpected tag value of {} ".format(tag) +
+                                "(expected tag value of {}) at index {}\n".format(input_tag_list[cur_tag_idx], tag_i) +
+                                "Tag Stream starting @ index 0:\n\t" +
+                                "{}".format(tag_tags[0:tag_i+N_TAGS_TO_SHOW]))
+                        else:
+                            assert input_tag_list[cur_tag_idx] == tag, (
+                                "Received unexpected tag value of {} ".format(tag) +
+                                "(expected tag value of {}) at index {}\n".format(input_tag_list[cur_tag_idx], tag_i) +
+                                "Tag Stream centered @ index {}:\n\t".format(tag_i) +
+                                "{}".format(tag_tags[tag_i-N_TAGS_TO_SHOW:tag_i+N_TAGS_TO_SHOW+1]))
                         non_padded_tag_idx += 1
 
 
