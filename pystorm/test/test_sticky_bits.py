@@ -35,7 +35,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def SetMemoryDelays(delay):
+def set_memory_delays(delay):
     """Set memory delays"""
     HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.PAT, delay, delay)
     HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.AM, delay, delay)
@@ -54,7 +54,7 @@ def build_net():
     net.create_connection("i_to_b", net_input, bucket, WEIGHT)
     net.create_connection("b_to_o", bucket, net_output, None)
     HAL.map(net)
-    SetMemoryDelays(MEM_DELAY)
+    set_memory_delays(MEM_DELAY)
     return net_input
 
 def test_mem(parsed_args):
@@ -65,7 +65,7 @@ def test_mem(parsed_args):
     else:
         for cycle in range(N_CYCLES):
             # Set memory delay
-            SetMemoryDelays(MEM_DELAY)
+            set_memory_delays(MEM_DELAY)
 
             # Set memory with alternating bits of all 0s and all 1s every entry
             MemEntries = [0,2**MEM_WIDTH-1]*int(NUM_MEM_ENTRIES/2) # Set memory to alternate between all 0s and all 1s
