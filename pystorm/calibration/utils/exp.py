@@ -16,6 +16,20 @@ def clear_overflows(hal, overflow_sample_time, core_id=0):
         sleep(overflow_sample_time)
         overflow_0, overflow_1 = hal.driver.GetFIFOOverflowCounts(core_id)
 
+def clear_tags(hal, tag_sample_time, core_id=0):
+    """Repeatedly clear tags until no more tags are detected
+
+    Parameters
+    ----------
+    hal: HAL instance
+    tag_sample_time: float
+        time between samples of tag counts
+    """
+    binned_tags, binned_times = hal.driver.RecvTags(core_id)
+    while binned_tags or binned_times:
+        sleep(tag_sample_time)
+        binned_tags, binned_times = hal.driver.RecvTags(core_id)
+
 def compute_spike_gen_rates(min_rate, max_rate, spike_gen_time_unit_ns):
     """Compute the FPGA's spike generator rates between the min and max rates
 
