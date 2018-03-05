@@ -32,7 +32,9 @@ TAT_IDX = 0
 TAT_START_ADDR = 0
 
 N_TAGS_TO_SEND = 10
+N_TAGS_TO_SHOW = 10
 N_CYCLES = 1
+IGNORE_TAG_VAL = 2047
 
 DOWNSTREAM_TIME = 100
 
@@ -196,6 +198,7 @@ def sweep_tag_input_rates(parsed_args):
                 #print("[OUTPUT] [{}] Sample of tag routes: {}".format(rate, tag_routes[:12]))
                 #print("[OUTPUT] [{}] Sample of tag times: {}".format(rate, tag_times[:12]))
 
+                # Get and print output information
                 if(len(tag_times) > 0):
                     measured_time = (tag_times[-1] - tag_times[0])/1e9
                 else:
@@ -204,22 +207,33 @@ def sweep_tag_input_rates(parsed_args):
                 measured_rates_tags[cycle_idx*len(rates)+rate_idx] = 1.*total_tags/measured_time
 
                 print("\nReceived Tags:")
-                print("[OUTPUT] [{}]\t{}".format(rate, tag_tags[:40]))
+                #print("[OUTPUT] [{}]\t{}".format(rate, tag_tags[:N_TAGS_TO_SEND*4]))
 
                 for tag_idx, cur_output in enumerate(net_outputs):
                     cur_total_tags = np.sum(filtered_tags[filtered_tags[:, 1] == tag_idx, 0])
-                    print("[OUTPUT] [{}]\tCount of output [{}] tags: {} ({:5.2f}%)".format(rate, tag_idx, cur_total_tags, cur_total_tags/total_tags*100))
-#                total_tags1 = np.sum(filtered_tags[filtered_tags[:, 1] == 1, 0])
-#                total_tags2 = np.sum(filtered_tags[filtered_tags[:, 1] == 2, 0])
-#                total_tags3 = np.sum(filtered_tags[filtered_tags[:, 1] == 3, 0])
-#                print("[OUTPUT] [{}]\tCount of output [0] tags: {} ({:5.2f})".format(rate, total_tags0, total_tags0/total_tags*100))
-#                print("[OUTPUT] [{}]\tCount of output [1] tags: {} ({:5.2f})".format(rate, total_tags1, total_tags1/total_tags*100))
-#                print("[OUTPUT] [{}]\tCount of output [2] tags: {} ({:5.2f})".format(rate, total_tags2, total_tags2/total_tags*100))
-#                print("[OUTPUT] [{}]\tCount of output [3] tags: {} ({:5.2f})".format(rate, total_tags3, total_tags3/total_tags*100))
-                print("[OUTPUT] [{}]\tMeasured time: {}\tNum of tags: {}\tSum of tag counts: {}".format(rate, measured_time, total_tags, np.sum(tag_counts)))
-                print("[OUTPUT] [{}]\tMeasured rate: {}".format(rate, measured_rates_tags[cycle_idx*len(rates)+rate_idx]))
+                    print("[OUTPUT] [{}]\tCount of output [{}]".format(rate, tag_idx)+
+                          " tags: {} ({:5.2f}%)".format(cur_total_tags, cur_total_tags/total_tags*100))
+                print("[OUTPUT] [{}]\tMeasured time: {}".format(rate, measured_time) +
+                      "\tNum of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
+                print("[OUTPUT] [{}]".format(rate) +
+                      "\tMeasured rate: {}".format( measured_rates_tags[cycle_idx*len(rates)+rate_idx]))
 
                 print("[OUTPUT] [{}] total overflows: {}\n".format(rate, HAL.get_overflow_counts()))
+
+                # Assert test for automatic pytest compatibility
+                non_padded_tag_idx = 0
+                input_tag_list = range(N_TAGS_TO_SEND)
+                for tag_i, tag in enumerate(tag_tags):
+                    if tag == IGNORE_TAG_VAL:
+                        pass
+                    else:
+                        cur_tag_idx = non_padded_tag_idx % N_TAGS_TO_SEND
+                        assert input_tag_list[cur_tag_idx] == tag, (
+                                "Received unexpected tag {} (expected".format(tag) +
+                                " tag {}) at index {}\n".format(input_tag_list[cur_tag_idx], tag_i) +
+                                "Tag Stream: {}".format(tag_tags[tag_i-N_TAGS_TO_SHOW:tag_i+N_TAGS_TO_SHOW]))
+                        non_padded_tag_idx += 1
+
 
 
 if __name__ == "__main__":
