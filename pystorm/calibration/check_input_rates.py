@@ -158,13 +158,12 @@ def check_input_rates(parsed_args):
             measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
             total_tags = np.sum(binned_tags[:, 3])
             measured_rates[idx] = total_tags/measured_time
-    plot_rates(rates, measured_rates)
-
-    if not use_saved_data:
         data = np.zeros((len(rates), 2))
         data[:, 0] = rates
         data[:, 1] = measured_rates
         np.savetxt(DATA_DIR + "rates.txt", data)
+
+    plot_rates(rates, measured_rates)
     plt.show()
 
 if __name__ == "__main__":
