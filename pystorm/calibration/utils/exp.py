@@ -16,6 +16,20 @@ def clear_overflows(hal, sample_time, core_id=0):
         sleep(sample_time)
         overflow_0, overflow_1 = hal.driver.GetFIFOOverflowCounts(core_id)
 
+def clear_tags(hal, tag_sample_time, core_id=0):
+    """Repeatedly clear tags until no more tags are detected
+
+    Parameters
+    ----------
+    hal: HAL instance
+    tag_sample_time: float
+        time between samples of tag counts
+    """
+    binned_tags, binned_times = hal.driver.RecvTags(core_id)
+    while binned_tags or binned_times:
+        sleep(tag_sample_time)
+        binned_tags, binned_times = hal.driver.RecvTags(core_id)
+
 def clear_spikes(hal, sample_time):
     """Repeatedly clear spike counts until no more spikes detected
 
