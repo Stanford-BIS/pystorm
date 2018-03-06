@@ -126,7 +126,7 @@ parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer
                                   //           host interface checks for ready (0-255)
 parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
                                   //           check that the block transfer begins (0-255)
-parameter pipeInSize = 16;         // REQUIRED: byte (must be even) length of default
+parameter pipeInSize = 4096;         // REQUIRED: byte (must be even) length of default
                                   //           PipeIn; Integer 0-2^32
 parameter pipeOutSize = 16;        // REQUIRED: byte (must be even) length of default
                                   //           PipeOut; Integer 0-2^32
@@ -196,7 +196,10 @@ initial begin
   	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
-  	SendPacket(32'b00010000000011110000111000110010);
+  	repeat(1023) begin
+  		SendPacket(32'b00001000000011110000111000110010);
+  	end
+  	SendPacket(32'b00001000000011111111111111111111);
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
 

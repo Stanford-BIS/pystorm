@@ -12,8 +12,8 @@ module interboard_input(
 	);
 
 //fifo triggers
-parameter fifo_stop_trigger = 8'd252; //one less than max
-parameter fifo_start_trigger = 8'd251; //two less than max
+parameter fifo_stop_trigger = 8'd240; //one less than max
+parameter fifo_start_trigger = 8'd239; //two less than max
 
 
 //signals latched on transmit_clk
