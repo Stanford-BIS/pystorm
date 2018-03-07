@@ -221,7 +221,7 @@ class Neurons(Resource):
             pools_x = core.NeuronArray_pools_x
             Neurons.pool_yx_to_aer = np.zeros((pools_y, pools_x), dtype=int)
             for aer_sub_addr in range(pools_y * pools_x):
-                yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr) # this is a minor hack, but should work
+                yx = bddriver.Driver.GetSomaXYAddr(aer_sub_addr)
                 y = yx // core.NeuronArray_width
                 x = yx  % core.NeuronArray_width
                 Neurons.pool_yx_to_aer[y, x] = aer_sub_addr
@@ -425,7 +425,7 @@ class MMWeights(Resource):
             if MMWeights.yx_to_aer is None:
                 MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x), dtype=int)
                 for aer_sub_addr in range(core.NeuronArray_pool_size):
-                    yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr)
+                    yx = bddriver.Driver.GetSomaXYAddr(aer_sub_addr)
                     y = yx // core.NeuronArray_width
                     x = yx  % core.NeuronArray_width
                     MMWeights.yx_to_aer[y, x] = aer_sub_addr
