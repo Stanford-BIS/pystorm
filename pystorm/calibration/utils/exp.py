@@ -18,7 +18,6 @@ def clear_overflows(hal, sample_time, core_id=0):
 
 def clear_outputs(hal, sample_time):
     """Repeatedly clear outputs until no more output bins detected
-
     Parameters
     ----------
     hal: HAL instance
@@ -29,6 +28,22 @@ def clear_outputs(hal, sample_time):
     while outputs.shape[0] > 0:
         sleep(sample_time)
         outputs = hal.get_outputs()
+
+def clear_tags(hal, tag_sample_time, core_id=0):
+    """Repeatedly clear tags until no more tags are detected
+
+    Parameters
+    ----------
+    hal: HAL instance
+    sample_time: float
+        time between samples of output bins
+    tag_sample_time: float
+        time between samples of tag counts
+    """
+    binned_tags, binned_times = hal.driver.RecvTags(core_id)
+    while binned_tags or binned_times:
+        sleep(tag_sample_time)
+        binned_tags, binned_times = hal.driver.RecvTags(core_id)
 
 def clear_spikes(hal, sample_time):
     """Repeatedly clear spike counts until no more spikes detected
