@@ -2,8 +2,6 @@
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
-from pystorm import hal
-from copy import copy
 
 HOME_ROUTE = 255
 
@@ -766,9 +764,10 @@ class TATTapPoint(Resource):
                 if t_idx % 2 == 1:
                     stop = 1*(t_idx == self.Ks[-1] - 1)
                     self.stops.append(stop)
-        self.contents = hal.HAL.driver.PackTATSpikeWords(self.tap_xs, self.tap_ys, self.signs, self.stops)
+        self.contents = bddriver.Driver.PackTATSpikeWords(
+            self.tap_xs, self.tap_ys, self.signs, self.stops)
 
-        assert(len(self.contents) == self.size)
+        assert len(self.contents) == self.size
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):

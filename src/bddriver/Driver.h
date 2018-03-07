@@ -595,17 +595,21 @@ class Driver {
 
   /// Packs TAT Spike Words
   ///
-  /// inputs are four vectors. synapse_xs, synapse_ys, and synapse_signs must be length 2*N, 
-  /// stops are length N. synapse_xs/ys/signs[2*i], synapse_xs/ys/signs[2*i+1],
-  /// and stops[i] all correspond to the same TAT entry
+  /// For 2*N synapse targets (i.e., there must be an even number of synapse targets),
+  ///   inputs synapse_xs, synapse_ys, and synapse_signs are length 2*N, 
+  ///   stops is length N.
+  /// synapse_xs/ys/signs[2*i], synapse_xs/ys/signs[2*i+1],
+  /// and stops[i] will be combined into a single TAT entry.
   /// 
-  /// The TAT takes input tags, uses it to index the memory, which it walks through
-  /// until encountering a stop bit. For each entry, it does one of three things:
+  /// For each input tag,
+  ///   The TAT uses the tag to index into memory, which it walks through
+  ///   until encountering a stop bit.
+  /// For each memory entry, it does one of three things:
   ///   send spikes to two different synapses, optionally flipping the sign of each
   ///   emit a different global tag
-  ///   send an input to the accumulator
+  ///   send a tag to the accumulator
   /// 
-  /// for the spikes or accumulator outputs, if the count is greater than 1 or less than -1,
+  /// For the spikes or accumulator tags, if the count is greater than 1 or less than -1,
   /// a single set of outputs is produced (with the same sign), the count is 
   /// incremented or decremented, and the input is re-submitted to the FIFO. After leaving
   /// the FIFO, it will return to the TAT until the count is exhausted. 
@@ -620,13 +624,14 @@ class Driver {
   ///   synapse sign 1    : 1 bit, whether to invert or not invert sign of input spikes 
   ///                       to second synapse, "0" means invert, "1" means don't invert
   /// 
-  /// note that you can't just hit 1 synapse per entry. You must hit 2.
-  /// the synapse inputs are wired backwards. Hence the slightly confusing "1" for invert, 
+  /// Note that you must send 2 synapse spikes per entry,
+  //  but you may hit the same synapse twice, if desired.
+  /// The synapse inputs are wired backwards. Hence the slightly confusing "1" for invert, 
   /// "0" for no inversion with the synapse signs
-  std::vector<BDWord> PackTATSpikeWords(const std::vector<unsigned int>& synapse_xs,
-                                        const std::vector<unsigned int>& synapse_ys,
-                                        const std::vector<unsigned int>& synapse_signs,
-                                        const std::vector<unsigned int>& stops) {
+  static std::vector<BDWord> PackTATSpikeWords(const std::vector<unsigned int>& synapse_xs,
+                                               const std::vector<unsigned int>& synapse_ys,
+                                               const std::vector<unsigned int>& synapse_signs,
+                                               const std::vector<unsigned int>& stops) {
     
     unsigned int size = stops.size();
     assert(2*size == synapse_xs.size());
