@@ -16,6 +16,7 @@ np.set_printoptions(precision=1)
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd
+HAL = HAL()
 
 CORE_ID = 0 # Set Core to 0, b/c Braindrop only has 1 core
 DIM = 1 # 1 dimensional
