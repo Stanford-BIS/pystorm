@@ -348,14 +348,14 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("SetDACtoADCConnectionState", (void (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool)) &pystorm::bddriver::Driver::SetDACtoADCConnectionState, "Make DAC-to-ADC connection for calibration for a particular DAC\n\nC++: pystorm::bddriver::Driver::SetDACtoADCConnectionState(unsigned int, pystorm::bddriver::bdpars::BDHornEP, bool, bool) --> void", py::arg("core_id"), py::arg("dac_signal_id"), py::arg("en"), py::arg("flush"));
 
     // manually added
-    cl.def("GetMemAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int) const) &pystorm::bddriver::Driver::GetMemAERAddr, "Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address", py::arg("xy_addr"));
-    cl.def("GetMemAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const) &pystorm::bddriver::Driver::GetMemAERAddr, "Given x, y config memory (16-neuron tile) address, get AER address", py::arg("x"), py::arg("y"));
-    cl.def("GetSynAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int) const) &pystorm::bddriver::Driver::GetSynAERAddr, "Given flat xy_addr (addr scan along x then y) synapse address, get AER address", py::arg("xy_addr"));
-    cl.def("GetSynAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const)&pystorm::bddriver::Driver::GetSynAERAddr, "Given x, y synapse address, get AER address", py::arg("x"), py::arg("y"));
-    cl.def("GetSomaAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int) const) &pystorm::bddriver::Driver::GetSomaAERAddr, "Given flat xy_addr (addr scan along x then y) soma address, get AER address", py::arg("xy_addr"));
-    cl.def("GetSomaAERAddr", (unsigned int (pystorm::bddriver::Driver::*)(unsigned int, unsigned int) const)&pystorm::bddriver::Driver::GetSomaAERAddr, "Given x, y soma address, get AER address", py::arg("x"), py::arg("y"));
-    cl.def("GetSomaXYAddr", &pystorm::bddriver::Driver::GetSomaXYAddr, "Given AER synapse address, get flat xy_addr (y msb, x lsb)", py::arg("aer_addr"));
-    cl.def("GetSomaXYAddrs", &Driver::GetSomaXYAddrs, "Given AER synapse address, get flat xy_addr (y msb, x lsb)", py::arg("aer_addrs"));
+    cl.def_static("GetMemAERAddr", py::overload_cast<unsigned int>(&pystorm::bddriver::Driver::GetMemAERAddr), "Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address", py::arg("xy_addr"));
+    cl.def_static("GetMemAERAddr", py::overload_cast<unsigned int, unsigned int>(&pystorm::bddriver::Driver::GetMemAERAddr), "Given x, y config memory (16-neuron tile) address, get AER address", py::arg("x"), py::arg("y"));
+    cl.def_static("GetSynAERAddr", py::overload_cast<unsigned int>(&pystorm::bddriver::Driver::GetSynAERAddr), "Given flat xy_addr (addr scan along x then y) synapse address, get AER address", py::arg("xy_addr"));
+    cl.def_static("GetSynAERAddr", py::overload_cast<unsigned int, unsigned int>(&pystorm::bddriver::Driver::GetSynAERAddr), "Given x, y synapse address, get AER address", py::arg("x"), py::arg("y"));
+    cl.def_static("GetSomaAERAddr", py::overload_cast<unsigned int>(&pystorm::bddriver::Driver::GetSomaAERAddr), "Given flat xy_addr (addr scan along x then y) soma address, get AER address", py::arg("xy_addr"));
+    cl.def_static("GetSomaAERAddr", py::overload_cast<unsigned int, unsigned int>(&pystorm::bddriver::Driver::GetSomaAERAddr), "Given x, y soma address, get AER address", py::arg("x"), py::arg("y"));
+    cl.def_static("GetSomaXYAddr", &pystorm::bddriver::Driver::GetSomaXYAddr, "Given AER synapse address, get flat xy_addr (y msb, x lsb)", py::arg("aer_addr"));
+    cl.def_static("GetSomaXYAddrs", &Driver::GetSomaXYAddrs, "Given AER synapse address, get flat xy_addr (y msb, x lsb)", py::arg("aer_addrs"));
 
     cl.def("GetDACScaling", &pystorm::bddriver::Driver::GetDACScaling, "", py::arg("dac_signal_id"));
     cl.def("GetDACUnitCurrent", &pystorm::bddriver::Driver::GetDACUnitCurrent, "", py::arg("dac_signal_id"));

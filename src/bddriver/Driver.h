@@ -163,29 +163,28 @@ class Driver {
   ////////////////////////////////////////////////////////////////////////////
   // AER Address <-> Y,X mapping static member fns
   ////////////////////////////////////////////////////////////////////////////
-  
   /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int xy_addr) const                             { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
+  static unsigned int GetMemAERAddr(unsigned int xy_addr) { return bdpars::BDPars::mem_xy_to_aer_.at(xy_addr); }
   /// Given x, y config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const                   { return GetMemAERAddr(y*16 + x); }
+  static unsigned int GetMemAERAddr(unsigned int x, unsigned int y) { return GetMemAERAddr(y*16 + x); }
   /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int xy_addr) const                             { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
+  static unsigned int GetSynAERAddr(unsigned int xy_addr) { return bdpars::BDPars::syn_xy_to_aer_.at(xy_addr); }
   /// Given x, y synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const                   { return GetSynAERAddr(y*32 + x); }
+  static unsigned int GetSynAERAddr(unsigned int x, unsigned int y) { return GetSynAERAddr(y*32 + x); }
   /// Given flat xy_addr soma address, get AER address
-  unsigned int GetSomaAERAddr(unsigned int xy_addr) const                            { return bd_pars_->soma_xy_to_aer_.at(xy_addr); }
+  static unsigned int GetSomaAERAddr(unsigned int xy_addr) { return bdpars::BDPars::soma_xy_to_aer_.at(xy_addr); }
   /// Given x, y soma address, get AER address
-  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const                  { return GetSomaAERAddr(y*64 + x); }
+  static unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) { return GetSomaAERAddr(y*64 + x); }
   /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
-  unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
+  static unsigned int GetSomaXYAddr(unsigned int aer_addr) { return bdpars::BDPars::soma_aer_to_xy_.at(aer_addr); }
 
   /// Utility function to process spikes a little more quickly
-  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+  static std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) {
     std::vector<unsigned int> to_return(aer_addrs.size());;
     for (unsigned int i = 0; i < aer_addrs.size(); i++) {
       unsigned int addr = aer_addrs[i];
       if (addr < 4096) {
-        to_return[i] = bd_pars_->soma_aer_to_xy_.at(addr);
+        to_return[i] = bdpars::BDPars::soma_aer_to_xy_.at(addr);
       } else {
         cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
       }
