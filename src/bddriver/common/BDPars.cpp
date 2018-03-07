@@ -195,9 +195,9 @@ std::array<unsigned int, (1<<D)> BDPars::XYToAER() {
     assert(xy_idx < 1<<D && "xy_idx too big");
     assert(aer_idx < 1<<D && "aer_idx too big");
     xy_to_aer.at(xy_idx) = aer_idx;
-    return xy_to_aer;
-    //cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
+    // cout << "xy: " << xy_idx << " aer: " << aer_idx << endl;
   }
+  return xy_to_aer;
 }
 
 // D is binary tree depth, not 4-ary tree depth, must be even
@@ -241,9 +241,9 @@ std::array<unsigned int, (1<<D)> BDPars::AERToXY() {
     assert(xy_idx < 1<<D && "xy_idx too big");
     assert(aer_idx < 1<<D && "aer_idx too big");
     aer_to_xy.at(aer_idx) = xy_idx;
-    //cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
-    return aer_to_xy;
+    // cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
   }
+  return aer_to_xy;
 }
 
 } // bdpars
