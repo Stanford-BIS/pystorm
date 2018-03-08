@@ -177,7 +177,7 @@ task FlushAndSendPipeIn();
 	i = 0;
 endtask
 
-
+logic [19:0] send_val;
 // OK program
 initial begin
 	osc = 0;
@@ -196,10 +196,12 @@ initial begin
   	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
-  	repeat(1023) begin
-  		SendPacket(32'b00001000000011110000111000110010);
+  	send_val = 20'b0;
+  	repeat(256) begin
+  		SendPacket({5'b00001, 7'd26, send_val});
+  		send_val = send_val + 20'b1;
   	end
-  	SendPacket(32'b00001000000011111111111111111111);
+  	SendPacket({5'b00001, 7'd26, 20'b0});
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
 

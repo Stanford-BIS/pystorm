@@ -135,7 +135,7 @@ initial begin
   	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
-  	SendPacket(32'b00010000000011110000111000110010);
+  	SendPacket({5'b00001, 7'd28, {18'b0, 1'b0, 1'b1}});
   	FlushAndSendPipeIn(); // send the stuff we queued up
 
   	#202

@@ -47,7 +47,7 @@ class HAL(object):
         # spike id -> pool/neuron_idx
         self.spk_to_pool_nrn_idx = {}
         okfile = "/".join(
-            pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
+            pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/BZ_host_core.rbf"
         self.driver.SetOKBitFile(okfile)
         self.start_hardware()
 

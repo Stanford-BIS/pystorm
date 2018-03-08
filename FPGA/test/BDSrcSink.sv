@@ -269,7 +269,7 @@ module BD_Source #(
     end
     else
       if (sync_ine == 1) begin
-        funnel_idx = $urandom_range(0,Nfunnel-1);
+        funnel_idx = 0;
         funnel_route = routes[funnel_idx];
         payload_mask = ~route_masks[funnel_idx];
 
