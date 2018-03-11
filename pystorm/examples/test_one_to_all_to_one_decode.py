@@ -16,8 +16,9 @@ from matplotlib.pyplot import savefig, figure, subplot, hist, xlabel, ylabel, ti
 from matplotlib.ticker import EngFormatter
 
 from pystorm.PyDriver import bddriver as bd
-from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
+from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
+HAL = HAL()
 
 def create_decode_encode_network(width, height, d_val):
     

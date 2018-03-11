@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
+from pystorm.hal import HAL
+HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 

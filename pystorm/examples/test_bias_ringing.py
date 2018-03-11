@@ -4,7 +4,8 @@ import time
 import matplotlib as mpl
 from matplotlib.pyplot import savefig, figure, subplot, hist, xlabel, ylabel, tight_layout, ion, show, suptitle, plot, sca, gca, semilogy
 
-from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
+from pystorm.hal import HAL
+HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
