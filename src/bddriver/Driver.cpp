@@ -47,9 +47,11 @@ namespace bddriver {
 //    return &m_instance;
 //}
 
+const bdpars::BDPars Driver::bd_pars = bdpars::BDPars();
+
 Driver::Driver() {
   // load parameters
-  bd_pars_     = new bdpars::BDPars();
+  bd_pars_     = &bd_pars;
   ok_pars_     = OKPars();
 
   // one BDState object per core
@@ -132,7 +134,6 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
-  delete bd_pars_;
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;

@@ -1024,6 +1024,8 @@ class Driver {
     RecvFromEPDebug(unsigned int core_id, uint8_t ep_code) {
       return RecvFromEP(core_id, ep_code);
   }
+
+  static const bdpars::BDPars bd_pars;
  protected:
 
   ////////////////////////////////
