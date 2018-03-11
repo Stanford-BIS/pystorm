@@ -68,7 +68,7 @@ def set_hal(hal):
 def toggle_hal(nrn_idx):
     """Start and stop HAL traffic"""
     # clear queues
-    aer_nrn_idx = HAL.driver.GetSomaAERAddr(nrn_idx)
+    aer_nrn_idx = HAL.driver.BDPars.GetSomaAERAddr(nrn_idx)
     HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.ENABLED)
     HAL.set_time_resolution(upstream_ns=10000)
     HAL.start_traffic(flush=False)
