@@ -31,13 +31,6 @@ std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> BDPars::con
   {bdpars::DiffusorCutLocationId::WEST_BOTTOM , {43}}  ,
 };
 
-std::array<unsigned int, 4096> BDPars::soma_xy_to_aer_ = BDPars::XYToAER<12>();
-std::array<unsigned int, 4096> BDPars::soma_aer_to_xy_ = BDPars::AERToXY<12>();
-std::array<unsigned int, 1024> BDPars::syn_xy_to_aer_ = BDPars::XYToAER<10>();
-std::array<unsigned int, 1024> BDPars::syn_aer_to_xy_ = BDPars::AERToXY<10>();
-std::array<unsigned int, 256> BDPars::mem_xy_to_aer_ = BDPars::XYToAER<8>();
-std::array<unsigned int, 256> BDPars::mem_aer_to_xy_ = BDPars::AERToXY<8>();
-
 BDPars::BDPars() {
   //////////////////////////////////////////////////////
   // FPGA downstream endpoints
@@ -152,59 +145,17 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512}; // roughly 1pA to 1nA
   dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; // roughly 250fA to 250pA 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10}; // roughly 1pA to 1nA
+
+  //Init maps for AER address translation
+  BDPars::InitAERToXY<12>(soma_aer_to_xy_, soma_xy_to_aer_);
+  BDPars::InitAERToXY<10>(syn_aer_to_xy_, syn_xy_to_aer_);
+  BDPars::InitAERToXY<8>(mem_aer_to_xy_, mem_xy_to_aer_);
 }
 
 // D is binary tree depth, not 4-ary tree depth, must be even
 template <int D>
-std::array<unsigned int, (1<<D)> BDPars::XYToAER() {
+void BDPars::InitAERToXY(std::array<unsigned int, (1<<D)>& aer_to_xy, std::array<unsigned int, (1<<D)>& xy_to_aer) {
   assert(D % 2 == 0); // D must be even
-  std::array<unsigned int, (1<<D)> xy_to_aer;
-  for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
-    unsigned int array_edge_length = (1<<D/2);
-    unsigned int x = xy_idx % array_edge_length;
-    unsigned int y = xy_idx / array_edge_length;
-    
-    // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
-    uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
-    for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
-      // determine 2-bit AER code to give to each AER node
-      unsigned int yx = ((y % 2) << 1) | x % 2;
-      uint16_t aer_node_addr;
-      if (yx == 0) {
-        aer_node_addr = 0;
-      } else if (yx == 1) {
-        aer_node_addr = 1;
-      } else if (yx == 2) {
-        aer_node_addr = 3;
-      } else if (yx == 3) {
-        aer_node_addr = 2;
-      } else {
-        assert(false);
-      }
-
-      // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
-      unsigned int shift = 2 * aer_node_idx;
-      aer_idx |= aer_node_addr << shift;
-
-      // shift out x/y bits
-      x = x >> 1;
-      y = y >> 1;
-    }
-
-    // write results
-    assert(xy_idx < 1<<D && "xy_idx too big");
-    assert(aer_idx < 1<<D && "aer_idx too big");
-    xy_to_aer.at(xy_idx) = aer_idx;
-    // cout << "xy: " << xy_idx << " aer: " << aer_idx << endl;
-  }
-  return xy_to_aer;
-}
-
-// D is binary tree depth, not 4-ary tree depth, must be even
-template <int D>
-std::array<unsigned int, (1<<D)> BDPars::AERToXY() {
-  assert(D % 2 == 0); // D must be even
-  std::array<unsigned int, (1<<D)> aer_to_xy;
   for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
     unsigned int array_edge_length = (1<<D/2);
     unsigned int x = xy_idx % array_edge_length;
@@ -241,9 +192,9 @@ std::array<unsigned int, (1<<D)> BDPars::AERToXY() {
     assert(xy_idx < 1<<D && "xy_idx too big");
     assert(aer_idx < 1<<D && "aer_idx too big");
     aer_to_xy.at(aer_idx) = xy_idx;
+    xy_to_aer.at(xy_idx) = aer_idx;
     // cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
   }
-  return aer_to_xy;
 }
 
 } // bdpars

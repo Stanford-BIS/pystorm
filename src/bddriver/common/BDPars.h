@@ -283,12 +283,44 @@ class BDPars {
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
 
   // maps for AER address translation
-  static std::array<unsigned int, 4096> soma_xy_to_aer_;
-  static std::array<unsigned int, 4096> soma_aer_to_xy_;
-  static std::array<unsigned int, 1024> syn_xy_to_aer_;
-  static std::array<unsigned int, 1024> syn_aer_to_xy_;
-  static std::array<unsigned int, 256> mem_xy_to_aer_;
-  static std::array<unsigned int, 256> mem_aer_to_xy_;
+  std::array<unsigned int, 4096> soma_xy_to_aer_;
+  std::array<unsigned int, 4096> soma_aer_to_xy_;
+  std::array<unsigned int, 1024> syn_xy_to_aer_;
+  std::array<unsigned int, 1024> syn_aer_to_xy_;
+  std::array<unsigned int, 256> mem_xy_to_aer_;
+  std::array<unsigned int, 256> mem_aer_to_xy_;
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // AER Address <-> Y,X mapping static member fns
+  ////////////////////////////////////////////////////////////////////////////
+  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int xy_addr) const { return mem_xy_to_aer_.at(xy_addr); }
+  /// Given x, y config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const { return GetMemAERAddr(y*16 + x); }
+  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int xy_addr) const { return syn_xy_to_aer_.at(xy_addr); }
+  /// Given x, y synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const { return GetSynAERAddr(y*32 + x); }
+  /// Given flat xy_addr soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int xy_addr) const { return soma_xy_to_aer_.at(xy_addr); }
+  /// Given x, y soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const { return GetSomaAERAddr(y*64 + x); }
+  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
+  unsigned int GetSomaXYAddr(unsigned int aer_addr) const { return soma_aer_to_xy_.at(aer_addr); }
+
+  /// Utility function to process spikes a little more quickly
+  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+    std::vector<unsigned int> to_return(aer_addrs.size());;
+    for (unsigned int i = 0; i < aer_addrs.size(); i++) {
+      unsigned int addr = aer_addrs[i];
+      if (addr < 4096) {
+        to_return[i] = soma_aer_to_xy_.at(addr);
+      } else {
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
+      }
+    }
+    return to_return;
+  }
 
   ///////////////////////////////
   // Neuron config stuff
@@ -383,9 +415,7 @@ class BDPars {
 
   // D is binary tree depth, not 4-ary tree depth, must be even
   template <int D>
-  static std::array<unsigned int, (1<<D)> AERToXY();
-  template <int D>
-  static std::array<unsigned int, (1<<D)> XYToAER();
+  void InitAERToXY(std::array<unsigned int, (1<<D)> &aer_to_xy, std::array<unsigned int, (1<<D)> &xy_to_aer);
 };
 
 } // bdpars

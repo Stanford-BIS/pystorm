@@ -159,38 +159,6 @@ class Driver {
   void InitFPGA();
   /// Empties all driver output queues
   void ClearOutputs();
-  
-  ////////////////////////////////////////////////////////////////////////////
-  // AER Address <-> Y,X mapping static member fns
-  ////////////////////////////////////////////////////////////////////////////
-  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
-  static unsigned int GetMemAERAddr(unsigned int xy_addr) { return bdpars::BDPars::mem_xy_to_aer_.at(xy_addr); }
-  /// Given x, y config memory (16-neuron tile) address, get AER address
-  static unsigned int GetMemAERAddr(unsigned int x, unsigned int y) { return GetMemAERAddr(y*16 + x); }
-  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
-  static unsigned int GetSynAERAddr(unsigned int xy_addr) { return bdpars::BDPars::syn_xy_to_aer_.at(xy_addr); }
-  /// Given x, y synapse address, get AER address
-  static unsigned int GetSynAERAddr(unsigned int x, unsigned int y) { return GetSynAERAddr(y*32 + x); }
-  /// Given flat xy_addr soma address, get AER address
-  static unsigned int GetSomaAERAddr(unsigned int xy_addr) { return bdpars::BDPars::soma_xy_to_aer_.at(xy_addr); }
-  /// Given x, y soma address, get AER address
-  static unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) { return GetSomaAERAddr(y*64 + x); }
-  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
-  static unsigned int GetSomaXYAddr(unsigned int aer_addr) { return bdpars::BDPars::soma_aer_to_xy_.at(aer_addr); }
-
-  /// Utility function to process spikes a little more quickly
-  static std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) {
-    std::vector<unsigned int> to_return(aer_addrs.size());;
-    for (unsigned int i = 0; i < aer_addrs.size(); i++) {
-      unsigned int addr = aer_addrs[i];
-      if (addr < 4096) {
-        to_return[i] = bdpars::BDPars::soma_aer_to_xy_.at(addr);
-      } else {
-        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
-      }
-    }
-    return to_return;
-  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -309,31 +277,31 @@ class Driver {
 
   /// Enable Soma in XY space
   void EnableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     EnableSoma(core_id, AER_addr);
   }
 
   /// Disable Soma in XY space
   void DisableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     DisableSoma(core_id, AER_addr);
   }
 
   /// Set Soma gain in XY space
   void SetSomaGainXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaGainId gain) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaGain(core_id, AER_addr, gain);
   }
 
   /// Set Soma offset sign in XY space
   void SetSomaOffsetSignXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetSignId sign) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaOffsetSign(core_id, AER_addr, sign);
   }
 
   /// Set Soma offset multiplier in XY space
   void SetSomaOffsetMultiplierXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetMultiplierId multiplier) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaOffsetMultiplier(core_id, AER_addr, multiplier);
   }
   
@@ -396,22 +364,22 @@ class Driver {
                 bdpars::SynapseStatusId::DISABLED);
 
   void EnableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     EnableSynapse(core_id, AER_addr);
   }
 
   void DisableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     DisableSynapse(core_id, AER_addr);
   }
   
   void EnableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     EnableSynapseADC(core_id, AER_addr);
   }
 
   void DisableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     DisableSynapseADC(core_id, AER_addr);
   }
     
@@ -640,8 +608,8 @@ class Driver {
 
     std::vector<BDWord> packed(size);
     for (unsigned int i = 0; i < size; i++) {
-      unsigned int addr0 = GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
-      unsigned int addr1 = GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
+      unsigned int addr0 = BDPars_.GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
+      unsigned int addr1 = BDPars_.GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
       unsigned int sign0 = synapse_signs[2*i  ];
       unsigned int sign1 = synapse_signs[2*i+1];
       packed[i] = PackWord<TATSpikeWord>({
@@ -857,7 +825,7 @@ class Driver {
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
         if (_addr < 4096) {
-            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
         } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
@@ -878,7 +846,7 @@ class Driver {
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
         if (_addr < 4096) {
-            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
             xy_times[idx] = static_cast<float>(aer_times[idx]) * 1e-9;
         } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
@@ -1025,7 +993,7 @@ class Driver {
       return RecvFromEP(core_id, ep_code);
   }
 
-  static const bdpars::BDPars bd_pars;
+  static const bdpars::BDPars BDPars_;
  protected:
 
   ////////////////////////////////

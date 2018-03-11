@@ -47,11 +47,11 @@ namespace bddriver {
 //    return &m_instance;
 //}
 
-const bdpars::BDPars Driver::bd_pars = bdpars::BDPars();
+const bdpars::BDPars Driver::BDPars_ = bdpars::BDPars();
 
 Driver::Driver() {
   // load parameters
-  bd_pars_     = &bd_pars;
+  bd_pars_     = &BDPars_;
   ok_pars_     = OKPars();
 
   // one BDState object per core
@@ -1153,7 +1153,7 @@ std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMas
         // due to the bit-flipping bug
         auto _addr = aer_addresses[idx];
         if (_addr < 4096) {
-            auto _xy = GetSomaXYAddr(aer_addresses[idx]);
+            auto _xy = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
             xy_addresses[_xy] = 1;
             xy_times[_xy] = static_cast<float>(aer_times[idx]) * 1e-9;
         } else {
