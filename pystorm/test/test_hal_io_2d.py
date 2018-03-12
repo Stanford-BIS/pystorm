@@ -6,12 +6,16 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.hal.hal import parse_hal_binned_tags
 
+from pystorm.calibration.utils.exp import clear_outputs
+
 DIM = 2 # 1 dimensional
-RATE = 1000 # rate of input spikes
+RATE = 10000 # rate of input spikes
 WEIGHTS = np.eye(DIM) # weight of connection from input to output
 REL_ERROR_TOLERANCE = 0.01  # tolerable relative error
 RUN_TIME = 1. # time to sample
-INTER_RUN_TIME = 0.2 # time unit to wait for traffic to clear
+SLOP_TIME = 0.3 # time to wait for traffic to clear
+RUN_TIME_NS = int(RUN_TIME*1E9)
+SLOP_TIME_NS = int(SLOP_TIME*1E9)
 
 TEST_VECTORS = [
     [RATE, RATE],
@@ -21,33 +25,18 @@ TEST_VECTORS = [
     [RATE, RATE],
 ]
 
-def clear_outputs():
-    """Clear any remaining overflow counts"""
-    time.sleep(INTER_RUN_TIME)
-    outputs = HAL.get_outputs()
-    while outputs.shape[0] > 0:
-        print(
-            "Clearing outputs: Consumed {:d} output bins ".format(outputs.shape[0]) +
-            "covering times {:d}ns to {:d}ns ".format(outputs[0, 0], outputs[-1, 0]) +
-            "from output objects\n{}\n".format(np.unique(outputs[:, 1])) +
-            "from output dimensions {} ".format(np.unique(outputs[:, 2])) +
-            "with total bin count {:d}".format(np.sum(outputs[:, 3]))
-        )
-        time.sleep(INTER_RUN_TIME)
-        outputs = HAL.get_outputs()
-
-def toggle_hal(net_inputs, dims, rates):
+def toggle_hal(hal, net_inputs, dims, rates):
     """Turn the inputs on and off via HAL"""
-    HAL.start_traffic(flush=False)
-    HAL.enable_output_recording(flush=True)
-
-    HAL.set_input_rates(net_inputs, dims, rates, time=0, flush=True)
-    time.sleep(RUN_TIME)
-    HAL.set_input_rates(net_inputs, dims, [0 for _ in range(DIM)], time=0, flush=True)
-
-    HAL.stop_traffic(flush=False)
-    HAL.disable_output_recording(flush=True)
-    time.sleep(INTER_RUN_TIME)
+    hal.start_traffic(flush=False)
+    hal.enable_output_recording(flush=True)
+    cur_time = hal.get_time()
+    hal.set_input_rates(net_inputs, dims, rates, time=cur_time + SLOP_TIME_NS, flush=False)
+    hal.set_input_rates(
+        net_inputs, dims, [0 for _ in range(DIM)],
+        time=cur_time+ SLOP_TIME_NS + RUN_TIME_NS, flush=True)
+    time.sleep(2*SLOP_TIME + RUN_TIME)
+    hal.stop_traffic(flush=False)
+    hal.disable_output_recording(flush=True)
 
 class ResultPrinter(object):
     header = False
@@ -71,14 +60,15 @@ def test_hal_io_2d():
     net_output = net.create_output("o", DIM)
     net.create_connection("i_to_b", net_input, bucket, WEIGHTS)
     net.create_connection("b_to_o", bucket, net_output, None)
-    HAL.map(net)
+    hal = HAL()
+    hal.map(net)
 
     inputs = [net_input for _ in range(DIM)]
     dims = [dim for dim in range(DIM)]
     for input_rates in TEST_VECTORS:
-        clear_outputs()
-        toggle_hal(inputs, dims, input_rates)
-        dim_binned_tags = parse_hal_binned_tags(HAL.get_outputs())[net_output]
+        clear_outputs(hal, SLOP_TIME)
+        toggle_hal(hal, inputs, dims, input_rates)
+        dim_binned_tags = parse_hal_binned_tags(hal.get_outputs())[net_output]
         measured_times = np.zeros(DIM)
         total_tags = np.zeros(DIM)
         for dim in range(DIM):

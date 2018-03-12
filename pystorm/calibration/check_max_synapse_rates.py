@@ -97,7 +97,7 @@ def set_hal():
 
 def set_tat(syn_idx):
     """Set up the tag action table to send spikes to an individual synapse"""
-    addr = HAL.driver.GetSynAERAddr(syn_idx)
+    addr = HAL.driver.BDPars.GetSynAERAddr(syn_idx)
     tat_entry = bd.PackWord([
         (bd.TATSpikeWord.STOP, TAT_STOP_BIT),
         (bd.TATSpikeWord.SYNAPSE_ADDRESS_0, addr),

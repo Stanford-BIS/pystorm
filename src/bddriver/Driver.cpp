@@ -47,9 +47,11 @@ namespace bddriver {
 //    return &m_instance;
 //}
 
+const bdpars::BDPars Driver::BDPars_ = bdpars::BDPars();
+
 Driver::Driver() {
   // load parameters
-  bd_pars_     = new bdpars::BDPars();
+  bd_pars_     = &BDPars_;
   ok_pars_     = OKPars();
 
   // one BDState object per core
@@ -132,7 +134,6 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
-  delete bd_pars_;
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
@@ -1151,11 +1152,11 @@ std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMas
         // bug in synchronizer can result in out of bond aer addresses
         // due to the bit-flipping bug
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
-            auto _xy = GetSomaXYAddr(aer_addresses[idx]);
+        if (_addr < 4096) {
+            auto _xy = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
             xy_addresses[_xy] = 1;
             xy_times[_xy] = static_cast<float>(aer_times[idx]) * 1e-9;
-        }else {
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }

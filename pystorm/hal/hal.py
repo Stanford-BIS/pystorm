@@ -22,7 +22,18 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 CORE_ID = 0 # hardcoded for now
 
-class HAL(object):
+class Singleton:
+    """Decorator class ensuring that at most one instance of a decorated class exists"""
+    def __init__(self,klass):
+        self.klass = klass
+        self.instance = None
+    def __call__(self,*args,**kwds):
+        if self.instance == None:
+            self.instance = self.klass(*args,**kwds)
+        return self.instance
+
+@Singleton
+class HAL:
     """Hardware Abstraction Layer
 
     Abstracts away the details of the underlying hardware, and presents a
@@ -90,12 +101,12 @@ class HAL(object):
         # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
         # be careful setting these too small, you don't want to saturate the synapse
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
 
         # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
         # lower ratio is more spread out
         # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
 
         # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
