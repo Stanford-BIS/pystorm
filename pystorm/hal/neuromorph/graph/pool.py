@@ -72,8 +72,9 @@ class Pool(GraphObject):
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
 
     def create_connection_resources(self):
-        conn, tgt = self._get_single_conn_out()
-        tgt._connect_from(self, "Neurons", conn)
+        if (len(self.out_conns) > 0):
+            conn, tgt = self._get_single_conn_out()
+            tgt._connect_from(self, "Neurons", conn)
 
     def _connect_from(self, src, src_resource_key, conn):
         self._check_conn_from_type(src, ["Input", "Bucket"])

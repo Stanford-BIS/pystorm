@@ -223,20 +223,22 @@ class Network(object):
             for y in range(pool.height):
                 for x in range(pool.width):
                     spk_idx = (ymin + y) * self.core.NeuronArray_width + xmin + x 
-                    pool_nrn_idx = y * pool.get_width() + x
+                    pool_nrn_idx = y * pool.width + x
                     self.spk_to_pool_nrn_idx[spk_idx] = (pool, pool_nrn_idx)
 
-    def translate_spikes(self, spk_ids):
+    def translate_spikes(self, spk_ids, spk_times):
         pool_ids = []
         nrn_idxs = []
-        for spk_id in spk_ids:
+        filtered_spk_times = []
+        for spk_id, spk_time in zip(spk_ids, spk_times):
             if spk_id not in self.spk_to_pool_nrn_idx:
                 print("WARNING: translate_spikes: got out-of-bounds spike from neuron id (probably sticky bits)", spk_id)
             else:
                 pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
                 pool_ids.append(pool_id)
                 nrn_idxs.append(nrn_idx)
-        return pool_ids, nrn_idxs
+                filtered_spk_times.append(spk_time)
+        return pool_ids, nrn_idxs, filtered_spk_times
 
     def translate_tags(self, filt_idxs, filt_states):
         # for now, working in count mode

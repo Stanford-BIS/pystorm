@@ -1,4 +1,4 @@
-from .graph_object import GraphObject
+from .graph_object import GraphObject, FanoutError
 import pystorm.hal.neuromorph.hardware_resources as hwr
 
 class Output(GraphObject):
@@ -16,7 +16,8 @@ class Output(GraphObject):
         self._append_resource("Sink", hwr.Sink(self.dimensions))
 
     def create_connection_resources(self):
-        pass
+        if (len(self.out_conns) > 0):
+            raise FanoutError(len(self.out_conns), 0)
 
     def _connect_from(self, src, src_resource_key, conn):
         self._check_conn_from_type(src, ["Bucket"])

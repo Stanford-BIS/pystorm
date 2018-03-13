@@ -19,7 +19,15 @@ class FanoutError(Exception):
 class GraphObject(ABC):
     def __init__(self, label):
         self.label = label
+
+        # Dictionary keys are of the form (resource_name, target_graph_object).
+        # Resource_name is a string, and typically refers to the string __name__ of the stored Resource.
+        # target_graph_object is a GraphObject or None. When the stored resource is intrinsic, or isn't
+        # associated with any particular connection (e.g. TATFanout for a fanout to many outputs),
+        # target_graph_object is None, otherwise, it's the GraphObject of the target connected to by the Resource
         self.resources = {}
+
+        # outgoing connections made from this GraphObject
         self.out_conns = []
 
     @abstractmethod
@@ -36,6 +44,17 @@ class GraphObject(ABC):
         self.resources = {}
 
     def __check_key(self, key):
+        """Puts key to self.resources into proper form
+
+        parameters:
+        key: string or (string, GraphObject)
+
+        string is converted to (string, None) (for intrinsic resources)
+
+        returns:
+        (string, GraphObject)
+        """
+
         if isinstance(key, str):
             key = (key, None)
         elif isinstance(key, tuple) and len(key) == 2 and \

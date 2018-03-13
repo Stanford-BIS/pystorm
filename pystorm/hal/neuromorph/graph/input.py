@@ -16,8 +16,9 @@ class Input(GraphObject):
         self._append_resource("Source", hwr.Source(self.dimensions))
 
     def create_connection_resources(self):
-        conn, tgt = self._get_single_conn_out()
-        tgt._connect_from(self, "Source", conn)
+        if (len(self.out_conns) > 0):
+            conn, tgt = self._get_single_conn_out()
+            tgt._connect_from(self, "Source", conn)
 
     def _connect_from(self, src, src_resource_key, conn):
         self._check_conn_from_type(src, []) # can't connect to an input

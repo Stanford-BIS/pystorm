@@ -236,9 +236,9 @@ class HAL:
         """
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
 
-        pool_ids, nrn_idxs = self.last_mapped_network.translate_spikes(spk_ids)
+        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
 
-        ret_data = np.array([spk_times, pool_ids, nrn_idxs]).T
+        ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
         return ret_data
     
     def stop_all_inputs(self, time=0, flush=True):
@@ -320,7 +320,7 @@ class HAL:
         # this call is deprecated, has the following effect
         self.map(self.last_mapped_network, remap=True)
 
-    def map(self, network, remap=False):
+    def map(self, network, remap=False, verbose=False):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
@@ -331,7 +331,7 @@ class HAL:
         print("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
-        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=True)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
 
         self.last_mapped_network = network
         self.last_mapped_core = core
