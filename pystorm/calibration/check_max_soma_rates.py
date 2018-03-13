@@ -47,8 +47,9 @@ def build_net():
     tap_matrix = np.zeros((MAX_NEURONS, dim))
     net = graph.Network("net")
     pool = net.create_pool("pool", tap_matrix)
-    HAL.map(net)
-    return pool
+    hal = HAL()
+    hal.map(net)
+    return hal, pool
 
 def set_analog(hal):
     """Sets the soma config bits and the bias currents"""
@@ -65,26 +66,26 @@ def set_hal(hal):
     """Sets the HAL settings that remain constant throughout the experiment"""
     hal.disable_output_recording(flush=True)
 
-def toggle_hal(nrn_idx):
+def toggle_hal(hal, nrn_idx):
     """Start and stop HAL traffic"""
     # clear queues
-    aer_nrn_idx = HAL.driver.BDPars.GetSomaAERAddr(nrn_idx)
-    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.ENABLED)
-    HAL.set_time_resolution(upstream_ns=10000)
-    HAL.start_traffic(flush=False)
-    HAL.enable_spike_recording(flush=True)
+    aer_nrn_idx = hal.driver.BDPars.GetSomaAERAddr(nrn_idx)
+    hal.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.ENABLED)
+    hal.set_time_resolution(upstream_ns=10000)
+    hal.start_traffic(flush=False)
+    hal.enable_spike_recording(flush=True)
     sleep(RUN_TIME)
-    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.DISABLED)
-    HAL.stop_traffic(flush=False)
-    HAL.disable_spike_recording(flush=True)
-    HAL.set_time_resolution(upstream_ns=10000000)
-    HAL.flush()
+    hal.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.DISABLED)
+    hal.stop_traffic(flush=False)
+    hal.disable_spike_recording(flush=True)
+    hal.set_time_resolution(upstream_ns=10000000)
+    hal.flush()
 
-def measure_soma_max_rate(pool, nrn_idx):
+def measure_soma_max_rate(hal, pool, nrn_idx):
     """Collect spikes to find a single soma's max firing rate"""
-    clear_spikes(HAL, INTER_RUN_TIME)
-    toggle_hal(nrn_idx)
-    hal_spikes = parse_hal_spikes(HAL.get_spikes())
+    clear_spikes(hal, INTER_RUN_TIME)
+    toggle_hal(hal, nrn_idx)
+    hal_spikes = parse_hal_spikes(hal.get_spikes())
     # print("\nTesting nrn {}. Detected the following spikes".format(nrn_idx))
     # for idx in hal_spikes[pool]:
     #     print("nrn_idx {} spikes {}".format(idx, len(hal_spikes[pool][idx])))
@@ -94,7 +95,7 @@ def measure_soma_max_rate(pool, nrn_idx):
     n_spks = len(soma_spikes)-1
     time_period = (soma_spikes[-1]- soma_spikes[0])*TIME_SCALE
     max_rate = n_spks/time_period
-    clear_spikes(HAL, INTER_RUN_TIME)
+    clear_spikes(hal, INTER_RUN_TIME)
     return max_rate
 
 def plot_max_rates(max_rates):
@@ -140,12 +141,12 @@ def check_soma_max_rates(parsed_args):
     if use_saved_data:
         max_rates = load_txt_data(DATA_DIR + "max_rates.txt")
     else:
-        pool = build_net()
-        set_analog(HAL)
-        set_hal(HAL)
+        hal, pool = build_net()
+        set_analog(hal)
+        set_hal(hal)
         max_rates = np.zeros(NEURONS)
         for nrn_idx in range(NEURONS):
-            max_rates[nrn_idx] = measure_soma_max_rate(pool, nrn_idx)
+            max_rates[nrn_idx] = measure_soma_max_rate(hal, pool, nrn_idx)
         np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
 
     plot_max_rates(max_rates)
