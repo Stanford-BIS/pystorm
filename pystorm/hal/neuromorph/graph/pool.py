@@ -1,6 +1,9 @@
+from graph_object import GraphObject, ConnectionTypeError, FanoutError
+import pystorm.hal.neuromorph.hardware_resources as hwr
+
 import numpy as np
 
-class Pool(object):
+class Pool(GraphObject):
     """Represents a pool of neurons
     
     Parameters
@@ -17,6 +20,7 @@ class Pool(object):
         neuron pool is physically a rectangle; y dimension of neuron pool
     """
     def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0):
+        super(GraphObject, self).__init__(label)
         self.label = label
         self.encoders = encoders
 
@@ -51,17 +55,55 @@ class Pool(object):
         assert(len(self.biases) == self.n_neurons)
         assert(self.n_neurons == x * y)
 
-    def __gt__(self, pool2):
-        return self.label > pool2.label
-
     def __repr__(self):
         return "Pool " + self.label
-
-    def get_label(self):
-        return self.label
 
     def get_num_dimensions(self):
         return self.dimensions
 
     def get_num_neurons(self):
         return self.n_neurons
+
+    def create_intrinsic_resources(self):
+        # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
+        self._append_resource("TATTapPoint", hwr.TATTapPoint(self.encoders))
+        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases))
+
+        self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
+
+    def create_connection_resources(self):
+        """
+        Conn 3:
+              neuromorph graph: Pool ─> Bucket
+            hardware_resources: Neurons ─> MMWeights ─> AMBuckets
+        """
+        conn, tgt = self.get_single_conn_out()
+
+        #   Conn 3: Pool -> Bucket
+        if isinstance(tgt, Bucket):
+    
+            neurons = self._get_resource("Neurons")
+            weights = hwr.MMWeights(conn.weights) # create weights
+            bucket = tgt._get_resource("AMBuckets")
+
+            # make connections
+            neurons.connect(weights)
+            weights.connect(bucket)
+
+            # append to resources
+            self._append_resource(("MMWeights", tgt), weights)
+
+        else:
+            raise ConnectionTypeError(self, tgt)
+
+    def get_mapped_xy(self):
+        neurons = self._get_resource("Neurons")
+        return neurons.x_loc, neurons.y_loc
+
+    def get_width(self):
+        return self.x
+
+    def get_height(self):
+        return self.y
+
+
