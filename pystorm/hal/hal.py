@@ -224,7 +224,7 @@ class HAL:
         """
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
 
-        outputs, dims, counts = translate_tags(filt_idxs)
+        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states)
 
         return np.array([times, outputs, dims, counts]).T
 
@@ -301,9 +301,9 @@ class HAL:
         assert len(inputs) == len(dims) == len(rates)
 
         gen_idxs = [
-            inp.get_generator_idxs[dim] for inp, dim in zip(inputs, dims)]
+            inp.generator_idxs[dim] for inp, dim in zip(inputs, dims)]
         out_tags = [
-            inp.get_generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
+            inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
         self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
@@ -331,7 +331,7 @@ class HAL:
         print("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
-        hardware_resources, core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=True)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=True)
 
         self.last_mapped_network = network
         self.last_mapped_core = core

@@ -1,4 +1,4 @@
-from graph_object import GraphObject, ConnectionTypeError, FanoutError
+from .graph_object import GraphObject, ConnectionTypeError, FanoutError
 import pystorm.hal.neuromorph.hardware_resources as hwr
 
 import numpy as np
@@ -20,7 +20,7 @@ class Pool(GraphObject):
         neuron pool is physically a rectangle; y dimension of neuron pool
     """
     def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0):
-        super(GraphObject, self).__init__(label)
+        super(Pool, self).__init__(label)
         self.label = label
         self.encoders = encoders
 
@@ -72,38 +72,25 @@ class Pool(GraphObject):
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
 
     def create_connection_resources(self):
-        """
-        Conn 3:
-              neuromorph graph: Pool ─> Bucket
-            hardware_resources: Neurons ─> MMWeights ─> AMBuckets
-        """
-        conn, tgt = self.get_single_conn_out()
+        conn, tgt = self._get_single_conn_out()
+        tgt._connect_from(self, "Neurons", conn)
 
-        #   Conn 3: Pool -> Bucket
-        if isinstance(tgt, Bucket):
-    
-            neurons = self._get_resource("Neurons")
-            weights = hwr.MMWeights(conn.weights) # create weights
-            bucket = tgt._get_resource("AMBuckets")
+    def _connect_from(self, src, src_resource_key, conn):
+        self._check_conn_from_type(src, ["Input", "Bucket"])
+        src_resource = src._get_resource(src_resource_key)
+        src_resource.connect(self._get_resource("TATTapPoint"))
 
-            # make connections
-            neurons.connect(weights)
-            weights.connect(bucket)
-
-            # append to resources
-            self._append_resource(("MMWeights", tgt), weights)
-
-        else:
-            raise ConnectionTypeError(self, tgt)
-
-    def get_mapped_xy(self):
+    @property
+    def mapped_xy(self):
         neurons = self._get_resource("Neurons")
         return neurons.x_loc, neurons.y_loc
 
-    def get_width(self):
+    @property
+    def width(self):
         return self.x
 
-    def get_height(self):
+    @property
+    def height(self):
         return self.y
 
 

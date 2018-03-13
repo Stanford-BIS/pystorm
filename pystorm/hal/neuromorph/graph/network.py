@@ -49,7 +49,7 @@ class Network(object):
         return self.connections
 
     def get_GraphObjects(self):
-        return self.get_inputs() + self.pools() + self.get_buckets() + self.get_outputs()
+        return self.inputs + self.pools + self.buckets + self.outputs
 
 
     @staticmethod
@@ -126,13 +126,13 @@ class Network(object):
 
     def get_hardware_resources(self):
         all_resources = []
-        for obj in get_GraphObjects():
+        for obj in self.get_GraphObjects():
             for k, v in obj.resources.items():
                 all_resources.append(v)
         return all_resources
 
     def reinit_hardware_resources(self):
-        for obj in get_GraphObjects():
+        for obj in self.get_GraphObjects():
             obj.reinit_resources()
 
     def create_hardware_resources(self):
@@ -148,9 +148,7 @@ class Network(object):
         for obj in graph_objs:
             obj.create_connection_resources()
 
-        return get_hardware_resources()
-
-    def map_resources_to_core(premapped_neuron_array=None, verbose=False):
+    def map_resources_to_core(self, premapped_neuron_array=None, verbose=False):
         """Annotate a Core object with hardware_resources.Resource objects
 
         Parameters
@@ -216,14 +214,14 @@ class Network(object):
     def create_output_translators(self):
         self.spike_filter_idx_to_output = {}
         for output in self.get_outputs():
-            for dim_idx, filt_idx in enumerate(output.get_filter_idxs())
+            for dim_idx, filt_idx in enumerate(output.filter_idxs):
                 self.spike_filter_idx_to_output[filt_idx] = (output, dim_idx)
 
         self.spk_to_pool_nrn_idx = {}
         for pool in self.get_pools():
-            xmin, ymin = pool.get_mapped_xy()
-            for y in range(pool.get_height()):
-                for x in range(pool.get_width()):
+            xmin, ymin = pool.mapped_xy
+            for y in range(pool.height):
+                for x in range(pool.width):
                     spk_idx = (ymin + y) * self.core.NeuronArray_width + xmin + x 
                     pool_nrn_idx = y * pool.get_width() + x
                     self.spk_to_pool_nrn_idx[spk_idx] = (pool, pool_nrn_idx)
@@ -261,7 +259,7 @@ class Network(object):
 
         return outputs, dims, counts
 
-    def map(core_parameters, keep_pool_mapping=False, verbose=False):
+    def map(self, core_parameters, keep_pool_mapping=False, verbose=False):
         """Create Resources and map them to a Core
 
         Parameters
@@ -287,7 +285,8 @@ class Network(object):
         self.core = core.Core(core_parameters)
 
         # create resources
-        hardware_resources = self.create_network_resources(network)
+        self.reinit_hardware_resources()
+        self.create_hardware_resources()
 
         # map resources to core
         self.map_resources_to_core(premapped_neuron_array, verbose)

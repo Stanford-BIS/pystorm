@@ -1,4 +1,3 @@
-
 class Connection(object):
     def __init__(self, label, src, dest, weights):
         # note, this is a second-class object, not a proper GraphObject (has no resources)

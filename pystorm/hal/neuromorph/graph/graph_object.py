@@ -1,4 +1,4 @@
-from abc import ABC
+from abc import ABC, abstractmethod
 
 # GraphObject-specific exceptions
 class ConnectionTypeError(Exception):
@@ -33,18 +33,22 @@ class GraphObject(ABC):
         return self.label
 
     def reinit_resources(self):
-        self.resources = []
+        self.resources = {}
+
+    def __check_key(self, key):
+        if isinstance(key, str):
+            key = (key, None)
+        elif isinstance(key, tuple) and len(key) == 2 and \
+             isinstance(key[0], str) and \
+             isinstance(key[1], GraphObject):
+            pass
+        else:
+            raise TypeError("key for _append_resource must be str or (str, GraphObject)")
+        return key
 
     # we want to ensure we don't clobber any resources
     def _append_resource(self, key, resource):
-        if isinstance(key, str):
-            key = (key, None)
-        elif isinstance(key, tuple) and len(key) == 2 and 
-             isinstance(key[0], str) and 
-             isinstance(key[1], GraphObject))
-             pass
-        else
-            raise TypeError("key for _append_resource must be str or (str, GraphObject)")
+        key = self.__check_key(key)
         
         if key in self.resources:
             print("tried to add the same resource key twice")
@@ -54,14 +58,8 @@ class GraphObject(ABC):
         self.resources[key] = resource
 
     def _get_resource(self, key):
-        if isinstance(key, str):
-            key = (key, None)
-        elif isinstance(key, tuple) and len(key) == 2 and 
-             isinstance(key[0], str) and 
-             isinstance(key[1], GraphObject))
-             pass
-        else
-            raise TypeError("key for _get_resource must be str or (str, GraphObject)")
+        key = self.__check_key(key)
+
         return self.resources[key]
 
     @abstractmethod
@@ -69,31 +67,24 @@ class GraphObject(ABC):
         pass
 
     @abstractmethod
+    def _connect_from(self, src, src_resource_key, conn):
+        pass
+
+    @abstractmethod
     def create_connection_resources(self):
         pass
 
-    # helpers for create_connection_resources
-    def _connect_to_bucket(self, src_resource, tgt):
-        src_resource = self.resources[resource_name]
-
-        TAT_acc = hwr.TATAccumulator(tgt.get_num_dimensions()) # create TAT acc entries
-        weights = hwr.MMWeights(conn.weights) # create weights
-        bucket = tgt._get_resource("AMBuckets")
-
-        # make connections
-        source_resource.connect(TAT_acc)
-        TAT_acc.connect(weights)
-        weights.connect(bucket)
-
-        # append to resources
-        self._append_resource(("MMWeights", tgt), weights)
-        self._append_resource(("TATAccumulator", tgt), TAT_acc)
-
-    def get_single_conn_out(self):
+    def _get_single_conn_out(self):
         if len(self.out_conns) > 1:
             raise FanoutError(self)
 
         conn = self.out_conns[0]
         tgt = conn.dest
         return conn, tgt
+
+    def _check_conn_from_type(self, src, allowed_types):
+        if type(src).__name__ not in allowed_types:
+            raise ConnectionTypeError(src, self)
+
+
 
