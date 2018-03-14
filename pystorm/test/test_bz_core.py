@@ -16,32 +16,35 @@ if (comm_state < 0):
     print("* Driver failed to start!")
     exit(-1)
 
-D.InitBD()
+# D.InitBD()
 
-# # print("* FPGA init")
-# # D.InitFPGA()
-# time.sleep(1)
-# print("* Resetting BD")
-# D.ResetBD()
+# print(D.GetDefaultAMEntries());
+# print(D.DumpMem(0, bd.bdpars.BDMemId.AM))
 
-# # set time unit (SF/SG update interval) to .1 ms
-# # time_unit_ns=10000
-# # upstream_hb_ns=10000000
-# # print("* Setting FPGA time units")
-# # D.SetTimeUnitLen(time_unit_ns)
-# # D.SetTimePerUpHB(upstream_hb_ns)
+# print("* FPGA init")
+# D.InitFPGA()
+time.sleep(1)
+print("* Resetting BD")
+D.ResetBD()
 
-# # print("* Check FPGA time")
-# # old_time = D.GetFPGATime()
-# # for n in range(0, 3):
-# # 	time.sleep(1)
-# # 	new_time = D.GetFPGATime()
-# # 	print(new_time - old_time)
-# # 	old_time = new_time
+# set time unit (SF/SG update interval) to .1 ms
+time_unit_ns=10000
+upstream_hb_ns=10000000
+print("* Setting FPGA time units")
+D.SetTimeUnitLen(time_unit_ns)
+D.SetTimePerUpHB(upstream_hb_ns)
 
-# print("* Disable tag & spike traffic")
-# D.SetTagTrafficState(0, False, False)
-# D.SetSpikeTrafficState(0, False, False)
+print("* Check FPGA time")
+old_time = D.GetFPGATime()
+for n in range(0, 3):
+	time.sleep(1)
+	new_time = D.GetFPGATime()
+	print(new_time - old_time)
+	old_time = new_time
+
+print("* Disable tag & spike traffic")
+D.SetTagTrafficState(0, False, False)
+D.SetSpikeTrafficState(0, False, False)
 
 # print("* setup memory delays")
 
@@ -56,22 +59,25 @@ D.InitBD()
 # # time.sleep(1)
 
 
-# print("* initalize PAT")
-# D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
-# # time.sleep(1)
-# # print("PAT diffs:")
-# # print(set(D.DumpMem(0, bd.bdpars.BDMemId.PAT)).symmetric_difference(set(D.GetDefaultPATEntries())))
-# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+print("* initalize PAT")
+D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+time.sleep(1)
+print("PAT diffs:")
+print(set(D.DumpMem(0, bd.bdpars.BDMemId.PAT)).symmetric_difference(set(D.GetDefaultPATEntries())))
 # # time.sleep(1)
 # # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# print("* initalize TAT0")
-# D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , D.GetDefaultTAT1Entries()   , 0);
 # # time.sleep(1)
-# # print("TAT0 diffs:")
-# # print(set(D.GetDefaultTAT0Entries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.TAT0))))
+# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+print("* initalize TAT0")
+D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
+time.sleep(1)
+print("TAT0:")
+dump = D.DumpMem(0, bd.bdpars.BDMemId.TAT0);
+print(dump)
+if (dump != range(1024)):
+	print("data bad :(")
 # # time.sleep(1)
 # # D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(200,400)  , 200);
 # # time.sleep(1)
@@ -100,9 +106,28 @@ D.InitBD()
 # # time.sleep(1)
 
 # print("* initalize AM")
+# D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
+# time.sleep(1)
+# first = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# second = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# third = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# fourrth = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# print(first)
+# print(second)
+# print(third)
+# print(fourrth)
+# time.sleep(1)
 # D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
 # time.sleep(1)
-
+# first = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# second = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# third = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# fourrth = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
+# print(first)
+# print(second)
+# print(third)
+# print(fourrth)
+# print(set(first).symmetric_difference(set(second)))
 # # time.sleep(5)
 # # print(D.GetOutputQueueCounts())
 

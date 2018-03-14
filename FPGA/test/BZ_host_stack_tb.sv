@@ -126,7 +126,7 @@ parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer
                                   //           host interface checks for ready (0-255)
 parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
                                   //           check that the block transfer begins (0-255)
-parameter pipeInSize = 4096;         // REQUIRED: byte (must be even) length of default
+parameter pipeInSize = 16;         // REQUIRED: byte (must be even) length of default
                                   //           PipeIn; Integer 0-2^32
 parameter pipeOutSize = 16;        // REQUIRED: byte (must be even) length of default
                                   //           PipeOut; Integer 0-2^32
@@ -165,6 +165,12 @@ task SendPacket(logic[31:0] payload);
 	i = i + 1;
 endtask
 
+task SendToEP(logic [6:0] ep_id, logic[19:0] data);
+  pipeInFlat[i] = {5'b00001, ep_id, data};
+  assert(i < pipeInSize);
+  i = i + 1;
+endtask
+
 task FlushAndSendPipeIn();
 	while (i + 1 < pipeInSize) begin
 		pipeInFlat[i] = nop;
@@ -176,6 +182,21 @@ task FlushAndSendPipeIn();
 	end
 	i = 0;
 endtask
+
+const logic [7:0] gen_idx_fast = 0;
+const logic [7:0] gen_idx_slow = 1;
+const logic [15:0] period_fast = 1;
+const logic [15:0] period_slow = 4;
+const logic [15:0] ticks = 0;
+const logic [10:0] tag = 0;
+const logic sign_fast = 0;
+const logic sign_slow = 1;
+
+const logic [63:0] SG_word_fast = {sign_fast, gen_idx_fast, period_fast, ticks, tag};
+const logic [63:0] SG_word_slow = {sign_slow, gen_idx_slow, period_slow, ticks, tag};
+
+const logic [3:0][15:0] SG_word_fast_pieces = SG_word_fast;
+const logic [3:0][15:0] SG_word_slow_pieces = SG_word_slow;
 
 logic [19:0] send_val;
 // OK program
@@ -190,19 +211,33 @@ initial begin
 	FrontPanelReset;  // Start routine with FrontPanelReset;
 	user_reset <= 0;
 
-  	// // turn off resets
-  	// // ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
+  	// turn off resets
+  	// ESSENTIAL: this test harness uses pReset/sReset for the BDSrc/Sink
   	// SetReg(31, 0); 
   	// FlushAndSendPipeIn(); // send the stuff we queued up
 
   	// send a packet
-  	send_val = 20'b0;
-  	repeat(256) begin
-  		SendPacket({5'b00001, 7'd26, send_val});
-  		send_val = send_val + 20'b1;
-  	end
-  	SendPacket({5'b00001, 7'd26, 20'b0});
-  	FlushAndSendPipeIn(); // send the stuff we queued up
+  	// send_val = 20'b0;
+  	// repeat(256) begin
+  	// 	SendPacket({5'b00001, 7'd26, send_val});
+  	// 	send_val = send_val + 20'b1;
+  	// end
+  	// SendPacket({5'b00001, 7'd26, 20'b0});
+  	// FlushAndSendPipeIn(); // send the stuff we queued up
+
+	  	  // program SG
+	  SendToEP(7'd69, {4'd0, 16'd1}); // gens used
+	  SendToEP(7'd70, {4'd0, 16'd1}); // enable
+	  SendToEP(7'd112, {4'd0, SG_word_fast_pieces[0]});
+	  SendToEP(7'd112, {4'd0, SG_word_fast_pieces[1]});
+	  SendToEP(7'd112, {4'd0, SG_word_fast_pieces[2]});
+	  SendToEP(7'd112, {4'd0, SG_word_fast_pieces[3]});
+	  FlushAndSendPipeIn(); // send the stuff we queued up
+
+	  	  	  // program SF
+	  SendToEP(7'd64, {4'd0, 16'd1}); // gens used
+	  SendToEP(7'd65, {4'd0, 16'd1}); // increment
+	  FlushAndSendPipeIn(); // send the stuff we queued up
 
 
   	forever begin

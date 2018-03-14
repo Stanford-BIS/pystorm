@@ -17,12 +17,12 @@ Din = 2
 Dout = 1
 fmax = 1000
 num_training_points_per_dim = 5
-training_hold_time = .5
+training_hold_time = .1
 
 ###########################################
 # misc driver parameters
-downstream_time_res = 10000 # ns
-upstream_time_res = 1000000 # ns
+downstream_time_res = 100000 # ns
+upstream_time_res = 10000000 # ns
 
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 
@@ -124,8 +124,8 @@ def do_sweep(bin_time_boundaries):
             #print("at", bin_start, "d", d, "is", r)
             HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
 
-do_sweep(bin_time_boundaries)
-
+# do_sweep(bin_time_boundaries)
+HAL.set_input_rate(i1, 0, 200, time=0, flush=True)
 ###########################################
 # sleep during the training sweep
 
@@ -186,6 +186,11 @@ binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
 
 print(binned_outputs[o1])
 
+counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
+print(counts,"\n", tags, "\n",routes,"\n", times)
+print(bin_time_boundaries[0])
+print(bin_time_boundaries[len(bin_time_boundaries)-1])
+
 plt.figure()
 legend = []
 for dim_idx, dim_out in enumerate(binned_outputs[o1]):
@@ -195,3 +200,5 @@ for dim_idx, dim_out in enumerate(binned_outputs[o1]):
     legend.append("expected dim " + str(dim_idx))
 plt.legend(legend)
 plt.show()
+
+

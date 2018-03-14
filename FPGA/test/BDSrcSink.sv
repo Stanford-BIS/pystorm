@@ -269,13 +269,15 @@ module BD_Source #(
     end
     else
       if (sync_ine == 1) begin
-        funnel_idx = 0;
+        funnel_idx = 12;
         funnel_route = routes[funnel_idx];
         payload_mask = ~route_masks[funnel_idx];
 
         big_rand = {$urandom_range(0,2**32-1), $urandom_range(0,2**32-1)};
 
         masked_payload = payload_mask & big_rand[NUM_BITS-1:0];
+        masked_payload[31:20] = 12'b111111100000;
+        masked_payload[19:9] = 11'd0;
         sync_DI = funnel_route | masked_payload;
 
         $display("[T=%g]: route_idx=%b (BD_Source)", $time, funnel_idx);
@@ -283,7 +285,7 @@ module BD_Source #(
         $display("[T=%g]: masked_payload=%b (BD_Source)", $time, masked_payload);
         $display("[T=%g]: data=%b (BD_Source)", $time, sync_DI);
 
-        assert(masked_payload ^ funnel_route == 0);
+        // assert(masked_payload ^ funnel_route == 0);
 
         delay = $urandom_range(DelayMax, DelayMin);
         for (int i = 0; i < delay + 1; i++) begin
