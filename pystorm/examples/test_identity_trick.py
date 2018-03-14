@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import time
 
 from pystorm.hal import HAL
-from pystorm.hal.hal import parse_hal_spikes
+from pystorm.hal.hal import parse_hal_spikes, parse_hal_binned_tags
 HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
@@ -15,18 +15,18 @@ np.random.seed(0)
 ###########################################
 # pool size parameters
 
-width = 16
-height = 16
+width = 8
+height = 8
 N = width * height
 Din = 1
 
-num_pools = 16
+num_pools = 4
 
-width_all = 64
-height_all = 64
+width_all = 16
+height_all = 16
 N_all = width_all * height_all
 
-collect_time = 30
+collect_time = 2
 
 ###########################################
 # misc driver parameters
@@ -36,31 +36,13 @@ upstream_time_res = 1000000 # ns
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 
 ###########################################
-# tap point specification
-
-tap_matrix = np.zeros((N, Din))
-if Din == 1:
-    # one synapse per 4 neurons
-    for x in range(0, width, 2):
-        for y in range(0, height, 2):
-            n = y * width + x
-            if x < width // 2:
-                tap_matrix[n, 0] = 1
-            else:
-                tap_matrix[n, 0] = -1
-else:
-    print("need to implement reasonable taps for Din > 1")
-    assert(False)
-
-###########################################
 # first map the entire array as one pool
+# use spike outputs, as ground truth
 net = graph.Network("net")
 
 # some misc encoders
 
 all_encs = np.zeros((N_all, Din))
-#all_encs[0, 0] = 1
-#all_encs[2, 0] = 1
 
 p_all = net.create_pool("p_all", all_encs)
 
@@ -85,34 +67,64 @@ all_parsed_spikes = parse_hal_spikes(all_spikes)
 
 ###########################################
 # now create multi-pool network
+# remap as many times as there are pools, use decode on one each time
 
-net = graph.Network("net")
-
-#decoders = np.zeros((Dout, N))
-
-zero_encs = np.zeros((N, Din))
 ps = []
-for n in range(num_pools):
-    p = net.create_pool("p" + str(n), zero_encs)
-    ps.append(p)
+os = []
+many_parsed_spikes = {}
+for active_n in range(num_pools):
+    net = graph.Network("net")
 
-# map network
-print("calling map")
-HAL.map(net)
+    decoders = np.eye(N)
 
-print("starting data collection for many pools")
-_ = HAL.get_spikes() # throw away
-HAL.start_traffic(flush=False)
-HAL.enable_spike_recording(flush=True)
+    zero_encs = np.zeros((N, Din))
+    for n in range(num_pools):
+        p = net.create_pool("p" + str(n), zero_encs)
+        if active_n == n:
+            b = net.create_bucket("b" + str(n), N)
+            o = net.create_output("o" + str(n), N)
+            net.create_connection("p_to_b" + str(n), p, b, decoders)
+            net.create_connection("b_to_o" + str(n), b, o, None)
+            ps.append(p)
+            os.append(o)
 
-time.sleep(collect_time)
+    # map network
+    print("calling map")
+    HAL.map(net)
+    HAL.driver.SetSpikeFilterDebug(0, True)
 
-print("stopping data collection")
-HAL.stop_traffic(flush=False)
-HAL.disable_spike_recording(flush=True)
+    print("starting data collection for many pools")
+    _ = HAL.driver.RecvUnpackedTags(0)
+    HAL.start_traffic(flush=False)
+    HAL.enable_spike_recording(flush=True)
 
-many_spikes = HAL.get_spikes()
-many_parsed_spikes = parse_hal_spikes(many_spikes)
+    time.sleep(collect_time)
+
+    print("stopping data collection")
+    HAL.stop_traffic(flush=False)
+    HAL.disable_spike_recording(flush=True)
+
+    # the raw tags are correct, there's a bug in the SF
+    counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
+    tags = np.array(tags)
+    counts = np.array(counts) # should be > 0, spike counts
+    times = np.array(times)
+    if np.sum(counts > 255) != 0:
+        print("WARNING: negative count")
+    filt_idxs   = tags[tags != 2047] # get rid of junk
+    filt_states = counts[tags != 2047]
+    times       = times[tags != 2047]
+
+    # hijack translate_tags
+    outputs, dims, counts = net.translate_tags(filt_idxs, filt_states)
+
+    this_pool_many_spikes = np.array([times, outputs, dims, counts]).T
+    this_pool_many_parsed_spikes = parse_hal_binned_tags(this_pool_many_spikes)
+    
+    for o in this_pool_many_parsed_spikes:
+        print(o)
+        assert(ps[-1] not in many_parsed_spikes)
+        many_parsed_spikes[ps[-1]] = this_pool_many_parsed_spikes[o] # replace o with p!
 
 # get many pools data into same frame as big pool data
 
@@ -124,6 +136,8 @@ for n in range(N_all):
 all_parsed_xy = all_parsed_arr.reshape((height_all, width_all))
 
 many_parsed_xy = np.zeros_like(all_parsed_xy)
+for k in many_parsed_spikes:
+    print(k)
 for p, spikes in many_parsed_spikes.items():
     this_parsed_arr = np.zeros((N,))
     for n in range(N):
@@ -164,6 +178,7 @@ pct_err = np.abs(all_parsed_xy - many_parsed_xy) / fmax
 plt.title("error fraction in terms of max spike rate")
 plt.imshow(pct_err)
 plt.colorbar()
+plt.savefig("identity_trick.png")
 
-plt.show()
+#plt.show()
 
