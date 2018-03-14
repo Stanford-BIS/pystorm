@@ -15,15 +15,15 @@ np.random.seed(0)
 ###########################################
 # pool size parameters
 
-width = 8
-height = 8
+width = 16
+height = 16
 N = width * height
 Din = 1
 
-num_pools = 4
+num_pools = 16
 
-width_all = 16
-height_all = 16
+width_all = 64
+height_all = 64
 N_all = width_all * height_all
 
 collect_time = 2
@@ -94,31 +94,37 @@ for active_n in range(num_pools):
     HAL.driver.SetSpikeFilterDebug(0, True)
 
     print("starting data collection for many pools")
-    _ = HAL.driver.RecvUnpackedTags(0)
+    #_ = HAL.driver.RecvUnpackedTags(0)
+    _ = HAL.get_outputs()
     HAL.start_traffic(flush=False)
+    HAL.enable_output_recording(flush=False)
     HAL.enable_spike_recording(flush=True)
 
     time.sleep(collect_time)
 
     print("stopping data collection")
     HAL.stop_traffic(flush=False)
+    HAL.disable_output_recording(flush=False)
     HAL.disable_spike_recording(flush=True)
 
-    # the raw tags are correct, there's a bug in the SF
-    counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
-    tags = np.array(tags)
-    counts = np.array(counts) # should be > 0, spike counts
-    times = np.array(times)
-    if np.sum(counts > 255) != 0:
-        print("WARNING: negative count")
-    filt_idxs   = tags[tags != 2047] # get rid of junk
-    filt_states = counts[tags != 2047]
-    times       = times[tags != 2047]
+    this_pool_many_spikes = HAL.get_outputs()
 
-    # hijack translate_tags
-    outputs, dims, counts = net.translate_tags(filt_idxs, filt_states)
+    ## this was a workaround for the SF bug, #88
+    ## the raw tags are correct, there's a bug in the SF
+    #counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
+    #tags = np.array(tags)
+    #counts = np.array(counts) # should be > 0, spike counts
+    #times = np.array(times)
+    #if np.sum(counts > 255) != 0:
+    #    print("WARNING: negative count")
+    #filt_idxs   = tags[tags != 2047] # get rid of junk
+    #filt_states = counts[tags != 2047]
+    #times       = times[tags != 2047]
 
-    this_pool_many_spikes = np.array([times, outputs, dims, counts]).T
+    ## hijack translate_tags
+    #outputs, dims, counts = net.translate_tags(filt_idxs, filt_states)
+    #this_pool_many_spikes = np.array([times, outputs, dims, counts]).T
+
     this_pool_many_parsed_spikes = parse_hal_binned_tags(this_pool_many_spikes)
     
     for o in this_pool_many_parsed_spikes:
@@ -131,7 +137,7 @@ for active_n in range(num_pools):
 all_parsed_arr = np.zeros((N_all,))
 for n in range(N_all):
     if n in all_parsed_spikes[p_all]:
-        all_parsed_arr[n] = len(all_parsed_spikes[p_all][n])
+        all_parsed_arr[n] = sum([el[1] for el in all_parsed_spikes[p_all][n]]) # els are (time, ct)
 
 all_parsed_xy = all_parsed_arr.reshape((height_all, width_all))
 
@@ -142,7 +148,7 @@ for p, spikes in many_parsed_spikes.items():
     this_parsed_arr = np.zeros((N,))
     for n in range(N):
         if n in spikes:
-            this_parsed_arr[n] = len(spikes[n])
+            this_parsed_arr[n] = sum([el[1] for el in spikes[n]]) # els are (time, ct)
     this_p_parsed_xy = this_parsed_arr.reshape((height, width))
     pool_x, pool_y = p.mapped_xy
     many_parsed_xy[pool_y:pool_y + height, pool_x:pool_x + width] = this_p_parsed_xy
