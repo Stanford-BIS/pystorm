@@ -714,9 +714,9 @@ class Driver {
   /// Default (safe) values for PAT
   /// PAT default is kind of irrelevant, but points to 0, 0
   std::vector<BDWord> GetDefaultPATEntries() const {
-    BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, 0}, 
-                                            {PATWord::MM_ADDRESS_HI, 0}, 
-                                            {PATWord::MM_ADDRESS_LO, 0}});
+    BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, (1<<FieldWidth(PATWord::AM_ADDRESS)) - 1}, 
+                                            {PATWord::MM_ADDRESS_HI, (1<<FieldWidth(PATWord::MM_ADDRESS_HI)) - 1}, 
+                                            {PATWord::MM_ADDRESS_LO, (1<<FieldWidth(PATWord::MM_ADDRESS_LO)) - 1}});
     unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
