@@ -293,9 +293,15 @@ assign in.a = (state == READY_OR_INCREMENT) & in.v & ~stall;
 // stage 3: memory read
 
 // memory inputs 
+// XXX have to implement the memory register feedback on the side
 // NOTE: driven by s2_next_* instead of s2_* because of registered inputs
-assign mem_rd_en = (s2_next_op == DECAY || s2_next_op == INCREMENT);
-assign mem_rd_addr = s2_next_filt_idx;
+assign mem_rd_en = stall == 0 ?
+    (s2_next_op == DECAY || s2_next_op == INCREMENT)
+  : (s2_op == DECAY      || s2_op == INCREMENT);
+
+assign mem_rd_addr = stall == 0 ? 
+    s2_next_filt_idx 
+  : s2_filt_idx;
 
 // memory output
 assign s3_next_filt_state = mem_rd_data;
@@ -364,8 +370,15 @@ always_comb
 // stage 5: memory write
 
 // NOTE driven off s4_next_* instead of s4_* because of input register
-assign mem_wr_en = (s4_next_op == INCREMENT || s4_next_op == DECAY);
-assign mem_wr_addr = s4_next_filt_idx;
-assign mem_wr_data = s4_next_filt_state;
+// XXX have to implement stall register on the side
+assign mem_wr_en = stall == 0 ? 
+    (s4_next_op == INCREMENT || s4_next_op == DECAY)
+  : (s4_op == INCREMENT      || s4_op == DECAY);
+assign mem_wr_addr = stall == 0 ? 
+    s4_next_filt_idx
+  : s4_filt_idx;
+assign mem_wr_data = stall == 0?
+    s4_next_filt_state
+  : s4_filt_state;
 
 endmodule
