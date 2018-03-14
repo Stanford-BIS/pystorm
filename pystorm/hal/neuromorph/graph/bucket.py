@@ -40,17 +40,23 @@ class Bucket(GraphObject):
         self._check_conn_from_type(src, ["Input", "Bucket", "Pool"])
         src_resource = src._get_resource(src_resource_key)
 
-        TAT_acc = hwr.TATAccumulator(src.get_num_dimensions()) # create TAT acc entries
+        # anything but the neuron array (which has the PAT) needs a TAT acc entry
+        if not isinstance(src_resource, hwr.Neurons):
+            TAT_acc = hwr.TATAccumulator(src.get_num_dimensions()) # create TAT acc entries
         weights = hwr.MMWeights(conn.weights) # create weights
         bucket = self._get_resource("AMBuckets")
 
         # make connections
-        src_resource.connect(TAT_acc)
-        TAT_acc.connect(weights)
+        if not isinstance(src_resource, hwr.Neurons):
+            src_resource.connect(TAT_acc)
+            TAT_acc.connect(weights)
+        else:
+            src_resource.connect(weights)
         weights.connect(bucket)
 
         # append to resources
+        if not isinstance(src_resource, hwr.Neurons):
+            src._append_resource(("TATAccumulator", self), TAT_acc)
         src._append_resource(("MMWeights", self), weights)
-        src._append_resource(("TATAccumulator", self), TAT_acc)
 
 
