@@ -62,9 +62,9 @@ D.SetSpikeTrafficState(0, False, False)
 print("* initalize PAT")
 D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
 time.sleep(1)
-print("PAT diffs:")
-print(set(D.DumpMem(0, bd.bdpars.BDMemId.PAT)).symmetric_difference(set(D.GetDefaultPATEntries())))
-# # time.sleep(1)
+print("PAT:")
+dump = D.DumpMem(0, bd.bdpars.BDMemId.PAT);
+print(dump)# # time.sleep(1)
 # # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 # # time.sleep(1)
 # # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
@@ -105,8 +105,8 @@ if (dump != range(1024)):
 # # print(set(D.GetDefaultMMEntries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.MM))))
 # # time.sleep(1)
 
-# print("* initalize AM")
-# D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
+print("* initalize AM")
+D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
 # time.sleep(1)
 # first = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
 # second = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);

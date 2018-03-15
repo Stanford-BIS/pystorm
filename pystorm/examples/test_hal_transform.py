@@ -22,9 +22,18 @@ training_hold_time = .1
 ###########################################
 # misc driver parameters
 downstream_time_res = 100000 # ns
-upstream_time_res = 10000000 # ns
+upstream_time_res = 100000 # ns
 
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
+
+D = HAL.driver;
+# D.ResetFPGATime()
+old_time = D.GetFPGATime()
+for n in range(0, 3):
+    time.sleep(1)
+    new_time = D.GetFPGATime()
+    print(new_time)
+
 
 ###########################################
 # stim rates
@@ -74,6 +83,12 @@ ideal_outputs = np.dot(transform, arr_counts)
 print("calling map")
 HAL.map(net)
 
+# old_time = D.GetFPGATime()
+# for n in range(0, 3):
+#     time.sleep(1)
+#     new_time = D.GetFPGATime()
+#     print(new_time)
+
 ###########################################
 # compute sweep bins
 
@@ -121,18 +136,39 @@ def do_sweep(bin_time_boundaries):
         for d in range(Din):
             r = stim_rates[d][bin_idx]
 
-            #print("at", bin_start, "d", d, "is", r)
+            # print("at", bin_start, "d", d, "is", r)
             HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
 
-# do_sweep(bin_time_boundaries)
-HAL.set_input_rate(i1, 0, 200, time=0, flush=True)
+do_sweep(bin_time_boundaries)
+# input_time = int(HAL.get_time() + 10000e9)
+# input_time_2 = int(HAL.get_time() + 2e9)
+# print(HAL.get_time())
+
+
+# print("input high at: ",input_time)
+# print("input 2 high at: ",input_time_2)
+# HAL.set_input_rate(i1, 0, 100, time=input_time, flush=True)
+# HAL.set_input_rate(i1, 0, 200, time=input_time_2, flush=True)
+
 ###########################################
 # sleep during the training sweep
 
 # turn on spikes
+# duration = duration*2
 print("starting training:", duration, "seconds")
 
-time.sleep(duration + 1)
+
+print("start time: ",HAL.get_time())
+time.sleep((duration + 1))
+# time.sleep((duration + 1)/4)
+# HAL.set_input_rate(i1, 0, 400, time=0, flush=True)
+# time.sleep((duration + 1)/4)
+# HAL.set_input_rate(i1, 0, 600, time=0, flush=True)
+# time.sleep((duration + 1)/4)
+# HAL.set_input_rate(i1, 0, -300, time=0, flush=True)
+# time.sleep((duration + 1)/4)
+
+print("end time: ",HAL.get_time())
 
 print("training over")
 
@@ -187,9 +223,15 @@ binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
 print(binned_outputs[o1])
 
 counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
-print(counts,"\n", tags, "\n",routes,"\n", times)
-print(bin_time_boundaries[0])
-print(bin_time_boundaries[len(bin_time_boundaries)-1])
+# print(counts,"\n", tags, "\n",routes,"\n", times)
+print("start time: ",bin_time_boundaries[0])
+print("end time: ",bin_time_boundaries[len(bin_time_boundaries)-1])
+
+# old_time = D.GetFPGATime()
+# for n in range(0, 3):
+#     time.sleep(1)
+#     new_time = D.GetFPGATime()
+#     print(new_time)
 
 plt.figure()
 legend = []

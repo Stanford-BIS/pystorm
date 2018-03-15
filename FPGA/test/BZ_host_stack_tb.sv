@@ -126,7 +126,7 @@ parameter ReadyCheckDelay = 5;    // REQUIRED: # of clocks before block transfer
                                   //           host interface checks for ready (0-255)
 parameter PostReadyDelay = 5;     // REQUIRED: # of clocks after ready is asserted and
                                   //           check that the block transfer begins (0-255)
-parameter pipeInSize = 16;         // REQUIRED: byte (must be even) length of default
+parameter pipeInSize = 32;         // REQUIRED: byte (must be even) length of default
                                   //           PipeIn; Integer 0-2^32
 parameter pipeOutSize = 16;        // REQUIRED: byte (must be even) length of default
                                   //           PipeOut; Integer 0-2^32
@@ -237,6 +237,15 @@ initial begin
 	  	  	  // program SF
 	  SendToEP(7'd64, {4'd0, 16'd1}); // gens used
 	  SendToEP(7'd65, {4'd0, 16'd1}); // increment
+	  FlushAndSendPipeIn(); // send the stuff we queued up
+
+	  //send a really late hb
+	  SendToEP(7'd87, {20{1'b1}});
+	  SendToEP(7'd88, {20{1'b1}});
+	  SendToEP(7'd89, {20{1'b1}});
+	  SendPacket({5'b00001, 7'd26, 20'd1});
+	  SendPacket({5'b00001, 7'd26, 20'd2});
+	  SendPacket({5'b00001, 7'd26, 20'd3});
 	  FlushAndSendPipeIn(); // send the stuff we queued up
 
 
