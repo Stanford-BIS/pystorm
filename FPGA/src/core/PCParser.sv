@@ -18,7 +18,7 @@ module PCParser #(
   UnencodedBDWordChannel BD_data_out,
   
   // input, from PC
-  Channel PC_in_ext,
+  Channel PC_in,
 
   // reset values for the conf registers
   // set in PCMapper (because PCMapper assigns the regs meaning)
@@ -28,13 +28,6 @@ module PCParser #(
   input stall,
 
   input clk, reset);
-
-/////////////////////////////////////////////////
-// stall input when running ahead
-
-Channel #(NPCin) PC_in();
-ChannelStaller input_staller(.out(PC_in), .in(PC_in_ext), .stall(stall));
-
 
 /////////////////////////////////////////////////
 //

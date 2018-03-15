@@ -376,7 +376,7 @@ FPGASerializer #(
   .N_SF_state(N_SF_state)) 
 FPGA_serializer(
   FPGASerializer_out,
-  send_HB_up_pulse,
+  0,//removed hb up pulses
   time_elapsed,
   SF_tags_out,
   clk, reset);
