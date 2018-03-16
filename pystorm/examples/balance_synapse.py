@@ -56,7 +56,7 @@ for addr in range(256):
 # Disable all soma that are not under a synapse
 xaddr, yaddr = [_x.flatten() for _x in np.meshgrid(np.arange(0, 64), np.arange(0, 64), indexing='xy')]
 for _x, _y in zip(xaddr, yaddr):
-    soma_addr = bddriver.GetSomaAERAddr(_x, _y)
+    soma_addr = bd.Driver.BDPars.GetSomaAERAddr(_x, _y)
     syn_row = int(np.floor(_y / 2))
     # Odd row somas are not under a synapse
     if (_y % 2) == 1:

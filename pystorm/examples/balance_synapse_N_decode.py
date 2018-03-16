@@ -75,7 +75,7 @@ for _x, _y in zip(xaddr, yaddr):
     bddriver.SetSomaOffsetMultiplier(CORE, soma_addr, bd.bdpars.SomaOffsetMultiplierId.ONE)
 
 bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
-bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC     , 638)
+bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC     , 576)
 bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
 bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_LK     , 10)
 bddriver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD     , 50)
