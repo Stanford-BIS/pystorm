@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import time
 
@@ -14,11 +15,11 @@ np.random.seed(0)
 ###########################################
 # network parameters
 
-Din = 2
-Dout = 1
+Din = 1
+Dout = 10
 fmax = 1000
-num_training_points_per_dim = 5
-training_hold_time = .5
+num_training_points_per_dim = 10
+training_hold_time = .2
 
 ###########################################
 # misc driver parameters
@@ -53,6 +54,10 @@ elif Din == 1 and Dout == 2:
     transform = np.array([[1.0], [.1]])
 elif Din == 2 and Dout == 2:
     transform = np.array([[1.0, .25], [.1, .2]])
+elif Din == 2 and Dout == 4:
+    transform = np.array([[1.0, .25], [.1, .4], [.1, .1], [.25, 1.0]])
+elif Din == 1 and Dout > 4:
+    transform = np.linspace(0, 1, Dout).reshape((Dout, Din))
 else:
     assert(False and "write a matrix for this Din/Dout combo")
 
@@ -98,6 +103,8 @@ duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, 
 
 ###########################################
 # call HAL.set_input_rate() to program SGs for each bin/dim
+
+HAL.driver.SetSpikeFilterDebug(0, True)
 
 # have to do this before set_input_rates, so we don't get stalled
 HAL.start_traffic(flush=False)
@@ -197,12 +204,25 @@ binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
 
 print(binned_outputs[o1])
 
-plt.figure()
+plt.figure(figsize=(10, 10))
 legend = []
+#colors = plt.get_cmap("Oranges")(np.linspace(0, 1, Dout))
+plt.gca().set_color_cycle(None)
 for dim_idx, dim_out in enumerate(binned_outputs[o1]):
-    plt.plot(dim_out)
+    #color = colors[dim_idx]
+    plt.plot(dim_out, marker='.', linestyle='None')
     legend.append("measured dim " + str(dim_idx))
+plt.gca().set_color_cycle(None)
+for dim_idx, dim_out in enumerate(binned_outputs[o1]):
+    #color = colors[dim_idx]
     plt.plot(ideal_outputs[dim_idx, :])
     legend.append("expected dim " + str(dim_idx))
 plt.legend(legend)
 plt.show()
+
+#filt_idxs, filt_states, times = HAL.driver.RecvSpikeFilterStates(0, 1000)
+
+#counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
+#tags = np.array(tags)
+#plt.figure()
+#plt.hist(tags[tags != 2047], bins=9)

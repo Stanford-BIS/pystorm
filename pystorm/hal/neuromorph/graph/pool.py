@@ -1,6 +1,9 @@
+from .graph_object import GraphObject, ConnectionTypeError, FanoutError
+import pystorm.hal.neuromorph.hardware_resources as hwr
+
 import numpy as np
 
-class Pool(object):
+class Pool(GraphObject):
     """Represents a pool of neurons
     
     Parameters
@@ -17,6 +20,7 @@ class Pool(object):
         neuron pool is physically a rectangle; y dimension of neuron pool
     """
     def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0):
+        super(Pool, self).__init__(label)
         self.label = label
         self.encoders = encoders
 
@@ -51,17 +55,43 @@ class Pool(object):
         assert(len(self.biases) == self.n_neurons)
         assert(self.n_neurons == x * y)
 
-    def __gt__(self, pool2):
-        return self.label > pool2.label
-
     def __repr__(self):
         return "Pool " + self.label
-
-    def get_label(self):
-        return self.label
 
     def get_num_dimensions(self):
         return self.dimensions
 
     def get_num_neurons(self):
         return self.n_neurons
+
+    def create_intrinsic_resources(self):
+        # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
+        self._append_resource("TATTapPoint", hwr.TATTapPoint(self.encoders))
+        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases))
+
+        self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
+
+    def create_connection_resources(self):
+        if (len(self.out_conns) > 0):
+            conn, tgt = self._get_single_conn_out()
+            tgt._connect_from(self, "Neurons", conn)
+
+    def _connect_from(self, src, src_resource_key, conn):
+        self._check_conn_from_type(src, ["Input", "Bucket"])
+        src_resource = src._get_resource(src_resource_key)
+        src_resource.connect(self._get_resource("TATTapPoint"))
+
+    @property
+    def mapped_xy(self):
+        neurons = self._get_resource("Neurons")
+        return neurons.x_loc, neurons.y_loc
+
+    @property
+    def width(self):
+        return self.x
+
+    @property
+    def height(self):
+        return self.y
+
+

@@ -2,8 +2,9 @@
 from time import sleep
 import numpy as np
 import pystorm
-from pystorm.hal.neuromorph import map_network, remap_resources, graph
 from pystorm.PyDriver import bddriver as bd
+from pystorm.hal.neuromorph.core import Core
+from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
 
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -49,14 +50,6 @@ class HAL:
         else:
             self.driver = bd.Driver()
 
-        # neuromorph graph Input -> tags
-        self.ng_input_to_tags = {}
-        # neuromorph graph Input -> spike generator idx
-        self.ng_input_to_SG_idxs_and_tags = {}
-        # spike filter idx -> Output/dim
-        self.spike_filter_idx_to_output = {}
-        # spike id -> pool/neuron_idx
-        self.spk_to_pool_nrn_idx = {}
         okfile = "/".join(
             pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
         self.driver.SetOKBitFile(okfile)
@@ -67,7 +60,6 @@ class HAL:
         self.upstream_ns   = 1000000
 
         self.last_mapped_network = None
-        self.last_mapped_resources = None
         self.last_mapped_core = None
 
         self.init_hardware()
@@ -232,23 +224,7 @@ class HAL:
         """
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
 
-        # for now, working in count mode
-        # the filter state is a count, and it is signed
-        counts = []
-        for f in filt_states:
-            if f > 2**26 - 1:
-                to_append = f - 2**27
-            else:
-                to_append = f
-
-            if abs(to_append) < 1000:
-                counts.append(to_append)
-            else:
-                print("WARNING: discarding absurdly large tag filter value, possibly a glitch (or abuse of tag filter)")
-                counts.append(0)
-
-        outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
-        dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
+        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states)
 
         return np.array([times, outputs, dims, counts]).T
 
@@ -259,18 +235,10 @@ class HAL:
         Timestamps are in microseconds
         """
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
-        timestamps = []
-        pool_ids = []
-        nrn_idxs = []
-        for spk_id, spk_time in zip(spk_ids, spk_times):
-            if spk_id not in self.spk_to_pool_nrn_idx:
-                print("got out-of-bounds spike from neuron id", spk_id)
-            else:
-                pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
-                pool_ids.append(pool_id)
-                nrn_idxs.append(nrn_idx)
-                timestamps.append(spk_time)
-        ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
+
+        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
+
+        ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
         return ret_data
     
     def stop_all_inputs(self, time=0, flush=True):
@@ -308,14 +276,7 @@ class HAL:
         If you're queing up rates, make sure you call this in the order of the times
         """
 
-        gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
-        out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
-
-        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, True)
-
-        # XXX there is a bug (probably with how inputs are sorted by time)
-        # calling SetSpikeGeneratorRates with more than one element per list
-        # or not calling flush after each invocation will cause undefined behavior
+        self.set_input_rates([inp], [dim], [rate], time, flush)
 
     def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
         """Controls tag stream generators rates (on the FPGA)
@@ -340,9 +301,10 @@ class HAL:
         assert len(inputs) == len(dims) == len(rates)
 
         gen_idxs = [
-            self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
+            inp.generator_idxs[dim] for inp, dim in zip(inputs, dims)]
         out_tags = [
-            self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
+            inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
+
         self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
 
@@ -358,7 +320,7 @@ class HAL:
         # this call is deprecated, has the following effect
         self.map(self.last_mapped_network, remap=True)
 
-    def map(self, network, remap=False):
+    def map(self, network, remap=False, verbose=False):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
@@ -368,57 +330,15 @@ class HAL:
         """
         print("HAL: doing logical mapping")
 
-        if remap:
-            if self.last_mapped_core is not None:
-                premapped_neuron_array = self.last_mapped_core.neuron_array
-            else:
-                print("  WARNING: remap=True used before map() was called at least once. Ignoring.")
-        else:
-            premapped_neuron_array = None
-
-        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, premapped_neuron_array=premapped_neuron_array, verbose=True)
+        # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
 
         self.last_mapped_network = network
-        self.last_mapped_resources = hardware_resources
         self.last_mapped_core = core
 
         # implement core objects, calling driver
         print("HAL: programming mapping results to hardware")
         self.implement_core()
-
-        # clear dictionaries in case we're calling map more than once
-        # neuromorph graph Input -> tags
-        self.ng_input_to_tags = {}
-        # neuromorph graph Input -> spike generator idx
-        self.ng_input_to_SG_idxs_and_tags = {}
-        # spike filter idx -> Output/dim
-        self.spike_filter_idx_to_output = {}
-        # spike id -> pool/neuron_idx
-        self.spk_to_pool_nrn_idx = {}
-
-        # neuromorph graph Input -> tags
-        for ng_inp in network.get_inputs():
-            hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
-            #print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
-            self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
-        # spike filter idx -> Output/dim
-        for ng_out in network.get_outputs():
-            hwr_sink = ng_obj_to_ghw_mapper[ng_out].get_resource()
-            for dim_idx, filt_idx in enumerate(hwr_sink.filter_idxs):
-                self.spike_filter_idx_to_output[filt_idx] = (ng_out, dim_idx)
-        for ng_pool in network.get_pools():
-            hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()[1] # two resources for pool, [TATTapPoint and Neurons]
-            xmin = hwr_neurons.px_loc * core.NeuronArray_pool_size_x
-            ymin = hwr_neurons.py_loc * core.NeuronArray_pool_size_y
-            for x in range(hwr_neurons.x):
-                for y in range(hwr_neurons.y):
-                    spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width
-                    pool_nrn_idx = x + y*hwr_neurons.x
-                    self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
-
-        #print('spike mapper')
-        #for k in self.spk_to_pool_nrn_idx:
-        #    print(k, ":", self.spk_to_pool_nrn_idx[k][1])
 
     def dump_core(self):
         print("PAT")
