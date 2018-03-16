@@ -143,7 +143,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
         HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
 
         for (unsigned int i = 0; i < 3; i++) {
-          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, route}}));
+          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, 31}})); //make 31 a parameter at some point
         }
       }
 

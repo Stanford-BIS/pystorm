@@ -1,8 +1,9 @@
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
-`include "../core/PCParser.svh"
-`include "../core/PCMapper.svh"
-`include "../core/TimeMgr.svh"
+`include "../core/PCParser.sv"
+`include "../core/PCMapper.sv"
+`include "../core/TimeMgr.sv"
+`include "../core/FPGASerializer.sv"
 
 
 // for quartus, we add external IP to the project
@@ -35,11 +36,14 @@ module OKIfc #(
   input wire [3:0]    led_in,
   output wire         okClk,
   input wire          user_reset,
-  Channel             PC_downstream_post_split,
-  Channel             PC_upstream_pre_merge);
+  Channel             PC_downstream,
+  Channel             PC_upstream);
 
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 localparam logic [NPCcode-1:0] DSQueueCode = 65; // upstream nop code
+
+Channel #(NPCinout) PC_downstream_IFC();
+Channel #(NPCinout) PC_upstream_IFC();
 
 ////////////////////////////////////////
 // OK stuff
@@ -144,9 +148,9 @@ PipeInFIFO fifo_in(
   .clock(okClk));
 
 // handshake output channel
-assign PC_downstream.v = ~FIFO_in_empty;
-assign PC_downstream.d = FIFO_in_data_out;
-assign FIFO_in_rd_ack = PC_downstream.a;
+assign PC_downstream_IFC.v = ~FIFO_in_empty;
+assign PC_downstream_IFC.d = FIFO_in_data_out;
+assign FIFO_in_rd_ack = PC_downstream_IFC.a;
 
 ///////////////////////////////
 // upstream: either supply nop or data (if available)
@@ -250,16 +254,16 @@ always_comb
 
 // channel -> FIFO
 always_comb
-  if (PC_upstream.v == 1 && FIFO_out_full == 0) begin
+  if (PC_upstream_IFC.v == 1 && FIFO_out_full == 0) begin
     FIFO_out_wr = 1;
-    PC_upstream.a = 1;
+    PC_upstream_IFC.a = 1;
   end
   else begin
     FIFO_out_wr = 0;
-    PC_upstream.a = 0;
+    PC_upstream_IFC.a = 0;
   end
 
-assign FIFO_out_data_in = PC_upstream.d;
+assign FIFO_out_data_in = PC_upstream_IFC.d;
 
 //PC downstream channel and timing stuff
 
@@ -270,69 +274,65 @@ Channel #(NPCinout) PC_downstream_stalled();
 ChannelStaller input_staller(.out(PC_downstream_stalled), .in(PC_downstream), .stall(stall_dn));
 
 //split to OK if route is all 1's
-logic ok_route = 32'b11111000000000000000000000000000;
+localparam logic ok_route = 32'b11111000000000000000000000000000;
 Channel #(NPCinout) PC_downstream_to_OK();
-Channel #(NPCinout) PC_downstream_post_split();
 
-ChannelSplit #(.N(NPCinout), .Mask (ok_route), .Code0(ok_route)) input_splitter(.out0(PC_downstream_to_OK), .out1(PC_downstream_post_split), .in  (PC_downstream_stalled));
+ChannelSplit #(.N(NPCinout), .Mask (ok_route), .Code0(ok_route)) input_splitter(.out0(PC_downstream_to_OK), .out1(PC_downstream), .in  (PC_downstream_stalled));
 
 // Config/FPGA state modules (from core)
+
+// common parameters (in/out names relative to FPGA)
+localparam Ntag = 11;
+localparam Nct = 9;
+localparam Nglobal = 8;
 
 // PCParser/configurator parameters
 localparam Nconf = 16;
 localparam Nreg = 33;
 localparam Nchan = 2;
   // parameters for SpikeFilterArray
-localparam N_SF_filts = 10,
-localparam N_SF_state = 27,
-localparam N_SF_ct = 10,
+localparam N_SF_filts = 10;
+localparam N_SF_state = 27;
+localparam N_SF_ct = 10;
 
   // parameters for SpikeGeneratorArray
-localparam N_SG_gens = 8,
-localparam N_SG_period = 16,
+localparam N_SG_gens = 8;
+localparam N_SG_period = 16;
 
   // parameters for TimeMgr
-localparam N_TM_time = 48,
-localparam N_TM_unit = 16,
+localparam N_TM_time = 48;
+localparam N_TM_unit = 16;
 
-// between PCParser and mapper
+// SpikeGenerator additional params
+localparam N_SG_tag = Ntag;
+localparam N_SG_ct = Nct;
+
+// stuff we use
 logic [Nreg-1:0][Nconf-1:0] conf_regs;
 logic [Nreg-1:0][Nconf-1:0] conf_reg_reset_vals;
 ChannelArray #(Nconf, Nchan) conf_channels(); 
-
-// PCMapper outputs, internal config data
 TimeMgrConf #(N_TM_unit, N_TM_time) TM_conf();
+SerializedPCWordChannel FPGASerializer_out();
 
 //tied-off channels
 UnencodedBDWordChannel #(.NPCdata(NPCdata)) PCParser_BD_data_out();
 assign PCParser_BD_data_out.a = 1'b1;
 TagSplitConf TS_conf();
-assign TS_conf.a = 1'b1;
 BDIOConf BD_conf();
-assign BD_conf.a = 1'b1;
 SpikeGeneratorProgChannel #(N_SG_gens, N_SG_period, N_SG_tag) SG_program_mem();
 assign SG_program_mem.a = 1'b1;
 SpikeFilterConf #(N_SF_filts, N_SF_state) SF_conf();
-assign SF_conf.a = 1'b1;
 SpikeGeneratorConf #(N_SG_gens) SG_conf();
-assign SG_conf.a = 1'b1;
 SpikeFilterOutputChannel SF_tags_out();
 assign SF_tags_out.a = 1'b1;
 
 // time-related signals
 logic time_unit_pulse;
 logic send_HB_up_pulse;
-logic stall_dn;
-logic [N_TM_time-1:0] time_elapsed;
-
-// time-related signals
-logic time_unit_pulse;
-logic send_HB_up_pulse;
-logic stall_dn;
 logic [N_TM_time-1:0] time_elapsed;
 
 PCParser #(
-  .NPCin(NPCin),
+  .NPCin(NPCinout),
   .Nconf(Nconf),
   .Nreg(Nreg),
   .Nchan(Nchan)) 
@@ -386,7 +386,7 @@ time_mgr(
 FPGASerializer #(
   .NPCcode(NPCcode),
   .NPCdata(NPCdata),
-  .Ntime(N_TM_time),
+  .Ntime_full(N_TM_time),
   .N_SF_filts(N_SF_filts),
   .N_SF_state(N_SF_state)) 
 FPGA_serializer(
@@ -405,7 +405,7 @@ assign FPGA_packed.d = {5'b11111, FPGASerializer_out.code, FPGASerializer_out.pa
 assign FPGA_packed.v = FPGASerializer_out.v;
 assign FPGASerializer_out.a = FPGA_packed.a;
 
-ChannelMerge packed_merge_root(PC_upstream, FPGA_packed, PC_upstream_pre_merge, clk, reset);
+ChannelMerge packed_merge_root(PC_upstream_IFC, FPGA_packed, PC_upstream, clk, reset);
 
 
 endmodule
