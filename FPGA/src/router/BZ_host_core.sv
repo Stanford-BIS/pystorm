@@ -109,8 +109,7 @@ assign PC_downstream.d = OK_downstream.d;
 ////////////////////////////////////////////
 
 // Opal-Kelly HDL host and endpoints, with FIFOs
-OKIfc #( 
-  NOPcode) 
+OKIfc #( .NPCroute  (NPCroute), .NPCcode   (NPCcode), .NPCdata   (NPCdata)) 
 ok_ifc(
 	.okUH(okUH),
 	.okHU(okHU),

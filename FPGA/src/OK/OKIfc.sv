@@ -42,6 +42,8 @@ module OKIfc #(
 localparam logic [NPCcode-1:0] NOPcode = 64; // upstream nop code
 localparam logic [NPCcode-1:0] DSQueueCode = 65; // upstream nop code
 
+localparam NPCinout = NPCdata + NPCroute + NPCcode;
+
 Channel #(NPCinout) PC_downstream_IFC();
 Channel #(NPCinout) PC_upstream_IFC();
 
@@ -115,7 +117,6 @@ okBTPipeOut OK_pipe_out(
 ////////////////////////////////
 // channels to the rest of the design
 
-localparam NPCinout = NPCdata + NPCroute + NPCcode;
 localparam Nfifo_in = 14; // 16K-word FIFO
 localparam Nfifo_out = 14; // 16K-word FIFO
 localparam Nblock = 7; // 128-word block size for BTPipe
@@ -271,13 +272,16 @@ assign FIFO_out_data_in = PC_upstream_IFC.d;
 logic stall_dn;
 Channel #(NPCinout) PC_downstream_stalled();
 
-ChannelStaller input_staller(.out(PC_downstream_stalled), .in(PC_downstream), .stall(stall_dn));
+ChannelStaller input_staller(.out(PC_downstream_stalled), .in(PC_downstream_IFC), .stall(stall_dn));
 
 //split to OK if route is all 1's
-localparam logic ok_route = 32'b11111000000000000000000000000000;
+localparam ok_route = -134217728;
 Channel #(NPCinout) PC_downstream_to_OK();
 
 ChannelSplit #(.N(NPCinout), .Mask (ok_route), .Code0(ok_route)) input_splitter(.out0(PC_downstream_to_OK), .out1(PC_downstream), .in  (PC_downstream_stalled));
+
+wire clk = okClk;
+wire reset = user_reset;
 
 // Config/FPGA state modules (from core)
 
@@ -324,7 +328,7 @@ assign SG_program_mem.a = 1'b1;
 SpikeFilterConf #(N_SF_filts, N_SF_state) SF_conf();
 SpikeGeneratorConf #(N_SG_gens) SG_conf();
 SpikeFilterOutputChannel SF_tags_out();
-assign SF_tags_out.a = 1'b1;
+assign SF_tags_out.v = 1'b0;
 
 // time-related signals
 logic time_unit_pulse;
