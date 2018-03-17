@@ -178,7 +178,10 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   }
 
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
-  SendToEP(0, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
+  for(unsigned int i = 0; i <= bd_pars_->NumCores; i++){
+    SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
+  }
   Flush();
 
   // call SetTimePerUpHB with using old ns_per_HB_
@@ -198,9 +201,14 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   uint64_t w1 = GetField(units_per_HB_word, THREEFPGAREGS::W1);
   uint64_t w2 = GetField(units_per_HB_word, THREEFPGAREGS::W2);
 
-  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
-  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
-  SendToEP(0, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
+  for(unsigned int i = 0; i <= bd_pars_->NumCores; i++){
+    SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
+    SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
+    SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
+  }
   Flush();
 }
 

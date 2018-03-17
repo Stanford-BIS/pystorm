@@ -262,6 +262,7 @@ class BDPars {
 
   // misc constants
   const unsigned int NumCores               = 1;
+  const unsigned int TimingRoute            = 31;
   const unsigned int DnEPFPGARegOffset      = 64;
   const unsigned int DnEPFPGANumReg         = 33; // including NOP reg
   const unsigned int DnEPFPGAChannelOffset  = 112;

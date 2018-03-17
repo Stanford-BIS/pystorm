@@ -29,7 +29,7 @@ D.ResetBD()
 
 # set time unit (SF/SG update interval) to .1 ms
 time_unit_ns=10000
-upstream_hb_ns=10000000
+upstream_hb_ns=100000
 print("* Setting FPGA time units")
 D.SetTimeUnitLen(time_unit_ns)
 D.SetTimePerUpHB(upstream_hb_ns)
