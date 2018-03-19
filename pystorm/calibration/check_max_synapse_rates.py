@@ -21,6 +21,7 @@ import matplotlib
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
+HAL = HAL()
 
 from utils.exp import clear_overflows, compute_spike_gen_rates
 from utils.file_io import load_txt_data
