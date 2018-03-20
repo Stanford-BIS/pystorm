@@ -12,6 +12,20 @@
 	`include "../../quartus/BZ_host_core_PLL/BZ_host_core_PLL_0002.v"
 `endif
 
+module route_convereter (
+	Channel OK_downstream, OK_upstream, PC_downstream, PC_upstream);
+
+	//downstream: add 1
+	assign PC_downstream.v = OK_downstream.v;
+	assign OK_downstream.a = PC_downstream.a;
+	assign PC_downstream.d = {OK_downstream.d[31:27]+1, OK_downstream.d[26:0]};
+
+	//upstream: subtract from 32
+	assign OK_upstream.v = PC_upstream.v;
+	assign PC_upstream.a = OK_upstream.a;
+	assign OK_upstream.d = {5'd30-PC_upstream.d[31:27], PC_upstream.d[26:0]};
+	
+endmodule
 
 module BZ_host_core (
 //OK Ifc signals
@@ -101,10 +115,9 @@ BZ_host_core_PLL BZ_host_PLL(
 //	  5      7        20
 //
 Channel #(NPCinout) OK_downstream();
+Channel #(NPCinout) OK_upstream();
 
-assign PC_downstream.v = OK_downstream.v;
-assign OK_downstream.a = PC_downstream.a;
-assign PC_downstream.d = OK_downstream.d;
+route_convereter ok_to_router(.OK_downstream(OK_downstream), .OK_upstream(OK_upstream), .PC_upstream(PC_upstream), .PC_downstream(PC_downstream));
 
 ////////////////////////////////////////////
 
@@ -120,7 +133,7 @@ ok_ifc(
 	.okClk(okClk),
 	.user_reset(user_reset),
 	.PC_downstream(OK_downstream),
-	.PC_upstream(PC_upstream)
+	.PC_upstream(OK_upstream)
  );
 
 
