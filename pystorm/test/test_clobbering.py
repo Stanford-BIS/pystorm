@@ -211,12 +211,15 @@ def test_clobbering():
                     pass
                 else:
                     cur_tag_idx = non_padded_tag_idx % N_TAGS_TO_SEND
+                    # If there aren't enough tags to show the history, from the beginning of the tag stream
                     if tag_i < N_TAGS_TO_SHOW:
                         assert input_tag_list[cur_tag_idx] == tag, (
                             "Received unexpected tag value of {} ".format(tag) +
                             "(expected tag value of {}) at index {}\n".format(input_tag_list[cur_tag_idx], tag_i) +
                             "Tag Stream starting @ index 0:\n\t" +
                             "{}".format(tag_tags[0:tag_i+N_TAGS_TO_SHOW]))
+                    # Else, show N_TAGS_TO_SHOW both forward and backwards, with the center value
+                    # showing the first errant value.
                     else:
                         assert input_tag_list[cur_tag_idx] == tag, (
                             "Received unexpected tag value of {} ".format(tag) +

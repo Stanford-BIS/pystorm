@@ -46,6 +46,17 @@ def build_net():
     set_memory_delays(MEM_DELAY)
     return net_input
 
+def compare_bits(mem_entry, mem_idx, test_bit):
+    """Compare a memory entry to the expected bit value for that entry"""
+    valid_entry = True
+    for bit_idx, bit in enumerate(reversed(mem_entry)):
+        valid_entry = False
+        assert int(bit) == test_bit, (
+            "Incorrect bit @ index {} of mem entry #{:04} ".format(bit_idx, mem_idx) +
+            "from the LSB (bit 0)\n"
+            "Expected value: {}, Actual value: {}".format(test_bit, bit))
+    return valid_entry
+
 def test_sticky_bits():
     """Perform the test"""
     for _ in range(N_CYCLES):
@@ -59,17 +70,31 @@ def test_sticky_bits():
         # Allow some time for memory to finish writing  (Do I need to do this?)
         time.sleep(SLEEP_TIME)
 
+        # Create variables to save output data
+        mem_dump_output = []
+
         # Dump memory num_dump_times over and over
-        num_repeat_range = 1
         print("Memory Dump:")
-        for _ in range(num_repeat_range):
-            mem_dump = np.array(HAL.driver.DumpMem(CORE_ID, MEM_TYPE))
-            mem_range = len(mem_dump)
-            for idx in range(int(mem_range/2)):
-                mem_entry1 = mem_dump[idx*2]
-                mem_entry2 = mem_dump[idx*2+1]
-                print("{:04}: {:0{width}b}\t".format(idx*2, mem_entry1, width=MEM_WIDTH) +
-                      "{:04}: {:0{width}b}".format(idx*2+1, mem_entry2, width=MEM_WIDTH))
+        mem_dump = np.array(HAL.driver.DumpMem(CORE_ID, MEM_TYPE))
+        mem_range = len(mem_dump)
+        for idx in range(int(mem_range/2)):
+            mem_entry1 = mem_dump[idx*2]
+            mem_entry2 = mem_dump[idx*2+1]
+            mem_dump_output.append("{:0{width}b}".format(mem_entry1, width=MEM_WIDTH))
+            mem_dump_output.append("{:0{width}b}".format(mem_entry2, width=MEM_WIDTH))
+            print("{:04}: {:0{width}b}\t".format(idx*2, mem_entry1, width=MEM_WIDTH) +
+                  "{:04}: {:0{width}b}".format(idx*2+1, mem_entry2, width=MEM_WIDTH))
+
+        # Compare all the bits to see that the output is accurate
+        for idx, mem_entry in enumerate(mem_dump_output):
+            #print("{:04}: {}".format(idx, mem_entry, width=MEM_WIDTH))
+            # For even indexed entries, mem entry should be all 0s
+            if idx%2 == 0:
+                compare_bits(mem_entry, idx, 0)
+            # For odd indexed entries, mem entry should be all 1s
+            else:
+                compare_bits(mem_entry, idx, 1)
+
 
 #        # Dump just one entry in memory over and over again
 #        mem_range_start = 5
@@ -80,7 +105,6 @@ def test_sticky_bits():
 #            mem_range = len(mem_dump)
 #            print("{:02}: {:0{width}b}".format(mem_range_start, mem_dump[0], width=MEM_WIDTH))
 
-        # TODO Add assertions to check for correctness
 
 if __name__ == "__main__":
     test_sticky_bits()
