@@ -1020,12 +1020,14 @@ class Driver {
   // data members
   
   // FPGA state (XXX perhaps should move to its own object)
-  static const unsigned int ns_per_clk_  = 20; /// 100 MHz FPGA clock
+  static const unsigned int ns_per_clk_  = 20; /// 50 MHz FPGA clock
+  static const unsigned int ns_per_clk_host_  = 10; /// 100 MHz FPGA clock
   static const unsigned int max_num_SF_  = 512; /// number of SF memory entries
   static const unsigned int clks_per_SF_ = 1; /// clock cycles per SF update
   static const unsigned int max_num_SG_  = 256; /// number of SG memory entries
   static const unsigned int clks_per_SG_ = 3; /// clock cycles per SG update
   unsigned int clks_per_unit_         = 1000; /// FPGA default
+  unsigned int clks_per_unit_host_         = 1000; /// FPGA default
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
   BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
   BDTime ns_per_HB_                   = units_per_HB_ * ns_per_unit_; 

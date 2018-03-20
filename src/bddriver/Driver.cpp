@@ -157,6 +157,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   // update FPGA state
   ns_per_unit_ = ns_per_unit;
   clks_per_unit_ = ns_per_unit / ns_per_clk_;
+  clks_per_unit_host_ = ns_per_unit / ns_per_clk_host_;
   //cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
@@ -178,7 +179,8 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   }
 
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
-  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word}); // XXX core id?
+  BDWord unit_len_word_host = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_host_}});
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word_host}); // XXX core id?
   for(unsigned int i = 0; i <= bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
   }
