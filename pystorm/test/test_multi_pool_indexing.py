@@ -34,8 +34,7 @@ WIDTH_ALL = 64
 HEIGHT_ALL = 64
 N_ALL = WIDTH_ALL * HEIGHT_ALL
 
-if __name__ == "__main__":
-
+def test_multi_pool_indexing():
     ###########################################
     # misc driver parameters
     downstream_time_res = 10000 # ns
@@ -72,3 +71,6 @@ if __name__ == "__main__":
     if mean_err >= ERROR_TOLERANCE:
         print("  >= tolerance of ", ERROR_TOLERANCE)
     assert(mean_err < ERROR_TOLERANCE)
+
+if __name__ == "__main__":
+    test_multi_pool_indexing()

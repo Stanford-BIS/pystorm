@@ -21,7 +21,7 @@ class Bucket(GraphObject):
             conn, tgt = self._get_single_conn_out()
             tgt._connect_from(self, "AMBuckets", conn)
 
-        elif len(self.conns_out) > 1:
+        elif len(self.out_conns) > 1:
             # need to make a TATFanout object to initiate conns from
 
             bucket = self._get_resource("AMBuckets")

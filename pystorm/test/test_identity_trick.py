@@ -10,7 +10,9 @@ from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
-from multi_pool_util import *
+from multi_pool_util import (
+    collect_spikes_and_tags, run_big_raw_spikes_pool, reshape_big_pool_spikes, 
+    reconstruct_many_pool_spikes, make_XY_rate_comparison_plots)
 
 np.random.seed(0)
 
@@ -67,9 +69,7 @@ def run_many_identity_trick_pools():
 
     return many_parsed_spikes, ps
 
-
-if __name__ == "__main__":
-
+def test_identity_trick():
     ###########################################
     # misc driver parameters
     downstream_time_res = 10000 # ns
@@ -105,3 +105,6 @@ if __name__ == "__main__":
     if mean_err >= ERROR_TOLERANCE:
         print("  >= tolerance of ", ERROR_TOLERANCE)
     assert(mean_err < ERROR_TOLERANCE)
+
+if __name__ == "__main__":
+    test_identity_trick()

@@ -527,9 +527,9 @@ def bin_tags_spikes(tagspikes, bin_time_boundaries, time_scale=1e-9):
     # initialize A matrices
     activity_matrices = {}
     for obj in tagspikes:
-        if isinstance(obj, graph.Pool):
+        if isinstance(obj, pystorm.hal.neuromorph.graph.Pool):
             max_idx = obj.n_neurons
-        elif isinstance(obj, graph.Output):
+        elif isinstance(obj, pystorm.hal.neuromorph.graph.Output):
             max_idx = obj.dimensions
         activity_matrices[obj] = np.zeros((max_idx, n_bins)).astype(int)
 

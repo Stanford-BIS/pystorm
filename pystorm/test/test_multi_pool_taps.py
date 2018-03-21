@@ -52,7 +52,7 @@ def make_taps(width, height, Din):
     return tap_matrix
 
 
-if __name__ == "__main__":
+def test_multi_pool_taps():
     ###########################################
     # misc driver parameters
     downstream_time_res = 10000 # ns
@@ -114,3 +114,6 @@ if __name__ == "__main__":
     if mean_err >= ERROR_TOLERANCE:
         print("  >= tolerance of ", ERROR_TOLERANCE)
     assert(mean_err < ERROR_TOLERANCE)
+
+if __name__ == "__main__":
+    test_multi_pool_taps()
