@@ -67,7 +67,7 @@ Driver::Driver() {
 
   // there is one dec_buf_out per upstream EP
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(int c = 0; c <= bd_pars_->NumCores; c++){
+  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
     dec_bufs_out_[c] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
     for (auto& it : up_eps) {
       dec_bufs_out_[c].insert({it, new MutexBuffer<DecOutput>()});
@@ -136,13 +136,16 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
+  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
+    for (auto& it : dec_bufs_out_[c]) {
+      delete it.second;
+    }
+  }
   delete bd_pars_;
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
-  for (auto& it : dec_bufs_out_) {
-    delete it.second;
-  }
+
   for (auto& it : up_ep_deserializers_) {
     delete it.second;
   }
@@ -404,8 +407,10 @@ void Driver::InitBD() {
 
 void Driver::ClearOutputs() {
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for (auto& it : up_eps) {
-    dec_bufs_out_.at(it)->PopAll();
+  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
+    for (auto& it : up_eps) {
+      dec_bufs_out_[c].at(it)->PopAll();
+    }
   }
 }
 
@@ -1407,7 +1412,7 @@ std::pair<std::vector<BDWord>,
   Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
 
   // get data from buffer
-  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_.at(ep_code);
+  MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[core_id].at(ep_code);
   std::vector<std::unique_ptr<std::vector<DecOutput>>> popped_data = this_buf->PopAll(timeout_us);
 
   std::vector<BDWord> words;
