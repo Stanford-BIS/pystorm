@@ -32,10 +32,13 @@ void Decoder::RunOnce() {
     Decode(std::move(popped_vect));
 
     // push to each output vector
-    for (auto& it : decoded_outputs_) {
-      uint8_t ep_code = it.first;
-      std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
-      out_bufs_.at(ep_code)->Push(std::move(vvect));
+    for (auto& core_out : decoded_outputs_) {
+      uint8_t core = core_out.first;
+      for (auto& it : core_out.second){
+        uint8_t ep_code = it.first;
+        std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
+        out_bufs_[core].at(ep_code)->Push(std::move(vvect));
+      }
     }
 
   }
@@ -85,6 +88,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
           {FPGABYTES::B3, b3}});
 
       // break out ep_code/payload
+      unsigned int core    = GetField<FPGAIO>(packed_word, FPGAIO::ROUTE);
       unsigned int ep_code = GetField<FPGAIO>(packed_word, FPGAIO::EP_CODE);
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
@@ -143,11 +147,13 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         to_push.time       = curr_HB_recvd_;
         //word_i_min_2_time_ = word_i_min_1_time_;
         //word_i_min_1_time_ = curr_HB_recvd_;
-
-        if (decoded_outputs_.count(ep_code) == 0) {
-          decoded_outputs_[ep_code] = std::make_unique<std::vector<DecOutput>>();
+        if (decoded_outputs_.count(core) == 0){
+          decoded_outputs_[core] = std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>>();
         }
-        decoded_outputs_.at(ep_code)->push_back(to_push);
+        if (decoded_outputs_[core].count(ep_code) == 0) {
+          decoded_outputs_[core][ep_code] = std::make_unique<std::vector<DecOutput>>();
+        }
+        decoded_outputs_[core].at(ep_code)->push_back(to_push);
 
         words_processed++;
       }

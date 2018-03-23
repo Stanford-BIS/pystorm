@@ -25,7 +25,7 @@ class Decoder : public Xcoder {
 
   Decoder(
       MutexBuffer<DecInput> *in_buf,
-      const std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> &out_bufs,
+      const std::unordered_map<uint8_t, std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>> &out_bufs,
       const bdpars::BDPars * bd_pars,
       unsigned int timeout_us = 1000)
     : Xcoder(), 
@@ -43,14 +43,14 @@ class Decoder : public Xcoder {
 
   const unsigned int timeout_us_;
   MutexBuffer<DecInput> * in_buf_;
-  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> out_bufs_;
+  std::unordered_map<uint8_t, std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>> out_bufs_;
   const bdpars::BDPars * bd_pars_;
 
   uint32_t last_HB_LSB_recvd_;
   BDTime curr_HB_recvd_;
   BDTime last_HB_recvd_;
 
-  std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>> decoded_outputs_; 
+  std::unordered_map<uint8_t, std::unordered_map<uint8_t, std::unique_ptr<std::vector<DecOutput>>>> decoded_outputs_; 
 
   // because of the "push" output problem, we have to shift how we label times by
   // two words: the time that event i actually happened is the time for event i - 2

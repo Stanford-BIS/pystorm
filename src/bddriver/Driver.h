@@ -984,8 +984,10 @@ class Driver {
   /// Useful for debugging FPGA issues
   std::vector<std::pair<uint8_t, unsigned int>> GetOutputQueueCounts() {
     std::vector<std::pair<uint8_t, unsigned int>> retvals;
-    for (auto& ep_buf : dec_bufs_out_) {
-      retvals.push_back({ep_buf.first, ep_buf.second->TotalSize()});
+    for(int c = 0; c <= bd_pars_->NumCores; c++){
+      for (auto& ep_buf : dec_bufs_out_[c]) {
+        retvals.push_back({ep_buf.first, ep_buf.second->TotalSize()});
+      }
     }
     return retvals;
   }
@@ -1099,7 +1101,7 @@ class Driver {
   MutexBuffer<DecInput> *dec_buf_in_;
 
   /// vector of thread-safe, MPMC buffers between decoder and breadth of upstream driver API
-  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> dec_bufs_out_;
+  std::unordered_map<uint8_t, std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>> dec_bufs_out_;
 
   /// deserializers for upstream traffic
   std::unordered_map<uint8_t, VectorDeserializer<DecOutput> *> up_ep_deserializers_;

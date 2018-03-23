@@ -67,9 +67,11 @@ Driver::Driver() {
 
   // there is one dec_buf_out per upstream EP
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-
-  for (auto& it : up_eps) {
-    dec_bufs_out_.insert({it, new MutexBuffer<DecOutput>()});
+  for(int c = 0; c <= bd_pars_->NumCores; c++){
+    dec_bufs_out_[c] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
+    for (auto& it : up_eps) {
+      dec_bufs_out_[c].insert({it, new MutexBuffer<DecOutput>()});
+    }
   }
 
   // initialize deserializers for upstream traffic
