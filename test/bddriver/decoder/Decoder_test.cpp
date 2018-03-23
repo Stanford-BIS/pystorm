@@ -135,11 +135,13 @@ TEST(DecoderTest, MainDecoderTest) {
   BDPars pars;
 
   MutexBuffer<DecInput> buf_in;
-  std::unordered_map<uint8_t, MutexBuffer<DecOutput> *> bufs_out;
+  std::unordered_map<uint8_t, std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>> bufs_out;
   
   std::vector<uint8_t> up_eps = pars.GetUpEPs();
-  for (auto& it : up_eps) {
-    bufs_out.insert({it, new MutexBuffer<DecOutput>()});
+  for(uint8_t c = 0; c <= pars.NumCores; c++){
+    for (auto& it : up_eps) {
+      bufs_out[c].insert({it, new MutexBuffer<DecOutput>()});
+    }
   }
   
   unsigned int M = driverpars::READ_BLOCK_SIZE * 4; // must be a multiple of READ_BLOCK_SIZE
@@ -167,13 +169,15 @@ TEST(DecoderTest, MainDecoderTest) {
   // one consumer per output
   std::vector<std::thread> consumers;
   std::unordered_map<uint8_t, std::vector<DOVect>> recvd_outputs;
-  for (auto& it : bufs_out) {
-    uint8_t ep_code = it.first;
-    MutexBuffer<DecOutput> * buf = it.second;
-    recvd_outputs.insert({ep_code, {}});
-    unsigned int num_vect_to_consume = all_outputs.at(ep_code).size(); // should be N or close to it
-    //cout << "ep " << int(ep_code) << " needs to consume " << num_vect_to_consume << endl;
-    consumers.push_back(std::thread(Consume<DecOutput>, buf, &recvd_outputs.at(ep_code), num_vect_to_consume, 0));
+  for(uint8_t c = 0; c <= pars.NumCores; c++){
+    for (auto& it : bufs_out[c]) {
+      uint8_t ep_code = it.first;
+      MutexBuffer<DecOutput> * buf = it.second;
+      recvd_outputs.insert({ep_code, {}});
+      unsigned int num_vect_to_consume = all_outputs.at(ep_code).size(); // should be N or close to it
+      //cout << "ep " << int(ep_code) << " needs to consume " << num_vect_to_consume << endl;
+      consumers.push_back(std::thread(Consume<DecOutput>, buf, &recvd_outputs.at(ep_code), num_vect_to_consume, 0));
+    }
   }
   
   // need nonzero timeout so we can stop ourselves
@@ -215,9 +219,10 @@ TEST(DecoderTest, MainDecoderTest) {
   }
 
   dec.Stop();
-  
-  for (auto& it : up_eps) {
-    delete bufs_out.at(it);
+  for(uint8_t c = 0; c <= pars.NumCores; c++){
+    for (auto& it : up_eps) {
+      delete bufs_out[c].at(it);
+    }
   }
 }
 
