@@ -76,8 +76,7 @@ def test_sticky_bits():
         # Dump memory num_dump_times over and over
         print("Memory Dump:")
         mem_dump = np.array(HAL.driver.DumpMem(CORE_ID, MEM_TYPE))
-        mem_range = len(mem_dump)
-        for idx in range(int(mem_range/2)):
+        for idx in range(int(NUM_MEM_ENTRIES/2)):
             mem_entry1 = mem_dump[idx*2]
             mem_entry2 = mem_dump[idx*2+1]
             mem_dump_output.append("{:0{width}b}".format(mem_entry1, width=MEM_WIDTH))
