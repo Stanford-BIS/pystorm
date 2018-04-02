@@ -27,12 +27,18 @@ time.sleep(1)
 print("* Resetting BD")
 D.ResetBD()
 
+time.sleep(2)
+
+
 # set time unit (SF/SG update interval) to .1 ms
 time_unit_ns=10000
 upstream_hb_ns=100000
 print("* Setting FPGA time units")
 D.SetTimeUnitLen(time_unit_ns)
 D.SetTimePerUpHB(upstream_hb_ns)
+
+time.sleep(3)
+
 
 print("* Check FPGA time")
 old_time = D.GetFPGATime()
@@ -63,92 +69,20 @@ print("* initalize PAT")
 D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
 time.sleep(1)
 print("PAT:")
-dump = D.DumpMem(0, bd.bdpars.BDMemId.PAT);
+dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
 print(dump)# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
+
 print("* initalize TAT0")
 D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
 time.sleep(1)
 print("TAT0:")
-dump = D.DumpMem(0, bd.bdpars.BDMemId.TAT0);
+dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
 print(dump)
 if (dump != range(1024)):
 	print("data bad :(")
-# # time.sleep(1)
-# # D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(200,400)  , 200);
-# # time.sleep(1)
-# # print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 0, 200))
-# # time.sleep(1)
-# # print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 200, 400))
-# # time.sleep(1)
-# # time.sleep(3)
-# # print(D.GetOutputQueueCounts())
-# # time.sleep(1)
-# # print(D.DumpMemRange(0, bd.bdpars.BDMemId.TAT0, 100, 200))
-
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.TAT0))
-# print("* initalize TAT1")
-# D.SetMem(0 , bd.bdpars.BDMemId.TAT1  , D.GetDefaultTAT1Entries()  , 0);
-# # time.sleep(1)
-# # print("TAT1 diffs:")
-# # print(set(D.GetDefaultTAT1Entries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.TAT1))))
-# # time.sleep(1)
-
-# print("* initalize MM")
-# D.SetMem(0 , bd.bdpars.BDMemId.MM  , D.GetDefaultMMEntries()  , 0);
-# # time.sleep(1)
-# # print("MM diffs:")
-# # print(set(D.GetDefaultMMEntries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.MM))))
-# # time.sleep(1)
 
 print("* initalize AM")
 D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
-# time.sleep(1)
-# first = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# second = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# third = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# fourrth = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# print(first)
-# print(second)
-# print(third)
-# print(fourrth)
-# time.sleep(1)
-# D.SetMem(0 , bd.bdpars.BDMemId.AM  , D.GetDefaultAMEntries()  , 0);
-# time.sleep(1)
-# first = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# second = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# third = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# fourrth = D.DumpMemRange(0, bd.bdpars.BDMemId.AM, 0, 10);
-# print(first)
-# print(second)
-# print(third)
-# print(fourrth)
-# print(set(first).symmetric_difference(set(second)))
-# # time.sleep(5)
-# # print(D.GetOutputQueueCounts())
-
-# print("* waiting 2")
-
-# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # print("PAT diffs:")
-# # print(set(D.DumpMem(0, bd.bdpars.BDMemId.PAT)).symmetric_difference(set(range(64))))
-# # time.sleep(1)
-
-# # time.sleep(1)
-# # print("TAT1 diffs:")
-# # print(set(D.GetDefaultTAT1Entries()).symmetric_difference(set(D.DumpMem(0, bd.bdpars.BDMemId.TAT1))))
-
-
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
-# # time.sleep(1)
-# # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 
 time.sleep(5)
 

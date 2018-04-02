@@ -274,13 +274,13 @@ void Driver::ResetFPGATime() {
 
   BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
-  SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?
 }
 
 BDTime Driver::GetFPGATime() {
   // the Decoder already decoded the times, ignore the payload and just use the last timestamp
-  std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
-  auto dont_care = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_LSB, 1000).second; // drain the LSBs too so the queue doesn't pile up
+  std::vector<BDTime> times = RecvFromEP(bd_pars_->TimingRoute, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
+  auto dont_care = RecvFromEP(bd_pars_->TimingRoute, bdpars::FPGAOutputEP::UPSTREAM_HB_LSB, 1000).second; // drain the LSBs too so the queue doesn't pile up
   if (times.size() > 0) {
     return times.back();
   } else {

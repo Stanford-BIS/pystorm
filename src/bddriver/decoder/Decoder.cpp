@@ -31,13 +31,14 @@ void Decoder::RunOnce() {
   if (popped_vect->size() > 0) {
     Decode(std::move(popped_vect));
 
-    // push to each output vector
+    // push to each output vector (THIS DOESN'T WORK, FIX IT)
     for (auto& core_out : decoded_outputs_) {
       uint8_t core = core_out.first;
       for (auto& it : core_out.second){
         uint8_t ep_code = it.first;
         std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
-        out_bufs_[core].at(ep_code)->Push(std::move(vvect));
+        if(out_bufs_.count(core) > 0){
+          out_bufs_[core].at(ep_code)->Push(std::move(vvect));}
       }
     }
 
@@ -93,7 +94,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
       uint32_t payload     = GetField<FPGAIO>(packed_word, FPGAIO::PAYLOAD);
 
       if(!(bd_pars_->UpEPCodeIsBDFunnelEP(ep_code)) && !(bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code))){
-        cout<<"WARNING: WEIRD CODE: "<<(int)ep_code<<endl;
+        // cout<<"WARNING: WEIRD CODE: "<<(int)ep_code<<endl;
       }else{
       // if(ep_code != last_code || (block_idx == num_blocks-1 && word_idx == end - BYTES_PER_WORD)){
       //   if(code_count!=0 && (int)last_code != 64 && (int)last_code != 65 && (int)last_code != 15 && (int)last_code != 16){cout<<"Got code "<<(int)last_code<<" "<<(int)code_count<<" times"<<endl;}
