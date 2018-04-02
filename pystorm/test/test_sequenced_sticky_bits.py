@@ -134,58 +134,15 @@ def program_tat():
         (bd.TATTagWord.TAG, to[1])
         ]) for to in output_tags]
 
-#    repeat_const = int(NUM_MEM_ENTRIES/N_TAGS_TO_SEND)
-#    HAL.driver.SetMem(CORE_ID, MEM_TYPE, tag_packed_words*repeat_const, TAT_START_ADDR)
     HAL.driver.SetMem(CORE_ID, MEM_TYPE, tag_packed_words, TAT_START_ADDR)
 
     if DUMP_MEM:
         dump_mem()
     return output_tags
 
-def program_spike_filter():
-    """Program the number of spike filters"""
-    HAL.driver.SetNumSpikeFilters(CORE_ID, N_TAGS_TO_SEND)
-
-def get_output_tags(net_outputs, rates, rate_idx):
-    """Use get_outputs to get outputs from HAL"""
-    rate = rates[rate_idx]
-    print("\n[OUTPUT] Checking rate {}".format(rate))
-    n_rates = len(rates)
-    measured_rates = np.zeros(n_rates)
-
-    binned_tags = HAL.get_outputs()
-    #print("[OUTPUT] Shape of outputs: {}".format(binned_tags.shape))
-    measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
-    #print("measured time: {}".format(measured_time))
-    total_tags = np.sum(binned_tags[:, 3])
-    measured_rates[rate_idx] = total_tags/measured_time
-    filtered_tags = binned_tags[binned_tags[:, 3] > 0]
-
-    print("\nOutput Tags for Rate {}:".format(rate))
-    #print("[OUTPUT] [{}]\t{}".format(rate, filtered_tags[:N_TAGS_TO_SEND*4, 1:4]))
-    tag_counts = 999    # figure out how to get tag_counts from get_outputs format
-    for tag_idx, cur_output in enumerate(net_outputs):
-        cur_total_tags = np.sum(filtered_tags[filtered_tags[:, 1] == tag_idx, 3])
-        dim_of_tags = np.sum(filtered_tags[filtered_tags[:, 1] == tag_idx, 2])
-        print("[OUTPUT] [{}]\tCount of output [{}]\t".format(rate, tag_idx)+
-              "tags: {} ({:5.2f}%)".format(cur_total_tags, cur_total_tags/total_tags*100))
-        print("[OUTPUT] [{}]\tDim of output [{}]\t".format(rate, tag_idx)+
-              "tags: {})".format(dim_of_tags))
-    print("[OUTPUT] [{}]\tMeasured time: {}\t".format(rate, measured_time) +
-          "Num of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
-    print("[OUTPUT] [{}]\t".format(rate) +
-          "Measured rate: {}".format(measured_rates[rate_idx]))
-
-    print("[OUTPUT] [{}]\tTotal overflows: {}\n".format(rate, HAL.get_overflow_counts()))
-
-    return measured_rates, filtered_tags
-
 def print_unpacked_tags(tags):
+    """Print unpacked tags at integers and binary"""
     for tag_idx, tag in enumerate(tags):
-#        tag1 = tags[2*tag_idx]
-#        tag2 = tags[2*tag_idx+1]
-#        print("{:04}: {:0{width}b}\t".format(tag_idx*2, tag1, width=MEM_WIDTH) +
-#              "{:04}: {:0{width}b}".format(tag_idx*2+1, tag2, width=MEM_WIDTH))
         print("{:04}: ({:04})\t{:0{width}b}".format(tag_idx, tag, tag, width=11))
 
 def get_unpacked_recv_tags(net_outputs, rates, rate_idx):
@@ -250,34 +207,6 @@ def get_packed_recv_tags(net_outputs, rates, rate_idx):
 
     return packed_tags
 
-def toggle_spk_generator(rate, run_time=RUN_TIME, inter_run_time=INTER_RUN_TIME):
-    """Toggle the spike generator and check for overflow"""
-    clear_overflows(HAL, inter_run_time)
-    clear_tags(HAL, inter_run_time, CORE_ID)
-
-    HAL.set_time_resolution(upstream_ns=100000, downstream_ns=DOWNSTREAM_TIME)
-
-    cur_time_ns = HAL.get_time()
-    run_time_ns = int(run_time*1e9)
-    inter_run_time_ns = int(inter_run_time*1e9)
-    
-    HAL.driver.SetSpikeGeneratorRates(
-        CORE_ID, [SPIKE_GEN_IDX], [TAT_IDX], [rate],
-        time=0, flush=True)
-        #time=cur_time_ns+inter_run_time_ns, flush=True)
-    #time.sleep(run_sleep_time)
-    HAL.driver.SetSpikeGeneratorRates(
-        CORE_ID, [SPIKE_GEN_IDX], [TAT_IDX], [0],
-        time=0, flush=True)
-        #time=cur_time_ns+run_time_ns+inter_run_time_ns, flush=True)
-    time.sleep(run_time+2*inter_run_time)
-
-    overflow_0, _ = HAL.driver.GetFIFOOverflowCounts(CORE_ID)
-    print("[OUTPUT]\tRate {:.1f}, overflow_count:{}".format(rate, overflow_0))
-
-    sf_ids, sf_states, sf_times = np.array(HAL.driver.RecvSpikeFilterStates(CORE_ID, 1000))
-    return sf_ids, sf_states, sf_times
-
 def toggle_hal(net_input, rate, tags=None):
     """Toggle the spike input and output recording"""
     HAL.set_time_resolution(upstream_ns=100000, downstream_ns=DOWNSTREAM_TIME)
@@ -308,25 +237,14 @@ def test_sequenced_sticky_bits():
     HAL.driver.SetSpikeFilterDebug(CORE_ID, True)
     net_input, net_outputs = build_net()
 
-    if not USE_RECV_TAGS:
-        program_spike_filter()
-
     output_tags = program_tat()
     tags = list(np.array(output_tags).T[1])
     tags = None
 
     for rate_idx, rate in enumerate(rates):
-        if USE_RECV_TAGS:
-            toggle_hal(net_input, rate, tags)
-            #measured_rates_tags, tag_tags = get_unpacked_recv_tags(net_outputs, rates, rate_idx)
-            packed_tags = get_packed_recv_tags(net_outputs, rates, rate_idx)
-        else:
-            sf_ids, sf_states, sf_times = toggle_spk_generator(rate)
-            print("[OUTPUT] Spike Filter Ids: {}".format(sf_ids[sf_states != 0]))
-            print("[OUTPUT] Spike Filter Counts: {}".format(sf_states[sf_states != 0]))
-            print("[OUTPUT] Sum Spike Filter Counts: {}".format(np.sum(sf_states)))
-
-            measured_rates, tag_tags = get_output_tags(net_outputs, rates, rate_idx)
+        toggle_hal(net_input, rate, tags)
+        #measured_rates_tags, tag_tags = get_unpacked_recv_tags(net_outputs, rates, rate_idx)
+        packed_tags = get_packed_recv_tags(net_outputs, rates, rate_idx)
 
         # Assert test for automatic pytest compatibility
         if TEST_MODE:
