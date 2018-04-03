@@ -49,9 +49,7 @@ print("* Disable tag & spike traffic")
 D.SetTagTrafficState(0, False, False)
 D.SetSpikeTrafficState(0, False, False)
 
-print("* stopping driver")
-D.Stop();
-print("* done")
+
 
 # print("* setup memory delays")
 
@@ -66,12 +64,18 @@ print("* done")
 # # time.sleep(1)
 
 
-# print("* initalize PAT")
-# D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
-# time.sleep(1)
-# print("PAT:")
-# dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
-# print(dump)# # time.sleep(1)
+print("* initalize PAT")
+D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+time.sleep(1)
+print("PAT:")
+dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
+print(dump)# # time.sleep(1)
+
+time.sleep(3)
+
+print("* stopping driver")
+D.Stop();
+print("* done")
 
 # print("* initalize TAT0")
 # D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
