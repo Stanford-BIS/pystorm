@@ -45,9 +45,9 @@ for n in range(0, 3):
 	print(new_time - old_time)
 	old_time = new_time
 
-print("* Disable tag & spike traffic")
-D.SetTagTrafficState(0, False, False)
-D.SetSpikeTrafficState(0, False, False)
+# print("* Disable tag & spike traffic")
+# D.SetTagTrafficState(2, False, False)
+# D.SetSpikeTrafficState(2, False, False)
 
 
 
@@ -65,10 +65,10 @@ D.SetSpikeTrafficState(0, False, False)
 
 
 print("* initalize PAT")
-D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+D.SetMem(2 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
 time.sleep(1)
 print("PAT:")
-dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
+dump = D.DumpMem(2, bd.bdpars.BDMemId.PAT);
 print(dump)# # time.sleep(1)
 
 time.sleep(3)
