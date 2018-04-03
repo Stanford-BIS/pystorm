@@ -37,10 +37,25 @@ void Decoder::RunOnce() {
       for (auto& it : core_out.second){
         uint8_t ep_code = it.first;
         std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
-        if(out_bufs_.count(core) > 0){
-          out_bufs_[core].at(ep_code)->Push(std::move(vvect));}
+        if(out_bufs_.count(core) == 0){
+          out_bufs_[core] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
+                  // cout << "Cadd " <<(int)core << " ep " <<(int)ep_code<<endl;
+
+        }
+        if(out_bufs_[core].count(ep_code) == 0){
+          out_bufs_[core][ep_code] = new MutexBuffer<DecOutput>();
+                  // cout << "Eadd " <<(int)core << " ep " <<(int)ep_code<<endl;
+
+        }
+        out_bufs_[core].at(ep_code)->Push(std::move(vvect));
+        // cout << "add " <<(int)core << " ep " <<(int)ep_code << " now size: " << out_bufs_[core].at(ep_code)->TotalSize() <<endl;
       }
     }
+  //     for (auto& core_out : out_bufs_) {
+  //   uint8_t core = core_out.first;
+  //   int count = core_out.second.size();
+  //   cout << (int)core << " cnt " << count << endl;
+  // }
 
   }
 }

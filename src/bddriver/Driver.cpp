@@ -73,6 +73,10 @@ Driver::Driver() {
       dec_bufs_out_[c].insert({it, new MutexBuffer<DecOutput>()});
     }
   }
+  dec_bufs_out_[bd_pars_->TimingRoute] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
+  for (auto& it : up_eps) {
+    dec_bufs_out_[bd_pars_->TimingRoute].insert({it, new MutexBuffer<DecOutput>()});
+  }
 
   // initialize deserializers for upstream traffic
   // deserialization is needed when ep size exceeds FPGA word payload size

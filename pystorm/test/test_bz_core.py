@@ -27,8 +27,6 @@ time.sleep(1)
 print("* Resetting BD")
 D.ResetBD()
 
-time.sleep(2)
-
 
 # set time unit (SF/SG update interval) to .1 ms
 time_unit_ns=10000
@@ -37,8 +35,7 @@ print("* Setting FPGA time units")
 D.SetTimeUnitLen(time_unit_ns)
 D.SetTimePerUpHB(upstream_hb_ns)
 
-time.sleep(3)
-
+time.sleep(1)
 
 print("* Check FPGA time")
 old_time = D.GetFPGATime()
@@ -51,6 +48,10 @@ for n in range(0, 3):
 print("* Disable tag & spike traffic")
 D.SetTagTrafficState(0, False, False)
 D.SetSpikeTrafficState(0, False, False)
+
+print("* stopping driver")
+D.Stop();
+print("* done")
 
 # print("* setup memory delays")
 
@@ -65,27 +66,25 @@ D.SetSpikeTrafficState(0, False, False)
 # # time.sleep(1)
 
 
-print("* initalize PAT")
-D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
-time.sleep(1)
-print("PAT:")
-dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
-print(dump)# # time.sleep(1)
+# print("* initalize PAT")
+# D.SetMem(0 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+# time.sleep(1)
+# print("PAT:")
+# dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
+# print(dump)# # time.sleep(1)
 
-print("* initalize TAT0")
-D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
-time.sleep(1)
-print("TAT0:")
-dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
-print(dump)
-if (dump != range(1024)):
-	print("data bad :(")
+# print("* initalize TAT0")
+# D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
+# time.sleep(1)
+# print("TAT0:")
+# dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
+# print(dump)
+# if (dump != range(1024)):
+# 	print("data bad :(")
 
-print("* initalize AM")
-D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
+# print("* initalize AM")
+# D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
 
-time.sleep(5)
+# time.sleep(5)
 
-print("* stopping driver")
-D.Stop();
-print("* done")
+
