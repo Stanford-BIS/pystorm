@@ -577,7 +577,7 @@ void Driver::SetSpikeDumpState(unsigned int core_id, bool en, bool flush) {
   SetToggleDump(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en, flush);
 }
 
-void Driver::PauseTraffic(unsigned int core_id) {
+void Driver::PauseTraffic(unsigned int core_id) { //THIS IS BROKEN
   assert(last_traffic_state_[core_id].size() == 0 && "called PauseTraffic twice before calling ResumeTraffic");
   last_traffic_state_[core_id] = {};
   for (auto& reg_id : kTrafficRegs) {
@@ -919,11 +919,13 @@ void Driver::SetMem(
 
 /// helper for DumpMem
 void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr) {
-  // make dump words
-  // THIS IS CURRENTLY BROKEN
+  // make dump words (THID DOESNT WORK)
+  cout << "dump send; core id : " << core_id << endl;
 
   assert(start_addr >= 0);
   assert(end_addr <= bd_pars_->mem_info_.at(mem_id).size);
+
+  cout << "encapulating" << endl;
 
   std::vector<BDWord> encapsulated_words;
   if (mem_id == bdpars::BDMemId::PAT) {
@@ -952,15 +954,22 @@ void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned 
     encapsulated_words = PackAMMMWord<AMEncapsulation>(encapsulated_words);
   }
 
+  cout << "get horn ep" << endl;
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
 
+  cout << "pause traffic" << endl;
   PauseTraffic(core_id);
 
+  cout << "send to ep" << endl;
   SendToEP(core_id, horn_ep, encapsulated_words);
 
+    cout << "flush" << endl;
+
   Flush();
+
+    cout << "resume traffic" << endl;
 
   ResumeTraffic(core_id);
 }
