@@ -73,6 +73,15 @@ print(dump)# # time.sleep(1)
 
 time.sleep(3)
 
+print("* Check FPGA time")
+old_time = D.GetFPGATime()
+for n in range(0, 3):
+	time.sleep(1)
+	new_time = D.GetFPGATime()
+	print(new_time - old_time)
+	old_time = new_time
+
+
 print("* stopping driver")
 D.Stop();
 print("* done")
