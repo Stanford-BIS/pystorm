@@ -117,6 +117,9 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         curr_HB_recvd_ = this_HB;
         //cout << "got HB: " << payload << " curr_HB_ = " << curr_HB_recvd_ << endl;
       }
+      else if (ep_code != bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::DS_QUEUE_CT) & ep_code != bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP)){
+        cout << core << " " << ep_code << endl;
+      }
 
       // ignore queue counts (first word of each block)
       if (ep_code == bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::DS_QUEUE_CT)) {
