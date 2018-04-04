@@ -56,7 +56,7 @@ Driver::Driver() {
 
   // one BDState object per core
   // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_));
-  for (unsigned int i = 0; i <= bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     bd_state_.push_back(BDState(bd_pars_));
   }
 
@@ -67,7 +67,7 @@ Driver::Driver() {
 
   // there is one dec_buf_out per upstream EP
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
+  for(uint8_t c = 1; c < bd_pars_->NumCores; c++){
     dec_bufs_out_[c] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
     for (auto& it : up_eps) {
       dec_bufs_out_[c].insert({it, new MutexBuffer<DecOutput>()});
@@ -140,7 +140,7 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
-  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
+  for(uint8_t c = 1; c < bd_pars_->NumCores; c++){
     for (auto& it : dec_bufs_out_[c]) {
       delete it.second;
     }
@@ -190,7 +190,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
   BDWord unit_len_word_host = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_host_}});
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word_host}); // XXX core id?
-  for(unsigned int i = 0; i <= bd_pars_->NumCores; i++){
+  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
   }
   Flush();
@@ -215,7 +215,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
-  for(unsigned int i = 0; i <= bd_pars_->NumCores; i++){
+  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
@@ -226,14 +226,13 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
 void Driver::ResetBD() {
   // XXX this is only guaranteed to work after bring-up.
   // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
 
     BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
 
     unsigned int delay_us = 500000; // hold reset states for 5 ms (probably conservative)
-
     SendToEP(i, bdpars::FPGARegEP::BD_RESET, {pReset_1_sReset_1});
     Flush();
 
@@ -259,7 +258,7 @@ void Driver::IssuePushWords(int core_id) {
 
 
   //// XXX try using writes instead, theory is that there's input slack, not output slack
-  //for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  //for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
   //  const std::vector<BDWord> * curr_entries = bd_state_[i].GetMem(bdpars::BDMemId::PAT);
   //  std::vector<BDWord> last_two;
   //  const unsigned int PAT_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
@@ -332,13 +331,13 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
 void Driver::InitFPGA() {
 
   cout << "InitFPGA: initializing SGs" << endl;
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
     InitSGEn(i);
     SendSGEns(i, 0);
   }
 
   cout << "InitFPGA: initializing SFs" << endl;
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
     SetSpikeFilterIncrementConst(i, 1, false);
     SetSpikeFilterDecayConst(i, 0, false);
     SetNumSpikeFilters(i, 0);
@@ -356,7 +355,7 @@ void Driver::InitBD() {
   cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
     // turn off traffic
     cout << "InitBD: disabling traffic flow" << endl;
     SetTagTrafficState(i, false);
@@ -410,7 +409,7 @@ void Driver::InitBD() {
 
 void Driver::ClearOutputs() {
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
+  for(uint8_t c = 1; c <= bd_pars_->NumCores; c++){
     for (auto& it : up_eps) {
       dec_bufs_out_[c].at(it)->PopAll();
     }
@@ -482,7 +481,7 @@ void Driver::Flush() {
     // Call phantom DAC to push two other words into BD to
     // circumvent the synchronizer bug
     BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
-    for(unsigned int _core_id = 0; _core_id < bd_pars_->NumCores; _core_id ++){
+    for(unsigned int _core_id = 1; _core_id < bd_pars_->NumCores; _core_id ++){
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
     }
@@ -918,13 +917,11 @@ void Driver::SetMem(
 
 /// helper for DumpMem
 void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start_addr, unsigned int end_addr) {
-  // make dump words (THID DOESNT WORK)
-  cout << "dump send; core id : " << core_id << endl;
+  // make dump words
 
   assert(start_addr >= 0);
   assert(end_addr <= bd_pars_->mem_info_.at(mem_id).size);
 
-  cout << "encapulating" << endl;
 
   std::vector<BDWord> encapsulated_words;
   if (mem_id == bdpars::BDMemId::PAT) {
@@ -953,22 +950,15 @@ void Driver::DumpMemSend(unsigned int core_id, bdpars::BDMemId mem_id, unsigned 
     encapsulated_words = PackAMMMWord<AMEncapsulation>(encapsulated_words);
   }
 
-  cout << "get horn ep" << endl;
   // transmit read words, then block until all dump words have been received
   // XXX if something goes terribly wrong and not all the words come back, this will hang
   bdpars::BDHornEP horn_ep = bd_pars_->mem_info_.at(mem_id).prog_leaf;
 
-  cout << "pause traffic" << endl;
   PauseTraffic(core_id);
 
-  cout << "send to ep" << endl;
   SendToEP(core_id, horn_ep, encapsulated_words);
 
-    cout << "flush" << endl;
-
   Flush();
-
-    cout << "resume traffic" << endl;
 
   ResumeTraffic(core_id);
 }
@@ -1041,7 +1031,6 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
 std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end) {
 
   assert(end > start);
-    cout << "main dump range; core id : " << core_id << endl;
 
 
   DumpMemSend(core_id, mem_id, start, end);
@@ -1056,7 +1045,6 @@ std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId m
 }
 
 std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
-  cout << "main dump send; core id : " << core_id << endl;
   unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
   return DumpMemRange(core_id, mem_id, 0, mem_size);
 
@@ -1425,12 +1413,12 @@ void Driver::SendToEP(unsigned int core_id,
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
   Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
-  // cout << core_id << " ep: " << (int)ep_code <<endl;
-  // for (auto& core_out : dec_bufs_out_) {
-  //   uint8_t core = core_out.first;
-  //   int count = core_out.second.size();
-  //   cout << (int)core << " cnt " << count << endl;
-  // }
+  cout << core_id << " ep: " << (int)ep_code <<endl;
+  for (auto& core_out : dec_bufs_out_) {
+    uint8_t core = core_out.first;
+    int count = core_out.second.size();
+    cout << (int)core << " cnt " << count << endl;
+  }
 
   // get data from buffer
   MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[core_id].at(ep_code);
@@ -1484,7 +1472,9 @@ std::pair<std::vector<BDWord>,
 void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word, bool flush) {
   // form vector of values to set BDState's reg state with, in WordStructure field order
   assert(bd_pars_->BDHornEPIsReg(reg_id));
+  cout << "core " << core_id <<endl;
   bd_state_[core_id].SetReg(reg_id, word);
+  cout << "sne" <<endl;
   SendToEP(core_id, reg_id, {word});
   if (flush) Flush();
 }

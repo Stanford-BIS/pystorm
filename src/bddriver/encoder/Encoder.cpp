@@ -68,7 +68,7 @@ inline void Encoder::PadNopsAndFlush() {
 
   // construct FPGA nop word
   uint8_t nop_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
-  BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}, {FPGAIO::ROUTE, 0}});
+  BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}, {FPGAIO::ROUTE, bd_pars_->TimingRoute}});
 
   // push nops
   for (unsigned int i = 0; i < to_complete_block / 4; i++) { // 4 words per nop, so / 4
@@ -117,6 +117,7 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       flush_pending = true;
 
     } else {
+
       unsigned int route = toRoute(core_id); // convert core ID to route
       (void)time;    // XXX this is where you would do something with time
 
@@ -145,11 +146,15 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
         HB_ep_code[2] = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TM_PC_TIME_ELAPSED2);
 
         for (unsigned int i = 0; i < 3; i++) {
-          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, 31}})); //make 31 a parameter at some point
+          PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, bd_pars_->TimingRoute}})); //make 31 a parameter at some point
         }
       }
+      else{
+        cout << route << " " << FPGA_ep_code << endl;
+        cout<<std::bitset<32>(FPGA_encoded)<<endl;
 
-      // cout<<std::bitset<32>(FPGA_encoded)<<endl;
+      }
+
       // serialize to bytes 
       PushWord(FPGA_encoded);
 

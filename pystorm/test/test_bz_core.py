@@ -65,10 +65,10 @@ for n in range(0, 3):
 
 
 print("* initalize PAT")
-D.SetMem(2 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+D.SetMem(1 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
 time.sleep(1)
 print("PAT:")
-dump = D.DumpMem(2, bd.bdpars.BDMemId.PAT);
+dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
 print(dump)# # time.sleep(1)
 
 time.sleep(3)
