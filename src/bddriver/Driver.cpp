@@ -56,7 +56,7 @@ Driver::Driver() {
 
   // one BDState object per core
   // bd_state_ = std::vector<BDState>(bd_pars_->NumCores, BDState(bd_pars_));
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i <= bd_pars_->NumCores; i++) {
     bd_state_.push_back(BDState(bd_pars_));
   }
 
@@ -251,13 +251,12 @@ void Driver::ResetBD() {
   }
 }
 
-void Driver::IssuePushWords() {
+void Driver::IssuePushWords(int core_id) {
   // we need to send something that will elicit an output, PAT read is the simplest
   // thing we can request
 
-  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
-    DumpMemSend(i, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
-  }
+  DumpMemSend(core_id, bdpars::BDMemId::PAT, 0, 2); // we're always two outputs behind
+
 
   //// XXX try using writes instead, theory is that there's input slack, not output slack
   //for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
@@ -892,7 +891,7 @@ void Driver::SetMem(
     bdpars::BDFunnelEP funnel_ep = bd_pars_->mem_info_.at(mem_id).dump_leaf;
 
     // pop out the last two words
-    IssuePushWords();
+    IssuePushWords(core_id);
 
     double timeout_s = 2; // keep reading for 2s
     auto start = std::chrono::high_resolution_clock::now();
@@ -1042,11 +1041,13 @@ std::vector<BDWord> Driver::DumpMemRecv(unsigned int core_id, bdpars::BDMemId me
 std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId mem_id, unsigned int start, unsigned int end) {
 
   assert(end > start);
+    cout << "main dump range; core id : " << core_id << endl;
+
 
   DumpMemSend(core_id, mem_id, start, end);
 
   // issue an additional two PAT reads to push out the last two words
-  IssuePushWords();
+  IssuePushWords(core_id);
 
   auto to_return = DumpMemRecv(core_id, mem_id, end - start, 2000000); // wait 2s
 
@@ -1055,7 +1056,7 @@ std::vector<BDWord> Driver::DumpMemRange(unsigned int core_id, bdpars::BDMemId m
 }
 
 std::vector<BDWord> Driver::DumpMem(unsigned int core_id, bdpars::BDMemId mem_id) {
-
+  cout << "main dump send; core id : " << core_id << endl;
   unsigned int mem_size = bd_pars_->mem_info_.at(mem_id).size;
   return DumpMemRange(core_id, mem_id, 0, mem_size);
 
@@ -1424,12 +1425,12 @@ void Driver::SendToEP(unsigned int core_id,
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
   Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
-  cout << core_id << " ep: " << (int)ep_code <<endl;
-  for (auto& core_out : dec_bufs_out_) {
-    uint8_t core = core_out.first;
-    int count = core_out.second.size();
-    cout << (int)core << " cnt " << count << endl;
-  }
+  // cout << core_id << " ep: " << (int)ep_code <<endl;
+  // for (auto& core_out : dec_bufs_out_) {
+  //   uint8_t core = core_out.first;
+  //   int count = core_out.second.size();
+  //   cout << (int)core << " cnt " << count << endl;
+  // }
 
   // get data from buffer
   MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[core_id].at(ep_code);

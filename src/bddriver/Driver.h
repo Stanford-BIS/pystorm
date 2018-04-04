@@ -1072,7 +1072,7 @@ class Driver {
   unsigned int num_pushs_pending_ = 0;
 
   /// Issues two push words (PAT dumps) to force out the 2 trapped words
-  void IssuePushWords();
+  void IssuePushWords(int core_id);
 
   /// parameters describing BD hardware
   const bdpars::BDPars *bd_pars_;
