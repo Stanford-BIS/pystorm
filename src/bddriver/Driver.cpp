@@ -1472,9 +1472,7 @@ std::pair<std::vector<BDWord>,
 void Driver::SetBDRegister(unsigned int core_id, bdpars::BDHornEP reg_id, BDWord word, bool flush) {
   // form vector of values to set BDState's reg state with, in WordStructure field order
   assert(bd_pars_->BDHornEPIsReg(reg_id));
-  cout << "core " << core_id <<endl;
   bd_state_[core_id].SetReg(reg_id, word);
-  cout << "sne" <<endl;
   SendToEP(core_id, reg_id, {word});
   if (flush) Flush();
 }
