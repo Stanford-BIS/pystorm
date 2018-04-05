@@ -17,14 +17,18 @@ from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
 from utils.file_io import load_txt_data
 
+HAL = HAL()
+
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
 RUN_TIME = 5. # time to sample
 INTER_RUN_TIME = 0.2 # time between samples
 
-UNIT_PERIOD = HAL.downstream_ns*1E-9
-TGT_RATE_MIN = 10000
-TGT_RATE_MAX = 100000
+UPSTREAM_TIME = 10000   # FPGA operation time (ns)
+DOWNSTREAM_TIME = 100   # FPGA operation time (ns)
+UNIT_PERIOD = DOWNSTREAM_TIME*1E-9
+TGT_RATE_MIN = 500000
+TGT_RATE_MAX = 700000
 
 FLOAT_TOL = 0.000001 # for handling floating to integer comparisons
 
@@ -79,7 +83,7 @@ def build_net():
 
 def toggle_hal(net_input, rate):
     """Toggle the spike input and output recording"""
-    HAL.set_time_resolution(upstream_ns=100000)
+    HAL.set_time_resolution(downstream_ns=DOWNSTREAM_TIME, upstream_ns=UPSTREAM_TIME)
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
     HAL.set_input_rate(net_input, 0, rate, time=0, flush=True)
@@ -88,7 +92,7 @@ def toggle_hal(net_input, rate):
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
     time.sleep(INTER_RUN_TIME)
-    HAL.set_time_resolution(upstream_ns=1000000)
+    HAL.set_time_resolution(downstream_ns=DOWNSTREAM_TIME, upstream_ns=1000000)
 
 def compute_test_rates():
     """Compute the exact rates to test
@@ -144,7 +148,7 @@ def check_input_rates(parsed_args):
         measured_rates = data[:, 1]
     else:
         HAL.disable_spike_recording(flush=True)
-        HAL.set_time_resolution(upstream_ns=100000)
+        HAL.set_time_resolution(upstream_ns=UPSTREAM_TIME)
 
         rates = compute_test_rates()
         n_rates = len(rates)
