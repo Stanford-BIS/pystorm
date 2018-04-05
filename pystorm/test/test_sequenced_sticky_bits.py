@@ -39,16 +39,17 @@ MEM_TYPE = bd.bdpars.BDMemId.TAT1
 NUM_MEM_ENTRIES = 32
 MEM_WIDTH = 34
 
-N_TAGS_TO_SEND = 16     # ideally a power of two, to see bits iterate to a given digit
+N_TAGS_TO_SEND = 16    # ideally a power of two, to see bits iterate to a given digit
 N_TAGS_TO_SHOW = 20
+N_TAGS_TO_PRINT = 50
 IGNORE_TAG_VAL = 2047
 
 # Various Flags to change the modes of this test
 TEST_MODE = False       # TEST_MODE = True when we want this script to be able to run with pytest
                         # Use TEST_MODE = False for debugging or characterization of a chip
-USE_RECV_TAGS = True    # USE_RECV_TAGS uses RecvTags to get data, as opposed to get_outputs
 DUMP_MEM = True        # DUMP_MEM = True to dump memory for debugging
 INCR_EACH = False       # Increment tag number for each entry (vs every other entry)
+PRINT_TAG_DETAILS = True # Print the detailed bits of the output of the tags
 
 def set_memory_delays(delay):
     """Set memory delays"""
@@ -64,8 +65,8 @@ def dump_mem():
     """Dump the memory (for debugging purposes)"""
     mem_dump_output = []
     mem_dump = np.array(HAL.driver.DumpMemRange(CORE_ID, MEM_TYPE, 0, NUM_MEM_ENTRIES))
-    print("    : {:0{width}b}\t".format(2**14, width=MEM_WIDTH) +
-          "    : {:0{width}b}".format(2**14, width=MEM_WIDTH))
+    print("    : {:0{width}b}\t".format(2**14+2**6+2**3, width=MEM_WIDTH) +
+          "    : {:0{width}b}".format(2**14+2**6+2**3, width=MEM_WIDTH))
     for idx in range(int(NUM_MEM_ENTRIES/2)):
         mem_entry1 = mem_dump[idx*2]
         mem_entry2 = mem_dump[idx*2+1]
@@ -92,34 +93,34 @@ def build_net():
 
 def program_tat():
     """Program the TAT with tag words"""
-    # Added circuitry to try and measure tag rates
     output_tags = []
     for i in range(N_TAGS_TO_SEND):
         if i%2 == 0:
             gtag = GTAG
         else:
             gtag = GTAG+1
-
-        if INCR_EACH:
-            # Send completely sequential tags
-            # seq_count val is the number to non-inclusively count up to (0..seq_count_val-1)
-            seq_count_val = N_TAGS_TO_SEND
-            seq_bit_val = int(i)%seq_count_val
-            tag_value = seq_bit_val%seq_count_val
-        else:
-            # Increment tags every other tag (to see odd vs even behavior)
-            # seq_count val is the number to non-inclusively count up to (0..seq_count_val-1)
-            seq_count_val = int(N_TAGS_TO_SEND/2)
-            seq_bit_val = int(i/2)%seq_count_val
-            if i%2 == 0:
-                tag_value = seq_bit_val%seq_count_val# + 2**(TAG_BIT_WIDTH)
-            else:
-                tag_value = 2**TAG_BIT_WIDTH-seq_count_val+seq_bit_val
-        #print("{}".format(seq_bit_val))
         gtag = 255  # Hack to avoid needing to rewrite the HDL to handle invalid routes
         # This means we don't get to test as many bits of stickiness
 
-        #output_tags.append([gtag, tag_value, 1])
+        if INCR_EACH:
+            # Send completely sequential tags
+            tag_value = i
+        else:
+            # Increment tags every other tag (to see odd vs even behavior)
+            # seq_count_val is the number to non-inclusively count up to (0..seq_count_val-1)
+            if N_TAGS_TO_SEND <= 1:
+                seq_count_val = N_TAGS_TO_SEND
+            else:
+                seq_count_val = int(N_TAGS_TO_SEND/2)
+                
+            # seq_bit_val is the current number of the tag (0..seq_count_val-1)
+            seq_bit_val = int(i/2)%seq_count_val
+            if i%2 == 0:
+                tag_value = seq_bit_val
+            else:
+                tag_value = 2**TAG_BIT_WIDTH-seq_count_val+seq_bit_val
+        #print("{}".format(seq_bit_val))
+
         if i != (N_TAGS_TO_SEND-1):
             output_tags.append([gtag, tag_value, 0])
         else:
@@ -128,13 +129,30 @@ def program_tat():
     print("Output Tags: {}".format(output_tags))
     print("* Sending some tags")
 #    tag_packed_words = HAL.driver.PackTATTagWords(list(range(10)), [255]*10, [0]*9+[1])
+
+#    # Add zeroed out packets to the beginning of the TAT mem to see if sticky bits hold
+#    print([[[0,0,0]]*(TAT_START_ADDR-2)+[[0,0,1]]])
+#    tag_intro_words = [bd.PackWord([
+#        (bd.TATTagWord.STOP, to[2]),
+#        (bd.TATTagWord.GLOBAL_ROUTE, to[0]), # any gtag not 0 goes to PC
+#        (bd.TATTagWord.TAG, to[1])
+#        ]) for to in [[0,0,0]]*(TAT_START_ADDR-2)+[[0,0,1]]]
+#    HAL.driver.SetMem(CORE_ID, MEM_TYPE, tag_intro_words, 0)
+
     tag_packed_words = [bd.PackWord([
         (bd.TATTagWord.STOP, to[2]),
         (bd.TATTagWord.GLOBAL_ROUTE, to[0]), # any gtag not 0 goes to PC
         (bd.TATTagWord.TAG, to[1])
         ]) for to in output_tags]
-
     HAL.driver.SetMem(CORE_ID, MEM_TYPE, tag_packed_words, TAT_START_ADDR)
+
+#    # Set Memory to try and do interleaving with 1 tag packets
+#    tag_packed_words = [bd.PackWord([
+#        (bd.TATTagWord.STOP, to[2]),
+#        (bd.TATTagWord.GLOBAL_ROUTE, to[0]), # any gtag not 0 goes to PC
+#        (bd.TATTagWord.TAG, to[1])
+#        ]) for to in [[255,2046,1]]]
+#    HAL.driver.SetMem(CORE_ID, MEM_TYPE, tag_packed_words, TAT_START_ADDR+1)
 
     if DUMP_MEM:
         dump_mem()
@@ -172,7 +190,7 @@ def get_unpacked_recv_tags(net_outputs, rates, rate_idx):
     else:
         measured_time = 1e9
     total_tags = len(tag_tags)
-    measured_rates_tags[rate_idx] = 1.*total_tags/measured_time
+    measured_rates_tags = 1.*total_tags/measured_time
 
     print("\nReceived Tags for Rate {}:".format(rate))
     #print("[OUTPUT] [{}]\t{}".format(rate, tag_tags[:N_TAGS_TO_SEND*4]))
@@ -187,25 +205,70 @@ def get_unpacked_recv_tags(net_outputs, rates, rate_idx):
     print("[OUTPUT] [{}]\tMeasured time: {}\t".format(rate, measured_time) +
           "Num of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
     print("[OUTPUT] [{}]\t".format(rate) +
-          "Measured rate: {}".format(measured_rates_tags[rate_idx]))
+          "Measured rate: {}".format(measured_rates_tags))
 
     print("[OUTPUT] [{}]\tTotal overflows: {}\n".format(rate, HAL.get_overflow_counts()))
 
     return measured_rates_tags, tag_tags
 
-
 def get_packed_recv_tags(net_outputs, rates, rate_idx):
-    """Use RecvTags to get outputs from HAL (this method 
-    outputs less stats than get_unpacked_recv_tags)"""
+    """Use RecvTags to get outputs from HAL"""
     rate = rates[rate_idx]
     print("\n[OUTPUT] Checking rate {}".format(rate))
     n_rates = len(rates)
 
-    packed_tags = HAL.driver.RecvTags(CORE_ID, 1000)
-    for tag_idx, tag in enumerate(packed_tags[0]):
-        print("{:04}: {:0{width}b}".format(tag_idx, tag, width=MEM_WIDTH))
+    packed_tags, tag_times = HAL.driver.RecvTags(CORE_ID, 1000)
+    tag_counts = []
+    tag_tags = []
+    tag_routes = []
 
-    return packed_tags
+    if PRINT_TAG_DETAILS:
+        print("\nReceived Tags for Rate {}:".format(rate))
+
+    for tag_idx, tag in enumerate(packed_tags):
+        tag_b = bin(tag)
+        tag_route = tag_b[2:10]
+        tag_tag = tag_b[10:21]
+        tag_pad = tag_b[10:18]
+        tag_seq = tag_b[18:21]
+        tag_count = tag_b[21:]
+        if PRINT_TAG_DETAILS and tag_idx < N_TAGS_TO_PRINT:
+            print("{:04}:\t{} {} ".format(tag_idx, tag_route, int(tag_route, 2)) +
+                "{} ({:04}) {} ".format(tag_tag, int(tag_tag, 2), tag_pad) +
+                "{} ({:02}) {}".format(tag_seq, int(tag_seq, 2), tag_count))
+
+        tag_counts.append(int(tag_count))
+        tag_tags.append(int(tag_tag, 2))
+        tag_routes.append(int(tag_route, 2))
+
+    tag_counts = np.array(tag_counts)
+    tag_tags = np.array(tag_tags)
+    tag_routes = np.array(tag_routes)
+
+    # Get and print output information
+    if len(tag_times) > 0 and tag_times[-1] != tag_times[0]:
+        measured_time = (tag_times[-1] - tag_times[0])/1e9
+    else:
+        measured_time = 1e9
+    total_tags = len(packed_tags)
+    measured_rates_tags = 1.*total_tags/measured_time
+
+    print("\nSummary of Received Tags for Rate {}:".format(rate))
+    if len(set(tag_tags)) != len(net_outputs):
+        print("WARNING: Some of the output tags never got sent")
+
+    for tag_idx, cur_tag in enumerate(sorted(list(set(tag_tags)))):
+        cur_total_tags = np.sum(tag_counts[list(tag_tags) == cur_tag])
+        print("[OUTPUT] [{}]\tCount of output [{}]\t".format(rate, cur_tag)+
+              "tags: {} ({:5.2f}%)".format(cur_total_tags, cur_total_tags/total_tags*100))
+    print("[OUTPUT] [{}]\tMeasured time: {}\t".format(rate, measured_time) +
+          "Num of tags: {}\tSum of tag counts: {}".format(total_tags, np.sum(tag_counts)))
+    print("[OUTPUT] [{}]\t".format(rate) +
+          "Measured rate: {}".format(measured_rates_tags))
+
+    print("[OUTPUT] [{}]\tTotal overflows: {}\n".format(rate, HAL.get_overflow_counts()))
+
+    return measured_rates_tags, tag_tags
 
 def toggle_hal(net_input, rate, tags=None):
     """Toggle the spike input and output recording"""
@@ -231,22 +294,25 @@ def test_sequenced_sticky_bits():
     """Perform the test"""
     HAL.disable_spike_recording(flush=True)
 
-    rates = np.arange(100000, 400001, 100000) # specify rates in units of Hz
+    rates = np.arange(400000, 550000, 10000) # specify rates in units of Hz
+    #rates = np.array([601111]*10) # specify rates in units of Hz
+    #rates = np.array([2000000]*10) # specify rates in units of Hz
+    #rates = np.array([1000000, 1111111]*5) # specify rates in units of Hz
     print("Checking {} rates: {}".format(len(rates), rates))
 
     HAL.driver.SetSpikeFilterDebug(CORE_ID, True)
     net_input, net_outputs = build_net()
 
     output_tags = program_tat()
-    tags = list(np.array(output_tags).T[1])
-    tags = None
 
     for rate_idx, rate in enumerate(rates):
-        toggle_hal(net_input, rate, tags)
+        toggle_hal(net_input, rate)
         #measured_rates_tags, tag_tags = get_unpacked_recv_tags(net_outputs, rates, rate_idx)
-        packed_tags = get_packed_recv_tags(net_outputs, rates, rate_idx)
+        measured_rates_tags, tag_tags = get_packed_recv_tags(net_outputs, rates, rate_idx)
+        #measured_rates_tags, tag_tags = get_packed_recv_tags(net_outputs, rates, rate_idx)
 
         # Assert test for automatic pytest compatibility
+        ##### NEEDS TO BE REWORKED FOR THE NEW FORMAT OF PACKED VS UNPACKED TEST #####
         if TEST_MODE:
             non_padded_tag_idx = 0
             input_tag_list = np.array(range(N_TAGS_TO_SEND))
