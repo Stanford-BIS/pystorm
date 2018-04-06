@@ -38,9 +38,6 @@ void Decoder::RunOnce() {
         uint8_t ep_code = it.first;
         std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
         out_bufs_[core].at(ep_code)->Push(std::move(vvect));
-        if(core == 1){
-          cout<< ep_code <<endl;
-        }
       }
     }
   }
@@ -97,12 +94,12 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
       if(!(bd_pars_->UpEPCodeIsBDFunnelEP(ep_code)) && !(bd_pars_->UpEPCodeIsFPGAOutputEP(ep_code))){
         // cout<<"WARNING: WEIRD CODE: "<<(int)ep_code<<endl;
       }else{
-      if(ep_code != last_code || (block_idx == num_blocks-1 && word_idx == end - BYTES_PER_WORD)){
-        if(code_count!=0 && (int)last_code != 64 && (int)last_code != 65 && (int)last_code != 15 && (int)last_code != 16){cout<<"Got code "<<(int)last_code<<" "<<(int)code_count<<" times"<<endl;}
-        last_code = ep_code;
-        code_count = 1;
-      }
-      else{ code_count++; }
+      // if(ep_code != last_code || (block_idx == num_blocks-1 && word_idx == end - BYTES_PER_WORD)){
+      //   if(code_count!=0 && (int)last_code != 64 && (int)last_code != 65 && (int)last_code != 15 && (int)last_code != 16){cout<<"Got code "<<(int)last_code<<" "<<(int)code_count<<" times"<<endl;}
+      //   last_code = ep_code;
+      //   code_count = 1;
+      // }
+      // else{ code_count++; }
 
       // if it's a heartbeat, set last_HB_recvd
       // we send the HBs to the driver too, so it knows the time
@@ -119,9 +116,6 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         last_HB_recvd_ = curr_HB_recvd_;
         curr_HB_recvd_ = this_HB;
         //cout << "got HB: " << payload << " curr_HB_ = " << curr_HB_recvd_ << endl;
-      }
-      else if ((ep_code != bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::DS_QUEUE_CT)) && (ep_code != bd_pars_->UpEPCodeFor(bdpars::FPGAOutputEP::NOP))){
-        cout << core << " " << ep_code << endl;
       }
 
       // ignore queue counts (first word of each block)

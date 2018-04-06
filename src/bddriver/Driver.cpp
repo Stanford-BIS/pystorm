@@ -1413,12 +1413,12 @@ void Driver::SendToEP(unsigned int core_id,
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
   Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
-  cout << core_id << " ep: " << (int)ep_code <<endl;
-  for (auto& core_out : dec_bufs_out_) {
-    uint8_t core = core_out.first;
-    int count = core_out.second.size();
-    cout << (int)core << " cnt " << count << endl;
-  }
+  // cout << core_id << " ep: " << (int)ep_code <<endl;
+  // for (auto& core_out : dec_bufs_out_) {
+  //   uint8_t core = core_out.first;
+  //   int count = core_out.second.size();
+  //   cout << (int)core << " cnt " << count << endl;
+  // }
 
   // get data from buffer
   MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[core_id].at(ep_code);
