@@ -71,33 +71,22 @@ print("PAT:")
 dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
 print(dump)# # time.sleep(1)
 
-time.sleep(3)
+print("* initalize TAT0")
+D.SetMem(1 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
+time.sleep(1)
+print("TAT0:")
+dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
+print(dump)
+if (dump != range(1024)):
+	print("data bad :(")
 
-print("* Check FPGA time")
-old_time = D.GetFPGATime()
-for n in range(0, 3):
-	time.sleep(1)
-	new_time = D.GetFPGATime()
-	print(new_time - old_time)
-	old_time = new_time
+print("* initalize AM")
+D.SetMem(1 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
 
+time.sleep(5)
 
 print("* stopping driver")
 D.Stop();
 print("* done")
-
-# print("* initalize TAT0")
-# D.SetMem(0 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
-# time.sleep(1)
-# print("TAT0:")
-# dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
-# print(dump)
-# if (dump != range(1024)):
-# 	print("data bad :(")
-
-# print("* initalize AM")
-# D.SetMem(0 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
-
-# time.sleep(5)
 
 

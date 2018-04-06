@@ -67,7 +67,7 @@ Driver::Driver() {
 
   // there is one dec_buf_out per upstream EP
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(uint8_t c = 1; c < bd_pars_->NumCores; c++){
+  for(uint8_t c = 0; c < bd_pars_->NumCores; c++){
     dec_bufs_out_[c] = std::unordered_map<uint8_t, MutexBuffer<DecOutput> *>();
     for (auto& it : up_eps) {
       dec_bufs_out_[c].insert({it, new MutexBuffer<DecOutput>()});
@@ -140,7 +140,7 @@ Driver::Driver() {
 }
 
 Driver::~Driver() {
-  for(uint8_t c = 1; c < bd_pars_->NumCores; c++){
+  for(uint8_t c = 0; c < bd_pars_->NumCores; c++){
     for (auto& it : dec_bufs_out_[c]) {
       delete it.second;
     }
@@ -190,7 +190,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
   BDWord unit_len_word_host = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_host_}});
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word_host}); // XXX core id?
-  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
+  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
   }
   Flush();
@@ -215,7 +215,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
-  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
+  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
@@ -226,7 +226,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
 void Driver::ResetBD() {
   // XXX this is only guaranteed to work after bring-up.
   // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
 
     BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
@@ -331,13 +331,13 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
 void Driver::InitFPGA() {
 
   cout << "InitFPGA: initializing SGs" << endl;
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     InitSGEn(i);
     SendSGEns(i, 0);
   }
 
   cout << "InitFPGA: initializing SFs" << endl;
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     SetSpikeFilterIncrementConst(i, 1, false);
     SetSpikeFilterDecayConst(i, 0, false);
     SetNumSpikeFilters(i, 0);
@@ -355,7 +355,7 @@ void Driver::InitBD() {
   cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     // turn off traffic
     cout << "InitBD: disabling traffic flow" << endl;
     SetTagTrafficState(i, false);
@@ -409,7 +409,7 @@ void Driver::InitBD() {
 
 void Driver::ClearOutputs() {
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(uint8_t c = 1; c <= bd_pars_->NumCores; c++){
+  for(uint8_t c = 0; c <= bd_pars_->NumCores; c++){
     for (auto& it : up_eps) {
       dec_bufs_out_[c].at(it)->PopAll();
     }
@@ -481,7 +481,7 @@ void Driver::Flush() {
     // Call phantom DAC to push two other words into BD to
     // circumvent the synchronizer bug
     BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
-    for(unsigned int _core_id = 1; _core_id < bd_pars_->NumCores; _core_id ++){
+    for(unsigned int _core_id = 0; _core_id < bd_pars_->NumCores; _core_id ++){
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
     }
