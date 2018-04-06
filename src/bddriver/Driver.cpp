@@ -584,7 +584,7 @@ void Driver::SetSpikeDumpState(unsigned int core_id, bool en, bool flush) {
   SetToggleDump(core_id, bdpars::BDHornEP::NEURON_DUMP_TOGGLE, en, flush);
 }
 
-void Driver::PauseTraffic(unsigned int core_id) { //THIS IS BROKEN
+void Driver::PauseTraffic(unsigned int core_id) {
   assert(last_traffic_state_[core_id].size() == 0 && "called PauseTraffic twice before calling ResumeTraffic");
   last_traffic_state_[core_id] = {};
   for (auto& reg_id : kTrafficRegs) {
@@ -1422,12 +1422,6 @@ void Driver::SendToEP(unsigned int core_id,
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>>
   Driver::RecvFromEP(unsigned int core_id, uint8_t ep_code, unsigned int timeout_us) {
-  // cout << core_id << " ep: " << (int)ep_code <<endl;
-  // for (auto& core_out : dec_bufs_out_) {
-  //   uint8_t core = core_out.first;
-  //   int count = core_out.second.size();
-  //   cout << (int)core << " cnt " << count << endl;
-  // }
 
   // get data from buffer
   MutexBuffer<DecOutput>* this_buf = dec_bufs_out_[core_id].at(ep_code);

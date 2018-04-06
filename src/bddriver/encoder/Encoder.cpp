@@ -149,11 +149,6 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
           PushWord(PackWord<FPGAIO>({{FPGAIO::PAYLOAD, time_chunk[i]}, {FPGAIO::EP_CODE, HB_ep_code[i]}, {FPGAIO::ROUTE, bd_pars_->TimingRoute}})); //make 31 a parameter at some point
         }
       }
-      // else{
-      //   cout << route << " " << FPGA_ep_code << endl;
-      //   cout<<std::bitset<32>(FPGA_encoded)<<endl;
-
-      // }
 
       // serialize to bytes 
       PushWord(FPGA_encoded);
