@@ -1022,7 +1022,8 @@ class Driver {
   // data members
   
   // FPGA state (XXX perhaps should move to its own object)
-  static const unsigned int ns_per_clk_  = 20; /// 50 MHz FPGA clock
+  std::vector<unsigned int> ns_per_clk_ = std::vector<unsigned int>(); 
+  static const unsigned int ns_per_clk_def_ = 20; /// default ns per clock
   static const unsigned int ns_per_clk_host_  = 10; /// 100 MHz FPGA clock
   static const unsigned int max_num_SF_  = 512; /// number of SF memory entries
   static const unsigned int clks_per_SF_ = 1; /// clock cycles per SF update
@@ -1031,7 +1032,7 @@ class Driver {
   unsigned int clks_per_unit_         = 1000; /// FPGA default
   unsigned int clks_per_unit_host_         = 1000; /// FPGA default
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
-  BDTime ns_per_unit_                 = ns_per_clk_ * clks_per_unit_; /// FPGA default
+  BDTime ns_per_unit_                 = ns_per_clk_def_ * clks_per_unit_; /// FPGA default
   BDTime ns_per_HB_                   = units_per_HB_ * ns_per_unit_; 
   BDTime highest_ns_sent_             = 0;
 

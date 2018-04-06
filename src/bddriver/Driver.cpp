@@ -130,6 +130,12 @@ Driver::Driver() {
     assert(false && "unhandled comm_type");
 #endif
 
+  // initalize ns vector (this is where you could change time per core)
+  int ns_per_clk_def = 20;
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
+    ns_per_clk_.push_back(ns_per_clk_def);
+  }
+
   // OK appreciates a little sleep time?
   std::this_thread::sleep_for(std::chrono::microseconds(100));
   cout << "Driver constructor done" << endl;
@@ -165,34 +171,37 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
 
   // update FPGA state
   ns_per_unit_ = ns_per_unit;
-  clks_per_unit_ = ns_per_unit / ns_per_clk_;
+  int clks_per_unit_[bd_pars_->NumCores] = {0};
+
+  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
+    clks_per_unit_[i] = ns_per_unit / ns_per_clk_[i];
+    BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_[i]}});
+    SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
+  }
+
   clks_per_unit_host_ = ns_per_unit / ns_per_clk_host_;
+  BDWord unit_len_word_host = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_host_}});
+  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word_host}); // XXX core id?
   //cout << "setting FPGA time unit to " << ns_per_unit << " ns = " << clks_per_unit_ << " clocks per unit" << endl;
 
   // make sure that we aren't going to break the SG or SF
   // XXX can check highest_SF/SG_used instead, emit harder error
 
   const unsigned int fudge = 200; // extra cycles to receive rate updates, warm up/cool down pipeline, etc.
-  if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_) {
+  if (max_num_SG_ * clks_per_SG_ + fudge >= clks_per_unit_[0]) {
     cout << "WARNING: ns_per_unit is very small: FPGA Spike Generator updates might not complete" << endl;
-    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_[0] << endl;
     cout << "  Spike Generator requires " << clks_per_SG_ << " cycles per operation" << endl;
     cout << "  Max Spike Generators: " << max_num_SG_ << endl;
   }
 
-  if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_) {
+  if (max_num_SF_ * clks_per_SF_ + fudge >= clks_per_unit_[0]) {
     cout << "WARNING: ns_per_unit is very small: FPGA Spike Filter updates might not complete" << endl;
-    cout << "  clks_per_unit_ was " << clks_per_unit_ << endl;
+    cout << "  clks_per_unit_ was " << clks_per_unit_[0] << endl;
     cout << "  Spike Filter requires " << clks_per_SF_ << " cycles per operation" << endl;
     cout << "  Max Spike Filters: " << max_num_SG_ << endl;
   }
 
-  BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_}});
-  BDWord unit_len_word_host = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_host_}});
-  SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word_host}); // XXX core id?
-  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
-    SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
-  }
   Flush();
 
   // call SetTimePerUpHB with using old ns_per_HB_
