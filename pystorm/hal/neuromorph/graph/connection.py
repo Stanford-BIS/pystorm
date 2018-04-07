@@ -26,3 +26,9 @@ class Connection(object):
 
     def get_dest(self):
         return self.dest
+
+    def get_effective_weights(self):
+        MMWeights_resource = self.src.resources[("MMWeights", self.dest)]
+        return MMWeights_resource.effective_W
+
+

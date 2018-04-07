@@ -323,10 +323,12 @@ class MMWeights(Resource):
         W = (user_W.T * thr_vals).T
         W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
 
+        W_eff = (W.T / thr_vals).T
+
         #print("thrs:", thr_vals, "W:", W)
         W = dec2onesc(W, core.max_weight_value)
 
-        return W
+        return W, W_eff
 
     def __init__(self, W):
         super().__init__(
@@ -417,7 +419,7 @@ class MMWeights(Resource):
 
         """calculate implemented weights"""
         # look at AMBuckets.max_user_W, compute weights to program
-        self.programmed_W = MMWeights.weight_to_mem(
+        self.programmed_W, self.effective_W = MMWeights.weight_to_mem(
             self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
 
         # slice up W according to slice indexing
