@@ -75,7 +75,7 @@ localparam N_SG_ct = Nct;
 localparam FIFOdepth = 4;
 
 //GO_HOME route
-localparam GO_HOME_rt = -512;
+localparam GO_HOME_rt = 255;
 
 // **THIS NEEDS TO BE EDITED TO ADD GLOBAL ROUTE STUFF**
 //

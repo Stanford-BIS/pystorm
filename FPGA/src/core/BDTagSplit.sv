@@ -7,7 +7,7 @@ module BDTagSplit #(
   parameter Nglobal = 12,
   parameter Ntag = 11,
   parameter Nct = 9,
-  parameter GO_HOME_rt = -512) (
+  parameter GO_HOME_rt = 255) (
 
   TagCtChannel tag_out,
   GlobalTagCtChannel global_tag_out,

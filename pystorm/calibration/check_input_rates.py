@@ -16,16 +16,21 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
-from utils import load_txt_data
+from utils.file_io import load_txt_data
 
+HAL = HAL()
+
+CORE_ID = 0 # For BD, this is always 0
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
 RUN_TIME = 5. # time to sample
 INTER_RUN_TIME = 0.2 # time between samples
 
-UNIT_PERIOD = HAL.downstream_ns*1E-9
-TGT_RATE_MIN = 10000
-TGT_RATE_MAX = 100000
+UPSTREAM_TIME = 10000   # FPGA operation time (ns)
+DOWNSTREAM_TIME = 100   # FPGA operation time (ns)
+UNIT_PERIOD = DOWNSTREAM_TIME*1E-9
+TGT_RATE_MIN = 500000
+TGT_RATE_MAX = 700000
 
 FLOAT_TOL = 0.000001 # for handling floating to integer comparisons
 
@@ -39,6 +44,15 @@ def parse_args():
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
     args = parser.parse_args()
     return args
+
+def set_memory_delays(delay):
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.PAT, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.AM, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.MM, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.TAT0, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.TAT1, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.FIFO_DCT, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.FIFO_PG, delay, delay)
 
 def compute_base_rates():
     """Compute the rates to test"""
@@ -76,19 +90,12 @@ def build_net():
     net.create_connection("i_to_b", net_input, bucket, WEIGHT)
     net.create_connection("b_to_o", bucket, net_output, None)
     HAL.map(net)
-    delay = 15
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.PAT, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.AM, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.MM, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.TAT0, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.TAT1, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.FIFO_DCT, delay, delay)
-    HAL.driver.SetMemoryDelay(0, bd.bdpars.BDMemId.FIFO_PG, delay, delay)
+    set_memory_delays(15)
     return net_input
 
 def toggle_hal(net_input, rate):
     """Toggle the spike input and output recording"""
-    HAL.set_time_resolution(upstream_ns=100000)
+    HAL.set_time_resolution(downstream_ns=DOWNSTREAM_TIME, upstream_ns=UPSTREAM_TIME)
     HAL.start_traffic(flush=False)
     HAL.enable_output_recording(flush=True)
     HAL.set_input_rate(net_input, 0, rate, time=0, flush=True)
@@ -97,7 +104,7 @@ def toggle_hal(net_input, rate):
     HAL.stop_traffic(flush=False)
     HAL.disable_output_recording(flush=True)
     time.sleep(INTER_RUN_TIME)
-    HAL.set_time_resolution(upstream_ns=1000000)
+    HAL.set_time_resolution(downstream_ns=DOWNSTREAM_TIME, upstream_ns=1000000)
 
 def compute_test_rates():
     """Compute the exact rates to test
@@ -153,7 +160,7 @@ def check_input_rates(parsed_args):
         measured_rates = data[:, 1]
     else:
         HAL.disable_spike_recording(flush=True)
-        HAL.set_time_resolution(upstream_ns=100000)
+        HAL.set_time_resolution(upstream_ns=UPSTREAM_TIME)
 
         rates = compute_test_rates()
         n_rates = len(rates)
@@ -167,6 +174,7 @@ def check_input_rates(parsed_args):
             measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
             total_tags = np.sum(binned_tags[:, 3])
             measured_rates[idx] = total_tags/measured_time
+
     plot_rates(rates, measured_rates)
 
     if not use_saved_data:

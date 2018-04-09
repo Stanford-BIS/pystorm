@@ -9,6 +9,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.hal import parse_hal_binned_tags, parse_hal_spikes, bin_tags_spikes
+HAL = HAL()
 
 CORE = 0
 BIAS_OFFSETS = [128, 256, 512, 1024]
@@ -19,7 +20,7 @@ REL_ERROR_TOLERANCE = 0.01  # tolerable relative error
 
 def set_analog_config():
     """Sets the DACs and soma configurations"""
-    HAL.driver.SetDACCount(0, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
+    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
     for i in range(4096):
         HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
         HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)

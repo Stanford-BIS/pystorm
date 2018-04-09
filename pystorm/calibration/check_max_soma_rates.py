@@ -7,18 +7,18 @@ Iterate through the somas, and collect spikes
 Plot results
 """
 import os
-import sys
 from time import sleep
 import argparse
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
 from pystorm.hal import HAL
 from pystorm.hal.hal import parse_hal_spikes
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
+
+from utils.exp import clear_spikes
+from utils.file_io import load_txt_data
 
 CORE = 0
 MAX_NEURONS = 4096
@@ -50,47 +50,51 @@ def build_net():
     HAL.map(net)
     return pool
 
-def set_analog():
+def set_analog(hal):
     """Sets the soma config bits and the bias currents"""
-    for n_idx in range(MAX_NEURONS):
-        HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
-        HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)
-        HAL.driver.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.THREE)
-        HAL.driver.SetSomaEnableStatus(CORE, n_idx, bd.bdpars.SomaStatusId.DISABLED)
-    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
-    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, BIAS_OFFSET)
-    HAL.flush()
+    for nrn_idx in range(MAX_NEURONS):
+        hal.driver.SetSomaGain(CORE, nrn_idx, bd.bdpars.SomaGainId.ONE)
+        hal.driver.SetSomaOffsetSign(CORE, nrn_idx, bd.bdpars.SomaOffsetSignId.POSITIVE)
+        hal.driver.SetSomaOffsetMultiplier(CORE, nrn_idx, bd.bdpars.SomaOffsetMultiplierId.THREE)
+        hal.driver.SetSomaEnableStatus(CORE, nrn_idx, bd.bdpars.SomaStatusId.DISABLED)
+    hal.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF, BIAS_REF)
+    hal.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, BIAS_OFFSET)
+    hal.flush()
 
-def toggle_hal_recording():
+def set_hal(hal):
+    """Sets the HAL settings that remain constant throughout the experiment"""
+    hal.disable_output_recording(flush=True)
+
+def toggle_hal(nrn_idx):
     """Start and stop HAL traffic"""
     # clear queues
-    sleep(INTER_RUN_TIME)
-    _ = HAL.get_spikes()
+    aer_nrn_idx = HAL.driver.BDPars.GetSomaAERAddr(nrn_idx)
+    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.ENABLED)
     HAL.set_time_resolution(upstream_ns=10000)
     HAL.start_traffic(flush=False)
-    HAL.enable_spike_recording(flush=False)
-    HAL.disable_output_recording(flush=True)
+    HAL.enable_spike_recording(flush=True)
     sleep(RUN_TIME)
+    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.DISABLED)
     HAL.stop_traffic(flush=False)
-    HAL.disable_spike_recording(flush=False)
-    HAL.disable_output_recording(flush=True)
+    HAL.disable_spike_recording(flush=True)
     HAL.set_time_resolution(upstream_ns=10000000)
     HAL.flush()
 
 def measure_soma_max_rate(pool, nrn_idx):
     """Collect spikes to find a single soma's max firing rate"""
-    _ = HAL.get_spikes()
-    aer_nrn_idx = HAL.driver.GetSomaAERAddr(nrn_idx)
-    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.ENABLED)
-    toggle_hal_recording()
-    HAL.driver.SetSomaEnableStatus(CORE, aer_nrn_idx, bd.bdpars.SomaStatusId.DISABLED)
+    clear_spikes(HAL, INTER_RUN_TIME)
+    toggle_hal(nrn_idx)
     hal_spikes = parse_hal_spikes(HAL.get_spikes())
+    # print("\nTesting nrn {}. Detected the following spikes".format(nrn_idx))
+    # for idx in hal_spikes[pool]:
+    #     print("nrn_idx {} spikes {}".format(idx, len(hal_spikes[pool][idx])))
     soma_spikes = np.array(hal_spikes[pool][nrn_idx])[:, 0]
     soma_spikes -= soma_spikes[0]
     soma_spikes = soma_spikes
     n_spks = len(soma_spikes)-1
     time_period = (soma_spikes[-1]- soma_spikes[0])*TIME_SCALE
     max_rate = n_spks/time_period
+    clear_spikes(HAL, INTER_RUN_TIME)
     return max_rate
 
 def plot_max_rates(max_rates):
@@ -111,19 +115,8 @@ def plot_max_rates(max_rates):
     plt.ylabel("Soma Y Coordinate")
     plt.title("Max Firing Rate (Hz)")
 
-    fig_2d_surf = plt.figure()
-    axs = fig_2d_surf.add_subplot(111, projection='3d')
-    xy_idx = np.arange(int(np.sqrt(neurons)))
-    x_mesh, y_mesh = np.meshgrid(xy_idx, xy_idx)
-    surf = axs.plot_surface(
-        x_mesh, y_mesh, max_rates_2d, linewidth=0, cmap=cm.viridis, antialiased=False)
-    axs.set_xlabel("Soma X Coordinate")
-    axs.set_ylabel("Soma Y Coordinate")
-    axs.set_zlabel("Soma Max Firing Rate (Hz)")
-    fig_2d_surf.colorbar(surf, shrink=0.5, aspect=5)
-
     fig_hist = plt.figure()
-    bins = min(max(int(neurons/20), neurons), 80)
+    bins = min(max(10, neurons), 80)
     max_rates_mean = np.mean(max_rates)
     max_rates_median = np.median(max_rates)
     max_rates_min = np.min(max_rates)
@@ -139,32 +132,26 @@ def plot_max_rates(max_rates):
 
     fig_1d.savefig(DATA_DIR + "nrn_idx_vs_max_rate.pdf")
     fig_2d_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
-    fig_2d_surf.savefig(DATA_DIR + "2d_surface.pdf")
     fig_hist.savefig(DATA_DIR + "histogram.pdf")
 
 def check_soma_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        try:
-            max_rates = np.loadtxt(DATA_DIR + "max_rates.txt")
-        except FileNotFoundError as err:
-            print("\nError: Could not find saved data {}\n".format(DATA_DIR + "max_rates.txt"))
-            sys.exit(1)
+        max_rates = load_txt_data(DATA_DIR + "max_rates.txt")
     else:
         pool = build_net()
-        set_analog()
+        set_analog(HAL)
+        set_hal(HAL)
         max_rates = np.zeros(NEURONS)
         for nrn_idx in range(NEURONS):
             max_rates[nrn_idx] = measure_soma_max_rate(pool, nrn_idx)
+        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
 
     plot_max_rates(max_rates)
-    if not use_saved_data:
-        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
     print("Max firing rates:")
     print(max_rates)
     plt.show()
 
 if __name__ == "__main__":
-    args = parse_args()
-    check_soma_max_rates(args)
+    check_soma_max_rates(parse_args())

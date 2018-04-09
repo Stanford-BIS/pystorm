@@ -2,8 +2,9 @@
 from time import sleep
 import numpy as np
 import pystorm
-from pystorm.hal.neuromorph import map_network, remap_resources, graph
 from pystorm.PyDriver import bddriver as bd
+from pystorm.hal.neuromorph.core import Core
+from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
 
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -22,7 +23,18 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 CORE_ID = 0 # hardcoded for now
 
-class HAL(object):
+class Singleton:
+    """Decorator class ensuring that at most one instance of a decorated class exists"""
+    def __init__(self,klass):
+        self.klass = klass
+        self.instance = None
+    def __call__(self,*args,**kwds):
+        if self.instance == None:
+            self.instance = self.klass(*args,**kwds)
+        return self.instance
+
+@Singleton
+class HAL:
     """Hardware Abstraction Layer
 
     Abstracts away the details of the underlying hardware, and presents a
@@ -38,14 +50,6 @@ class HAL(object):
         else:
             self.driver = bd.Driver()
 
-        # neuromorph graph Input -> tags
-        self.ng_input_to_tags = {}
-        # neuromorph graph Input -> spike generator idx
-        self.ng_input_to_SG_idxs_and_tags = {}
-        # spike filter idx -> Output/dim
-        self.spike_filter_idx_to_output = {}
-        # spike id -> pool/neuron_idx
-        self.spk_to_pool_nrn_idx = {}
         okfile = "/".join(
             pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
         self.driver.SetOKBitFile(okfile)
@@ -55,7 +59,7 @@ class HAL(object):
         self.downstream_ns = 10000
         self.upstream_ns   = 1000000
 
-        self.last_mapped_resources = None
+        self.last_mapped_network = None
         self.last_mapped_core = None
 
         self.init_hardware()
@@ -63,23 +67,49 @@ class HAL(object):
     def init_hardware(self):
         print("HAL: clearing hardware state")
 
+        # stop spikes before resetting
+        #self.stop_all_inputs()
+
         self.driver.InitBD()
 
         # DAC settings (should be pretty close to driver defaults)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512)
+
+        # magnitude of the three synapse inputs (can be used to balance exc/inh)
+        # there are scale factors on each of the outputs
+        # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
+        # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
+
+        # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+
+        # synapse pulse extender rise time/fall time
+        # 1/DAC_SYN_PD ~ synapse PE fall time 
+        # 1/DAC_SYN_PU ~ synapse PE rise time
+        # the synapse is "on" during the fall, and "off" during the rise
+        # making the rise longer doesn't have much of a practical purpose
+        # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
+        # be careful setting these too small, you don't want to saturate the synapse
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1023)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1023)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
+
+        # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
+        # lower ratio is more spread out
+        # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+
+        # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
+
+        # DAC_SOMA_OFFSET scales the bias twiddle bits
+        # Ben says that increasing this beyond 10 could cause badness
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
-
 
     def set_time_resolution(self, downstream_ns=10000, upstream_ns=1000000):
         """Controls Driver/FPGA time resolutions
@@ -194,23 +224,7 @@ class HAL(object):
         """
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
 
-        # for now, working in count mode
-        # the filter state is a count, and it is signed
-        counts = []
-        for f in filt_states:
-            if f > 2**26 - 1:
-                to_append = f - 2**27
-            else:
-                to_append = f
-
-            if abs(to_append) < 100:
-                counts.append(to_append)
-            else:
-                print("discarding absurdly large spike filter value, probably a glitch")
-                counts.append(0)
-
-        outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
-        dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
+        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states)
 
         return np.array([times, outputs, dims, counts]).T
 
@@ -221,34 +235,39 @@ class HAL(object):
         Timestamps are in microseconds
         """
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
-        timestamps = []
-        pool_ids = []
-        nrn_idxs = []
-        for spk_id, spk_time in zip(spk_ids, spk_times):
-            if spk_id not in self.spk_to_pool_nrn_idx:
-                print("got out-of-bounds spike from neuron id", spk_id)
-            else:
-                pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
-                pool_ids.append(pool_id)
-                nrn_idxs.append(nrn_idx)
-                timestamps.append(spk_time)
-        ret_data = np.array([timestamps, pool_ids, nrn_idxs]).T
+
+        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
+
+        ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
         return ret_data
+    
+    def stop_all_inputs(self, time=0, flush=True):
+        """Stop all tag stream generators"""
+
+        if self.last_mapped_core is not None:
+            num_gens = self.last_mapped_core.FPGASpikeGenerators.gens_used
+            if num_gens > 0:
+                for gen_idx in range(num_gens):
+                    # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
+                    self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [0], [0], time, True)
 
     def set_input_rate(self, inp, dim, rate, time=0, flush=True):
         """Controls a single tag stream generator's rate (on the FPGA)
 
-        on startup, all rates are 0
+        On startup, all rates are 0.
+        Every FPGA time unit, the FPGA loops through the spike generators
+        and decides whether or not to emit a tag for each one.
+        The SGs can be reprogrammed to change their individual rates and targets
 
         inp: Input object
-        dim : ints
-            dimensions within each Input object to send to
-        rate: ints
-            desired tag rate for each Input/dimension in Hz
+        dim : int
+            dimension within the Input object to target
+        rate: int
+            desired tag rate for the Input/dimension in Hz
         time: int (default=0)
             time to send inputs, in microseconds. 0 means immediately
         flush: bool (default true)
-            whether or not to flush the inputs through the driver immediately.
+            whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
 
@@ -256,20 +275,8 @@ class HAL(object):
         provided has passed!
         If you're queing up rates, make sure you call this in the order of the times
         """
-        if flush is False:
-            assert(False and "there's currently a Driver bug with set_input_rate flush=False")
 
-        # every FPGA time unit, the FPGA loops through the spike generators and decides whether or
-        # not to emit a tag for each one. The SGs can be reprogrammed to change their individual rates
-        # and to target different tags
-        gen_idx = self.ng_input_to_SG_idxs_and_tags[inp][0][dim]
-        out_tag = self.ng_input_to_SG_idxs_and_tags[inp][1][dim]
-
-        self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [out_tag], [rate], time, True)
-
-        # XXX there is a bug (probably with how inputs are sorted by time)
-        # calling SetSpikeGeneratorRates with more than one element per list
-        # or not calling flush after each invocation will cause undefined behavior
+        self.set_input_rates([inp], [dim], [rate], time, flush)
 
     def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
         """Controls tag stream generators rates (on the FPGA)
@@ -284,23 +291,21 @@ class HAL(object):
         time: int (default=0)
             time to send inputs, in microseconds. 0 means immediately
         flush: bool (default true)
-            whether or not to flush the inputs through the driver immediately.
+            whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
             the last one
 
-        WARNING: If <flush> is True, calling this will effectively block traffic until the max <time>
+        WARNING: If <flush> is True, calling this will block traffic until the max <time>
         provided has passed!
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        #gen_idxs = [self.ng_input_to_SG_idxs_and_tags[inp][0][dim] for inp, dim in zip(inputs, dims)]
-        #out_tags = [self.ng_input_to_SG_idxs_and_tags[inp][1][dim] for inp, dim in zip(inputs, dims)]
-        #self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+        gen_idxs = [
+            inp.generator_idxs[dim] for inp, dim in zip(inputs, dims)]
+        out_tags = [
+            inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
-        # XXX see comment on set_input_rate(). For now this doesn't work as intended
-        # this should work (with some negligible additional latency)
-        for inp, dim, rate in zip(inputs, dims, rates):
-            self.set_input_rate(inp, dim, rate, time, flush)
+        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
 
 
     ##############################################################################
@@ -308,68 +313,32 @@ class HAL(object):
     ##############################################################################
 
     def remap_weights(self):
-        """Call a subset of map()'s functionality to reprogram weights
-        that have been modified in the network objects
+        """Reprogram weights that have been modified in the network objects
+        Effectively calls map again, but keeping pool allocations
         """
 
-        # generate a new core based on the new allocation, but assigning the new weights
-        core = remap_resources(self.last_mapped_resources)
-        self.last_mapped_core = core
+        # this call is deprecated, has the following effect
+        self.map(self.last_mapped_network, remap=True)
 
-        self.implement_core()
-
-
-    def map(self, network):
+    def map(self, network, remap=False, verbose=False):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
         ----------
         network: pystorm.hal.neuromorph.graph Network object
+        remap: reuse as much of the previous mapping as possible (e.g. pools will retain their physical locations on the chip)
         """
         print("HAL: doing logical mapping")
-        ng_obj_to_ghw_mapper, hardware_resources, core = map_network(network, verbose=True)
 
-        self.last_mapped_resources = hardware_resources
+        # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
+
+        self.last_mapped_network = network
         self.last_mapped_core = core
 
         # implement core objects, calling driver
         print("HAL: programming mapping results to hardware")
         self.implement_core()
-
-        # clear dictionaries in case we're calling map more than once
-        # neuromorph graph Input -> tags
-        self.ng_input_to_tags = {}
-        # neuromorph graph Input -> spike generator idx
-        self.ng_input_to_SG_idxs_and_tags = {}
-        # spike filter idx -> Output/dim
-        self.spike_filter_idx_to_output = {}
-        # spike id -> pool/neuron_idx
-        self.spk_to_pool_nrn_idx = {}
-
-        # neuromorph graph Input -> tags
-        for ng_inp in network.get_inputs():
-            hwr_source = ng_obj_to_ghw_mapper[ng_inp].get_resource()
-            #print(ng_inp, "->", (hwr_source.generator_idxs, hwr_source.out_tags))
-            self.ng_input_to_SG_idxs_and_tags[ng_inp] = (hwr_source.generator_idxs, hwr_source.out_tags)
-        # spike filter idx -> Output/dim
-        for ng_out in network.get_outputs():
-            hwr_sink = ng_obj_to_ghw_mapper[ng_out].get_resource()
-            for dim_idx, filt_idx in enumerate(hwr_sink.filter_idxs):
-                self.spike_filter_idx_to_output[filt_idx] = (ng_out, dim_idx)
-        for ng_pool in network.get_pools():
-            hwr_neurons = ng_obj_to_ghw_mapper[ng_pool].get_resource()[1] # two resources for pool, [TATTapPoint and Neurons]
-            xmin = hwr_neurons.px_loc * core.NeuronArray_pool_size_x
-            ymin = hwr_neurons.py_loc * core.NeuronArray_pool_size_y
-            for x in range(hwr_neurons.x):
-                for y in range(hwr_neurons.y):
-                    spk_idx = xmin + x + (ymin + y)*core.NeuronArray_width
-                    pool_nrn_idx = x + y*hwr_neurons.x
-                    self.spk_to_pool_nrn_idx[spk_idx] = (ng_pool, pool_nrn_idx)
-
-        #print('spike mapper')
-        #for k in self.spk_to_pool_nrn_idx:
-        #    print(k, ":", self.spk_to_pool_nrn_idx[k][1])
-
 
     def dump_core(self):
         print("PAT")
@@ -511,7 +480,7 @@ def parse_hal_binned_tags(hal_binned_tags):
     ----------
     hal_binned_tags: output of HAL.get_outputs() (list of tuples)
 
-    Returns a dictionary:
+    Returns a nested dictionary:
         [output_id][dimension] = list of (times, count) tuples
     """
     parsed_tags = {}
@@ -530,7 +499,7 @@ def parse_hal_spikes(hal_spikes):
     ----------
     hal_spikes: output of HAL.get_spikes() (list of tuples)
 
-    Returns a dictionary:
+    Returns a nested dictionary:
         [pool][neuron] = list of (times, 1) tuples
         The 1 is for consistency with the return of parse_hal_tags
     """
@@ -558,9 +527,9 @@ def bin_tags_spikes(tagspikes, bin_time_boundaries, time_scale=1e-9):
     # initialize A matrices
     activity_matrices = {}
     for obj in tagspikes:
-        if isinstance(obj, graph.Pool):
+        if isinstance(obj, pystorm.hal.neuromorph.graph.Pool):
             max_idx = obj.n_neurons
-        elif isinstance(obj, graph.Output):
+        elif isinstance(obj, pystorm.hal.neuromorph.graph.Output):
             max_idx = obj.dimensions
         activity_matrices[obj] = np.zeros((max_idx, n_bins)).astype(int)
 
