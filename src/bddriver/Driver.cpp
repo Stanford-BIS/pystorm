@@ -153,7 +153,7 @@ Driver::~Driver() {
       delete it.second;
     }
   }
-  delete bd_pars_;
+  // delete bd_pars_;
   delete enc_buf_in_;
   delete enc_buf_out_;
   delete dec_buf_in_;
@@ -1387,7 +1387,6 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
-<<<<<<< HEAD
       if(timed){
       to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
                                // XXX the right way to fix this is to serialize AFTER sorting
@@ -1396,17 +1395,17 @@ void Driver::SendToEP(unsigned int core_id,
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
 
-=======
-      to_push.core_id = core_id;
-      to_push.FPGA_ep_code = ep_code;
+// =======
+//       to_push.core_id = core_id;
+//       to_push.FPGA_ep_code = ep_code;
 
-      to_push.time = time;
-      // sequence number ascends as we run through the input vector
-      // time supercedes this in the sorting
-      // effectively, elements inserted with the same time will come out in order
-      to_push.sequence_num = curr_sequence_num_ + j;
+//       to_push.time = time;
+//       // sequence number ascends as we run through the input vector
+//       // time supercedes this in the sorting
+//       // effectively, elements inserted with the same time will come out in order
+//       to_push.sequence_num = curr_sequence_num_ + j;
 
->>>>>>> f7d42f3c8293ed86c00606d8956e473b4b7407c2
+// >>>>>>> f7d42f3c8293ed86c00606d8956e473b4b7407c2
       serialized->push_back(to_push);
     }
     curr_sequence_num_ += MaxD;
