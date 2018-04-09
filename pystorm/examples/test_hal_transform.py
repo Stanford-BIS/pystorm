@@ -1,8 +1,10 @@
 import numpy as np
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import time
 
-from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
+from pystorm.hal import HAL
+HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
@@ -13,11 +15,12 @@ np.random.seed(0)
 ###########################################
 # network parameters
 
-Din = 2
-Dout = 1
+Din = 1
+Dout = 10
 fmax = 1000
 num_training_points_per_dim = 5
 training_hold_time = .1
+
 
 ###########################################
 # misc driver parameters
@@ -45,6 +48,8 @@ if Din > 1:
 else:
     stim_rates_mesh = [stim_rates_1d]
 stim_rates = [r.flatten() for r in stim_rates_mesh]
+print("stims")
+print(stim_rates)
 
 ###########################################
 # specify network using HAL
@@ -59,6 +64,10 @@ elif Din == 1 and Dout == 2:
     transform = np.array([[1.0], [.1]])
 elif Din == 2 and Dout == 2:
     transform = np.array([[1.0, .25], [.1, .2]])
+elif Din == 2 and Dout == 4:
+    transform = np.array([[1.0, .25], [.1, .4], [.1, .1], [.25, 1.0]])
+elif Din == 1 and Dout > 4:
+    transform = np.linspace(0, 1, Dout).reshape((Dout, Din))
 else:
     assert(False and "write a matrix for this Din/Dout combo")
 
@@ -111,6 +120,8 @@ duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, 
 ###########################################
 # call HAL.set_input_rate() to program SGs for each bin/dim
 
+HAL.driver.SetSpikeFilterDebug(0, True)
+
 # have to do this before set_input_rates, so we don't get stalled
 HAL.start_traffic(flush=False)
 HAL.enable_spike_recording(flush=False)
@@ -120,10 +131,13 @@ HAL.enable_output_recording(flush=True)
 spikes = HAL.get_spikes()
 print(len(spikes), "spikes before trial")
 
-
 def do_sweep(bin_time_boundaries):
     last_bin_start = None
     for bin_idx in range(len(stim_rates[0])):
+        inputs = []
+        dims = []
+        rates = []
+
         bin_start = bin_time_boundaries[bin_idx]
         if last_bin_start is None:
             pass
@@ -136,8 +150,15 @@ def do_sweep(bin_time_boundaries):
         for d in range(Din):
             r = stim_rates[d][bin_idx]
 
-            # print("at", bin_start, "d", d, "is", r)
-            HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
+
+#print("at", bin_start, "d", d, "is", r)
+#HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
+inputs.append(i1)
+dims.append(d)
+rates.append(r)
+
+HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
+
 
 do_sweep(bin_time_boundaries)
 # input_time = int(HAL.get_time() + 10000e9)
@@ -222,25 +243,27 @@ binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
 
 print(binned_outputs[o1])
 
-counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
-# print(counts,"\n", tags, "\n",routes,"\n", times)
-print("start time: ",bin_time_boundaries[0])
-print("end time: ",bin_time_boundaries[len(bin_time_boundaries)-1])
 
-# old_time = D.GetFPGATime()
-# for n in range(0, 3):
-#     time.sleep(1)
-#     new_time = D.GetFPGATime()
-#     print(new_time)
-
-plt.figure()
+plt.figure(figsize=(10, 10))
 legend = []
+#colors = plt.get_cmap("Oranges")(np.linspace(0, 1, Dout))
+plt.gca().set_color_cycle(None)
 for dim_idx, dim_out in enumerate(binned_outputs[o1]):
-    plt.plot(dim_out)
+    #color = colors[dim_idx]
+    plt.plot(dim_out, marker='.', linestyle='None')
     legend.append("measured dim " + str(dim_idx))
+plt.gca().set_color_cycle(None)
+for dim_idx, dim_out in enumerate(binned_outputs[o1]):
+    #color = colors[dim_idx]
     plt.plot(ideal_outputs[dim_idx, :])
     legend.append("expected dim " + str(dim_idx))
 plt.legend(legend)
 plt.show()
 
 
+#filt_idxs, filt_states, times = HAL.driver.RecvSpikeFilterStates(0, 1000)
+
+#counts, tags, routes, times = HAL.driver.RecvUnpackedTags(0)
+#tags = np.array(tags)
+#plt.figure()
+#plt.hist(tags[tags != 2047], bins=9)

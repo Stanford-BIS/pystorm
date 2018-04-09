@@ -2,8 +2,6 @@
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
-from pystorm import hal
-from copy import copy
 
 HOME_ROUTE = 224 # that's -32
 
@@ -129,7 +127,7 @@ class Resource(ABC):
         pass
 
     def allocate_early(self, core):
-        """Some objects need to be allocated before others, the first set of objects is allocated here"""
+        """Some objects must be allocated before others, the first objects are allocated here"""
         # for now, only MMWeights has allocate early, to allocate decoders before transforms
         pass
 
@@ -221,7 +219,7 @@ class Neurons(Resource):
             pools_x = core.NeuronArray_pools_x
             Neurons.pool_yx_to_aer = np.zeros((pools_y, pools_x), dtype=int)
             for aer_sub_addr in range(pools_y * pools_x):
-                yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr) # this is a minor hack, but should work
+                yx = bddriver.Driver.BDPars.GetSomaXYAddr(aer_sub_addr)
                 y = yx // core.NeuronArray_width
                 x = yx  % core.NeuronArray_width
                 Neurons.pool_yx_to_aer[y, x] = aer_sub_addr
@@ -248,7 +246,8 @@ class Neurons(Resource):
                     # first nrn idx in block
                     nrn_idx = (py_idx * self.px + px_idx) * core.NeuronArray_pool_size
                     MMAY, MMAX = weights.in_dim_to_mma(nrn_idx)
-                    MMAY_prog = MMAY // core.NeuronArray_pool_size # MMAY will be in {0, 64, 128, 192}, we map to {0, 1, 2, 3}
+                    # MMAY will be in {0, 64, 128, 192}, we map to {0, 1, 2, 3}
+                    MMAY_prog = MMAY // core.NeuronArray_pool_size
 
                     AMA = buckets.start_addr
 
@@ -266,7 +265,8 @@ class Neurons(Resource):
         if len(self.conns_out) == 1:
             for py_idx in range(self.py):
                 for px_idx in range(self.px):
-                    aer_pool_addr_bits = Neurons.pool_yx_to_aer[py_idx + self.py_loc, px_idx + self.px_loc]
+                    aer_pool_addr_bits = Neurons.pool_yx_to_aer[
+                        py_idx + self.py_loc, px_idx + self.px_loc]
                     to_assign = self.PAT_contents[py_idx, px_idx]
                     #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
@@ -375,7 +375,10 @@ class MMWeights(Resource):
         return self.user_W.shape[0]
 
     def pretranslate(self, core):
-        """Determine matrix slicing. Decoders are broken into 64 entry tall slices, Transforms into 1 entry tall slices"""
+        """Determine matrix slicing.
+
+        Decoders are broken into 64 entry tall slices, Transforms into 1 entry tall slices
+        """
 
         # first, decide if this is a decoder or a transform
         if len(self.conns_in) > 0:
@@ -414,7 +417,8 @@ class MMWeights(Resource):
 
         """calculate implemented weights"""
         # look at AMBuckets.max_user_W, compute weights to program
-        self.programmed_W = MMWeights.weight_to_mem(self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
+        self.programmed_W = MMWeights.weight_to_mem(
+            self.user_W, self.conns_out[0].tgt.max_abs_row_weights, core)
 
         # slice up W according to slice indexing
 
@@ -423,9 +427,10 @@ class MMWeights(Resource):
 
             # fill in yx_to_AER if not done already
             if MMWeights.yx_to_aer is None:
-                MMWeights.yx_to_aer = np.zeros((core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x), dtype=int)
+                MMWeights.yx_to_aer = np.zeros(
+                    (core.NeuronArray_pool_size_y, core.NeuronArray_pool_size_x), dtype=int)
                 for aer_sub_addr in range(core.NeuronArray_pool_size):
-                    yx = hal.HAL.driver.GetSomaXYAddr(aer_sub_addr)
+                    yx = bddriver.Driver.BDPars.GetSomaXYAddr(aer_sub_addr)
                     y = yx // core.NeuronArray_width
                     x = yx  % core.NeuronArray_width
                     MMWeights.yx_to_aer[y, x] = aer_sub_addr
@@ -433,7 +438,8 @@ class MMWeights(Resource):
                 #print(MMweights.yx_to_aer)
 
             # init with zeros, there are potentially unused entries for the "edge" neurons
-            self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int) for i in range(self.N_slices)]
+            self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int)
+                             for i in range(self.N_slices)]
 
             # iterate over neurons in y,x address order (matrix indexing order)
             yx_nrn_idx = 0
@@ -448,7 +454,7 @@ class MMWeights(Resource):
                     px = x // core.NeuronArray_pool_size_x
                     slice_idx = py * self.conns_in[0].src.px + px
 
-                    # use AER address 
+                    # use AER address
                     suby = y % core.NeuronArray_pool_size_y
                     subx = x % core.NeuronArray_pool_size_x
                     aer_sub_idx = MMWeights.yx_to_aer[suby, subx]
@@ -464,13 +470,15 @@ class MMWeights(Resource):
 
         else:
             slice_shape = (self.programmed_W.shape[0], 1)
-            self.W_slices = [self.programmed_W[:,i].reshape(*slice_shape) for i in range(self.N_slices)]
+            self.W_slices = [self.programmed_W[:, i].reshape(*slice_shape)
+                             for i in range(self.N_slices)]
 
         # Pack into BDWord (which doesn't actually do anything)
         for W_slice in self.W_slices:
             contents = [
-                [bddriver.PackWord([(bddriver.MMWord.WEIGHT, W_slice[i, j])]) for j in range(W_slice.shape[1])] 
-                 for i in range(W_slice.shape[0])]
+                [bddriver.PackWord([(bddriver.MMWord.WEIGHT, W_slice[i, j])])
+                 for j in range(W_slice.shape[1])]
+                for i in range(W_slice.shape[0])]
             self.W_slices_BDWord += [np.array(contents, dtype=object)]
 
     def assign(self, core):
@@ -493,7 +501,7 @@ class AMBuckets(Resource):
 
     @staticmethod
     def thr_idxs_vals(max_abs_row_weights, core):
-        """for a set of max_abs_row_weights, get the thr idx (programmed values) and 
+        """for a set of max_abs_row_weights, get the thr idx (programmed values) and
         effective weight values that the AMBuckets should use
         """
 
@@ -516,8 +524,9 @@ class AMBuckets(Resource):
 
         # find max_row_Ws in the user_max_weights we just computed
         # user_max_weights is descending, so we provide the sorter argument
-        thr_idxs = np.searchsorted(-user_max_weights_for_thr_vals, -max_abs_row_weights, side="right") - 1
-        assert(np.all(thr_idxs >= 0))
+        thr_idxs = np.searchsorted(
+            -user_max_weights_for_thr_vals, -max_abs_row_weights, side="right") - 1
+        assert np.all(thr_idxs >= 0)
 
         thr_vals = all_thr_vals[thr_idxs]
 
@@ -572,7 +581,8 @@ class AMBuckets(Resource):
             if isinstance(self.conns_out[0].tgt, Sink):
                 # if we target a sink, we're targetting a SF on the FPGA
                 # tag is the filter idx, give it a global route of HOME_ROUTE
-                NAs = self.conns_out[0].tgt.filter_idxs + 2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG) * HOME_ROUTE
+                NAs = self.conns_out[0].tgt.filter_idxs + (
+                    2**bddriver.FieldWidth(bddriver.AccOutputTag.TAG) * HOME_ROUTE)
             else:
                 # otherwise, we're going to the TAT
                 NAs = self.conns_out[0].tgt.in_tags
@@ -624,7 +634,8 @@ class TATAccumulator(Resource):
 
     def pretranslate(self, core):
         self.size = self.D * len(self.conns_out)
-        self.start_offsets = np.array(range(self.D)) * len(self.conns_out) # D acc sets, each with len(conns_out) fanout
+        # D acc sets, each with len(conns_out) fanout
+        self.start_offsets = np.array(range(self.D)) * len(self.conns_out)
 
     def allocate(self, core):
         self.start_addr = core.TAT0.allocate(self.size)
@@ -652,14 +663,17 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    def __init__(self, encoders):
+    def __init__(self, encoders_or_taps):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
-        self.N, self.D = encoders.shape
-        
         # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-        self.taps_and_signs = self.encoders_to_taps(encoders)
+        if isinstance(encoders_or_taps, tuple):
+            self.N, self.taps_and_signs = encoders_or_taps
+            self.D = len(self.taps_and_signs)
+        else:
+            self.N, self.D = encoders_or_taps.shape
+            self.taps_and_signs = self.encoders_to_taps(encoders_or_taps)
 
         self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 
@@ -692,7 +706,8 @@ class TATTapPoint(Resource):
         for d in range(dims):
             for n in range(nrns):
                 entry = M[n, d]
-                assert(entry in [-1, 0, 1] and "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
+                assert entry in [-1, 0, 1], (
+                    "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
                 if entry != 0:
                     t = n
                     s = int(entry)
@@ -747,8 +762,10 @@ class TATTapPoint(Resource):
         syn_start_y = self.conns_out[0].tgt.y_loc // self.neurons_per_syn_y
         syn_start_x = self.conns_out[0].tgt.x_loc // self.neurons_per_syn_x
 
-        self.mapped_taps_unshifted = [[(*self.tap_map(t, tgt_pool_width), s) for t, s in dim_taps] for dim_taps in self.taps_and_signs]
-        self.mapped_taps = [[(x + syn_start_x, y + syn_start_y, s) for x, y, s in dim_taps] for dim_taps in self.mapped_taps_unshifted]
+        self.mapped_taps_unshifted = [[(*self.tap_map(t, tgt_pool_width), s) for t, s in dim_taps]
+                                      for dim_taps in self.taps_and_signs]
+        self.mapped_taps = [[(x + syn_start_x, y + syn_start_y, s) for x, y, s in dim_taps]
+                            for dim_taps in self.mapped_taps_unshifted]
 
         self.tap_ys = []
         self.tap_xs = []
@@ -763,9 +780,10 @@ class TATTapPoint(Resource):
                 if t_idx % 2 == 1:
                     stop = 1*(t_idx == self.Ks[-1] - 1)
                     self.stops.append(stop)
-        self.contents = hal.HAL.driver.PackTATSpikeWords(self.tap_xs, self.tap_ys, self.signs, self.stops)
+        self.contents = bddriver.Driver.PackTATSpikeWords(
+            self.tap_xs, self.tap_ys, self.signs, self.stops)
 
-        assert(len(self.contents) == self.size)
+        assert len(self.contents) == self.size
         self.contents = np.array(self.contents, dtype=object)
 
     def assign(self, core):
@@ -776,7 +794,7 @@ class TATTapPoint(Resource):
 
 class TATFanout(Resource):
     """Represents a Tag Action Table entry for fanning out tags
-    
+
     XXX should implement output slicing
     """
     def __init__(self, D):
@@ -808,7 +826,7 @@ class TATFanout(Resource):
         return self.D
 
     # note, there's a hack in here to work around the "repeated/clobbered" outputs problem
-    # we need to surround all TATFanouts with two dummy fanouts before the actual fanouts, 
+    # we need to surround all TATFanouts with two dummy fanouts before the actual fanouts,
     # and one dummy fanout after. These will clobber/be clobbered instead of the actual
     # messages
 
@@ -822,9 +840,10 @@ class TATFanout(Resource):
     @property
     def fanout_entries(self):
         if self.has_Sink_output:
-            return len(self.conns_out) + self.clobber_pre_len + self.clobber_post_len
+            entries = len(self.conns_out) + self.clobber_pre_len + self.clobber_post_len
         else:
-            return len(self.conns_out)
+            entries = len(self.conns_out)
+        return entries
 
     # highest tag value is the clobber tag
     # can't be used for anything else
@@ -833,7 +852,8 @@ class TATFanout(Resource):
 
     def pretranslate(self, core):
         self.size = self.D * self.fanout_entries
-        self.start_offsets = np.array(range(self.D)) * self.fanout_entries # D sets, each with self.fanout_entries entries
+        # D sets, each with self.fanout_entries entries
+        self.start_offsets = np.array(range(self.D)) * self.fanout_entries
 
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
@@ -852,7 +872,7 @@ class TATFanout(Resource):
             (bddriver.TATTagWord.GLOBAL_ROUTE, HOME_ROUTE)])
 
         clobber_pre = self.clobber_pre_len * [clobber_base]
-        if (self.clobber_post_len > 1):
+        if self.clobber_post_len > 1:
             clobber_post = (self.clobber_post_len - 1) * [clobber_base] + [clobber_stop]
         else:
             clobber_post = [clobber_stop]
@@ -867,7 +887,7 @@ class TATFanout(Resource):
             for t in range(len(self.conns_out)):
                 if self.has_Sink_output:
                     stop = 0 # stop provided by clobber
-                else: 
+                else:
                     stop = 1 * (t == len(self.conns_out) - 1)
 
                 tgt = self.conns_out[t].tgt
@@ -888,7 +908,7 @@ class TATFanout(Resource):
                 self.contents += clobber_post
 
         self.contents = np.array(self.contents, dtype=object)
-        assert(len(self.contents) == self.size)
+        assert len(self.contents) == self.size
 
     def assign(self, core):
         core.TAT1.assign(self.contents, self.start_addr)
@@ -918,7 +938,8 @@ class Sink(Resource):
 
     def allocate(self, core):
         self.filter_idxs = core.FPGASpikeFilters.allocate(self.D)
-        self.in_tags = self.filter_idxs # other Resources expect this name, but filter_idxs is more accurate
+        # other Resources expect this name, but filter_idxs is more accurate
+        self.in_tags = self.filter_idxs
 
 class Source(Resource):
     """Represents an FPGA SpikeGenerator (tag generator)"""
@@ -948,4 +969,3 @@ class Source(Resource):
 
     def posttranslate(self, core):
         self.out_tags = self.conns_out[0].tgt.in_tags
-

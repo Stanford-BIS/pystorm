@@ -200,6 +200,22 @@ initial begin
   SendToBD(6'd28, {18'b0, 1'b0, 1'b1});
   SendToBD(6'd28, {18'b0, 1'b1, 1'b1});
   FlushAndSendPipeIn(); // send the stuff we queued up
+  
+  // double-zero: apparently kills SG
+  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd0}); // enable
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+
+  SendToEP(8'd133, {8'd0, 16'd1}); // gens used
+  SendToEP(8'd134, {8'd0, 16'd0}); // enable
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[0]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[1]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[2]});
+  SendToEP(8'd192, {8'd0, SG_word_fast_pieces[3]});
+  FlushAndSendPipeIn(); // send the stuff we queued up
 
   // repeat(4) begin
   //   @(negedge BD_out_ready) begin

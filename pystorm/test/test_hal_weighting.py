@@ -5,9 +5,10 @@ import numpy as np
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.hal.hal import parse_hal_binned_tags, bin_tags_spikes
+HAL = HAL()
 
 # test parameters
-RATE = 1000 # rate of input spikes
+RATE = 10000 # rate of input spikes
 REL_ERROR_THRESHOLD = 0.01  # tolerable relative error
 RUN_TIME = 5. # time to sample each weight
 WEIGHTS = np.array([1., 0.5, 0.25, -0.25, -0.5, -1.0]) # weights to test

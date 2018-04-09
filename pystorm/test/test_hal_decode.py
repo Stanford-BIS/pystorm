@@ -2,7 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
+from pystorm.hal import HAL
+HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
@@ -18,6 +19,13 @@ width = 8
 height = 8
 width_height = (width, height)
 N = width * height
+
+TOL = .1 # RMSE fraction of fmax that is tolerated
+FN = "identity" 
+#FN = "square" 
+#FN = "sigmoid" 
+#FN = "sine" 
+#FN = "mult" 
 
 ###########################################
 # misc driver parameters
@@ -39,30 +47,31 @@ lams = [1e3, 1e4, 1e5, 1e6]
 ###########################################
 # target function to decode
 
-Din = 1
-Dout = 1
-def the_func(x): 
-    return x 
-
-#Din = 1
-#Dout = 1
-#def the_func(x): 
-#    return np.array(x)**2 / fmax
-
-#Din = 1
-#Dout = 1
-#def the_func(x): 
-#    return 1 / (1 + np.exp(-np.array(x)/fmax*8)) * fmax
-
-#Din = 1
-#Dout = 1
-#def the_func(x): 
-#    return np.sin(np.array(x) / fmax * np.pi) * fmax
-
-#Din = 2
-#Dout = 1
-#def the_func(x):
-#    return x[0] * x[1] / fmax
+if FN == "identity":
+    Din = 1
+    Dout = 1
+    def the_func(x): 
+        return x 
+elif FN == "square":
+    Din = 1
+    Dout = 1
+    def the_func(x): 
+        return np.array(x)**2 / fmax
+elif FN == "sigmoid":
+    Din = 1
+    Dout = 1
+    def the_func(x): 
+        return 1 / (1 + np.exp(-np.array(x)/fmax*8)) * fmax
+elif FN == "sine":
+    Din = 1
+    Dout = 1
+    def the_func(x): 
+        return np.sin(np.array(x) / fmax * np.pi) * fmax
+elif FN == "mult":
+    Din = 2
+    Dout = 1
+    def the_func(x):
+        return x[0] * x[1] / fmax
 
 ###########################################
 # stim rates
@@ -360,18 +369,20 @@ best_rmse = rmse(best_yhat, ytest)
 impl_yhat = np.dot(A_test.T, impl_d)
 impl_rmse = rmse(impl_yhat, ytest)
 
+assert(impl_rmse < fmax * TOL)
+
 plt.figure()
 plt.hist(impl_d, bins=40)
 plt.title("decoder distribution")
 plt.savefig("hal_decode_weight_dist.pdf")
 
 #########################################
-# sanity check, what should the weights be per driver_decode.py
-# can compare to remapped_core.txt after HAL.remap_weights()
-import driver_util
-print("sanity check ones' c decoders")
-_, _, _, discretized_d = driver_util.weight_to_mem(impl_d.T)
-discretized_yhat = np.dot(A_test.T, discretized_d)
+## sanity check, what should the weights be per driver_decode.py
+## can compare to remapped_core.txt after HAL.remap_weights()
+#import driver_util
+#print("sanity check ones' c decoders")
+#_, _, _, discretized_d = driver_util.weight_to_mem(impl_d.T)
+#discretized_yhat = np.dot(A_test.T, discretized_d)
 
 #########################################
 # plot decode
@@ -382,8 +393,9 @@ if Din == 1 and Dout == 1:
     plt.plot(plot_x, ytest, color='b')
     plt.plot(plot_x, best_yhat, color='r')
     plt.plot(plot_x, impl_yhat, color='b')
-    plt.plot(plot_x, discretized_yhat, color='k')
-    plt.legend(["target", "best decoders", "implementable decoders (|d|<1)", "discretized decoders"])
+    #plt.plot(plot_x, discretized_yhat, color='k')
+    #plt.legend(["target", "best decoders", "implementable decoders (|d|<1)", "discretized decoders"])
+    plt.legend(["target", "best decoders", "implementable decoders (|d|<1)"])
     plt.title("CV Decode\nRMSE: " + str(best_rmse) + "/" + str(impl_rmse))
     plt.xlabel("input rate")
     plt.ylabel("output rate")
@@ -436,6 +448,7 @@ print("testing over")
 
 spikes = HAL.get_spikes()
 outputs = HAL.get_outputs()
+print("output shape", outputs.shape)
 raw_tag_cts, raw_tag_ct_times = HAL.driver.RecvTags(0)
 
 print("got outputs, doing binning")
@@ -445,11 +458,12 @@ acc_decode = binned_outputs[o1]
 
 print("got", np.sum(binned_outputs[o1]), "tags from filters. Should be nonzero for testing")
 
+
 ###########################################
 # sanity check, compare get_outputs to raw tags from Driver
-filtered_raw_tags = filter_one_dim_raw_tags(raw_tag_cts, raw_tag_ct_times, 0, o1)
-binned_raw_tags = do_binning(filtered_raw_tags, bin_time_boundaries)
-raw_decode = binned_raw_tags[o1]
+#filtered_raw_tags = filter_one_dim_raw_tags(raw_tag_cts, raw_tag_ct_times, 0, o1)
+#binned_raw_tags = do_binning(filtered_raw_tags, bin_time_boundaries)
+#raw_decode = binned_raw_tags[o1]
 
 ###########################################
 # plot decode
@@ -461,15 +475,17 @@ if Din == 1 and Dout == 1:
     plot_x = stim_rates_1d
     ytgt = (np.array(y_rates).T).flatten()
     yhat = acc_decode[0].flatten()
-    yhat2 = raw_decode[0].flatten()
-    plot_rmse = rmse(ytgt, yhat)
-    print("rmse for accumulator decode:", plot_rmse)
+    #yhat2 = raw_decode[0].flatten()
+    test_rmse = rmse(ytgt, yhat)
+    print("rmse for accumulator decode:", test_rmse)
+    assert(test_rmse <= 1.5 * impl_rmse) # we want the training RMSE to be similar to the test RMSE
     plt.figure()
     plt.plot(plot_x, ytgt, color='b')
     plt.plot(plot_x, yhat, color='r')
-    plt.plot(plot_x, yhat2, color='g')
-    plt.title("Accumulator Decode\nRMSE: " + str(plot_rmse))
-    plt.legend(["target", "FPGA SF outputs", "raw tag outputs"])
+    #plt.plot(plot_x, yhat2, color='g')
+    plt.title("Accumulator Decode\nRMSE: " + str(test_rmse))
+    #plt.legend(["target", "FPGA SF outputs", "raw tag outputs"])
+    plt.legend(["target", "FPGA SF outputs"])
     plt.xlabel("input rate")
     plt.ylabel("output rate")
     plt.savefig("hal_acc_decode.pdf")

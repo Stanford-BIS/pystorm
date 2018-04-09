@@ -184,7 +184,6 @@ enum class FPGAOutputEP {
   COUNT           = 5    // XXX hardcoded, be careful
 };
 
-
 //////////////////////////////////////////////
 // Misc identifiers
 //////////////////////////////////////////////
@@ -218,7 +217,6 @@ struct DACInfo {
   unsigned int scaling;
   unsigned int default_count;
 };
-
 
 //////////////////////////////////////////////
 /// Neuron configuration options
@@ -259,7 +257,6 @@ enum class DiffusorCutLocationId { NORTH_LEFT, NORTH_RIGHT, WEST_TOP, WEST_BOTTO
 class BDPars {
 
  public:
-
   // misc constants
   const unsigned int NumCores               = 2;
   const unsigned int TimingRoute            = 31;
@@ -293,6 +290,38 @@ class BDPars {
   std::array<unsigned int, 1024> syn_aer_to_xy_;
   std::array<unsigned int, 256> mem_xy_to_aer_;
   std::array<unsigned int, 256> mem_aer_to_xy_;
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // AER Address <-> Y,X mapping static member fns
+  ////////////////////////////////////////////////////////////////////////////
+  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int xy_addr) const { return mem_xy_to_aer_.at(xy_addr); }
+  /// Given x, y config memory (16-neuron tile) address, get AER address
+  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const { return GetMemAERAddr(y*16 + x); }
+  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int xy_addr) const { return syn_xy_to_aer_.at(xy_addr); }
+  /// Given x, y synapse address, get AER address
+  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const { return GetSynAERAddr(y*32 + x); }
+  /// Given flat xy_addr soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int xy_addr) const { return soma_xy_to_aer_.at(xy_addr); }
+  /// Given x, y soma address, get AER address
+  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const { return GetSomaAERAddr(y*64 + x); }
+  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
+  unsigned int GetSomaXYAddr(unsigned int aer_addr) const { return soma_aer_to_xy_.at(aer_addr); }
+
+  /// Utility function to process spikes a little more quickly
+  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
+    std::vector<unsigned int> to_return(aer_addrs.size());;
+    for (unsigned int i = 0; i < aer_addrs.size(); i++) {
+      unsigned int addr = aer_addrs[i];
+      if (addr < 4096) {
+        to_return[i] = soma_aer_to_xy_.at(addr);
+      } else {
+        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
+      }
+    }
+    return to_return;
+  }
 
   ///////////////////////////////
   // Neuron config stuff
@@ -385,55 +414,9 @@ class BDPars {
     return static_cast<FPGARegEP>(static_cast<unsigned int>(FPGARegEP::SG_GENS_EN0) + gen_idx / 16);
   }
 
- private:
-
   // D is binary tree depth, not 4-ary tree depth, must be even
   template <int D>
-  void InitAERMappers(std::array<unsigned int, (1<<D)> * xy_to_aer, std::array<unsigned int, (1<<D)> * aer_to_xy) {
-    assert(D % 2 == 0); // D must be even
-    for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
-      unsigned int array_edge_length = (1<<D/2);
-      unsigned int x = xy_idx % array_edge_length;
-      unsigned int y = xy_idx / array_edge_length;
-      
-      // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
-      uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
-      for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
-        // determine 2-bit AER code to give to each AER node
-        unsigned int yx = ((y % 2) << 1) | x % 2;
-        uint16_t aer_node_addr;
-        if (yx == 0) {
-          aer_node_addr = 0;
-        } else if (yx == 1) {
-          aer_node_addr = 1;
-        } else if (yx == 2) {
-          aer_node_addr = 3;
-        } else if (yx == 3) {
-          aer_node_addr = 2;
-        } else {
-          assert(false);
-        }
-
-        // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
-        unsigned int shift = 2 * aer_node_idx;
-        aer_idx |= aer_node_addr << shift;
-
-        // shift out x/y bits
-        x = x >> 1;
-        y = y >> 1;
-      }
-
-      // write results
-      assert(xy_idx < 1<<D && "xy_idx too big");
-      assert(aer_idx < 1<<D && "aer_idx too big");
-      xy_to_aer->at(xy_idx) = aer_idx;
-      aer_to_xy->at(aer_idx) = xy_idx;
-      //cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
-
-    }
-  }
-
-
+  void InitAERToXY(std::array<unsigned int, (1<<D)> &aer_to_xy, std::array<unsigned int, (1<<D)> &xy_to_aer);
 };
 
 } // bdpars

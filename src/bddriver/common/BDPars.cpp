@@ -10,29 +10,28 @@ namespace bdpars {
 
 // clang-format off
 
-  std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {
-    {bdpars::ConfigSomaID::GAIN_0          , {112 , 114 , 82 , 80 , 119 , 117 , 85 , 87 , 55 , 53 , 21 , 23 , 48 , 50 , 18 , 16}} ,
-    {bdpars::ConfigSomaID::GAIN_1          , {104 , 97  , 65 , 72 , 111 , 102 , 70 , 79 , 47 , 38 , 6  , 15 , 40 , 33 , 1  , 8}}  ,
-    {bdpars::ConfigSomaID::OFFSET_0        , {113 , 115 , 83 , 81 , 118 , 116 , 84 , 86 , 54 , 52 , 20 , 22 , 49 , 51 , 19 , 17}} ,
-    {bdpars::ConfigSomaID::OFFSET_1        , {120 , 122 , 90 , 88 , 127 , 125 , 93 , 95 , 63 , 61 , 29 , 31 , 56 , 58 , 26 , 24}} ,
-    {bdpars::ConfigSomaID::ENABLE          , {121 , 123 , 91 , 89 , 126 , 124 , 92 , 94 , 62 , 60 , 28 , 30 , 57 , 59 , 27 , 25}} ,
-    {bdpars::ConfigSomaID::SUBTRACT_OFFSET , {96  , 106 , 74 , 64 , 103 , 109 , 77 , 71 , 39 , 45 , 13 , 7  , 32 , 42 , 10 , 0}}
-  };
+std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {
+  {bdpars::ConfigSomaID::GAIN_0          , {112 , 114 , 82 , 80 , 119 , 117 , 85 , 87 , 55 , 53 , 21 , 23 , 48 , 50 , 18 , 16}} ,
+  {bdpars::ConfigSomaID::GAIN_1          , {104 , 97  , 65 , 72 , 111 , 102 , 70 , 79 , 47 , 38 , 6  , 15 , 40 , 33 , 1  , 8}}  ,
+  {bdpars::ConfigSomaID::OFFSET_0        , {113 , 115 , 83 , 81 , 118 , 116 , 84 , 86 , 54 , 52 , 20 , 22 , 49 , 51 , 19 , 17}} ,
+  {bdpars::ConfigSomaID::OFFSET_1        , {120 , 122 , 90 , 88 , 127 , 125 , 93 , 95 , 63 , 61 , 29 , 31 , 56 , 58 , 26 , 24}} ,
+  {bdpars::ConfigSomaID::ENABLE          , {121 , 123 , 91 , 89 , 126 , 124 , 92 , 94 , 62 , 60 , 28 , 30 , 57 , 59 , 27 , 25}} ,
+  {bdpars::ConfigSomaID::SUBTRACT_OFFSET , {96  , 106 , 74 , 64 , 103 , 109 , 77 , 71 , 39 , 45 , 13 , 7  , 32 , 42 , 10 , 0}}
+};
 
-  std::unordered_map<ConfigSynapseID, std::vector<unsigned int>> BDPars::config_synapse_mem_ = {
-    {bdpars::ConfigSynapseID::SYN_DISABLE , {75 , 76 , 12 , 11}} ,
-    {bdpars::ConfigSynapseID::ADC_DISABLE , {67 , 68 , 4  , 3}}
-  };
+std::unordered_map<ConfigSynapseID, std::vector<unsigned int>> BDPars::config_synapse_mem_ = {
+  {bdpars::ConfigSynapseID::SYN_DISABLE , {75 , 76 , 12 , 11}} ,
+  {bdpars::ConfigSynapseID::ADC_DISABLE , {67 , 68 , 4  , 3}}
+};
 
-  std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> BDPars::config_diff_cut_mem_ = {
-    {bdpars::DiffusorCutLocationId::NORTH_LEFT  , {99}}  ,
-    {bdpars::DiffusorCutLocationId::NORTH_RIGHT , {100}} ,
-    {bdpars::DiffusorCutLocationId::WEST_TOP    , {107}} ,
-    {bdpars::DiffusorCutLocationId::WEST_BOTTOM , {43}}  ,
-  };
+std::unordered_map<DiffusorCutLocationId, std::vector<unsigned int>> BDPars::config_diff_cut_mem_ = {
+  {bdpars::DiffusorCutLocationId::NORTH_LEFT  , {99}}  ,
+  {bdpars::DiffusorCutLocationId::NORTH_RIGHT , {100}} ,
+  {bdpars::DiffusorCutLocationId::WEST_TOP    , {107}} ,
+  {bdpars::DiffusorCutLocationId::WEST_BOTTOM , {43}}  ,
+};
 
 BDPars::BDPars() {
-
   //////////////////////////////////////////////////////
   // FPGA downstream endpoints
   // BD inputs, registers, and channels
@@ -147,10 +146,55 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; // roughly 250fA to 250pA 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10}; // roughly 1pA to 1nA
 
-  // init AER address translation tables
-  InitAERMappers<12>(&soma_xy_to_aer_, &soma_aer_to_xy_);
-  InitAERMappers<10>(&syn_xy_to_aer_, &syn_aer_to_xy_);
-  InitAERMappers<8>(&mem_xy_to_aer_, &mem_aer_to_xy_);
+  //Init maps for AER address translation
+  BDPars::InitAERToXY<12>(soma_aer_to_xy_, soma_xy_to_aer_);
+  BDPars::InitAERToXY<10>(syn_aer_to_xy_, syn_xy_to_aer_);
+  BDPars::InitAERToXY<8>(mem_aer_to_xy_, mem_xy_to_aer_);
+}
+
+// D is binary tree depth, not 4-ary tree depth, must be even
+template <int D>
+void BDPars::InitAERToXY(std::array<unsigned int, (1<<D)>& aer_to_xy, std::array<unsigned int, (1<<D)>& xy_to_aer) {
+  assert(D % 2 == 0); // D must be even
+  for (unsigned int xy_idx = 0; xy_idx < (1<<D); xy_idx++) { // xy_idx is the xy flat xy_idx
+    unsigned int array_edge_length = (1<<D/2);
+    unsigned int x = xy_idx % array_edge_length;
+    unsigned int y = xy_idx / array_edge_length;
+    
+    // ascend AER tree (lsbs -> msbs of xy), building up aer_idx
+    uint16_t aer_idx = 0; // at most we need 12 bits for the AER addr
+    for (unsigned int aer_node_idx = 0; aer_node_idx < D/2; aer_node_idx++) {
+      // determine 2-bit AER code to give to each AER node
+      unsigned int yx = ((y % 2) << 1) | x % 2;
+      uint16_t aer_node_addr;
+      if (yx == 0) {
+        aer_node_addr = 0;
+      } else if (yx == 1) {
+        aer_node_addr = 1;
+      } else if (yx == 2) {
+        aer_node_addr = 3;
+      } else if (yx == 3) {
+        aer_node_addr = 2;
+      } else {
+        assert(false);
+      }
+
+      // write into aer_idx at correct locations (deepest nodes, last used, are msbs)
+      unsigned int shift = 2 * aer_node_idx;
+      aer_idx |= aer_node_addr << shift;
+
+      // shift out x/y bits
+      x = x >> 1;
+      y = y >> 1;
+    }
+
+    // write results
+    assert(xy_idx < 1<<D && "xy_idx too big");
+    assert(aer_idx < 1<<D && "aer_idx too big");
+    aer_to_xy.at(aer_idx) = xy_idx;
+    xy_to_aer.at(xy_idx) = aer_idx;
+    // cout << "xy: " << xy_idx << "aer: " << aer_idx << endl;
+  }
 }
 
 } // bdpars

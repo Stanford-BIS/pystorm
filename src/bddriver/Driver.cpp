@@ -49,9 +49,11 @@ namespace bddriver {
 //    return &m_instance;
 //}
 
+const bdpars::BDPars Driver::BDPars_ = bdpars::BDPars();
+
 Driver::Driver() {
   // load parameters
-  bd_pars_     = new bdpars::BDPars();
+  bd_pars_     = &BDPars_;
   ok_pars_     = OKPars();
 
   // one BDState object per core
@@ -516,17 +518,20 @@ void Driver::Flush() {
   // then SetMem(x) is guaranteed to occur before SetMem(y)
   // and the traffic of SendSpikes(a) is interleaved with SendSpikes(b) as necessary
 
-  unsigned int num_words = 0;
-  num_words += timed_queue_.size();
-
   // send the timed traffic first (it's more important, I guess)
+  
+  // sort first
+  std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
+  // now reset curr_sequence_num_ so it doesn't overflow
+  curr_sequence_num_ = 0;
+
   auto from_queue = std::make_unique<std::vector<EncInput>>();
   from_queue->swap(timed_queue_);
   enc_buf_in_->Push(std::move(from_queue));
 
   // then send the sequenced traffic
+  
   while (!sequenced_queue_.empty()) {
-    num_words += sequenced_queue_.front()->size();
     enc_buf_in_->Push(std::move(sequenced_queue_.front()));
     sequenced_queue_.pop();
   }
@@ -1182,11 +1187,11 @@ std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMas
         // bug in synchronizer can result in out of bond aer addresses
         // due to the bit-flipping bug
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
-            auto _xy = GetSomaXYAddr(aer_addresses[idx]);
+        if (_addr < 4096) {
+            auto _xy = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
             xy_addresses[_xy] = 1;
             xy_times[_xy] = static_cast<float>(aer_times[idx]) * 1e-9;
-        }else {
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
@@ -1267,11 +1272,9 @@ void Driver::SetSpikeGeneratorRates(
 
   //std::vector<BDTime> SG_prog_times(SG_prog_words.size(), time);
 
-  // XXX this is a hack to avoid misordering upon sorting
-  // we have the same problem here that the serializer does
   std::vector<BDTime> SG_prog_times;
   for (unsigned int i = 0; i < SG_prog_words.size(); i++) {
-    SG_prog_times.push_back(time + UnitsToNs(1));
+    SG_prog_times.push_back(time);
   }
 
   SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGAChannelEP::SG_PROGRAM_MEM), SG_prog_words, SG_prog_times);
@@ -1285,9 +1288,6 @@ void Driver::SetSpikeGeneratorRates(
     bool new_state = rate > 0;
     SG_en_[core_id][gen_idx] = new_state;
   }
-
-  // XXX mandatory flush, works around #81, for reasons I do not understand
-  Flush();
 
   // send all SG enables, regardless if only one was changed
   SendSGEns(core_id, time);
@@ -1387,6 +1387,7 @@ void Driver::SendToEP(unsigned int core_id,
     for (unsigned int j = 0; j < D; j++) {
       EncInput to_push;
       to_push.payload = payloads[j];
+<<<<<<< HEAD
       if(timed){
       to_push.time = time + j; // XXX note +j! THIS IS A HACK to avoid having serialized words get out of order!
                                // XXX the right way to fix this is to serialize AFTER sorting
@@ -1395,22 +1396,29 @@ void Driver::SendToEP(unsigned int core_id,
       to_push.core_id = core_id;
       to_push.FPGA_ep_code = ep_code;
 
+=======
+      to_push.core_id = core_id;
+      to_push.FPGA_ep_code = ep_code;
+
+      to_push.time = time;
+      // sequence number ascends as we run through the input vector
+      // time supercedes this in the sorting
+      // effectively, elements inserted with the same time will come out in order
+      to_push.sequence_num = curr_sequence_num_ + j;
+
+>>>>>>> f7d42f3c8293ed86c00606d8956e473b4b7407c2
       serialized->push_back(to_push);
     }
+    curr_sequence_num_ += MaxD;
     i++;
   }
 
   if (timed) {
-    // push all the elements to the back of the vector then sort it
+    // push all the elements to the back of the vector
+    // defer sorting until Flush()
     for (auto& it : *serialized) {
       timed_queue_.push_back(it);
     }
-
-    std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
-
-    // update highest_ns_sent_
-    BDTime new_highest_ns = timed_queue_.back().time * ns_per_unit_;
-    highest_ns_sent_ = new_highest_ns > highest_ns_sent_ ? new_highest_ns : highest_ns_sent_; // max()
 
   } else {
     sequenced_queue_.push(std::move(serialized));

@@ -9,6 +9,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.hal import parse_hal_binned_tags, parse_hal_spikes, bin_tags_spikes
+HAL = HAL()
 
 CORE = 0
 BIAS_OFFSETS = [128, 256, 512, 1024]

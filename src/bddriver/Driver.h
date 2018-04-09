@@ -159,39 +159,6 @@ class Driver {
   void InitFPGA();
   /// Empties all driver output queues
   void ClearOutputs();
-  
-  ////////////////////////////////////////////////////////////////////////////
-  // AER Address <-> Y,X mapping static member fns
-  ////////////////////////////////////////////////////////////////////////////
-  
-  /// Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int xy_addr) const                             { return bd_pars_->mem_xy_to_aer_.at(xy_addr); }
-  /// Given x, y config memory (16-neuron tile) address, get AER address
-  unsigned int GetMemAERAddr(unsigned int x, unsigned int y) const                   { return GetMemAERAddr(y*16 + x); }
-  /// Given flat xy_addr (addr scan along x then y) synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int xy_addr) const                             { return bd_pars_->syn_xy_to_aer_.at(xy_addr); }
-  /// Given x, y synapse address, get AER address
-  unsigned int GetSynAERAddr(unsigned int x, unsigned int y) const                   { return GetSynAERAddr(y*32 + x); }
-  /// Given flat xy_addr soma address, get AER address
-  unsigned int GetSomaAERAddr(unsigned int xy_addr) const                            { return bd_pars_->soma_xy_to_aer_.at(xy_addr); }
-  /// Given x, y soma address, get AER address
-  unsigned int GetSomaAERAddr(unsigned int x, unsigned int y) const                  { return GetSomaAERAddr(y*64 + x); }
-  /// Given AER synapse address, get flat xy_addr (addr scan along x then y)
-  unsigned int GetSomaXYAddr(unsigned int aer_addr) const                            { return bd_pars_->soma_aer_to_xy_.at(aer_addr); }
-
-  /// Utility function to process spikes a little more quickly
-  std::vector<unsigned int> GetSomaXYAddrs(const std::vector<unsigned int>& aer_addrs) const {
-    std::vector<unsigned int> to_return(aer_addrs.size());;
-    for (unsigned int i = 0; i < aer_addrs.size(); i++) {
-      unsigned int addr = aer_addrs[i];
-      if (addr < 4096) {
-        to_return[i] = bd_pars_->soma_aer_to_xy_.at(addr);
-      } else {
-        cout << "WARNING: supplied bad AER addr to GetSomaXYAddrs: " << addr << endl;
-      }
-    }
-    return to_return;
-  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Traffic Control
@@ -310,31 +277,31 @@ class Driver {
 
   /// Enable Soma in XY space
   void EnableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     EnableSoma(core_id, AER_addr);
   }
 
   /// Disable Soma in XY space
   void DisableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     DisableSoma(core_id, AER_addr);
   }
 
   /// Set Soma gain in XY space
   void SetSomaGainXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaGainId gain) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaGain(core_id, AER_addr, gain);
   }
 
   /// Set Soma offset sign in XY space
   void SetSomaOffsetSignXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetSignId sign) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaOffsetSign(core_id, AER_addr, sign);
   }
 
   /// Set Soma offset multiplier in XY space
   void SetSomaOffsetMultiplierXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetMultiplierId multiplier) {
-    unsigned int AER_addr = GetSomaAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
     SetSomaOffsetMultiplier(core_id, AER_addr, multiplier);
   }
   
@@ -397,22 +364,22 @@ class Driver {
                 bdpars::SynapseStatusId::DISABLED);
 
   void EnableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     EnableSynapse(core_id, AER_addr);
   }
 
   void DisableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     DisableSynapse(core_id, AER_addr);
   }
   
   void EnableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     EnableSynapseADC(core_id, AER_addr);
   }
 
   void DisableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = GetSynAERAddr(x, y);
+    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
     DisableSynapseADC(core_id, AER_addr);
   }
     
@@ -596,17 +563,21 @@ class Driver {
 
   /// Packs TAT Spike Words
   ///
-  /// inputs are four vectors. synapse_xs, synapse_ys, and synapse_signs must be length 2*N, 
-  /// stops are length N. synapse_xs/ys/signs[2*i], synapse_xs/ys/signs[2*i+1],
-  /// and stops[i] all correspond to the same TAT entry
+  /// For 2*N synapse targets (i.e., there must be an even number of synapse targets),
+  ///   inputs synapse_xs, synapse_ys, and synapse_signs are length 2*N, 
+  ///   stops is length N.
+  /// synapse_xs/ys/signs[2*i], synapse_xs/ys/signs[2*i+1],
+  /// and stops[i] will be combined into a single TAT entry.
   /// 
-  /// The TAT takes input tags, uses it to index the memory, which it walks through
-  /// until encountering a stop bit. For each entry, it does one of three things:
+  /// For each input tag,
+  ///   The TAT uses the tag to index into memory, which it walks through
+  ///   until encountering a stop bit.
+  /// For each memory entry, it does one of three things:
   ///   send spikes to two different synapses, optionally flipping the sign of each
   ///   emit a different global tag
-  ///   send an input to the accumulator
+  ///   send a tag to the accumulator
   /// 
-  /// for the spikes or accumulator outputs, if the count is greater than 1 or less than -1,
+  /// For the spikes or accumulator tags, if the count is greater than 1 or less than -1,
   /// a single set of outputs is produced (with the same sign), the count is 
   /// incremented or decremented, and the input is re-submitted to the FIFO. After leaving
   /// the FIFO, it will return to the TAT until the count is exhausted. 
@@ -621,13 +592,14 @@ class Driver {
   ///   synapse sign 1    : 1 bit, whether to invert or not invert sign of input spikes 
   ///                       to second synapse, "0" means invert, "1" means don't invert
   /// 
-  /// note that you can't just hit 1 synapse per entry. You must hit 2.
-  /// the synapse inputs are wired backwards. Hence the slightly confusing "1" for invert, 
+  /// Note that you must send 2 synapse spikes per entry,
+  //  but you may hit the same synapse twice, if desired.
+  /// The synapse inputs are wired backwards. Hence the slightly confusing "1" for invert, 
   /// "0" for no inversion with the synapse signs
-  std::vector<BDWord> PackTATSpikeWords(const std::vector<unsigned int>& synapse_xs,
-                                        const std::vector<unsigned int>& synapse_ys,
-                                        const std::vector<unsigned int>& synapse_signs,
-                                        const std::vector<unsigned int>& stops) {
+  static std::vector<BDWord> PackTATSpikeWords(const std::vector<unsigned int>& synapse_xs,
+                                               const std::vector<unsigned int>& synapse_ys,
+                                               const std::vector<unsigned int>& synapse_signs,
+                                               const std::vector<unsigned int>& stops) {
     
     unsigned int size = stops.size();
     assert(2*size == synapse_xs.size());
@@ -636,8 +608,8 @@ class Driver {
 
     std::vector<BDWord> packed(size);
     for (unsigned int i = 0; i < size; i++) {
-      unsigned int addr0 = GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
-      unsigned int addr1 = GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
+      unsigned int addr0 = BDPars_.GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
+      unsigned int addr1 = BDPars_.GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
       unsigned int sign0 = synapse_signs[2*i  ];
       unsigned int sign1 = synapse_signs[2*i+1];
       packed[i] = PackWord<TATSpikeWord>({
@@ -742,9 +714,9 @@ class Driver {
   /// Default (safe) values for PAT
   /// PAT default is kind of irrelevant, but points to 0, 0
   std::vector<BDWord> GetDefaultPATEntries() const {
-    BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, 0}, 
-                                            {PATWord::MM_ADDRESS_HI, 0}, 
-                                            {PATWord::MM_ADDRESS_LO, 0}});
+    BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, (1<<FieldWidth(PATWord::AM_ADDRESS)) - 1}, 
+                                            {PATWord::MM_ADDRESS_HI, (1<<FieldWidth(PATWord::MM_ADDRESS_HI)) - 1}, 
+                                            {PATWord::MM_ADDRESS_LO, (1<<FieldWidth(PATWord::MM_ADDRESS_LO)) - 1}});
     unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
@@ -852,9 +824,9 @@ class Driver {
 
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
-            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
-        }else {
+        if (_addr < 4096) {
+            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
@@ -873,10 +845,10 @@ class Driver {
 
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
-        if(_addr >=0 && _addr < 4096){
-            xy_addresses[idx] = GetSomaXYAddr(aer_addresses[idx]);
+        if (_addr < 4096) {
+            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
             xy_times[idx] = static_cast<float>(aer_times[idx]) * 1e-9;
-        }else {
+        } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
@@ -976,6 +948,12 @@ class Driver {
     return {filter_ids, filter_states, words_times.second};
   }
 
+  // enable or disable dumping of raw tags entering spike filter
+  void SetSpikeFilterDebug(unsigned int core_id, bool en) {
+    uint64_t en_int = static_cast<unsigned int>(en);
+    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TS_REPORT_TAGS), {en_int});
+  }
+
   //////////////////////////////////////////////////////////////////////////
   // Utility
   //////////////////////////////////////////////////////////////////////////
@@ -1016,6 +994,8 @@ class Driver {
     RecvFromEPDebug(unsigned int core_id, uint8_t ep_code) {
       return RecvFromEP(core_id, ep_code);
   }
+
+  static const bdpars::BDPars BDPars_;
  protected:
 
   ////////////////////////////////
@@ -1034,7 +1014,6 @@ class Driver {
   unsigned int units_per_HB_          = 100000; /// FPGA default, 1s HB (really long!)
   BDTime ns_per_unit_                 = ns_per_clk_def_ * clks_per_unit_; /// FPGA default
   BDTime ns_per_HB_                   = units_per_HB_ * ns_per_unit_; 
-  BDTime highest_ns_sent_             = 0;
 
   // basis of experiment time, set when ResetFPGAClock is called
   std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
@@ -1090,6 +1069,7 @@ class Driver {
 
   // priority queue for timed traffic
   std::vector<EncInput> timed_queue_;
+  unsigned int curr_sequence_num_ = 0; // reset with each flush
 
   /// thread-safe, MPMC buffer between breadth of downstream driver API and the encoder
   MutexBuffer<EncInput> *enc_buf_in_;

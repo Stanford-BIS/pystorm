@@ -1,16 +1,22 @@
 class Connection(object):
     def __init__(self, label, src, dest, weights):
+        # note, this is a second-class object, not a proper GraphObject (has no resources)
         self.label = label
         self.src = src
         self.dest = dest
         self.weights = weights
 
+        self.src.out_conns.append(self)
+
+    def __repr__(self):
+        return "Connection " + self.label
+
+    def __gt__(self, other_obj):
+        return self.label > other_obj.label
+
     def reassign_weights(self, new_weights):
         # note that self.weights = new_weights will not work
         self.weights[:] = new_weights
-
-    def get_label(self):
-        return self.label
 
     def get_weights(self):
         return self.weights

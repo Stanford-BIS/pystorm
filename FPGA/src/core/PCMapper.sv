@@ -127,7 +127,7 @@ assign conf_reg_reset_vals[TM_PC_time_elapsed_idx   +:N_TM_time_chunks]    = 0;
 assign conf_reg_reset_vals[TM_PC_send_HB_up_idx     +:N_TM_time_chunks]    = `HB_DEFAULT; // send HB every N time units
 assign conf_reg_reset_vals[TM_PC_reset_time_idx]                           = 0; 
 
-assign conf_reg_reset_vals[TS_report_tags_idx]                             = 1; // report tags by default
+assign conf_reg_reset_vals[TS_report_tags_idx]                             = 0; // don't report tags by default
 assign conf_reg_reset_vals[BD_all_idx]                                     = 3; // reset initially asserted
 
 assign conf_reg_reset_vals[Nreg-1:BD_all_idx+1] = 0;

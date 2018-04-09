@@ -29,7 +29,7 @@ initial begin
 end
 
 // update_pulse
-parameter ClksPerUpdate = 64;
+parameter ClksPerUpdate = 128;
 logic update_pulse;
 initial begin
   update_pulse <= 0;
@@ -77,8 +77,8 @@ initial begin
   in.tag <= 'X;
   in.ct <= 'X;
 
-  // turn 2 filts on
-  conf.filts_used <= 2;
+  // turn 4 filts on
+  conf.filts_used <= 4;
 
   // send tags
   repeat(10) begin
@@ -102,6 +102,21 @@ initial begin
     in.v <= 1;
     in.tag <= 1;
     in.ct <= 511;
+    forever begin 
+      @(posedge clk);
+      if (in.a == 1) begin
+        in.v <= 0;
+        in.tag <= 'X;
+        in.ct <= 'X;
+        break;
+      end
+    end
+
+    #(Tclk * 10) 
+    @(posedge clk);
+    in.v <= 1;
+    in.tag <= 2;
+    in.ct <= 1;
     forever begin 
       @(posedge clk);
       if (in.a == 1) begin

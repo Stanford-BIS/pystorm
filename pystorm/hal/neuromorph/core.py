@@ -408,7 +408,7 @@ class TAT(object):
 class PAT(object):
     def __init__(self, shape):
         default_val = 0
-        self.mem = PATMem(shape, 0)
+        self.mem = PATMem(shape, 2**20-1)
 
     def assign(self, data, start):
         self.mem.assign_1d_block(data, start)
