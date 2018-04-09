@@ -20,7 +20,7 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 #   not sure when I changed this/if Terry has incorporated changes. I had forgotten my
 #   original intent.
 
-CORE_ID = 0 # hardcoded for now
+CORE_ID = 1 # hardcoded for now
 
 class HAL(object):
     """Hardware Abstraction Layer
