@@ -7,6 +7,7 @@ from . import output
 from . import connection
 
 import pystorm.hal.neuromorph.core as core
+n_core = core
 
 class Network(object):
     def __init__(self, label):
@@ -184,7 +185,7 @@ class Network(object):
             print("finished allocate")
 
         if premapped_neuron_array is not None:
-            assert(isinstance(premapped_neuron_array, core.NeuronArray))
+            assert(isinstance(premapped_neuron_array, n_core.NeuronArray))
             core.NeuronArray = premapped_neuron_array
             if verbose:
                 print("  replaced core.neuron_array with premapped_neuron_array")
