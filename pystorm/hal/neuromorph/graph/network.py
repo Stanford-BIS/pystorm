@@ -298,4 +298,111 @@ class Network(object):
 
         return self.core
 
+    def get_load_weights(self, graph_tuples, nodes, index_dict):
+        weights = [0]*nodes #weight[node] = weight
+        for i in range(1, nodes + 1):
+            for j in range(0, len(graph_tuples)):
+                #count neurons in pools
+                curr_obj = graph_tuples[j][0]
+                if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "Neurons":
+                    #assuming neurons dominate internal load
+                    weight = curr_obj.N #num neurons
+                    weights[i-1] += weight
+        return weights
+
+    def get_connections_and_weights(self, graph_tuples, nodes, index_dict):
+        #weight of src->dest = weights[src][dest] ***zero indexed now***
+        weights = [[0 for _ in range(nodes)] for _ in range(nodes)]
+
+        for i in range(1, nodes + 1):
+            for j in range(0, len(graph_tuples)):
+                #we can only cut after buckets
+                curr_obj = graph_tuples[j][0]
+                if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "AMBuckets":
+                    #assuming traffic is linearly dependant on number of dimensions
+                    out_weight = curr_obj.dimensions_out
+                    out_conns = curr_obj.conns_out
+                    for conn in out_conns:
+                        k = index_dict[conn.tgt]
+                        if graph_tuples[k][1] != i:
+                            weights[i-1][graph_tuples[k][1]-1] += out_weight;
+        return weights
+
+    def group_network(self, graph_tuples, to_check, index, index_dict):
+        to_check_next = []
+        for i in to_check:
+            graph_tuples[i][1] = index
+            to_check_next = [] #this depends on the object type
+            curr_obj = graph_tuples[i][0]
+
+            #for a bucket, add any non-bucket that feeds it and any output it feeds
+            if curr_obj.__class__.__name__ == "AMBuckets":
+                in_conns = curr_obj.conns_in
+                for conn in in_conns:
+                    if conn.src.__class__.__name__ != "AMBuckets":
+                        j = index_dict[conn.src]
+                        if graph_tuples[j][1] != index:
+                            to_check_next.append(index_dict[conn.src])
+                out_conns = curr_obj.conns_out
+                for conn in out_conns:
+                    if conn.tgt.__class__.__name__ == "Sink":
+                        j = index_dict[conn.tgt]
+                        if graph_tuples[j][1] != index:
+                            to_check_next.append(index_dict[conn.tgt])
+
+            #for an output, add any bucket that feeds it
+            elif curr_obj.__class__.__name__ == "Sink":
+                in_conns = curr_obj.conns_in
+                for conn in in_conns:
+                    j = index_dict[conn.src]
+                    if graph_tuples[j][1] != index:
+                        to_check_next.append(index_dict[conn.src])
+
+            #for anything else, add anything it feeds and anything feeding it but a bucket
+            elif curr_obj.__class__.__name__ != "ResourceConnection":
+                out_conns = curr_obj.conns_out
+                for conn in out_conns:
+                    j = index_dict[conn.tgt]
+                    if graph_tuples[j][1] != index:
+                        to_check_next.append(index_dict[conn.tgt])
+                in_conns = curr_obj.conns_in
+                for conn in in_conns:
+                    if conn.src.__class__.__name__ != "AMBuckets":
+                        j = index_dict[conn.src]
+                        if graph_tuples[j][1] != index:
+                            to_check_next.append(index_dict[conn.src])
+
+        if len(to_check_next) == 0:
+            return graph_tuples
+        return self.group_network(graph_tuples, to_check_next, index, index_dict)
+
+    def partition_network(self, num_cores):
+        #sort into stuff that has to go together
+        graph_objects = self.get_hardware_resources()
+        graph_tuples = []
+        index_dict = {} #i know this is jank but whatever
+        for i in range(0, len(graph_objects)):
+            #0 is unsorted, 1+ is sorted
+            graph_tuples.append([graph_objects[i], 0]) 
+            index_dict[graph_objects[i]] = i
+
+        index = 1
+        for i in range(0, len(graph_objects)): #recursively divide the graph into groups
+            if (graph_tuples[i][1] == 0):
+                graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
+                index += 1
+        
+        print(graph_tuples) #yay!
+
+        #get number of groups
+        nodes = 0
+        for i in range(0, len(graph_objects)):
+            if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
+
+        #define connections between the groups
+        print(self.get_connections_and_weights( graph_tuples, nodes, index_dict))
+
+        #appoximate load-per-node using number of neurons (for load balancing)
+        print(self.get_load_weights( graph_tuples, nodes, index_dict))
+
 

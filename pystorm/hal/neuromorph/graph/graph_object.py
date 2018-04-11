@@ -30,6 +30,9 @@ class GraphObject(ABC):
         # outgoing connections made from this GraphObject
         self.out_conns = []
 
+        # incoming connections made to this GraphObject
+        self.in_conns = []
+
     @abstractmethod
     def __repr__(self):
         pass

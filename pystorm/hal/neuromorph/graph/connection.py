@@ -7,6 +7,7 @@ class Connection(object):
         self.weights = weights
 
         self.src.out_conns.append(self)
+        self.dest.in_conns.append(self)
 
     def __repr__(self):
         return "Connection " + self.label

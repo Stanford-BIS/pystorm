@@ -320,7 +320,7 @@ class HAL:
         # this call is deprecated, has the following effect
         self.map(self.last_mapped_network, remap=True)
 
-    def map(self, network, remap=False, verbose=False):
+    def map(self, network, remap=False, verbose=False, num_cores = 1):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
