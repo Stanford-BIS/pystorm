@@ -440,17 +440,17 @@ class Network(object):
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.tgt])
 
-            #for a TATFanout, pick up any buckets and fanouts behind you and any sinks and fanouts in front of you
+            #for a TATFanout, pick up any buckets behind you and any sinks in front of you
             elif curr_obj.__class__.__name__ == "TATFanout":
                 in_conns = curr_obj.conns_in
                 for conn in in_conns:
-                    if conn.src.__class__.__name__ == "AMBuckets" or conn.src.__class__.__name__ == "TATFanout":
+                    if conn.src.__class__.__name__ == "AMBuckets":
                         j = index_dict[conn.src]
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.src])
                 out_conns = curr_obj.conns_out
                 for conn in out_conns:
-                    if conn.tgt.__class__.__name__ == "Sink" or conn.src.__class__.__name__ == "TATFanout":
+                    if conn.tgt.__class__.__name__ == "Sink":
                         j = index_dict[conn.tgt]
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.tgt])
