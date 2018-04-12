@@ -8,6 +8,9 @@ from . import connection
 
 import pystorm.hal.neuromorph.core as core
 
+#new dependancies for multi-core mapping
+import metis
+
 class Network(object):
     def __init__(self, label):
         self.label = label
@@ -298,6 +301,49 @@ class Network(object):
 
         return self.core
 
+    def partition_network(self, num_cores):
+        #sort into stuff that has to go together
+        graph_objects = self.get_hardware_resources()
+        graph_tuples = []
+        index_dict = {} #i know this is jank but whatever
+        for i in range(0, len(graph_objects)):
+            #0 is unsorted, 1+ is sorted
+            graph_tuples.append([graph_objects[i], 0]) 
+            index_dict[graph_objects[i]] = i
+
+        index = 1
+        for i in range(0, len(graph_objects)): #recursively divide the graph into groups
+            if (graph_tuples[i][1] == 0):
+                graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
+                index += 1
+        
+        print(graph_tuples) #yay!
+
+        #get number of groups
+        nodes = 0
+        for i in range(0, len(graph_objects)):
+            if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
+
+        #define connections between the groups
+        adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict)
+        print(adjlist)
+
+        #appoximate load-per-node using number of neurons (for load balancing)
+        nodew = self.get_load_weights(graph_tuples, nodes, index_dict)
+        print(nodew)
+
+        #convert to metis
+        metis_graph = metis.adjlist_to_metis(adjlist, nodew)
+        print(metis_graph)
+
+        neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
+        print(neuron_constraints)
+
+        #call metis
+        print("partitioning graph across " + str(num_cores) + " cores")
+        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints)
+        print(part_tuple)
+
     def get_load_weights(self, graph_tuples, nodes, index_dict):
         weights = [0]*nodes #weight[node] = weight
         for i in range(1, nodes + 1):
@@ -326,7 +372,16 @@ class Network(object):
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
                             weights[i-1][graph_tuples[k][1]-1] += out_weight;
-        return weights
+
+        #convert to tuples
+        weight_tuples = []
+        for i in range(0, nodes):
+            temp_list = []
+            for j in range(0, nodes):
+                if weights[i][j] != 0:
+                    temp_list.append((j, weights[i][j]))
+            weight_tuples.append(tuple(temp_list))
+        return weight_tuples
 
     def group_network(self, graph_tuples, to_check, index, index_dict):
         to_check_next = []
@@ -376,33 +431,5 @@ class Network(object):
             return graph_tuples
         return self.group_network(graph_tuples, to_check_next, index, index_dict)
 
-    def partition_network(self, num_cores):
-        #sort into stuff that has to go together
-        graph_objects = self.get_hardware_resources()
-        graph_tuples = []
-        index_dict = {} #i know this is jank but whatever
-        for i in range(0, len(graph_objects)):
-            #0 is unsorted, 1+ is sorted
-            graph_tuples.append([graph_objects[i], 0]) 
-            index_dict[graph_objects[i]] = i
-
-        index = 1
-        for i in range(0, len(graph_objects)): #recursively divide the graph into groups
-            if (graph_tuples[i][1] == 0):
-                graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
-                index += 1
-        
-        print(graph_tuples) #yay!
-
-        #get number of groups
-        nodes = 0
-        for i in range(0, len(graph_objects)):
-            if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
-
-        #define connections between the groups
-        print(self.get_connections_and_weights( graph_tuples, nodes, index_dict))
-
-        #appoximate load-per-node using number of neurons (for load balancing)
-        print(self.get_load_weights( graph_tuples, nodes, index_dict))
 
 
