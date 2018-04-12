@@ -70,13 +70,19 @@ def create_decode_encode_network(width, height, d_val):
     b1 = net.create_bucket("b1", 1)
     p3 = net.create_pool("p3", (N, [tap_list]))
     b2 = net.create_bucket("b2", 1)
+    p2 = net.create_pool("p2", (N, [tap_list]))
+    b4 = net.create_bucket("b4", 1)
     o1 = net.create_output("o1", 1)
+    o2 = net.create_output("o2", 1)
     
     net.create_connection("i1_to_p1", i1, p1, None)
     net.create_connection("p1_to_b1", p1, b1, decoders)
     net.create_connection("b1_to_p3", b1, p3, None)
     net.create_connection("p3_to_b2", p3, b2, decoders)
     net.create_connection("b2_to_o1", b2, o1, None)
+    net.create_connection("b2_to_p2", b2, p2, None)
+    net.create_connection("p2_to_b4", p2, b4, decoders)
+    net.create_connection("b4_to_o2", b4, o2, None)
     
     return net
 
@@ -91,4 +97,4 @@ net.create_hardware_resources()
 
 # map network
 print("calling parition")
-net.partition_network( num_cores = 2)
+net.partition_network( num_cores = 3)

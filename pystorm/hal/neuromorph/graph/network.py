@@ -319,6 +319,12 @@ class Network(object):
                 graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
                 index += 1
 
+        for i in range(0,index):
+            for j in range(0, len(graph_tuples)):
+                if(graph_tuples[j][1] == i):
+                    print(graph_tuples[j])
+            print("\n")
+
         #get number of groups
         nodes = 0
         for i in range(0, len(graph_objects)):
@@ -345,6 +351,12 @@ class Network(object):
             for resource in h_r_per_core[i]: 
                 core_index_dict[resource] = i;
         self.slice_and_glue(h_r_per_core, core_index_dict)
+
+        print(core_assignments)
+        for i in range(0,len(h_r_per_core)):
+            for j in range(0, len(h_r_per_core[i])):
+                print(h_r_per_core[i][j])
+            print("\n")
 
     def slice_and_glue(self, h_r_per_core, core_index_dict):
         for i in range(0, len(h_r_per_core)):
@@ -413,8 +425,7 @@ class Network(object):
             to_check_next = [] #this depends on the object type
             curr_obj = graph_tuples[i][0]
 
-            #for a bucket, add any non-bucket that feeds it and any output it feeds
-            ## ***What about existing fanouts?***
+            #for a bucket, add any non-bucket that feeds it and any fanout it feeds
             if curr_obj.__class__.__name__ == "AMBuckets":
                 in_conns = curr_obj.conns_in
                 for conn in in_conns:
@@ -424,12 +435,27 @@ class Network(object):
                             to_check_next.append(index_dict[conn.src])
                 out_conns = curr_obj.conns_out
                 for conn in out_conns:
-                    if conn.tgt.__class__.__name__ == "Sink":
+                    if conn.tgt.__class__.__name__ == "TATFanout":
                         j = index_dict[conn.tgt]
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.tgt])
 
-            #for anything else, add anything it feeds and anything feeding it but a bucket
+            #for a TATFanout, pick up any buckets and fanouts behind you and any sinks and fanouts in front of you
+            elif curr_obj.__class__.__name__ == "TATFanout":
+                in_conns = curr_obj.conns_in
+                for conn in in_conns:
+                    if conn.src.__class__.__name__ == "AMBuckets" or conn.src.__class__.__name__ == "TATFanout":
+                        j = index_dict[conn.src]
+                        if graph_tuples[j][1] != index:
+                            to_check_next.append(index_dict[conn.src])
+                out_conns = curr_obj.conns_out
+                for conn in out_conns:
+                    if conn.tgt.__class__.__name__ == "Sink" or conn.src.__class__.__name__ == "TATFanout":
+                        j = index_dict[conn.tgt]
+                        if graph_tuples[j][1] != index:
+                            to_check_next.append(index_dict[conn.tgt])
+
+            #for anything else, add anything it feeds and anything feeding it but a bucket or a fanout
             elif curr_obj.__class__.__name__ != "ResourceConnection":
                 out_conns = curr_obj.conns_out
                 for conn in out_conns:
@@ -438,7 +464,7 @@ class Network(object):
                         to_check_next.append(index_dict[conn.tgt])
                 in_conns = curr_obj.conns_in
                 for conn in in_conns:
-                    if conn.src.__class__.__name__ != "AMBuckets":
+                    if conn.src.__class__.__name__ != "AMBuckets" and conn.src.__class__.__name__ != "TATFanout":
                         j = index_dict[conn.src]
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.src])
