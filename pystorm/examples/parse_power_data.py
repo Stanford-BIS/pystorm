@@ -58,6 +58,15 @@ def PlotPowerVsTime(powers, timestamps, runVal=None):
     else:
         plt.title("Power consumption over time - Run: %s" % runVal)
 
+def data_sample_statistics(raw_data):
+    """ Calculate the stats of sample distribution of the mean"""
+    mean = np.mean(raw_data)
+    std_dev = np.std(raw_data)
+    N = len(raw_data)
+    std_dev_mean = std_dev/np.sqrt(N)
+    SNR_mean = mean/std_dev_mean
+    return mean, std_dev_mean, SNR_mean
+
 def PlotPowerHist(powers, bin_count=100, runVal=None, plot_stat_lines=False):
     plt.hist(powers, bins=bin_count, alpha=0.4)
     if plot_stat_lines:
@@ -74,8 +83,10 @@ def PlotPowerHist(powers, bin_count=100, runVal=None, plot_stat_lines=False):
 
 def PlotPM(curPMs, bin_count=100, plot_stat_lines=False):
     powers, curIndices, curVoltages, curTimestamps = getPowerVals(curPMs[0])
-    print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-        % (curPMs[1],np.mean(powers),np.std(powers),np.mean(powers)/np.std(powers)))
+
+    u_mean, sigma_mean, SNR_mean = data_sample_statistics(powers)
+    print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+        % (curPMs[1],u_mean, sigma_mean, SNR_mean))
 
     ax1 = plt.subplot(121)
     PlotPowerVsTime(powers, curTimestamps, curPMs[1])
@@ -115,8 +126,10 @@ def PlotPowerSubRanges(PM_list, windowLen, bin_count=100, save_path='', lbl_pref
             power_sub_sample = powers[i*windowLen:(i+1)*windowLen]
             timestamps_sub_sample = curTimestamps[i*windowLen:(i+1)*windowLen]
             norm_timestamps_sub_sample = curTimestamps[i*windowLen:(i+1)*windowLen] - curTimestamps[i*windowLen]
-            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-                    % (curPlotLabel, np.mean(power_sub_sample),np.std(power_sub_sample), np.mean(power_sub_sample)/np.std(power_sub_sample)))
+
+            u_mean, sigma_mean, SNR_mean = data_sample_statistics(power_sub_sample)
+            print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+                % (curPlotLabel, u_mean, sigma_mean, SNR_mean))
 
             ax1 = plt.subplot(221)
             PlotPowerVsTime(power_sub_sample, timestamps_sub_sample, curPlotLabel)
@@ -159,8 +172,10 @@ def PlotVoltHist(voltages, bin_count=100, runVal=None, plot_stat_lines=False):
 
 def PlotVM(curVMs, dc_offset=0.0, bin_count=100, plot_stat_lines=False):
     curIndices, curVoltages, curTimestamps = getVoltVals(curVMs[0], dc_offset)
-    print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-        % (curVMs[1],np.mean(curVoltages),np.std(curVoltages),np.mean(curVoltages)/np.std(curVoltages)))
+
+    u_mean, sigma_mean, SNR_mean = data_sample_statistics(curVoltages)
+    print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+        % (curVMs[1], u_mean, sigma_mean, SNR_mean))
 
     ax1 = plt.subplot(121)
     PlotVoltVsTime(curVoltages, curTimestamps, curVMs[1])
@@ -179,11 +194,14 @@ def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path='', lb
             V_Indices, V_Voltages, V_Timestamps = getVoltVals(curVMs[0], dc_offset)
 
             plt.figure(num="Compare_Full_"+str(j),figsize=(16,8))
-            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-                    % (curPMs[1],np.mean(powers),np.std(powers),np.mean(powers)/np.std(powers)))
 
-            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-                    % (curVMs[1],np.mean(V_Voltages),np.std(V_Voltages),np.mean(V_Voltages)/np.std(V_Voltages)))
+            u_mean_p, sigma_mean_p, SNR_mean_p = data_sample_statistics(powers)
+            print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+                % (curPMs[1], u_mean, sigma_mean, SNR_mean))
+
+            u_mean_v, sigma_mean_v, SNR_mean_v = data_sample_statistics(V_Voltages)
+            print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+                % (curVMs[1], u_mean, sigma_mean, SNR_mean))
 
             ax1 = plt.subplot(121)
             plt.plot(P_Timestamps, powers, '.-', alpha=0.5)
@@ -223,11 +241,16 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', 
             powers1, P1_Indices, P1_Voltages, P1_Timestamps = getPowerVals(curPMs1[0])
             powers2, P2_Indices, P2_Voltages, P2_Timestamps = getPowerVals(curPMs2[0])
 
+
             plt.figure(num="Compare_Full_"+str(j),figsize=(16,8))
-            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-                % (curPMs1[1],np.mean(powers1),np.std(powers1),np.mean(powers1)/np.std(powers1)))
-            print("[%s] Mean:\t%f\tStd Dev:\t%f\tSNR:\t%f"
-                % (curPMs2[1],np.mean(powers2),np.std(powers2),np.mean(powers2)/np.std(powers2)))
+
+            u_mean_p1, sigma_mean_p1, SNR_mean_p1 = data_sample_statistics(powers1)
+            print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+                % (curPMs1[1], u_mean, sigma_mean, SNR_mean))
+
+            u_mean_p2, sigma_mean_p2, SNR_mean_p2 = data_sample_statistics(powers2)
+            print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
+                % (curPMs2[1], u_mean, sigma_mean, SNR_mean))
 
             ax1 = plt.subplot(121)
             plt.plot(P1_Timestamps, powers1, '.-', alpha=0.5)
@@ -258,12 +281,20 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', 
     else:
         print("ERROR: Power measuerment list & voltage measurement list have different lengths")
 
-index_array = ["003"]
-test_type = "Static_Long"
+index_array = ["010", "011", "012", "013", "014"]
+#index_array = ["000", "001", "002", "007", "008", "009"]
+#index_array = ["009"]
+test_type = "60KReading"
+#test_type = "InputIO_InputRate5MHz"
+#test_type = "FIFO_InputRate5MHz"
+#test_type = "TapPoint_AERRX_InputRate7kHzW64H64"
+#test_type = "Static"
+#test_type = "Decode_SomaBias875_dVal0.0026_Dout3"
+#test_type = "AERTX_SomaBias875_dVal0.0078125"
 M1_list = []
 M2_list = []
-file_path = "TempControlled_10C_PowerComparisonTests"
-sv_path = "TempControlled_10C_PowerComparisonTests"
+file_path = "PowerMeasurements_BDTB2_Green1_22C_Paper_60KReadings"
+sv_path = "PowerMeasurements_BDTB2_Green1_22C_Paper_60KReadings"
 
 for i in index_array:
     L1Measurements = getData(file_path+"/smua1buffer%s.csv" % (i))
@@ -272,11 +303,11 @@ for i in index_array:
     M2_list.append((L2Measurements,i))
 
 
-#PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
-#PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
 #ComparePvsV(M1_list, M2_list, dc_offset=1.0, save_path=sv_path)
-#ComparePvsP(M1_list, M2_list, dc_offset=0.0, save_path=sv_path, lbl_prefix=test_type+"_1V0Dvs1V0A_")
-PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
-#PlotPowerSubRanges(M2_list, 2000, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
+#ComparePvsP(M2_list, M1_list, dc_offset=0.0, save_path=sv_path, lbl_prefix=test_type+"_1V0Avs1V0D_")
+#PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+#PlotPowerSubRanges(M2_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
 #plt.show()
 
