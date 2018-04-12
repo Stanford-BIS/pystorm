@@ -6,10 +6,12 @@ from . import input
 from . import output
 from . import connection
 
+import pystorm.hal.neuromorph.hardware_resources as hwr
 import pystorm.hal.neuromorph.core as core
 
 #new dependancies for multi-core mapping
 import metis
+import networkx as nx
 
 class Network(object):
     def __init__(self, label):
@@ -307,60 +309,81 @@ class Network(object):
         graph_tuples = []
         index_dict = {} #i know this is jank but whatever
         for i in range(0, len(graph_objects)):
-            #0 is unsorted, 1+ is sorted
-            graph_tuples.append([graph_objects[i], 0]) 
+            #-1 is unsorted, 0+ is sorted
+            graph_tuples.append([graph_objects[i], -1]) 
             index_dict[graph_objects[i]] = i
 
-        index = 1
+        index = 0
         for i in range(0, len(graph_objects)): #recursively divide the graph into groups
-            if (graph_tuples[i][1] == 0):
+            if (graph_tuples[i][1] == -1):
                 graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
                 index += 1
-        
-        print(graph_tuples) #yay!
 
         #get number of groups
         nodes = 0
         for i in range(0, len(graph_objects)):
             if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
+        nodes += 1
 
         #define connections between the groups
         adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict)
-        print(adjlist)
-
         #appoximate load-per-node using number of neurons (for load balancing)
         nodew = self.get_load_weights(graph_tuples, nodes, index_dict)
-        print(nodew)
-
         #convert to metis
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
-        print(metis_graph)
-
         neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
-        print(neuron_constraints)
 
         #call metis
         print("partitioning graph across " + str(num_cores) + " cores")
-        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints)
-        print(part_tuple)
+        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints, recursive=False, objtype='cut')
+        core_assignments = part_tuple[1];
+
+        #split resources up based on core
+        h_r_per_core = self.make_sub_resources(graph_tuples, core_assignments, num_cores)
+        core_index_dict = {} #i know this is still bad practice, fight me
+        for i in range(0, len(h_r_per_core)):
+            for resource in h_r_per_core[i]: 
+                core_index_dict[resource] = i;
+        self.slice_and_glue(h_r_per_core, core_index_dict)
+
+    def slice_and_glue(self, h_r_per_core, core_index_dict):
+        for i in range(0, len(h_r_per_core)):
+            for resource in h_r_per_core[i]: 
+                temp_fanout = None
+                if resource.__class__.__name__ == "AMBuckets":
+                    out_conns = resource.conns_out
+                    for conn in out_conns:
+                        if core_index_dict[conn.tgt] != i: #off-core connection
+                            resource.disconnect(conn.tgt, conn)
+                            if temp_fanout == None:
+                                temp_fanout = hwr.TATFanout(resource.dimensions_out)
+                                resource.connect(temp_fanout)
+                            temp_fanout.connect(conn.tgt)
+                            del conn
+
+    def make_sub_resources(self, graph_tuples, core_assignments, num_cores):
+        h_r_per_core = [[] for _ in range(num_cores)]
+        for graph_tuple in graph_tuples:
+            h_r_per_core[core_assignments[graph_tuple[1]]].append(graph_tuple[0])
+        return h_r_per_core
 
     def get_load_weights(self, graph_tuples, nodes, index_dict):
         weights = [0]*nodes #weight[node] = weight
-        for i in range(1, nodes + 1):
+        for i in range(0, nodes):
             for j in range(0, len(graph_tuples)):
                 #count neurons in pools
                 curr_obj = graph_tuples[j][0]
                 if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "Neurons":
                     #assuming neurons dominate internal load
                     weight = curr_obj.N #num neurons
-                    weights[i-1] += weight
+                    weights[i] += weight
         return weights
 
     def get_connections_and_weights(self, graph_tuples, nodes, index_dict):
         #weight of src->dest = weights[src][dest] ***zero indexed now***
         weights = [[0 for _ in range(nodes)] for _ in range(nodes)]
 
-        for i in range(1, nodes + 1):
+        for i in range(0, nodes):
             for j in range(0, len(graph_tuples)):
                 #we can only cut after buckets
                 curr_obj = graph_tuples[j][0]
@@ -371,7 +394,7 @@ class Network(object):
                     for conn in out_conns:
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
-                            weights[i-1][graph_tuples[k][1]-1] += out_weight;
+                            weights[i][graph_tuples[k][1]] += out_weight;
 
         #convert to tuples
         weight_tuples = []
@@ -391,6 +414,7 @@ class Network(object):
             curr_obj = graph_tuples[i][0]
 
             #for a bucket, add any non-bucket that feeds it and any output it feeds
+            ## ***What about existing fanouts?***
             if curr_obj.__class__.__name__ == "AMBuckets":
                 in_conns = curr_obj.conns_in
                 for conn in in_conns:
@@ -404,14 +428,6 @@ class Network(object):
                         j = index_dict[conn.tgt]
                         if graph_tuples[j][1] != index:
                             to_check_next.append(index_dict[conn.tgt])
-
-            #for an output, add any bucket that feeds it
-            elif curr_obj.__class__.__name__ == "Sink":
-                in_conns = curr_obj.conns_in
-                for conn in in_conns:
-                    j = index_dict[conn.src]
-                    if graph_tuples[j][1] != index:
-                        to_check_next.append(index_dict[conn.src])
 
             #for anything else, add anything it feeds and anything feeding it but a bucket
             elif curr_obj.__class__.__name__ != "ResourceConnection":

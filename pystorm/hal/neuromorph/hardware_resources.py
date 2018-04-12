@@ -110,6 +110,17 @@ class Resource(ABC):
         self.conns_out += [new_conn]
         tgt.conns_in += [new_conn]
 
+    def disconnect(self, tgt, conn):
+        """Cleanly deletes a connection from one Resource to another one
+
+        Inputs
+        ------
+        tgt: target Resource object
+        conn: the connection to delete
+        """
+        self.conns_out = [c for c in self.conns_out if c!=conn]
+        tgt.conns_in = [c for c in tgt.conns_in if c!=conn]
+
     # The mapping process is divided into phases
 
     def pretranslate_early(self, core):
