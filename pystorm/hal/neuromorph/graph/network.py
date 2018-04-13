@@ -352,13 +352,43 @@ class Network(object):
                 core_index_dict[resource] = i;
 
         self.slice_and_glue(h_r_per_core, core_index_dict)
-        print(self.get_hardware_resources())
 
+        self.print_network(core_index_dict)
         # print(core_assignments)
         # for i in range(0,len(h_r_per_core)):
         #     for j in range(0, len(h_r_per_core[i])):
         #         print(h_r_per_core[i][j])
         #     print("\n")
+
+    def print_network(self, core_index_dict):
+        index_dict = {} #i know this is jank but whatever
+        network = self.get_hardware_resources()
+        for i in range(0, len(network)):
+            index_dict[network[i]] = i
+        start = 0
+        for i in range(0,len(network)):
+            if network[i].__class__.__name__ == "Source":
+                start = i 
+        color = " \x1b[6;30;4" + str(core_index_dict[network[start]]+1) + "m"
+        self.print_index(start, index_dict, color + network[start].__class__.__name__+ "\x1b[0m", core_index_dict)
+
+
+    def print_index(self, i, index_dict, string, core_index_dict):
+        network = self.get_hardware_resources()
+        conns_out = network[i].conns_out
+        if len(conns_out) == 0:
+            print(string)
+            return
+        for conn in conns_out:
+            if(network[index_dict[conn.tgt]] in core_index_dict):
+                color = " \x1b[6;30;4" + str(core_index_dict[network[index_dict[conn.tgt]]]+1) + "m"
+                self.print_index(index_dict[conn.tgt], index_dict, 
+                    string + color + network[index_dict[conn.tgt]].__class__.__name__ + "\x1b[0m",
+                    core_index_dict)
+            else: 
+                self.print_index(index_dict[conn.tgt], index_dict, 
+                    string + " " + network[index_dict[conn.tgt]].__class__.__name__,
+                    core_index_dict)
 
     def slice_and_glue(self, h_r_per_core, core_index_dict):
         #make a dictionary to look up where to add the new fanouts
