@@ -354,6 +354,9 @@ class Network(object):
         self.slice_and_glue(h_r_per_core, core_index_dict)
 
         self.print_network(core_index_dict)
+        print(adjlist)
+        print(nodew)
+        print(part_tuple)
         # print(core_assignments)
         # for i in range(0,len(h_r_per_core)):
         #     for j in range(0, len(h_r_per_core[i])):
@@ -438,11 +441,19 @@ class Network(object):
 
         for i in range(0, nodes):
             for j in range(0, len(graph_tuples)):
-                #we can only cut after buckets
+                #we can only cut after buckets or fanouts
                 curr_obj = graph_tuples[j][0]
                 if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "AMBuckets":
                     #assuming traffic is linearly dependant on number of dimensions
                     out_weight = curr_obj.dimensions_out
+                    out_conns = curr_obj.conns_out
+                    for conn in out_conns:
+                        k = index_dict[conn.tgt]
+                        if graph_tuples[k][1] != i:
+                            weights[i][graph_tuples[k][1]] += out_weight;
+                elif graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "TATFanout":
+                    #assuming traffic is linearly dependant on number of dimensions
+                    out_weight = curr_obj.dimensions_in
                     out_conns = curr_obj.conns_out
                     for conn in out_conns:
                         k = index_dict[conn.tgt]
