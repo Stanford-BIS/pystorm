@@ -319,11 +319,11 @@ class Network(object):
                 graph_tuples = self.group_network(graph_tuples, [i], index, index_dict)
                 index += 1
 
-        for i in range(0,index):
-            for j in range(0, len(graph_tuples)):
-                if(graph_tuples[j][1] == i):
-                    print(graph_tuples[j])
-            print("\n")
+        # for i in range(0,index):
+        #     for j in range(0, len(graph_tuples)):
+        #         if(graph_tuples[j][1] == i):
+        #             print(graph_tuples[j])
+        #     print("\n")
 
         #get number of groups
         nodes = 0
@@ -350,15 +350,24 @@ class Network(object):
         for i in range(0, len(h_r_per_core)):
             for resource in h_r_per_core[i]: 
                 core_index_dict[resource] = i;
-        self.slice_and_glue(h_r_per_core, core_index_dict)
 
-        print(core_assignments)
-        for i in range(0,len(h_r_per_core)):
-            for j in range(0, len(h_r_per_core[i])):
-                print(h_r_per_core[i][j])
-            print("\n")
+        self.slice_and_glue(h_r_per_core, core_index_dict)
+        print(self.get_hardware_resources())
+
+        # print(core_assignments)
+        # for i in range(0,len(h_r_per_core)):
+        #     for j in range(0, len(h_r_per_core[i])):
+        #         print(h_r_per_core[i][j])
+        #     print("\n")
 
     def slice_and_glue(self, h_r_per_core, core_index_dict):
+        #make a dictionary to look up where to add the new fanouts
+        graph_objects = self.get_GraphObjects()
+        graph_dict = {}
+        for graph_object in graph_objects:
+            for k, v in graph_object.resources.items():
+                graph_dict[v] = graph_object
+        #find and add the new fanouts
         for i in range(0, len(h_r_per_core)):
             for resource in h_r_per_core[i]: 
                 temp_fanout = None
@@ -372,6 +381,8 @@ class Network(object):
                                 resource.connect(temp_fanout)
                             temp_fanout.connect(conn.tgt)
                             del conn
+                    if temp_fanout != None:
+                        graph_dict[resource]._append_resource("TATFanout", temp_fanout)
 
     def make_sub_resources(self, graph_tuples, core_assignments, num_cores):
         h_r_per_core = [[] for _ in range(num_cores)]
