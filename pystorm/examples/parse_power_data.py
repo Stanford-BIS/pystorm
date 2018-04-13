@@ -197,11 +197,11 @@ def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path='', lb
 
             u_mean_p, sigma_mean_p, SNR_mean_p = data_sample_statistics(powers)
             print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
-                % (curPMs[1], u_mean, sigma_mean, SNR_mean))
+                % (curPMs[1], u_mean_p, sigma_mean_p, SNR_mean_p))
 
             u_mean_v, sigma_mean_v, SNR_mean_v = data_sample_statistics(V_Voltages)
             print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
-                % (curVMs[1], u_mean, sigma_mean, SNR_mean))
+                % (curVMs[1], u_mean_v, sigma_mean_v, SNR_mean_v))
 
             ax1 = plt.subplot(121)
             plt.plot(P_Timestamps, powers, '.-', alpha=0.5)
@@ -246,11 +246,11 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', 
 
             u_mean_p1, sigma_mean_p1, SNR_mean_p1 = data_sample_statistics(powers1)
             print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
-                % (curPMs1[1], u_mean, sigma_mean, SNR_mean))
+                % (curPMs1[1], u_mean_p1, sigma_mean_p1, SNR_mean_p1))
 
             u_mean_p2, sigma_mean_p2, SNR_mean_p2 = data_sample_statistics(powers2)
             print("[%s] Mean:\t%f\tStd Err of the Mean:\t%f\tSNR:\t%f"
-                % (curPMs2[1], u_mean, sigma_mean, SNR_mean))
+                % (curPMs2[1], u_mean_p2, sigma_mean_p2, SNR_mean_p2))
 
             ax1 = plt.subplot(121)
             plt.plot(P1_Timestamps, powers1, '.-', alpha=0.5)
@@ -281,16 +281,24 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', 
     else:
         print("ERROR: Power measuerment list & voltage measurement list have different lengths")
 
-index_array = ["010", "011", "012", "013", "014"]
+index_array = ["010", "011", "012", "013", "014", "015"]
 #index_array = ["000", "001", "002", "007", "008", "009"]
-#index_array = ["009"]
-test_type = "60KReading"
-#test_type = "InputIO_InputRate5MHz"
+index_array = ["015"]
+test_type = [
+        "FIFO_InputRate5MHz",
+        "TapPoint_AERRX_InputRate7kHzW64H64",
+        "Static",
+        "Decode_SomaBias875_dVal0.0026_Dout3",
+        "AERTX_SomaBias875_dVal0.0078125",
+        "InputIO_InputRate5MHz",
+        ]
+test_type = "InputIO_InputRate5MHz"
 #test_type = "FIFO_InputRate5MHz"
 #test_type = "TapPoint_AERRX_InputRate7kHzW64H64"
 #test_type = "Static"
 #test_type = "Decode_SomaBias875_dVal0.0026_Dout3"
 #test_type = "AERTX_SomaBias875_dVal0.0078125"
+
 M1_list = []
 M2_list = []
 file_path = "PowerMeasurements_BDTB2_Green1_22C_Paper_60KReadings"
@@ -302,12 +310,16 @@ for i in index_array:
     L2Measurements = getData(file_path+"/smub1buffer%s.csv" % (i))
     M2_list.append((L2Measurements,i))
 
+#for i, runNum in enumerate(index_array):
+#    #PlotPowerEachFullRange([M1_list[i]], save_path=sv_path, lbl_prefix=test_type[i]+"_1V0D_")
+#    PlotPowerSubRanges([M1_list[i]], 10000, save_path=sv_path, lbl_prefix=test_type[i]+"_1V0D_")
 
-PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
-PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+
+#PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+#PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
 #ComparePvsV(M1_list, M2_list, dc_offset=1.0, save_path=sv_path)
 #ComparePvsP(M2_list, M1_list, dc_offset=0.0, save_path=sv_path, lbl_prefix=test_type+"_1V0Avs1V0D_")
-#PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
-#PlotPowerSubRanges(M2_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
+PlotPowerSubRanges(M1_list, 10000, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+#PlotPowerSubRanges(M2_list, 2000, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
 #plt.show()
 
