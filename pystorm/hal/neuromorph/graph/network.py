@@ -166,36 +166,48 @@ class Network(object):
         verbose: A bool
         """
 
-        fname = "mapped_core.txt"
-        np.set_printoptions(threshold=np.nan)
-        print("mapping results written to", fname)
-        f = open(fname, "w")
-
         for i in range(0, self.num_cores):
-            if verbose:
-                print("core " + str(i+1))
             if self.num_cores <= 1:
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
             core = self.core[i]
 
-            print(hardware_resources)
-
             for resource in hardware_resources:
                 resource.pretranslate_early(core)
             if verbose:
                 print("finished pretranslate_early")
+
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
 
             for resource in hardware_resources:
                 resource.pretranslate(core)
             if verbose:
                 print("finished pretranslate")
 
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
+
             for resource in hardware_resources:
                 resource.allocate_early(core)
             if verbose:
                 print("finished allocate_early")
+
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
 
             core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
             for resource in hardware_resources:
@@ -203,26 +215,62 @@ class Network(object):
             if verbose:
                 print("finished allocate")
 
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
+
             if premapped_neuron_array is not None:
                 assert(isinstance(premapped_neuron_array, core.NeuronArray))
                 core.NeuronArray = premapped_neuron_array
                 if verbose:
                     print("  replaced core.neuron_array with premapped_neuron_array")
 
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
+
             for resource in hardware_resources:
                 resource.posttranslate_early(core)
             if verbose:
                 print("finished posttranslate_early")
+
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
 
             for resource in hardware_resources:
                 resource.posttranslate(core)
             if verbose:
                 print("finished posttranslate")
 
+        for i in range(0, self.num_cores):
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
+
             for resource in hardware_resources:
                 resource.assign(core)
             if verbose:
                 print("finished assign")
+
+        fname = "mapped_core.txt"
+        np.set_printoptions(threshold=np.nan)
+        print("mapping results written to", fname)
+        f = open(fname, "w")
+
+        for i in range(0, self.num_cores):
+            core = self.core[i]
 
             f.write("\n \n --------------- \n \n")
             f.write(str(core))
