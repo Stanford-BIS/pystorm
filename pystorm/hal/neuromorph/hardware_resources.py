@@ -902,6 +902,11 @@ class TATFanout(Resource):
                     stop = 1 * (t == len(self.conns_out) - 1)
 
                 tgt = self.conns_out[t].tgt
+                try:
+                    tgt.in_tags[d]
+                except TypeError:
+                    print(self, tgt, tgt.in_tags, d)
+                    raise
                 tag = tgt.in_tags[d]
 
                 if isinstance(self.conns_out[t].tgt, Sink):

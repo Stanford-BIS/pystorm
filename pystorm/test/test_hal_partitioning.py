@@ -9,6 +9,8 @@ from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
+from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
+
 np.random.seed(0)
 
 ###########################################
@@ -97,4 +99,4 @@ net.create_hardware_resources()
 
 # map network
 print("calling parition")
-net.partition_network( num_cores = 3)
+net.map(CORE_PARAMETERS, num_cores = 3, verbose = True)

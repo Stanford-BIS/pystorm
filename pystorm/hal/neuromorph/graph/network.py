@@ -21,9 +21,11 @@ class Network(object):
         self.inputs = []
         self.outputs = []
         self.connections = []
+        self.h_r_per_core = []
+        self.num_cores = 1
 
         # core associated with this network
-        self.core = None
+        self.core = []
 
         # mapping tables for interpreting outputs from hardware
         self.spike_filter_idx_to_output = {}
@@ -164,56 +166,67 @@ class Network(object):
         verbose: A bool
         """
 
-        hardware_resources = self.get_hardware_resources()
-        core = self.core
-
-        for resource in hardware_resources:
-            resource.pretranslate_early(core)
-        if verbose:
-            print("finished pretranslate_early")
-
-        for resource in hardware_resources:
-            resource.pretranslate(core)
-        if verbose:
-            print("finished pretranslate")
-
-        for resource in hardware_resources:
-            resource.allocate_early(core)
-        if verbose:
-            print("finished allocate_early")
-
-        core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
-        for resource in hardware_resources:
-            resource.allocate(core)
-        if verbose:
-            print("finished allocate")
-
-        if premapped_neuron_array is not None:
-            assert(isinstance(premapped_neuron_array, core.NeuronArray))
-            core.NeuronArray = premapped_neuron_array
-            if verbose:
-                print("  replaced core.neuron_array with premapped_neuron_array")
-
-        for resource in hardware_resources:
-            resource.posttranslate_early(core)
-        if verbose:
-            print("finished posttranslate_early")
-
-        for resource in hardware_resources:
-            resource.posttranslate(core)
-        if verbose:
-            print("finished posttranslate")
-
-        for resource in hardware_resources:
-            resource.assign(core)
-        if verbose:
-            print("finished assign")
-
         fname = "mapped_core.txt"
         np.set_printoptions(threshold=np.nan)
         print("mapping results written to", fname)
         f = open(fname, "w")
-        f.write(str(core))
+
+        for i in range(0, self.num_cores):
+            if verbose:
+                print("core " + str(i+1))
+            if self.num_cores <= 1:
+                hardware_resources = self.get_hardware_resources()
+            else:
+                hardware_resources = self.h_r_per_core[i]
+            core = self.core[i]
+
+            print(hardware_resources)
+
+            for resource in hardware_resources:
+                resource.pretranslate_early(core)
+            if verbose:
+                print("finished pretranslate_early")
+
+            for resource in hardware_resources:
+                resource.pretranslate(core)
+            if verbose:
+                print("finished pretranslate")
+
+            for resource in hardware_resources:
+                resource.allocate_early(core)
+            if verbose:
+                print("finished allocate_early")
+
+            core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
+            for resource in hardware_resources:
+                resource.allocate(core)
+            if verbose:
+                print("finished allocate")
+
+            if premapped_neuron_array is not None:
+                assert(isinstance(premapped_neuron_array, core.NeuronArray))
+                core.NeuronArray = premapped_neuron_array
+                if verbose:
+                    print("  replaced core.neuron_array with premapped_neuron_array")
+
+            for resource in hardware_resources:
+                resource.posttranslate_early(core)
+            if verbose:
+                print("finished posttranslate_early")
+
+            for resource in hardware_resources:
+                resource.posttranslate(core)
+            if verbose:
+                print("finished posttranslate")
+
+            for resource in hardware_resources:
+                resource.assign(core)
+            if verbose:
+                print("finished assign")
+
+            f.write("\n \n --------------- \n \n")
+            f.write(str(core))
+
         f.close()
 
     def create_output_translators(self):
@@ -266,7 +279,7 @@ class Network(object):
 
         return outputs, dims, counts
 
-    def map(self, core_parameters, keep_pool_mapping=False, verbose=False):
+    def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1):
         """Create Resources and map them to a Core
 
         Parameters
@@ -275,25 +288,33 @@ class Network(object):
 
         Returns
         -------
-        core: ready-to-program core object
+        core: array of ready-to-program core objects
         """
 
-        # preserve old pool mapping, if necessary
-        if keep_pool_mapping:
-            if self.core is not None:
-                premapped_neuron_array = self.core.neuron_array
-            else:
-                print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
-                premapped_neuron_array = None
-        else:
-            premapped_neuron_array = None
+        # preserve old pool mapping, if necessary (how to keep this?)
+        # if keep_pool_mapping:
+        #     if self.core is not None:
+        #         premapped_neuron_array = self.core.neuron_array
+        #     else:
+        #         print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
+        #         premapped_neuron_array = None
+        # else:
+        #     premapped_neuron_array = None
+        self.num_cores = num_cores
+        premapped_neuron_array = None
 
         # create new core
-        self.core = core.Core(core_parameters)
+        self.core = [0]*num_cores
+        for i in range(0, num_cores):
+            self.core[i] = core.Core(core_parameters)
 
         # create resources
         self.reinit_hardware_resources()
         self.create_hardware_resources()
+
+        #parition network
+        if num_cores > 1:
+            self.partition_network(num_cores)
 
         # map resources to core
         self.map_resources_to_core(premapped_neuron_array, verbose)
@@ -351,12 +372,14 @@ class Network(object):
             for resource in h_r_per_core[i]: 
                 core_index_dict[resource] = i;
 
-        self.slice_and_glue(h_r_per_core, core_index_dict)
+        h_r_per_core = self.slice_and_glue(h_r_per_core, core_index_dict)
 
         self.print_network(core_index_dict)
-        print(adjlist)
-        print(nodew)
-        print(part_tuple)
+
+        self.h_r_per_core = h_r_per_core
+        # print(adjlist)
+        # print(nodew)
+        # print(part_tuple)
         # print(core_assignments)
         # for i in range(0,len(h_r_per_core)):
         #     for j in range(0, len(h_r_per_core[i])):
@@ -373,7 +396,7 @@ class Network(object):
             if network[i].__class__.__name__ == "Source":
                 start = i 
         color = " \x1b[6;30;4" + str(core_index_dict[network[start]]+1) + "m"
-        self.print_index(start, index_dict, color + network[start].__class__.__name__+ "\x1b[0m", core_index_dict)
+        self.print_index(start, index_dict, color + network[start].__class__.__name__+ " "+str(hex(id(network[start])))+ "\x1b[0m", core_index_dict)
 
 
     def print_index(self, i, index_dict, string, core_index_dict):
@@ -386,11 +409,11 @@ class Network(object):
             if(network[index_dict[conn.tgt]] in core_index_dict):
                 color = " \x1b[6;30;4" + str(core_index_dict[network[index_dict[conn.tgt]]]+1) + "m"
                 self.print_index(index_dict[conn.tgt], index_dict, 
-                    string + color + network[index_dict[conn.tgt]].__class__.__name__ + "\x1b[0m",
+                    string + color + network[index_dict[conn.tgt]].__class__.__name__ + " "+str(hex(id(network[index_dict[conn.tgt]])))+ "\x1b[0m",
                     core_index_dict)
             else: 
                 self.print_index(index_dict[conn.tgt], index_dict, 
-                    string + " " + network[index_dict[conn.tgt]].__class__.__name__,
+                    string + " " + network[index_dict[conn.tgt]].__class__.__name__+ " "+str(hex(id(network[index_dict[conn.tgt]]))),
                     core_index_dict)
 
     def slice_and_glue(self, h_r_per_core, core_index_dict):
@@ -401,6 +424,7 @@ class Network(object):
             for k, v in graph_object.resources.items():
                 graph_dict[v] = graph_object
         #find and add the new fanouts
+        new_h_r_per_core = h_r_per_core
         for i in range(0, len(h_r_per_core)):
             for resource in h_r_per_core[i]: 
                 temp_fanout = None
@@ -416,6 +440,8 @@ class Network(object):
                             del conn
                     if temp_fanout != None:
                         graph_dict[resource]._append_resource("TATFanout", temp_fanout)
+                        new_h_r_per_core[i].append(temp_fanout)
+        return new_h_r_per_core
 
     def make_sub_resources(self, graph_tuples, core_assignments, num_cores):
         h_r_per_core = [[] for _ in range(num_cores)]
