@@ -308,21 +308,21 @@ class Network(object):
                     pool_nrn_idx = y * pool.width + x
                     self.spk_to_pool_nrn_idx[pool_core][spk_idx] = (pool, pool_nrn_idx)
 
-    def translate_spikes(self, spk_ids, spk_times):
+    def translate_spikes(self, core_ids, spk_ids, spk_times):
         pool_ids = []
         nrn_idxs = []
         filtered_spk_times = []
-        for spk_id, spk_time in zip(spk_ids, spk_times):
-            if spk_id not in self.spk_to_pool_nrn_idx:
+        for core_id, spk_id, spk_time in zip(core_ids, spk_ids, spk_times):
+            if spk_id not in self.spk_to_pool_nrn_idx[core_id]:
                 print("WARNING: translate_spikes: got out-of-bounds spike from neuron id (probably sticky bits)", spk_id)
             else:
-                pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
+                pool_id, nrn_idx = self.spk_to_pool_nrn_idx[core_id][spk_id]
                 pool_ids.append(pool_id)
                 nrn_idxs.append(nrn_idx)
                 filtered_spk_times.append(spk_time)
         return pool_ids, nrn_idxs, filtered_spk_times
 
-    def translate_tags(self, filt_idxs, filt_states):
+    def translate_tags(self, core_ids, filt_idxs, filt_states):
         # for now, working in count mode
         # the filter state is a count, and it is signed
         counts = []
@@ -338,8 +338,8 @@ class Network(object):
                 print("WARNING: discarding absurdly large tag filter value (probably sticky bits, or abuse of tag filter)")
                 counts.append(0)
 
-        outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
-        dims = [self.spike_filter_idx_to_output[filt_idx][1] for filt_idx in filt_idxs]
+        outputs = [self.spike_filter_idx_to_output[core_id][filt_idx][0] for core_id, filt_idx in zip(core_ids, filt_idxs)]
+        dims = [self.spike_filter_idx_to_output[core_id][filt_idx][1] for core_id, filt_idx in zip(core_ids, filt_idxs)]
 
         return outputs, dims, counts
 
