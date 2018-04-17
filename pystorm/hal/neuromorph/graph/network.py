@@ -13,6 +13,8 @@ import pystorm.hal.neuromorph.core as core
 import metis
 import networkx as nx
 
+class IllegalMappingException(Exception): pass
+
 class Network(object):
     def __init__(self, label):
         self.label = label
@@ -386,9 +388,24 @@ class Network(object):
         # create output translators
         self.create_output_translators()
 
-        #add tests for correctness?
+        #test for correctness
+        if num_cores > 1:
+            self.sanity_check()
 
         return self.core
+
+    #sanity check for the multi-core partitioning
+    def sanity_check(self):
+        #check 1:
+        #the only connections from core to core should be TATFanouts
+        hardware_resources = self.get_hardware_resources()
+        for rec in hardware_resources:
+            if rec.__class__.__name__ != "TATFanout":
+                for conn in rec.conns_out:
+                    if conn.tgt.core_id != rec.core_id:
+                        raise IllegalMappingException("Non-fanout HWResource " + str(rec) + " on core " + str(rec.core_id) +
+                            " connects to off core HWResource " + str(conn.tgt) + " on core " + str(conn.tgt.core_id))
+        return 0
 
     def partition_network(self, num_cores):
         #sort into stuff that has to go together
@@ -448,12 +465,10 @@ class Network(object):
 
         self.h_r_per_core = h_r_per_core
 
-        #add tests for correctness?
-
         # print(adjlist)
         # print(nodew)
         # print(part_tuple)
-        # print(core_assignments)
+        print(core_assignments)
         # for i in range(0,len(h_r_per_core)):
         #     for j in range(0, len(h_r_per_core[i])):
         #         print(h_r_per_core[i][j])
