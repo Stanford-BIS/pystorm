@@ -288,18 +288,25 @@ class Network(object):
 
     def create_output_translators(self):
         self.spike_filter_idx_to_output = {}
+        for i in range(0, self.num_cores):
+            self.spike_filter_idx_to_output[i] = {}
+
         for output in self.get_outputs():
             for dim_idx, filt_idx in enumerate(output.filter_idxs):
-                self.spike_filter_idx_to_output[filt_idx] = (output, dim_idx)
+                self.spike_filter_idx_to_output[output._get_resource("Sink").core_id][filt_idx] = (output, dim_idx)
 
         self.spk_to_pool_nrn_idx = {}
+        for i in range(0, self.num_cores):
+            self.spk_to_pool_nrn_idx[i] = {}
+
         for pool in self.get_pools():
             xmin, ymin = pool.mapped_xy
             for y in range(pool.height):
                 for x in range(pool.width):
-                    spk_idx = (ymin + y) * self.core.NeuronArray_width + xmin + x 
+                    pool_core = pool._get_resource("Neurons").core_id
+                    spk_idx = (ymin + y) * self.core[pool_core].NeuronArray_width + xmin + x 
                     pool_nrn_idx = y * pool.width + x
-                    self.spk_to_pool_nrn_idx[spk_idx] = (pool, pool_nrn_idx)
+                    self.spk_to_pool_nrn_idx[pool_core][spk_idx] = (pool, pool_nrn_idx)
 
     def translate_spikes(self, spk_ids, spk_times):
         pool_ids = []
@@ -379,6 +386,8 @@ class Network(object):
         # create output translators
         self.create_output_translators()
 
+        #add tests for correctness?
+
         return self.core
 
     def partition_network(self, num_cores):
@@ -439,7 +448,7 @@ class Network(object):
 
         self.h_r_per_core = h_r_per_core
 
-        #add tests for correctness
+        #add tests for correctness?
 
         # print(adjlist)
         # print(nodew)
