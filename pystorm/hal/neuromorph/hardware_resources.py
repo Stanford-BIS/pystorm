@@ -85,6 +85,8 @@ class Resource(ABC):
         self.conns_in = []
         self.conns_out = []
 
+        self.core_id = -1
+
     @abstractproperty
     def dimensions_in(self):
         """Get input dimensionality"""
@@ -826,6 +828,7 @@ class TATFanout(Resource):
 
         # posttranslate
         self.contents = None
+        self.global_routes = None
 
 
     @property
@@ -889,6 +892,7 @@ class TATFanout(Resource):
             clobber_post = [clobber_stop]
 
         self.contents = []
+        self.global_routes = []
 
         for d in range(self.D):
             # prepend clobber entry
@@ -911,8 +915,14 @@ class TATFanout(Resource):
 
                 if isinstance(self.conns_out[t].tgt, Sink):
                     global_route = HOME_ROUTE
+                elif self.conns_out[t].tgt.core_id != self.core_id:
+                    global_route = self.conns_out[t].tgt.core_id - self.core_id
+                    if global_route < 0: #need to turn 8 bit two's compliment into 8 bit unsigned
+                        global_route = 256 + global_route
                 else:
                     global_route = 0
+
+                self.global_routes.append(global_route)
 
                 self.contents += [bddriver.PackWord([
                     (bddriver.TATTagWord.STOP, stop),

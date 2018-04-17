@@ -277,6 +277,15 @@ class Network(object):
 
         f.close()
 
+        hardware_resources = self.get_hardware_resources()
+        for rec in hardware_resources:
+            if rec.__class__.__name__ == "TATFanout":
+                print(rec)
+                for route in rec.global_routes:
+                    if route < 128: print(route)
+                    else: print(route-256)
+
+
     def create_output_translators(self):
         self.spike_filter_idx_to_output = {}
         for output in self.get_outputs():
@@ -422,9 +431,16 @@ class Network(object):
 
         h_r_per_core = self.slice_and_glue(h_r_per_core, core_index_dict)
 
+        for core in range(0, len(h_r_per_core)):
+            for rec in h_r_per_core[core]:
+                rec.core_id = core
+
         self.print_network(core_index_dict)
 
         self.h_r_per_core = h_r_per_core
+
+        #add tests for correctness
+
         # print(adjlist)
         # print(nodew)
         # print(part_tuple)
