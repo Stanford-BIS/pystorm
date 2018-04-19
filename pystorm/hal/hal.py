@@ -61,7 +61,7 @@ class HAL:
         self.upstream_ns   = 1000000
 
         self.last_mapped_network = None
-        self.last_mapped_core = None
+        self.last_mapped_cores = None
 
         self.init_hardware()
 
@@ -187,7 +187,7 @@ class HAL:
         These output values are binned and go into a buffer
         that can be drained by calling get_outputs().
         """
-        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used #CHANGE THIS
+        N_SF = self.last_mapped_cores.FPGASpikeFilters.filters_used #CHANGE THIS
         self.driver.SetNumSpikeFilters(CORE_ID, N_SF, flush=flush)
 
     def enable_spike_recording(self, flush=True):
@@ -216,8 +216,9 @@ class HAL:
         o0 = 0
         o1 = 0
         for core in range(0, NUM_CORES):
-            o0 = o0 +self.driver.GetFIFOOverflowCounts(core)[0]
-            o1 = o1 +self.driver.GetFIFOOverflowCounts(core)[1]
+            os = self.driver.GetFIFOOverflowCounts(core)
+            o0 = o0 + os[0]
+            o1 = o1 + os[1]
         return o0 + o1
 
     def get_outputs(self, timeout=1000):
@@ -255,12 +256,13 @@ class HAL:
     def stop_all_inputs(self, time=0, flush=True):
         """Stop all tag stream generators"""
 
-        if self.last_mapped_core is not None: #CHANGE THIS
-            num_gens = self.last_mapped_core.FPGASpikeGenerators.gens_used
-            if num_gens > 0:
-                for gen_idx in range(num_gens):
-                    # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
-                    self.driver.SetSpikeGeneratorRates(CORE_ID, [gen_idx], [0], [0], time, True)
+        if self.last_mapped_cores is not None:
+            for core in range(0, NUM_CORES):
+                num_gens = self.last_mapped_cores[core].FPGASpikeGenerators.gens_used
+                    if num_gens > 0:
+                        for gen_idx in range(num_gens):
+                            # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
+                            self.driver.SetSpikeGeneratorRates(core, [gen_idx], [0], [0], time, True)
 
     def set_input_rate(self, inp, dim, rate, time=0, flush=True):
         """Controls a single tag stream generator's rate (on the FPGA)
@@ -346,7 +348,7 @@ class HAL:
         core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
 
         self.last_mapped_network = network
-        self.last_mapped_core = core
+        self.last_mapped_cores = core
 
         # implement core objects, calling driver
         print("HAL: programming mapping results to hardware")
@@ -371,7 +373,7 @@ class HAL:
         # start with a clean slate
         self.init_hardware()
 
-        core = self.last_mapped_core #CHANGE THIS
+        core = self.last_mapped_cores #CHANGE THIS
 
         # datapath memory programming
 

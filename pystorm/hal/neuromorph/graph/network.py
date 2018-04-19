@@ -27,7 +27,7 @@ class Network(object):
         self.num_cores = 1
 
         # core associated with this network
-        self.core = []
+        self.cores = []
 
         # mapping tables for interpreting outputs from hardware
         self.spike_filter_idx_to_output = {}
@@ -173,7 +173,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.pretranslate_early(core)
@@ -185,7 +185,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.pretranslate(core)
@@ -197,7 +197,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.allocate_early(core)
@@ -209,7 +209,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
             for resource in hardware_resources:
@@ -222,7 +222,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             if premapped_neuron_array is not None:
                 assert(isinstance(premapped_neuron_array, core.NeuronArray))
@@ -235,7 +235,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.posttranslate_early(core)
@@ -247,7 +247,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.posttranslate(core)
@@ -259,7 +259,7 @@ class Network(object):
                 hardware_resources = self.get_hardware_resources()
             else:
                 hardware_resources = self.h_r_per_core[i]
-            core = self.core[i]
+            core = self.cores[i]
 
             for resource in hardware_resources:
                 resource.assign(core)
@@ -272,7 +272,7 @@ class Network(object):
         f = open(fname, "w")
 
         for i in range(0, self.num_cores):
-            core = self.core[i]
+            core = self.cores[i]
 
             f.write("\n \n --------------- \n \n")
             f.write(str(core))
@@ -306,7 +306,7 @@ class Network(object):
             for y in range(pool.height):
                 for x in range(pool.width):
                     pool_core = pool._get_resource("Neurons").core_id
-                    spk_idx = (ymin + y) * self.core[pool_core].NeuronArray_width + xmin + x 
+                    spk_idx = (ymin + y) * self.cores[pool_core].NeuronArray_width + xmin + x 
                     pool_nrn_idx = y * pool.width + x
                     self.spk_to_pool_nrn_idx[pool_core][spk_idx] = (pool, pool_nrn_idx)
 
@@ -359,8 +359,8 @@ class Network(object):
 
         # preserve old pool mapping, if necessary (how to keep this?)
         # if keep_pool_mapping:
-        #     if self.core is not None:
-        #         premapped_neuron_array = self.core.neuron_array
+        #     if self.cores is not None:
+        #         premapped_neuron_array = self.cores.neuron_array
         #     else:
         #         print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
         #         premapped_neuron_array = None
@@ -370,9 +370,9 @@ class Network(object):
         premapped_neuron_array = None
 
         # create new core
-        self.core = [0]*num_cores
+        self.cores = [0]*num_cores
         for i in range(0, num_cores):
-            self.core[i] = core.Core(core_parameters)
+            self.cores[i] = core.Core(core_parameters)
 
         # create resources
         self.reinit_hardware_resources()
@@ -392,7 +392,7 @@ class Network(object):
         if num_cores > 1:
             self.sanity_check()
 
-        return self.core
+        return self.cores
 
     #sanity check for the multi-core partitioning
     def sanity_check(self):
