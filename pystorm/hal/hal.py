@@ -21,7 +21,8 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 #   not sure when I changed this/if Terry has incorporated changes. I had forgotten my
 #   original intent.
 
-CORE_ID = 1 # hardcoded for now
+#CORE_ID = 1 # hardcoded for now
+NUM_CORES = 2 # hardcoded for now (indexed 0 -> NUM_CORES-1)
 
 class Singleton:
     """Decorator class ensuring that at most one instance of a decorated class exists"""
@@ -78,35 +79,36 @@ class HAL:
         # there are scale factors on each of the outputs
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
+        for core in range(0, NUM_CORES):
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
 
-        # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+            # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
 
-        # synapse pulse extender rise time/fall time
-        # 1/DAC_SYN_PD ~ synapse PE fall time 
-        # 1/DAC_SYN_PU ~ synapse PE rise time
-        # the synapse is "on" during the fall, and "off" during the rise
-        # making the rise longer doesn't have much of a practical purpose
-        # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
-        # be careful setting these too small, you don't want to saturate the synapse
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
+            # synapse pulse extender rise time/fall time
+            # 1/DAC_SYN_PD ~ synapse PE fall time 
+            # 1/DAC_SYN_PU ~ synapse PE rise time
+            # the synapse is "on" during the fall, and "off" during the rise
+            # making the rise longer doesn't have much of a practical purpose
+            # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
+            # be careful setting these too small, you don't want to saturate the synapse
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
 
-        # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
-        # lower ratio is more spread out
-        # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+            # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
+            # lower ratio is more spread out
+            # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
 
-        # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
+            # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
 
-        # DAC_SOMA_OFFSET scales the bias twiddle bits
-        # Ben says that increasing this beyond 10 could cause badness
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
+            # DAC_SOMA_OFFSET scales the bias twiddle bits
+            # Ben says that increasing this beyond 10 could cause badness
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
@@ -169,13 +171,15 @@ class HAL:
 
     def start_traffic(self, flush=True):
         """Start hardware's internal traffic flow"""
-        self.driver.SetTagTrafficState(CORE_ID, True, flush=False)
-        self.driver.SetSpikeTrafficState(CORE_ID, True, flush=flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetTagTrafficState(core, True, flush=False)
+            self.driver.SetSpikeTrafficState(core, True, flush=flush)
 
     def stop_traffic(self, flush=True):
         """Stop  hardware's internal traffic flow"""
-        self.driver.SetTagTrafficState(CORE_ID, False, flush=False)
-        self.driver.SetSpikeTrafficState(CORE_ID, False, flush=flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetTagTrafficState(core, False, flush=False)
+            self.driver.SetSpikeTrafficState(core, False, flush=flush)
 
     def enable_output_recording(self, flush=True):
         """Turns on recording from all outputs.
@@ -183,7 +187,7 @@ class HAL:
         These output values are binned and go into a buffer
         that can be drained by calling get_outputs().
         """
-        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
+        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used #CHANGE THIS
         self.driver.SetNumSpikeFilters(CORE_ID, N_SF, flush=flush)
 
     def enable_spike_recording(self, flush=True):
@@ -192,21 +196,28 @@ class HAL:
         These spikes will go into a buffer that can be drained by calling
         get_spikes().
         """
-        self.driver.SetSpikeDumpState(CORE_ID, en=True, flush=flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetSpikeDumpState(core, en=True, flush=flush)
 
     def disable_output_recording(self, flush=True):
         """Turns off recording from all outputs."""
         # by setting the number of spike filters to 0, the FPGA SF array
         # no longer reports any values
-        self.driver.SetNumSpikeFilters(CORE_ID, 0, flush=flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetNumSpikeFilters(core, 0, flush=flush)
 
     def disable_spike_recording(self, flush=True):
         """Turns off spike recording from all neurons."""
-        self.driver.SetSpikeDumpState(CORE_ID, en=False, flush=flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetSpikeDumpState(core, en=False, flush=flush)
 
     def get_overflow_counts(self):
         """prints the total number of FIFO overflows"""
-        o0, o1 = self.driver.GetFIFOOverflowCounts(CORE_ID)
+        o0 = 0
+        o1 = 0
+        for core in range(0, NUM_CORES):
+            o0 = o0 +self.driver.GetFIFOOverflowCounts(core)[0]
+            o1 = o1 +self.driver.GetFIFOOverflowCounts(core)[1]
         return o0 + o1
 
     def get_outputs(self, timeout=1000):
@@ -224,7 +235,7 @@ class HAL:
         """
         filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
 
-        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states)
+        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states) #CHANGE THIS
 
         return np.array([times, outputs, dims, counts]).T
 
@@ -236,7 +247,7 @@ class HAL:
         """
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
 
-        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
+        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times) #CHANGE THIS
 
         ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
         return ret_data
@@ -244,7 +255,7 @@ class HAL:
     def stop_all_inputs(self, time=0, flush=True):
         """Stop all tag stream generators"""
 
-        if self.last_mapped_core is not None:
+        if self.last_mapped_core is not None: #CHANGE THIS
             num_gens = self.last_mapped_core.FPGASpikeGenerators.gens_used
             if num_gens > 0:
                 for gen_idx in range(num_gens):
@@ -305,7 +316,8 @@ class HAL:
         out_tags = [
             inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
-        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+        for core in range(0, NUM_CORES):
+            self.driver.SetSpikeGeneratorRates(core, gen_idxs, out_tags, rates, time, flush)
 
 
     ##############################################################################
@@ -341,16 +353,17 @@ class HAL:
         self.implement_core()
 
     def dump_core(self):
-        print("PAT")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
-        print("TAT0")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
-        print("TAT1")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
-        print("AM")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
-        print("MM")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
+        for core in range(0, NUM_CORES):
+            print("PAT")
+            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.PAT))
+            print("TAT0")
+            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT0)[0:10])
+            print("TAT1")
+            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT1)[0:10])
+            print("AM")
+            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.AM)[0:10])
+            print("MM")
+            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.MM)[0:10])
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
@@ -358,7 +371,7 @@ class HAL:
         # start with a clean slate
         self.init_hardware()
 
-        core = self.last_mapped_core
+        core = self.last_mapped_core #CHANGE THIS
 
         # datapath memory programming
 
