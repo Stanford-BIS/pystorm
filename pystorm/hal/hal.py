@@ -187,8 +187,9 @@ class HAL:
         These output values are binned and go into a buffer
         that can be drained by calling get_outputs().
         """
-        N_SF = self.last_mapped_cores.FPGASpikeFilters.filters_used #CHANGE THIS
-        self.driver.SetNumSpikeFilters(CORE_ID, N_SF, flush=flush)
+        for core in range(0, NUM_CORES):
+            N_SF = self.last_mapped_cores[core].FPGASpikeFilters.filters_used
+            self.driver.SetNumSpikeFilters(core, N_SF, flush=flush)
 
     def enable_spike_recording(self, flush=True):
         """Turns on spike recording from all neurons.
