@@ -234,9 +234,18 @@ class HAL:
         Whether or not you get return values is enabled/disabled by
         enable/disable_output_recording()
         """
-        filt_idxs, filt_states, times = self.driver.RecvSpikeFilterStates(CORE_ID, timeout)
+        filt_idxs = []
+        filt_states = []
+        times = []
+        core_ids = []
+        for core in range(0, NUM_CORES):
+            states = self.driver.RecvSpikeFilterStates(core, timeout)
+            filt_idxs.extend(states[0])
+            filt_states.extend(states[1])
+            times.extend(states[2])
+            core_ids.extend([core]*len(states[0]))
 
-        outputs, dims, counts = self.last_mapped_network.translate_tags(filt_idxs, filt_states) #CHANGE THIS
+        outputs, dims, counts = self.last_mapped_network.translate_tags(core_ids, filt_idxs, filt_states)
 
         return np.array([times, outputs, dims, counts]).T
 
@@ -246,9 +255,16 @@ class HAL:
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
         Timestamps are in microseconds
         """
-        spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
+        core_ids = []
+        spk_ids = []
+        spk_times = []
+        for core in range(0, NUM_CORES):
+            spikes = self.driver.RecvXYSpikes(core)
+            spk_ids.extend(spikes[0])
+            spk_ids.extend(spikes[1])
+            core_ids.extend([core]*len(spikes[0]))
 
-        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times) #CHANGE THIS
+        pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(core_ids, spk_ids, spk_times)
 
         ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
         return ret_data
