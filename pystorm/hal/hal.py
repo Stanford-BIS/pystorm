@@ -79,7 +79,7 @@ class HAL:
         # there are scale factors on each of the outputs
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES): ##REPLACE THESE
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
@@ -171,13 +171,13 @@ class HAL:
 
     def start_traffic(self, flush=True):
         """Start hardware's internal traffic flow"""
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetTagTrafficState(core, True, flush=False)
             self.driver.SetSpikeTrafficState(core, True, flush=flush)
 
     def stop_traffic(self, flush=True):
         """Stop  hardware's internal traffic flow"""
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetTagTrafficState(core, False, flush=False)
             self.driver.SetSpikeTrafficState(core, False, flush=flush)
 
@@ -187,8 +187,8 @@ class HAL:
         These output values are binned and go into a buffer
         that can be drained by calling get_outputs().
         """
-        for core in range(0, NUM_CORES):
-            N_SF = self.last_mapped_cores[core].FPGASpikeFilters.filters_used
+        for core in range(1, NUM_CORES):
+            N_SF = self.last_mapped_cores[core-1].FPGASpikeFilters.filters_used #SHOULD JUST BE core_id
             self.driver.SetNumSpikeFilters(core, N_SF, flush=flush)
 
     def enable_spike_recording(self, flush=True):
@@ -197,26 +197,26 @@ class HAL:
         These spikes will go into a buffer that can be drained by calling
         get_spikes().
         """
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetSpikeDumpState(core, en=True, flush=flush)
 
     def disable_output_recording(self, flush=True):
         """Turns off recording from all outputs."""
         # by setting the number of spike filters to 0, the FPGA SF array
         # no longer reports any values
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetNumSpikeFilters(core, 0, flush=flush)
 
     def disable_spike_recording(self, flush=True):
         """Turns off spike recording from all neurons."""
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetSpikeDumpState(core, en=False, flush=flush)
 
     def get_overflow_counts(self):
         """prints the total number of FIFO overflows"""
         o0 = 0
         o1 = 0
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             os = self.driver.GetFIFOOverflowCounts(core)
             o0 = o0 + os[0]
             o1 = o1 + os[1]
@@ -239,12 +239,12 @@ class HAL:
         filt_states = []
         times = []
         core_ids = []
-        for core in range(0, NUM_CORES):
-            states = self.driver.RecvSpikeFilterStates(core, timeout)
+        for core in range(1, NUM_CORES):
+            states = self.driver.RecvSpikeFilterStates(core, timeout) 
             filt_idxs.extend(states[0])
             filt_states.extend(states[1])
             times.extend(states[2])
-            core_ids.extend([core]*len(states[0]))
+            core_ids.extend([core-1]*len(states[0])) #SHOULD JUST BE core
 
         outputs, dims, counts = self.last_mapped_network.translate_tags(core_ids, filt_idxs, filt_states)
 
@@ -259,7 +259,7 @@ class HAL:
         core_ids = []
         spk_ids = []
         spk_times = []
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             spikes = self.driver.RecvXYSpikes(core)
             spk_ids.extend(spikes[0])
             spk_ids.extend(spikes[1])
@@ -274,12 +274,12 @@ class HAL:
         """Stop all tag stream generators"""
 
         if self.last_mapped_cores is not None:
-            for core in range(0, NUM_CORES):
-                num_gens = self.last_mapped_cores[core].FPGASpikeGenerators.gens_used
-                    if num_gens > 0:
-                        for gen_idx in range(num_gens):
-                            # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
-                            self.driver.SetSpikeGeneratorRates(core, [gen_idx], [0], [0], time, True)
+            for core in range(1, NUM_CORES):
+                num_gens = self.last_mapped_cores[core-1].FPGASpikeGenerators.gens_used #SHOULD JUST BE core_id
+                if num_gens > 0:
+                    for gen_idx in range(num_gens):
+                        # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
+                        self.driver.SetSpikeGeneratorRates(core, [gen_idx], [0], [0], time, True)
 
     def set_input_rate(self, inp, dim, rate, time=0, flush=True):
         """Controls a single tag stream generator's rate (on the FPGA)
@@ -335,7 +335,7 @@ class HAL:
         out_tags = [
             inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             self.driver.SetSpikeGeneratorRates(core, gen_idxs, out_tags, rates, time, flush)
 
 
@@ -362,7 +362,7 @@ class HAL:
         print("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
-        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = 1)
 
         self.last_mapped_network = network
         self.last_mapped_cores = core
@@ -372,7 +372,7 @@ class HAL:
         self.implement_core()
 
     def dump_core(self):
-        for core in range(0, NUM_CORES):
+        for core in range(1, NUM_CORES):
             print("PAT")
             print(self.driver.DumpMem(core, bd.bdpars.BDMemId.PAT))
             print("TAT0")
@@ -390,25 +390,26 @@ class HAL:
         # start with a clean slate
         self.init_hardware()
 
-        for core in self.last_mapped_cores:
+        for core_id in range(1, NUM_CORES):
+            core = self.last_mapped_cores[core_id - 1] #SHOULD JUST BE core_id
 
             # datapath memory programming
 
             self.driver.SetMem(
-                core, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
+                core_id, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
             self.driver.SetMem(
-                core, bd.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
+                core_id, bd.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
             self.driver.SetMem(
-                core, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
+                core_id, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
             self.driver.SetMem(
-                core, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
+                core_id, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
             self.driver.SetMem(
-                core, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
+                core_id, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
 
             # connect diffusor around pools
 
             for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
-                self.driver.CloseDiffusorAllCuts(core, tile_id)
+                self.driver.CloseDiffusorAllCuts(core_id, tile_id)
 
             for pool, pool_allocation in core.neuron_array.pool_allocations.items():
                 # convert minimum pool units into tile units
@@ -425,25 +426,25 @@ class HAL:
                 # cut top edge
                 for x_idx in range(x_min, x_max+1):
                     tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_LEFT)
-                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_RIGHT)
+                    self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_NORTH_LEFT)
+                    self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_NORTH_RIGHT)
                 # cut left edge
                 for y_idx in range(y_min, y_max+1):
                     tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_TOP)
-                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_BOTTOM)
+                    self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_WEST_TOP)
+                    self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_WEST_BOTTOM)
                 # cut bottom edge if not at edge of neuron array
                 if y_max < core.NeuronArray_height_in_tiles-1:
                     for x_idx in range(x_min, x_max+1):
                         tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
-                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_LEFT)
-                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_RIGHT)
+                        self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_NORTH_LEFT)
+                        self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_NORTH_RIGHT)
                 # cut right edge if not at edge of neuron array
                 if x_max < core.NeuronArray_width_in_tiles-1:
                     for y_idx in range(y_min, y_max+1):
                         tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
-                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_TOP)
-                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_BOTTOM)
+                        self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_WEST_TOP)
+                        self.driver.OpenDiffusorCut(core_id, tile_id, DIFFUSOR_WEST_BOTTOM)
 
             # enable somas inside pool
             # remember, x_min/x_max are tile units, 16 neurons per tile
@@ -453,12 +454,12 @@ class HAL:
                 for y in range(core.NeuronArray_height):
                     if core.neuron_array.nrns_used[y, x] == 1:
                         #print("enabling soma", nrn_y_idx, nrn_x_idx)
-                        self.driver.EnableSomaXY(core, x, y)
+                        self.driver.EnableSomaXY(core_id, x, y)
 
             # enable used synapses
             for tx, ty in core.neuron_array.syns_used:
                 #print("enabling synapse", tx, ty)
-                self.driver.EnableSynapseXY(core, tx, ty)
+                self.driver.EnableSynapseXY(core_id, tx, ty)
 
             # set gain and bias twiddle bits
             assert(core.NeuronArray_width == core.neuron_array.gain_divisors.shape[1])
@@ -484,19 +485,19 @@ class HAL:
                 for y in range(core.NeuronArray_height):
                     gain_div_val = core.neuron_array.gain_divisors[y, x]
                     gain_id = gain_ids[gain_div_val - 1]
-                    self.driver.SetSomaGainXY(core, x, y, gain_id)
+                    self.driver.SetSomaGainXY(core_id, x, y, gain_id)
 
                     bias_val = core.neuron_array.biases[y, x]
                     bias_sign_id = bias_signs[int(bias_val > 0)]
                     bias_id = bias_ids[abs(bias_val)]
-                    self.driver.SetSomaOffsetSignXY(core, x, y, bias_sign_id)
-                    self.driver.SetSomaOffsetMultiplierXY(core, x, y, bias_id)
+                    self.driver.SetSomaOffsetSignXY(core_id, x, y, bias_sign_id)
+                    self.driver.SetSomaOffsetMultiplierXY(core_id, x, y, bias_id)
 
             # set spike filter decay constant
             # the following sets the filters to "count mode"
             # exponential decay is also possible
-            self.driver.SetSpikeFilterDecayConst(core, 0)
-            self.driver.SetSpikeFilterIncrementConst(core, 1)
+            self.driver.SetSpikeFilterDecayConst(core_id, 0)
+            self.driver.SetSpikeFilterIncrementConst(core_id, 1)
 
         # remove any evidence of old network in driver queues
         print("HAL: clearing queued-up outputs")

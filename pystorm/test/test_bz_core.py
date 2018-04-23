@@ -46,42 +46,46 @@ for n in range(0, 3):
 	old_time = new_time
 
 # print("* Disable tag & spike traffic")
-# D.SetTagTrafficState(2, False, False)
-# D.SetSpikeTrafficState(2, False, False)
+# D.SetTagTrafficState(1, False, False)
+# D.SetSpikeTrafficState(1, False, False)
+# # time.sleep(1)
 
 
 
 # print("* setup memory delays")
 
 # for mem in {bd.bdpars.BDMemId.AM, bd.bdpars.BDMemId.MM, bd.bdpars.BDMemId.FIFO_PG, bd.bdpars.BDMemId.FIFO_DCT, bd.bdpars.BDMemId.TAT0, bd.bdpars.BDMemId.TAT1, bd.bdpars.BDMemId.PAT}:
-#   D.SetMemoryDelay(0, mem, 0, 0);
+#   D.SetMemoryDelay(1, mem, 0, 0);
 
 # print("* Init the FIFO")
-# D.InitFIFO(0)
+# D.InitFIFO(1)
+# # time.sleep(1)
 # # print("* waiting")
 # # time.sleep(1)
 # # print(D.DumpMem(0, bd.bdpars.BDMemId.PAT))
 # # time.sleep(1)
 
 
-print("* initalize PAT")
-D.SetMem(1 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
-time.sleep(1)
-print("PAT:")
-dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
-print(dump)# # time.sleep(1)
+# print("* initalize PAT")
+# D.SetMem(1 , bd.bdpars.BDMemId.PAT  , D.GetDefaultPATEntries() , 0);
+# # time.sleep(1)
+# # print("PAT:")
+# # dump = D.DumpMem(1, bd.bdpars.BDMemId.PAT);
+# # print(dump)# # time.sleep(1)
 
-print("* initalize TAT0")
-D.SetMem(1 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
-time.sleep(1)
-print("TAT0:")
-dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
-print(dump)
-if (dump != range(1024)):
-	print("data bad :(")
+# print("* initalize TAT0")
+# D.SetMem(1 , bd.bdpars.BDMemId.TAT0  , range(1024)   , 0);
+# # time.sleep(1)
+# # print("TAT0:")
+# # dump = D.DumpMem(1, bd.bdpars.BDMemId.TAT0);
+# # print(dump)
+# # if (dump != range(1024)):
+# # 	print("data bad :(")
 
-print("* initalize AM")
-D.SetMem(1 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
+# print("* initalize AM")
+# D.SetMem(1 , bd.bdpars.BDMemId.AM  , range(1024)  , 0);
+
+D.InitBD()
 
 time.sleep(5)
 

@@ -150,15 +150,13 @@ def do_sweep(bin_time_boundaries):
         for d in range(Din):
             r = stim_rates[d][bin_idx]
 
+            #print("at", bin_start, "d", d, "is", r)
+            #HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
+            inputs.append(i1)
+            dims.append(d)
+            rates.append(r)
 
-#print("at", bin_start, "d", d, "is", r)
-#HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
-inputs.append(i1)
-dims.append(d)
-rates.append(r)
-
-HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
-
+        HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
 
 do_sweep(bin_time_boundaries)
 # input_time = int(HAL.get_time() + 10000e9)

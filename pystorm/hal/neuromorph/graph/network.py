@@ -279,13 +279,13 @@ class Network(object):
 
         f.close()
 
-        hardware_resources = self.get_hardware_resources()
-        for rec in hardware_resources:
-            if rec.__class__.__name__ == "TATFanout":
-                print(rec)
-                for route in rec.global_routes:
-                    if route < 128: print(route)
-                    else: print(route-256)
+        # hardware_resources = self.get_hardware_resources()
+        # for rec in hardware_resources:
+        #     if rec.__class__.__name__ == "TATFanout":
+        #         print(rec)
+        #         for route in rec.global_routes:
+        #             if route < 128: print(route)
+        #             else: print(route-256)
 
 
     def create_output_translators(self):
@@ -381,6 +381,9 @@ class Network(object):
         #parition network
         if num_cores > 1:
             self.partition_network(num_cores)
+        else:
+            for rec in self.get_hardware_resources():
+                rec.core_id = 0
 
         # map resources to core
         self.map_resources_to_core(premapped_neuron_array, verbose)
@@ -468,7 +471,7 @@ class Network(object):
         # print(adjlist)
         # print(nodew)
         # print(part_tuple)
-        print(core_assignments)
+        # print(core_assignments)
         # for i in range(0,len(h_r_per_core)):
         #     for j in range(0, len(h_r_per_core[i])):
         #         print(h_r_per_core[i][j])
