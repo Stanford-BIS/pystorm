@@ -390,113 +390,113 @@ class HAL:
         # start with a clean slate
         self.init_hardware()
 
-        core = self.last_mapped_cores #CHANGE THIS
+        for core in self.last_mapped_cores:
 
-        # datapath memory programming
+            # datapath memory programming
 
-        self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
-        self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
-        self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
-        self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
-        self.driver.SetMem(
-            CORE_ID, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
+            self.driver.SetMem(
+                core, bd.bdpars.BDMemId.PAT, np.array(core.PAT.mem.M).flatten().tolist(), 0)
+            self.driver.SetMem(
+                core, bd.bdpars.BDMemId.TAT0, np.array(core.TAT0.mem.M).flatten().tolist(), 0)
+            self.driver.SetMem(
+                core, bd.bdpars.BDMemId.TAT1, np.array(core.TAT1.mem.M).flatten().tolist(), 0)
+            self.driver.SetMem(
+                core, bd.bdpars.BDMemId.AM, np.array(core.AM.mem.M).flatten().tolist(), 0)
+            self.driver.SetMem(
+                core, bd.bdpars.BDMemId.MM, np.array(core.MM.mem.M).flatten().tolist(), 0)
 
-        # connect diffusor around pools
+            # connect diffusor around pools
 
-        for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
-            self.driver.CloseDiffusorAllCuts(CORE_ID, tile_id)
+            for tile_id in range(core.NeuronArray_height_in_tiles * core.NeuronArray_width_in_tiles):
+                self.driver.CloseDiffusorAllCuts(core, tile_id)
 
-        for pool, pool_allocation in core.neuron_array.pool_allocations.items():
-            # convert minimum pool units into tile units
-            x_min = pool_allocation['px']*2
-            x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
-            y_min = pool_allocation['py']*2
-            y_max = pool_allocation['py']*2+pool_allocation['ph']*2-1
+            for pool, pool_allocation in core.neuron_array.pool_allocations.items():
+                # convert minimum pool units into tile units
+                x_min = pool_allocation['px']*2
+                x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
+                y_min = pool_allocation['py']*2
+                y_max = pool_allocation['py']*2+pool_allocation['ph']*2-1
 
-            #print("x_min", x_min)
-            #print("x_max", x_max)
-            #print("y_min", y_min)
-            #print("y_max", y_max)
+                #print("x_min", x_min)
+                #print("x_max", x_max)
+                #print("y_min", y_min)
+                #print("y_max", y_max)
 
-            # cut top edge
-            for x_idx in range(x_min, x_max+1):
-                tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
-            # cut left edge
-            for y_idx in range(y_min, y_max+1):
-                tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
-            # cut bottom edge if not at edge of neuron array
-            if y_max < core.NeuronArray_height_in_tiles-1:
+                # cut top edge
                 for x_idx in range(x_min, x_max+1):
-                    tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
-            # cut right edge if not at edge of neuron array
-            if x_max < core.NeuronArray_width_in_tiles-1:
+                    tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
+                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_LEFT)
+                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_RIGHT)
+                # cut left edge
                 for y_idx in range(y_min, y_max+1):
-                    tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+                    tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
+                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_TOP)
+                    self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_BOTTOM)
+                # cut bottom edge if not at edge of neuron array
+                if y_max < core.NeuronArray_height_in_tiles-1:
+                    for x_idx in range(x_min, x_max+1):
+                        tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
+                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_LEFT)
+                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_NORTH_RIGHT)
+                # cut right edge if not at edge of neuron array
+                if x_max < core.NeuronArray_width_in_tiles-1:
+                    for y_idx in range(y_min, y_max+1):
+                        tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
+                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_TOP)
+                        self.driver.OpenDiffusorCut(core, tile_id, DIFFUSOR_WEST_BOTTOM)
 
-        # enable somas inside pool
-        # remember, x_min/x_max are tile units, 16 neurons per tile
-        assert(core.NeuronArray_width == core.neuron_array.nrns_used.shape[1])
-        assert(core.NeuronArray_height == core.neuron_array.nrns_used.shape[0])
-        for x in range(core.NeuronArray_width):
-            for y in range(core.NeuronArray_height):
-                if core.neuron_array.nrns_used[y, x] == 1:
-                    #print("enabling soma", nrn_y_idx, nrn_x_idx)
-                    self.driver.EnableSomaXY(CORE_ID, x, y)
+            # enable somas inside pool
+            # remember, x_min/x_max are tile units, 16 neurons per tile
+            assert(core.NeuronArray_width == core.neuron_array.nrns_used.shape[1])
+            assert(core.NeuronArray_height == core.neuron_array.nrns_used.shape[0])
+            for x in range(core.NeuronArray_width):
+                for y in range(core.NeuronArray_height):
+                    if core.neuron_array.nrns_used[y, x] == 1:
+                        #print("enabling soma", nrn_y_idx, nrn_x_idx)
+                        self.driver.EnableSomaXY(core, x, y)
 
-        # enable used synapses
-        for tx, ty in core.neuron_array.syns_used:
-            #print("enabling synapse", tx, ty)
-            self.driver.EnableSynapseXY(CORE_ID, tx, ty)
+            # enable used synapses
+            for tx, ty in core.neuron_array.syns_used:
+                #print("enabling synapse", tx, ty)
+                self.driver.EnableSynapseXY(core, tx, ty)
 
-        # set gain and bias twiddle bits
-        assert(core.NeuronArray_width == core.neuron_array.gain_divisors.shape[1])
-        assert(core.NeuronArray_height == core.neuron_array.gain_divisors.shape[0])
-        assert(core.NeuronArray_width == core.neuron_array.biases.shape[1])
-        assert(core.NeuronArray_height == core.neuron_array.biases.shape[0])
+            # set gain and bias twiddle bits
+            assert(core.NeuronArray_width == core.neuron_array.gain_divisors.shape[1])
+            assert(core.NeuronArray_height == core.neuron_array.gain_divisors.shape[0])
+            assert(core.NeuronArray_width == core.neuron_array.biases.shape[1])
+            assert(core.NeuronArray_height == core.neuron_array.biases.shape[0])
 
-        gain_ids = [
-                bd.bdpars.SomaGainId.ONE,
-                bd.bdpars.SomaGainId.ONE_HALF,
-                bd.bdpars.SomaGainId.ONE_THIRD,
-                bd.bdpars.SomaGainId.ONE_FOURTH]
-        bias_ids = [
-                bd.bdpars.SomaOffsetMultiplierId.ZERO,
-                bd.bdpars.SomaOffsetMultiplierId.ONE,
-                bd.bdpars.SomaOffsetMultiplierId.TWO,
-                bd.bdpars.SomaOffsetMultiplierId.THREE]
-        bias_signs = [
-                bd.bdpars.SomaOffsetSignId.NEGATIVE,
-                bd.bdpars.SomaOffsetSignId.POSITIVE]
+            gain_ids = [
+                    bd.bdpars.SomaGainId.ONE,
+                    bd.bdpars.SomaGainId.ONE_HALF,
+                    bd.bdpars.SomaGainId.ONE_THIRD,
+                    bd.bdpars.SomaGainId.ONE_FOURTH]
+            bias_ids = [
+                    bd.bdpars.SomaOffsetMultiplierId.ZERO,
+                    bd.bdpars.SomaOffsetMultiplierId.ONE,
+                    bd.bdpars.SomaOffsetMultiplierId.TWO,
+                    bd.bdpars.SomaOffsetMultiplierId.THREE]
+            bias_signs = [
+                    bd.bdpars.SomaOffsetSignId.NEGATIVE,
+                    bd.bdpars.SomaOffsetSignId.POSITIVE]
 
-        for x in range(core.NeuronArray_width):
-            for y in range(core.NeuronArray_height):
-                gain_div_val = core.neuron_array.gain_divisors[y, x]
-                gain_id = gain_ids[gain_div_val - 1]
-                self.driver.SetSomaGainXY(CORE_ID, x, y, gain_id)
+            for x in range(core.NeuronArray_width):
+                for y in range(core.NeuronArray_height):
+                    gain_div_val = core.neuron_array.gain_divisors[y, x]
+                    gain_id = gain_ids[gain_div_val - 1]
+                    self.driver.SetSomaGainXY(core, x, y, gain_id)
 
-                bias_val = core.neuron_array.biases[y, x]
-                bias_sign_id = bias_signs[int(bias_val > 0)]
-                bias_id = bias_ids[abs(bias_val)]
-                self.driver.SetSomaOffsetSignXY(CORE_ID, x, y, bias_sign_id)
-                self.driver.SetSomaOffsetMultiplierXY(CORE_ID, x, y, bias_id)
+                    bias_val = core.neuron_array.biases[y, x]
+                    bias_sign_id = bias_signs[int(bias_val > 0)]
+                    bias_id = bias_ids[abs(bias_val)]
+                    self.driver.SetSomaOffsetSignXY(core, x, y, bias_sign_id)
+                    self.driver.SetSomaOffsetMultiplierXY(core, x, y, bias_id)
 
-        # set spike filter decay constant
-        # the following sets the filters to "count mode"
-        # exponential decay is also possible
-        self.driver.SetSpikeFilterDecayConst(CORE_ID, 0)
-        self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
+            # set spike filter decay constant
+            # the following sets the filters to "count mode"
+            # exponential decay is also possible
+            self.driver.SetSpikeFilterDecayConst(core, 0)
+            self.driver.SetSpikeFilterIncrementConst(core, 1)
 
         # remove any evidence of old network in driver queues
         print("HAL: clearing queued-up outputs")
