@@ -79,7 +79,7 @@ class HAL:
         # there are scale factors on each of the outputs
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
-        for core in range(1, NUM_CORES): ##REPLACE THESE
+        for core in range(0, NUM_CORES): ##REPLACE THESE
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
@@ -171,13 +171,13 @@ class HAL:
 
     def start_traffic(self, flush=True):
         """Start hardware's internal traffic flow"""
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetTagTrafficState(core, True, flush=False)
             self.driver.SetSpikeTrafficState(core, True, flush=flush)
 
     def stop_traffic(self, flush=True):
         """Stop  hardware's internal traffic flow"""
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetTagTrafficState(core, False, flush=False)
             self.driver.SetSpikeTrafficState(core, False, flush=flush)
 
@@ -187,8 +187,8 @@ class HAL:
         These output values are binned and go into a buffer
         that can be drained by calling get_outputs().
         """
-        for core in range(1, NUM_CORES):
-            N_SF = self.last_mapped_cores[core-1].FPGASpikeFilters.filters_used #SHOULD JUST BE core_id
+        for core in range(0, NUM_CORES):
+            N_SF = self.last_mapped_cores[core].FPGASpikeFilters.filters_used 
             self.driver.SetNumSpikeFilters(core, N_SF, flush=flush)
 
     def enable_spike_recording(self, flush=True):
@@ -197,26 +197,26 @@ class HAL:
         These spikes will go into a buffer that can be drained by calling
         get_spikes().
         """
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetSpikeDumpState(core, en=True, flush=flush)
 
     def disable_output_recording(self, flush=True):
         """Turns off recording from all outputs."""
         # by setting the number of spike filters to 0, the FPGA SF array
         # no longer reports any values
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetNumSpikeFilters(core, 0, flush=flush)
 
     def disable_spike_recording(self, flush=True):
         """Turns off spike recording from all neurons."""
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetSpikeDumpState(core, en=False, flush=flush)
 
     def get_overflow_counts(self):
         """prints the total number of FIFO overflows"""
         o0 = 0
         o1 = 0
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             os = self.driver.GetFIFOOverflowCounts(core)
             o0 = o0 + os[0]
             o1 = o1 + os[1]
@@ -239,12 +239,12 @@ class HAL:
         filt_states = []
         times = []
         core_ids = []
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             states = self.driver.RecvSpikeFilterStates(core, timeout) 
             filt_idxs.extend(states[0])
             filt_states.extend(states[1])
             times.extend(states[2])
-            core_ids.extend([core-1]*len(states[0])) #SHOULD JUST BE core
+            core_ids.extend([core]*len(states[0]))
 
         outputs, dims, counts = self.last_mapped_network.translate_tags(core_ids, filt_idxs, filt_states)
 
@@ -259,7 +259,7 @@ class HAL:
         core_ids = []
         spk_ids = []
         spk_times = []
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             spikes = self.driver.RecvXYSpikes(core)
             spk_ids.extend(spikes[0])
             spk_ids.extend(spikes[1])
@@ -274,8 +274,8 @@ class HAL:
         """Stop all tag stream generators"""
 
         if self.last_mapped_cores is not None:
-            for core in range(1, NUM_CORES):
-                num_gens = self.last_mapped_cores[core-1].FPGASpikeGenerators.gens_used #SHOULD JUST BE core_id
+            for core in range(0, NUM_CORES):
+                num_gens = self.last_mapped_cores[core].FPGASpikeGenerators.gens_used
                 if num_gens > 0:
                     for gen_idx in range(num_gens):
                         # it's ok to set tag out to 0, if you turn up the rate later, it'll program the right tag
@@ -335,7 +335,7 @@ class HAL:
         out_tags = [
             inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             self.driver.SetSpikeGeneratorRates(core, gen_idxs, out_tags, rates, time, flush)
 
 
@@ -351,7 +351,7 @@ class HAL:
         # this call is deprecated, has the following effect
         self.map(self.last_mapped_network, remap=True)
 
-    def map(self, network, remap=False, verbose=False, num_cores = 1):
+    def map(self, network, remap=False, verbose=False, num_cores = NUM_CORES):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
@@ -362,7 +362,7 @@ class HAL:
         print("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
-        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = 1)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = NUM_CORES)
 
         self.last_mapped_network = network
         self.last_mapped_cores = core
@@ -372,7 +372,7 @@ class HAL:
         self.implement_core()
 
     def dump_core(self):
-        for core in range(1, NUM_CORES):
+        for core in range(0, NUM_CORES):
             print("PAT")
             print(self.driver.DumpMem(core, bd.bdpars.BDMemId.PAT))
             print("TAT0")
@@ -390,8 +390,8 @@ class HAL:
         # start with a clean slate
         self.init_hardware()
 
-        for core_id in range(1, NUM_CORES):
-            core = self.last_mapped_cores[core_id - 1] #SHOULD JUST BE core_id
+        for core_id in range(0, NUM_CORES):
+            core = self.last_mapped_cores[core_id]
 
             # datapath memory programming
 

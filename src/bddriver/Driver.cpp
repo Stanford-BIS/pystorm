@@ -175,7 +175,7 @@ void Driver::SetTimeUnitLen(BDTime ns_per_unit) {
   ns_per_unit_ = ns_per_unit;
   int clks_per_unit_[bd_pars_->NumCores] = {0};
 
-  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
+  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
     clks_per_unit_[i] = ns_per_unit / ns_per_clk_[i];
     BDWord unit_len_word = PackWord<FPGATMUnitLen>({{FPGATMUnitLen::UNIT_LEN, clks_per_unit_[i]}});
     SendToEP(i, bdpars::FPGARegEP::TM_UNIT_LEN, {unit_len_word});
@@ -226,7 +226,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
   SendToEP(bd_pars_->TimingRoute, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
-  for(unsigned int i = 1; i < bd_pars_->NumCores; i++){
+  for(unsigned int i = 0; i < bd_pars_->NumCores; i++){
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY0, {w0}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY1, {w1}); // XXX core id?
     SendToEP(i, bdpars::FPGARegEP::TM_PC_SEND_HB_UP_EVERY2, {w2}); // XXX core id?
@@ -237,7 +237,7 @@ void Driver::SetTimePerUpHB(BDTime ns_per_hb) {
 void Driver::ResetBD() {
   // XXX this is only guaranteed to work after bring-up.
   // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
 
     BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
@@ -342,13 +342,13 @@ void Driver::InitDAC(unsigned int core_id, bool flush) {
 void Driver::InitFPGA() {
 
   cout << "InitFPGA: initializing SGs" << endl;
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     InitSGEn(i);
     SendSGEns(i, 0);
   }
 
   cout << "InitFPGA: initializing SFs" << endl;
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) {
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) {
     SetSpikeFilterIncrementConst(i, 1, false);
     SetSpikeFilterDecayConst(i, 0, false);
     SetNumSpikeFilters(i, 0);
@@ -366,7 +366,7 @@ void Driver::InitBD() {
   cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
-  for (unsigned int i = 1; i < bd_pars_->NumCores; i++) { //REPLACE (TEMP FIX)
+  for (unsigned int i = 0; i < bd_pars_->NumCores; i++) { //REPLACE (TEMP FIX)
     cout << "InitBD: Core " << i << endl;
     // turn off traffic
     cout << "InitBD: disabling traffic flow" << endl;
@@ -421,7 +421,7 @@ void Driver::InitBD() {
 
 void Driver::ClearOutputs() {
   std::vector<uint8_t> up_eps = bd_pars_->GetUpEPs();
-  for(uint8_t c = 1; c < bd_pars_->NumCores; c++){
+  for(uint8_t c = 0; c < bd_pars_->NumCores; c++){
     for (auto& it : up_eps) {
       // cout << int(c) << " " << int(it) << endl;
       if (it != 15 && it != 16){ //not an upstream HB
@@ -497,7 +497,7 @@ void Driver::Flush() {
     // Call phantom DAC to push two other words into BD to
     // circumvent the synchronizer bug
     BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
-    for(unsigned int _core_id = 1; _core_id < bd_pars_->NumCores; _core_id ++){
+    for(unsigned int _core_id = 0; _core_id < bd_pars_->NumCores; _core_id ++){
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
         SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
     }
