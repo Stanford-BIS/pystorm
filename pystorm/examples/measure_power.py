@@ -17,15 +17,15 @@ np.random.seed(0)
 ###########################################
 # default network size parameters
 
-width = 16
-height = 16
+width = 64
+height = 64
 Din = 1
 Dint = 1
 Dout = 1
 width_height = (width, height)
 d_range=(1,1)
 t_range=(1,1)
-exp_duration = 30
+exp_duration = 10
 taps_per_dim = 8
 
 CORE = 0
@@ -307,8 +307,9 @@ class Static(Experiment):
 
     def run(self):
         HAL.driver.InitBD()
+        self.kill_all_neurons()
         # nothing to do, neurons should be killed without mapping
-        
+
         # Compare bias influence on static population of neurons
 #        self.set_neurons_slow()
 #        input("Press Enter to go to fast mode")
@@ -442,14 +443,20 @@ class InputIO(Experiment):
         net = create_decode_network()
         HAL.map(net)
 
+
         # don't want any neuron power
         self.kill_all_neurons()
 
         time.sleep(.1)
 
+
         # sanity check, make sure there are no spikes
+        time.sleep(.01)
+        spikes = HAL.get_spikes()
+        print("sanity check: got", len(spikes), "spikes (expect some amount)")
+
         HAL.enable_spike_recording()
-        time.sleep(.5)
+        time.sleep(.01)
         spikes = HAL.get_spikes()
         print("sanity check: got", len(spikes), "spikes (expect 0)")
 
@@ -692,12 +699,18 @@ dim = 3
 tests = [
     #Static(),
     #InputIO(input_rate=SG_rate),
+    #Static(),
+    #InputIO(input_rate=SG_rate),
+    #Static(),
+    #InputIO(input_rate=SG_rate),
+    Static(),
+    #InputIO(input_rate=SG_rate),
     #FIFO(input_rate=SG_rate),
     # Note: num_tap_points = width * height / 4
     # Advice: Ensure that total spike rate of TAT is < ~100MHz  (input_rate * num_tap_points < 100MHz)
-    #TapPointAndAERRX(input_rate=7000, width=64, height=64),
+    #TapPointAndAERRX(input_rate=8000, width=64, height=64),
     #Decode(soma_bias=somaBias, d_val=.0078125/dim, Dout=dim),
-    AERTX(soma_bias=somaBias, d_val=.0078125),
+    #AERTX(soma_bias=somaBias, d_val=.0078125),
     # Don't worry about doing the DecodeEncode tests for paper power measurements
     #DecodeEncode(soma_bias=75, d_val=.00125, Dint=16, taps_per_dim=8),
     #DecodeEncode(width=64, height=64, soma_bias=100, d_val=.0015, Dint=16, taps_per_dim=16, is_recur=True),
