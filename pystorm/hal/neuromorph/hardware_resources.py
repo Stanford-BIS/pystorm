@@ -852,8 +852,18 @@ class TATFanout(Resource):
         return False
 
     @property
-    def fanout_entries(self):
+    def has_OffCore_output(self):
         if self.has_Sink_output:
+            return True
+        else:
+            for conn in self.conns_out:
+                if conn.tgt.core_id != self.core_id:
+                    return True
+        return False
+
+    @property
+    def fanout_entries(self):
+        if self.has_OffCore_output:
             entries = len(self.conns_out) + self.clobber_pre_len + self.clobber_post_len
         else:
             entries = len(self.conns_out)
@@ -894,18 +904,23 @@ class TATFanout(Resource):
         self.contents = []
         self.global_routes = []
 
-        for d in range(self.D):
-            # prepend clobber entry
-            if self.has_Sink_output:
-                self.contents += clobber_pre
+        #reorder connections: on core before off core
+        on_core_conns = []
+        off_core_conns = []
+        for conn in self.conns_out:
+            if conn.tgt.core_id != self.core_id or isinstance(conn.tgt, Sink):
+                off_core_conns.append(conn)
+            else:
+                on_core_conns.append(conn)
 
-            for t in range(len(self.conns_out)):
-                if self.has_Sink_output:
+        for d in range(self.D):
+            for t in range(len(on_core_conns)):
+                if self.has_OffCore_output:
                     stop = 0 # stop provided by clobber
                 else:
-                    stop = 1 * (t == len(self.conns_out) - 1)
+                    stop = 1 * (t == len(on_core_conns) - 1)
 
-                tgt = self.conns_out[t].tgt
+                tgt = on_core_conns[t].tgt
                 try:
                     tgt.in_tags[d]
                 except TypeError:
@@ -913,10 +928,10 @@ class TATFanout(Resource):
                     raise
                 tag = tgt.in_tags[d]
 
-                if isinstance(self.conns_out[t].tgt, Sink):
+                if isinstance(on_core_conns[t].tgt, Sink):
                     global_route = HOME_ROUTE
-                elif self.conns_out[t].tgt.core_id != self.core_id:
-                    global_route = self.conns_out[t].tgt.core_id - self.core_id
+                elif on_core_conns[t].tgt.core_id != self.core_id:
+                    global_route = on_core_conns[t].tgt.core_id - self.core_id
                     if global_route < 0: #need to turn 8 bit two's compliment into 8 bit unsigned
                         global_route = 256 + global_route
                 else:
@@ -928,9 +943,47 @@ class TATFanout(Resource):
                     (bddriver.TATTagWord.STOP, stop),
                     (bddriver.TATTagWord.TAG, tag),
                     (bddriver.TATTagWord.GLOBAL_ROUTE, global_route)])]
+                # print("On core conn from: " + str(self.core_id) + " to: " + str(on_core_conns[t].tgt.core_id) 
+                #     + " with route " + str(global_route))
+
+            # prepend clobber entry
+            if self.has_OffCore_output:
+                self.contents += clobber_pre
+
+            for t in range(len(off_core_conns)):
+                if self.has_OffCore_output:
+                    stop = 0 # stop provided by clobber
+                else:
+                    stop = 1 * (t == len(off_core_conns) - 1)
+
+                tgt = off_core_conns[t].tgt
+                try:
+                    tgt.in_tags[d]
+                except TypeError:
+                    print(self, tgt, tgt.in_tags, d)
+                    raise
+                tag = tgt.in_tags[d]
+
+                if isinstance(off_core_conns[t].tgt, Sink):
+                    global_route = HOME_ROUTE
+                elif off_core_conns[t].tgt.core_id != self.core_id:
+                    global_route = off_core_conns[t].tgt.core_id - self.core_id
+                    if global_route < 0: #need to turn 8 bit two's compliment into 8 bit unsigned
+                        global_route = 256 + global_route
+                else:
+                    global_route = 0
+
+                self.global_routes.append(global_route)
+
+                self.contents += [bddriver.PackWord([
+                    (bddriver.TATTagWord.STOP, stop),
+                    (bddriver.TATTagWord.TAG, tag),
+                    (bddriver.TATTagWord.GLOBAL_ROUTE, global_route)])]
+                # print("Off core conn from: " + str(self.core_id) + " to: " + str(off_core_conns[t].tgt.core_id)
+                #     + " with route " + str(global_route))
 
             # postpend clobber entry
-            if self.has_Sink_output:
+            if self.has_OffCore_output:
                 self.contents += clobber_post
 
         self.contents = np.array(self.contents, dtype=object)

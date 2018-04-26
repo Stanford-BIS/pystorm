@@ -79,7 +79,7 @@ class HAL:
         # there are scale factors on each of the outputs
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
-        for core in range(0, NUM_CORES): ##REPLACE THESE
+        for core in range(0, NUM_CORES): 
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
@@ -94,7 +94,7 @@ class HAL:
             # making the rise longer doesn't have much of a practical purpose
             # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
             # be careful setting these too small, you don't want to saturate the synapse
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 30)
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
 
             # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
@@ -262,7 +262,7 @@ class HAL:
         for core in range(0, NUM_CORES):
             spikes = self.driver.RecvXYSpikes(core)
             spk_ids.extend(spikes[0])
-            spk_ids.extend(spikes[1])
+            spk_times.extend(spikes[1])
             core_ids.extend([core]*len(spikes[0]))
 
         pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(core_ids, spk_ids, spk_times)

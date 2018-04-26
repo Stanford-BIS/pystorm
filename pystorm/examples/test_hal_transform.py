@@ -16,9 +16,9 @@ np.random.seed(0)
 # network parameters
 
 Din = 1
-Dout = 10
+Dout = 5
 fmax = 1000
-num_training_points_per_dim = 5
+num_training_points_per_dim = 20
 training_hold_time = .1
 
 
@@ -31,11 +31,11 @@ HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 
 D = HAL.driver;
 # D.ResetFPGATime()
-old_time = D.GetFPGATime()
-for n in range(0, 3):
-    time.sleep(1)
-    new_time = D.GetFPGATime()
-    print(new_time)
+# old_time = D.GetFPGATime()
+# for n in range(0, 3):
+#     time.sleep(1)
+#     new_time = D.GetFPGATime()
+#     print(new_time)
 
 
 ###########################################
@@ -61,22 +61,27 @@ if Din == 1 and Dout == 1:
 elif Din == 2 and Dout == 1:
     transform = np.array([[1.0, .25]])
 elif Din == 1 and Dout == 2:
-    transform = np.array([[1.0], [.1]])
+    transform = np.array([[1.0], [0.5]])
+elif Din == 1 and Dout == 3:
+    transform = np.array([[1.0], [0.5], [0.25]])
 elif Din == 2 and Dout == 2:
     transform = np.array([[1.0, .25], [.1, .2]])
 elif Din == 2 and Dout == 4:
     transform = np.array([[1.0, .25], [.1, .4], [.1, .1], [.25, 1.0]])
-elif Din == 1 and Dout > 4:
+elif Din == 1 and Dout > 3:
     transform = np.linspace(0, 1, Dout).reshape((Dout, Din))
 else:
     assert(False and "write a matrix for this Din/Dout combo")
 
+
 i1 = net.create_input("i1", Din)
 b1 = net.create_bucket("b1", Dout)
+b2 = net.create_bucket("b2", Dout)
 o1 = net.create_output("o1", Dout)
 
 net.create_connection("c_i1_to_b1", i1, b1, transform)
-net.create_connection("c_b1_to_o1", b1, o1, None)
+net.create_connection("c_b1_to_b2", b1, b2, np.identity(Dout))
+net.create_connection("c_b2_to_o1", b2, o1, None)
 
 ###########################################
 # compute outputs

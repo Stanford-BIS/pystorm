@@ -369,6 +369,10 @@ best_rmse = rmse(best_yhat, ytest)
 impl_yhat = np.dot(A_test.T, impl_d)
 impl_rmse = rmse(impl_yhat, ytest)
 
+plt.figure
+plt.plot(A.T)
+plt.savefig("hal_decode_tuning_curves.pdf")
+
 assert(impl_rmse < fmax * TOL)
 
 plt.figure()
