@@ -451,7 +451,7 @@ class Network(object):
         # part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints, recursive=False, objtype='vol')
         # core_assignments = part_tuple[1];
         #temporarily force split
-        core_assignments = [0, 0]
+        core_assignments = [0, 1]
 
         #split resources up based on core
         h_r_per_core = self.make_sub_resources(graph_tuples, core_assignments, num_cores)
