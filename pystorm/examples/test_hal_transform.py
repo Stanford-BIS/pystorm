@@ -30,6 +30,7 @@ upstream_time_res = 100000 # ns
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
 
 D = HAL.driver;
+
 # D.ResetFPGATime()
 # old_time = D.GetFPGATime()
 # for n in range(0, 3):
@@ -163,6 +164,9 @@ def do_sweep(bin_time_boundaries):
 
         HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
 
+for core in range(0, 2):
+    D.SetSpikeFilterDebug(core, en=True)
+
 do_sweep(bin_time_boundaries)
 # input_time = int(HAL.get_time() + 10000e9)
 # input_time_2 = int(HAL.get_time() + 2e9)
@@ -173,6 +177,7 @@ do_sweep(bin_time_boundaries)
 # print("input 2 high at: ",input_time_2)
 # HAL.set_input_rate(i1, 0, 100, time=input_time, flush=True)
 # HAL.set_input_rate(i1, 0, 200, time=input_time_2, flush=True)
+
 
 ###########################################
 # sleep during the training sweep
@@ -200,6 +205,18 @@ print("training over")
 HAL.stop_traffic(flush=False)
 HAL.disable_spike_recording(flush=False)
 HAL.disable_output_recording(flush=True)
+
+
+tags = D.RecvUnpackedTags(0)
+tagmap = {}
+for i in range(0, len(tags[0])):
+    if tags[1][i] != 2047:
+        if tags[1][i] not in tagmap:
+            tagmap[tags[1][i]] = 0
+        tagmap[tags[1][i]] += tags[0][i]
+
+print(tagmap)
+
 
 ###########################################
 # collect results
