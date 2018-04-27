@@ -330,13 +330,13 @@ class HAL:
         """
         assert len(inputs) == len(dims) == len(rates)
 
-        gen_idxs = [
-            inp.generator_idxs[dim] for inp, dim in zip(inputs, dims)]
-        out_tags = [
-            inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
+        for inp in inputs:
+            gen_idxs = [
+                inp.generator_idxs[dim] for dim in dims]
+            out_tags = [
+                inp.generator_out_tags[dim] for dim in dims]
 
-        for core in range(0, NUM_CORES):
-            self.driver.SetSpikeGeneratorRates(core, gen_idxs, out_tags, rates, time, flush)
+            self.driver.SetSpikeGeneratorRates(inp.core_id, gen_idxs, out_tags, rates, time, flush)
 
 
     ##############################################################################

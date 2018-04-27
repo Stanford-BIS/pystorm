@@ -30,4 +30,7 @@ class Input(GraphObject):
     def generator_out_tags(self):
         return self._get_resource("Source").out_tags
 
+    @property 
+    def core_id(self):
+        return self._get_resource("Source").core_id
 

@@ -16,7 +16,7 @@ np.random.seed(0)
 # network parameters
 
 Din = 1
-Dout = 5
+Dout = 2
 fmax = 1000
 num_training_points_per_dim = 20
 training_hold_time = .1
@@ -207,15 +207,17 @@ HAL.disable_spike_recording(flush=False)
 HAL.disable_output_recording(flush=True)
 
 
-tags = D.RecvUnpackedTags(0)
-tagmap = {}
-for i in range(0, len(tags[0])):
-    if tags[1][i] != 2047:
-        if tags[1][i] not in tagmap:
-            tagmap[tags[1][i]] = 0
-        tagmap[tags[1][i]] += tags[0][i]
+for core in range(0,2):
+    print(core)
+    tags = D.RecvUnpackedTags(core)
+    tagmap = {}
+    for i in range(0, len(tags[0])):
+        if tags[1][i] != 2047:
+            if tags[1][i] not in tagmap:
+                tagmap[tags[1][i]] = 0
+            tagmap[tags[1][i]] += tags[0][i]
 
-print(tagmap)
+    print(tagmap)
 
 
 ###########################################
