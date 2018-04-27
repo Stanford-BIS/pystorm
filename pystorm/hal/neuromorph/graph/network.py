@@ -451,7 +451,7 @@ class Network(object):
         # part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints, recursive=False, objtype='vol')
         # core_assignments = part_tuple[1];
         #temporarily force split
-        core_assignments = [0, 1]
+        core_assignments = [0, 0, 1]
 
         #split resources up based on core
         h_r_per_core = self.make_sub_resources(graph_tuples, core_assignments, num_cores)
@@ -466,18 +466,18 @@ class Network(object):
             for rec in h_r_per_core[core]:
                 rec.core_id = core
 
-        self.print_network(core_index_dict)
+        # self.print_network(core_index_dict)
 
         self.h_r_per_core = h_r_per_core
 
         # print(adjlist)
         # print(nodew)
         # print(part_tuple)
-        # print(core_assignments)
-        # for i in range(0,len(h_r_per_core)):
-        #     for j in range(0, len(h_r_per_core[i])):
-        #         print(h_r_per_core[i][j])
-        #     print("\n")
+        print(core_assignments)
+        for i in range(0,len(h_r_per_core)):
+            for j in range(0, len(h_r_per_core[i])):
+                print(h_r_per_core[i][j])
+            print("\n")
 
     def print_network(self, core_index_dict):
         index_dict = {} #i know this is jank but whatever

@@ -112,10 +112,18 @@ decoders = np.zeros((Dout, N))
 
 i1 = net.create_input("i1", Din)
 p1 = net.create_pool("p1", tap_matrix)
+b2 = net.create_bucket("b2", Din)
+p2 = net.create_pool("p2", tap_matrix)
 b1 = net.create_bucket("b1", Dout)
 o1 = net.create_output("o1", Dout)
+b3 = net.create_bucket("b3", Dout)
+o2 = net.create_output("o2", Dout)
 
-net.create_connection("c_i1_to_p1", i1, p1, None)
+net.create_connection("c_b2_to_p1", b2, p1, None)
+net.create_connection("c_i1_to_b2", i1, b2, np.identity(Din))
+net.create_connection("c_b2_to_p2", b2, p1, None)
+net.create_connection("c_p2_to_b3", p2, b3, decoders)
+net.create_connection("c_b3_to_o2", b3, o2, None)
 decoder_conn = net.create_connection("c_p1_to_b1", p1, b1, decoders)
 net.create_connection("c_b1_to_o1", b1, o1, None)
 
@@ -277,13 +285,13 @@ spikes = HAL.get_spikes()
 # pull out A for our pool, plot it
 filtered_times = filter_spikes(spikes)
 As = do_binning(filtered_times, bin_time_boundaries)
-if p1 in As:
-    A = As[p1]
-    print('total count in bounds, in exp duration:', np.sum(As[p1]))
+for p in As:
+    A = As[p]
+    print('total count in bounds, in exp duration:', np.sum(As[p]))
 
     plt.figure()
     plt.plot(A.T)
-    plt.savefig("hal_tuning_curves.pdf")
+    plt.savefig("hal_tuning_curves_" + p.get_label() +".pdf")
 
 print("got", len(spikes), "spikes")
 

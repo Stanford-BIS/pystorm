@@ -94,7 +94,7 @@ class HAL:
             # making the rise longer doesn't have much of a practical purpose
             # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
             # be careful setting these too small, you don't want to saturate the synapse
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 30)
+            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 80)
             self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
 
             # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread

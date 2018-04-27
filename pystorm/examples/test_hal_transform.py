@@ -16,7 +16,7 @@ np.random.seed(0)
 # network parameters
 
 Din = 1
-Dout = 2
+Dout = 5
 fmax = 1000
 num_training_points_per_dim = 20
 training_hold_time = .1
