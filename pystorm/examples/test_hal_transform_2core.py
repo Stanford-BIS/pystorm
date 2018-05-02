@@ -16,28 +16,17 @@ np.random.seed(0)
 # network parameters
 
 Din = 1
-Dout = 5
+Dout = 10
 fmax = 1000
-num_training_points_per_dim = 20
-training_hold_time = .1
-
+num_training_points_per_dim = 10
+training_hold_time = .2
 
 ###########################################
 # misc driver parameters
-downstream_time_res = 100000 # ns
-upstream_time_res = 100000 # ns
+downstream_time_res = 10000 # ns
+upstream_time_res = 1000000 # ns
 
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
-
-D = HAL.driver;
-
-# D.ResetFPGATime()
-# old_time = D.GetFPGATime()
-# for n in range(0, 3):
-#     time.sleep(1)
-#     new_time = D.GetFPGATime()
-#     print(new_time)
-
 
 ###########################################
 # stim rates
@@ -62,27 +51,22 @@ if Din == 1 and Dout == 1:
 elif Din == 2 and Dout == 1:
     transform = np.array([[1.0, .25]])
 elif Din == 1 and Dout == 2:
-    transform = np.array([[1.0], [0.5]])
-elif Din == 1 and Dout == 3:
-    transform = np.array([[1.0], [0.5], [0.25]])
+    transform = np.array([[1.0], [.1]])
 elif Din == 2 and Dout == 2:
     transform = np.array([[1.0, .25], [.1, .2]])
 elif Din == 2 and Dout == 4:
     transform = np.array([[1.0, .25], [.1, .4], [.1, .1], [.25, 1.0]])
-elif Din == 1 and Dout > 3:
+elif Din == 1 and Dout > 4:
     transform = np.linspace(0, 1, Dout).reshape((Dout, Din))
 else:
     assert(False and "write a matrix for this Din/Dout combo")
 
-
 i1 = net.create_input("i1", Din)
 b1 = net.create_bucket("b1", Dout)
-b2 = net.create_bucket("b2", Dout)
 o1 = net.create_output("o1", Dout)
 
 net.create_connection("c_i1_to_b1", i1, b1, transform)
-net.create_connection("c_b1_to_b2", b1, b2, np.identity(Dout))
-net.create_connection("c_b2_to_o1", b2, o1, None)
+net.create_connection("c_b1_to_o1", b1, o1, None)
 
 ###########################################
 # compute outputs
@@ -97,12 +81,6 @@ ideal_outputs = np.dot(transform, arr_counts)
 # map network
 print("calling map")
 HAL.map(net)
-
-# old_time = D.GetFPGATime()
-# for n in range(0, 3):
-#     time.sleep(1)
-#     new_time = D.GetFPGATime()
-#     print(new_time)
 
 ###########################################
 # compute sweep bins
@@ -126,7 +104,7 @@ duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, 
 ###########################################
 # call HAL.set_input_rate() to program SGs for each bin/dim
 
-# HAL.driver.SetSpikeFilterDebug(0, True)
+HAL.driver.SetSpikeFilterDebug(0, True)
 
 # have to do this before set_input_rates, so we don't get stalled
 HAL.start_traffic(flush=False)
@@ -164,40 +142,15 @@ def do_sweep(bin_time_boundaries):
 
         HAL.set_input_rates(inputs, dims, rates, time=bin_start, flush=True)
 
-for core in range(0, 2):
-    D.SetSpikeFilterDebug(core, en=True)
-
 do_sweep(bin_time_boundaries)
-# input_time = int(HAL.get_time() + 10000e9)
-# input_time_2 = int(HAL.get_time() + 2e9)
-# print(HAL.get_time())
-
-
-# print("input high at: ",input_time)
-# print("input 2 high at: ",input_time_2)
-# HAL.set_input_rate(i1, 0, 100, time=input_time, flush=True)
-# HAL.set_input_rate(i1, 0, 200, time=input_time_2, flush=True)
-
 
 ###########################################
 # sleep during the training sweep
 
 # turn on spikes
-# duration = duration*2
 print("starting training:", duration, "seconds")
 
-
-print("start time: ",HAL.get_time())
-time.sleep((duration + 1))
-# time.sleep((duration + 1)/4)
-# HAL.set_input_rate(i1, 0, 400, time=0, flush=True)
-# time.sleep((duration + 1)/4)
-# HAL.set_input_rate(i1, 0, 600, time=0, flush=True)
-# time.sleep((duration + 1)/4)
-# HAL.set_input_rate(i1, 0, -300, time=0, flush=True)
-# time.sleep((duration + 1)/4)
-
-print("end time: ",HAL.get_time())
+time.sleep(duration + 1)
 
 print("training over")
 
@@ -205,20 +158,6 @@ print("training over")
 HAL.stop_traffic(flush=False)
 HAL.disable_spike_recording(flush=False)
 HAL.disable_output_recording(flush=True)
-
-
-# for core in range(0,2):
-#     print(core)
-#     tags = D.RecvUnpackedTags(core)
-#     tagmap = {}
-#     for i in range(0, len(tags[0])):
-#         if tags[1][i] != 2047:
-#             if tags[1][i] not in tagmap:
-#                 tagmap[tags[1][i]] = 0
-#             tagmap[tags[1][i]] += tags[0][i]
-
-#     print(tagmap)
-
 
 ###########################################
 # collect results
@@ -265,7 +204,6 @@ binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
 
 print(binned_outputs[o1])
 
-
 plt.figure(figsize=(10, 10))
 legend = []
 #colors = plt.get_cmap("Oranges")(np.linspace(0, 1, Dout))
@@ -281,7 +219,6 @@ for dim_idx, dim_out in enumerate(binned_outputs[o1]):
     legend.append("expected dim " + str(dim_idx))
 plt.legend(legend)
 plt.show()
-
 
 #filt_idxs, filt_states, times = HAL.driver.RecvSpikeFilterStates(0, 1000)
 
