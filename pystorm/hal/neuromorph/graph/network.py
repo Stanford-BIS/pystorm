@@ -8,6 +8,7 @@ from . import connection
 
 import pystorm.hal.neuromorph.hardware_resources as hwr
 import pystorm.hal.neuromorph.core as core
+n_core = core
 
 #new dependancies for multi-core mapping
 import metis

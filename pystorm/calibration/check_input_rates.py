@@ -14,11 +14,13 @@ np.set_printoptions(precision=1)
 
 from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
+from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
 from utils.file_io import load_txt_data
 
 HAL = HAL()
 
+CORE_ID = 0 # For BD, this is always 0
 DIM = 1 # 1 dimensional
 WEIGHT = 1 # weight of connection from input to output
 RUN_TIME = 5. # time to sample
@@ -42,6 +44,15 @@ def parse_args():
     parser.add_argument("-r", action="store_true", dest="use_saved_data", help='reuse cached data')
     args = parser.parse_args()
     return args
+
+def set_memory_delays(delay):
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.PAT, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.AM, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.MM, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.TAT0, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.TAT1, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.FIFO_DCT, delay, delay)
+    HAL.driver.SetMemoryDelay(CORE_ID, bd.bdpars.BDMemId.FIFO_PG, delay, delay)
 
 def compute_base_rates():
     """Compute the rates to test"""
@@ -79,6 +90,7 @@ def build_net():
     net.create_connection("i_to_b", net_input, bucket, WEIGHT)
     net.create_connection("b_to_o", bucket, net_output, None)
     HAL.map(net)
+    set_memory_delays(15)
     return net_input
 
 def toggle_hal(net_input, rate):
@@ -162,12 +174,14 @@ def check_input_rates(parsed_args):
             measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
             total_tags = np.sum(binned_tags[:, 3])
             measured_rates[idx] = total_tags/measured_time
+
+    plot_rates(rates, measured_rates)
+
+    if not use_saved_data:
         data = np.zeros((len(rates), 2))
         data[:, 0] = rates
         data[:, 1] = measured_rates
         np.savetxt(DATA_DIR + "rates.txt", data)
-
-    plot_rates(rates, measured_rates)
     plt.show()
 
 if __name__ == "__main__":

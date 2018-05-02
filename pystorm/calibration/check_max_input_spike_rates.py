@@ -16,6 +16,7 @@ from pystorm.PyDriver import bddriver as bd
 
 from utils.file_io import load_pickle_data, save_pickle_data
 from utils.exp import clear_overflows, compute_spike_gen_rates
+HAL = HAL()
 
 CORE = 0
 NRN_N = 4096
@@ -62,7 +63,7 @@ def parse_args():
         help="name of file containing the synapse's maximum input rates. " +
         'Default file: "{}"'.format(default_max_rates_file))
     parser.add_argument(
-        "--tests", dest="test_set", type=str, nargs="+",
+        "--tests", dest="test_set", type=str, default=DEFAULT_TEST_SET, nargs="+",
         help="list of tests to conduct. Choose from {}. ".format(DEFAULT_TEST_SET) +
         "Default is to test everything")
     args = parser.parse_args()

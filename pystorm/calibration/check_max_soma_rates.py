@@ -19,6 +19,7 @@ from pystorm.PyDriver import bddriver as bd
 
 from utils.exp import clear_spikes
 from utils.file_io import load_txt_data
+HAL = HAL()
 
 CORE = 0
 MAX_NEURONS = 4096

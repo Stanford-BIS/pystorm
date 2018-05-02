@@ -21,6 +21,7 @@ from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
 from utils.file_io import load_txt_data
+HAL = HAL()
 
 CORE = 0
 DIM = 1

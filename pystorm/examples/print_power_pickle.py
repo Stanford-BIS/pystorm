@@ -2,8 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import time
 
-from pystorm.hal import HAL
-HAL = HAL()
+from pystorm.hal import HAL # HAL is a singleton, importing immediately sets up a HAL and its C Driver
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
@@ -13,26 +12,25 @@ from sys import exit
 
 np.random.seed(0)
 
-
 ###########################################
 # default network size parameters
 
-width = 64
-height = 64
+width = 16
+height = 16
 Din = 1
 Dint = 1
 Dout = 1
 width_height = (width, height)
 d_range=(1,1)
 t_range=(1,1)
-exp_duration = 10
+exp_duration = 1
 taps_per_dim = 8
 
 CORE = 0
 
 ###########################################
 # misc driver parameters
-downstream_time_res = 100 # ns
+downstream_time_res = 10000 # ns
 upstream_time_res  = 100000 # ns
 
 HAL.set_time_resolution(downstream_time_res, upstream_time_res)
@@ -218,48 +216,6 @@ class Experiment(object):
             HAL.driver.DisableSoma(CORE, i)
         HAL.driver.Flush()
 
-    def set_default_slow_dac_values(self):
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_ADC_BIAS_1 , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_ADC_BIAS_2 , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_LK     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PU     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_G     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_R     , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF   , 1)
-
-    def set_default_fast_dac_values(self):
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_ADC_BIAS_1 , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_ADC_BIAS_2 , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_EXC    , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_DC     , 544)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_INH    , 512)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_LK     , 1024)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD     , 1024)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PU     , 1024)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_G     , 1024)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_DIFF_R     , 1)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, 1024)
-        HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_REF   , 1024)
-
-    def set_neurons_slow(self):
-        self.set_default_slow_dac_values()
-        for i in range(4096):
-            HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE_FOURTH)
-            HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.NEGATIVE)
-            HAL.driver.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.ZERO)
-
-    def set_neurons_fast(self):
-        self.set_default_fast_dac_values()
-        for i in range(4096):
-            HAL.driver.SetSomaGain(CORE, i, bd.bdpars.SomaGainId.ONE)
-            HAL.driver.SetSomaOffsetSign(CORE, i, bd.bdpars.SomaOffsetSignId.POSITIVE)
-            HAL.driver.SetSomaOffsetMultiplier(CORE, i, bd.bdpars.SomaOffsetMultiplierId.THREE)
-
     def make_enabled_neurons_spike(self, bias):
         HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SOMA_OFFSET, bias)
         for i in range(4096):
@@ -307,37 +263,30 @@ class Static(Experiment):
 
     def run(self):
         HAL.driver.InitBD()
-        self.kill_all_neurons()
         # nothing to do, neurons should be killed without mapping
-
-        # Compare bias influence on static population of neurons
-#        self.set_neurons_slow()
-#        input("Press Enter to go to fast mode")
-#        self.set_neurons_fast()
-
         print("Unmapped network for baseline power, measure power now")
         time.sleep(self.pars["duration"])
 
 ###########################################
-# Get AER tx power
+# Get AER rx power
 
-class AERTX(Experiment):
+class AERRX(Experiment):
     # counting setup:
     # default
     # power setup:
     # neurons -> (stopped at post-neuron valve)
 
-    def __init__(self, soma_bias=2, d_val=.1, duration=Experiment.duration):
-        self.pars = names_to_dict(["soma_bias", "duration", "d_val"], locals())
+    def __init__(self, soma_bias=2, duration=Experiment.duration):
+        self.pars = names_to_dict(["soma_bias", "duration"], locals())
         self.results = {}
         self.description = "measure AER xmitter power. Pars: " + str(self.pars)
 
     def run(self):
-        net = create_decode_network(width=64, height=64, d_range=(self.pars["d_val"], self.pars["d_val"]))
+
+        net = create_decode_network()
         HAL.map(net)
 
         # give the neurons some juice
-        self.set_neurons_fast()
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
 
         # turn on traffic, count spikes
@@ -348,26 +297,19 @@ class AERTX(Experiment):
         time.sleep(self.pars["duration"])
 
         HAL.stop_traffic() # and keep it off
-        time.sleep(0.1)
         # all decoders and tranforms are 1, output count is spike count
         outputs = HAL.get_outputs()
-        tag_rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
-        print("measured", tag_rate, "accumulator spikes per second")
-        spike_rate = tag_rate / self.pars["d_val"]
-        print("inferred", spike_rate, "spikes per second")
-        self.results["tag_rate"] = tag_rate
-        self.results["spike_rate"] = spike_rate
+        rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
+        print("measured", rate, "spikes per second")
+        self.results["rate"] = rate
 
-        print("only neurons and AER TX active, measure voltage now")
+        print("only neurons and AER RX active, measure voltage now")
 
-#        time.sleep(self.pars["duration"])
-        time.sleep(360)
+        time.sleep(self.pars["duration"])
 
         outputs = HAL.get_outputs()
-        tag_rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
-        print("sanity check: measured", tag_rate, "spikes per second (expect 0)")
-        spike_rate = tag_rate / self.pars["d_val"]
-        print("inferred", spike_rate, "spikes per second")
+        rate = self.compute_output_rate(outputs, net.get_outputs()[0], 0)
+        print("sanity check: measured", rate, "spikes per second (expect 0)")
 
 ###########################################
 # Get decode operation (PAT + Acc) power
@@ -376,7 +318,7 @@ class Decode(Experiment):
     # counting setup:
     # default
     # power setup:
-    # neurons -> AERTX -> PAT -> accumulator -> stopped at pre-FIFO valve
+    # neurons -> AERRX -> PAT -> accumulator -> stopped at pre-FIFO valve
 
     def __init__(self, soma_bias=2, d_val=.1, Dout=10, duration=Experiment.duration):
         self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dout"], locals())
@@ -395,14 +337,11 @@ class Decode(Experiment):
         return spike_rate, tag_rate
 
     def run(self):
-        net = create_decode_network(width=64, height=64, Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
+        net = create_decode_network(width=32, height=32, Dout=self.pars["Dout"], d_range=(self.pars["d_val"], self.pars["d_val"]))
         HAL.map(net)
 
         # give the neurons some juice
-        self.set_neurons_fast()
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
-        # make synapses as fast as possible to allow the most traffic
-        self.make_fast_synapse()
 
         # turn on traffic
         print("enabling traffic, counting tags out")
@@ -422,9 +361,8 @@ class Decode(Experiment):
 
         time.sleep(self.pars["duration"])
 
-        input("Press Enter to after you've measured power, to check no outputs are seen")
         print("sanity check: should expect no outputs with pre-FIFO valve closed")
-        self.count_after_experiment(net)
+#        self.count_after_experiment(net)
 
 ###########################################
 # Get Input IO/horn
@@ -443,20 +381,14 @@ class InputIO(Experiment):
         net = create_decode_network()
         HAL.map(net)
 
-
         # don't want any neuron power
         self.kill_all_neurons()
 
         time.sleep(.1)
 
-
         # sanity check, make sure there are no spikes
-        time.sleep(.01)
-        spikes = HAL.get_spikes()
-        print("sanity check: got", len(spikes), "spikes (expect some amount)")
-
         HAL.enable_spike_recording()
-        time.sleep(.01)
+        time.sleep(.5)
         spikes = HAL.get_spikes()
         print("sanity check: got", len(spikes), "spikes (expect 0)")
 
@@ -501,10 +433,8 @@ class FIFO(Experiment):
         print("trying to get pre-fifo dump")
         dumped = HAL.driver.GetPreFIFODump(CORE)
         print("sanity check: with pre-fifo dump on, got", len(dumped), "pre-FIFO events (expect", self.pars["input_rate"]*.5, ")")
-        HAL.driver.SetPreFIFODumpState(CORE, False)
+        #HAL.driver.SetPreFIFODumpState(CORE, False)
         time.sleep(.1)
-        dumped = HAL.driver.GetPreFIFODump(CORE)
-        print("sanity check: make sure pre-FIFO dump actually turned off. Got", len(dumped), "pre-FIFO events (expect 0)")
 
 
         print("measure power now")
@@ -515,14 +445,14 @@ class FIFO(Experiment):
 
 ###########################################
 # tap point/txmitter  power
-class TapPointAndAERRX(Experiment):
+class TapPointAndAERTX(Experiment):
     # no counting setup, we use the SG to produce an exact rate
-    # tap point/AER RX
-    # IO -> horn -> FIFO -> TAT -> AER rx
+    # tap point/AER TX
+    # IO -> horn -> FIFO -> TAT -> AER tx
     def __init__(self, input_rate=1000, width=width, height=height, duration=Experiment.duration):
         self.pars = names_to_dict(["input_rate", "width", "height", "duration"], locals())
         self.results = {}
-        self.description = "Measure tap point/AER rx power. Pars: " + str(self.pars)
+        self.description = "Measure tap point/AER tx power. Pars: " + str(self.pars)
 
     def run(self):
         net = create_decode_network(width=self.pars["width"], height=self.pars["height"])
@@ -530,8 +460,6 @@ class TapPointAndAERRX(Experiment):
 
         # don't want any neuron power
         self.kill_all_neurons()
-        # make synapses as fast as possible to allow the most traffic
-        self.make_fast_synapse()
 
         HAL.start_traffic(flush=False)
 
@@ -539,35 +467,6 @@ class TapPointAndAERRX(Experiment):
 
         inp = net.get_inputs()[0]
         HAL.set_input_rate(inp, 0, self.pars["input_rate"])
-
-        # Clear FIFO Dumps (in case they have old data)
-        pre_dumped = HAL.driver.GetPreFIFODump(CORE)
-        post_dumped = HAL.driver.GetPostFIFODump(CORE)
-
-        # sanity check, monitor pre-fifo and post-fifo spikes
-        HAL.driver.SetPreFIFODumpState(CORE, True)
-        time.sleep(.5)
-        print("trying to get pre-fifo dump")
-        pre_dumped = HAL.driver.GetPreFIFODump(CORE)
-        print("sanity check: with pre-fifo dump on, got", len(pre_dumped), "pre-FIFO events (expect", self.pars["input_rate"]*.5, ")")
-        HAL.driver.SetPreFIFODumpState(CORE, False)
-        time.sleep(.5)
-        pre_dumped = HAL.driver.GetPreFIFODump(CORE)
-        print("sanity check: make sure pre-FIFO dump actually turned off. Got", len(pre_dumped), "pre-FIFO events (expect 0)")
-        print("[OUTPUT] sanity check: FIFO should not overflow")
-        print("[OUTPUT] total overflows:", HAL.get_overflow_counts())
-
-        HAL.driver.SetPostFIFODumpState(CORE, True)
-        time.sleep(.5)
-        print("trying to get post-fifo dump")
-        _, post_dumped = HAL.driver.GetPostFIFODump(CORE)
-        print("sanity check: with post-fifo dump on, got", len(post_dumped), "post-FIFO events (expect", self.pars["input_rate"]*.5, ")")
-        HAL.driver.SetPostFIFODumpState(CORE, False)
-        time.sleep(.5)
-        _, post_dumped = HAL.driver.GetPostFIFODump(CORE)
-        print("sanity check: make sure post-FIFO dump actually turned off. Got", len(post_dumped), "post-FIFO events (expect 0)")
-        print("[OUTPUT] sanity check: FIFO should not overflow")
-        print("[OUTPUT] total overflows:", HAL.get_overflow_counts())
 
         print("measure power now")
         time.sleep(self.pars["duration"])
@@ -577,11 +476,11 @@ class TapPointAndAERRX(Experiment):
 class DecodeEncode(Experiment):
     # need to map twice for this
     # counting setup:
-    # neurons -> AERTX -> PAT -> accumulator -> TAT -> funnel -> out
+    # neurons -> AERRX -> PAT -> accumulator -> TAT -> funnel -> out
     #
     # power setup:
-    # neurons -> AERTX -> PAT -> accumulator -> FIFO -> TAT -> AERRX -> neurons
-    # take care that there is no FIFO overflow in this setup, which would indicate TAT/AERRX/synapse backup
+    # neurons -> AERRX -> PAT -> accumulator -> FIFO -> TAT -> AERTX -> neurons
+    # take care that there is no FIFO overflow in this setup, which would indicate TAT/AERTX/synapse backup
 
     def __init__(self, width=32, height=32, soma_bias=2, d_val=.1, Dint=10, taps_per_dim=8, duration=Experiment.duration, is_recur=False):
         self.pars = names_to_dict(["soma_bias", "duration", "d_val", "Dint", "taps_per_dim", "width", "height", "is_recur"], locals())
@@ -602,7 +501,7 @@ class DecodeEncode(Experiment):
 
     def run(self):
         #####################################
-        # measure rates
+        # measure rates 
         measure_net = create_decode_encode_network(
                           width=self.pars["width"],
                           height=self.pars["height"],
@@ -614,7 +513,6 @@ class DecodeEncode(Experiment):
         HAL.map(measure_net)
 
         # give the neurons some juice
-        self.set_neurons_fast()
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
         self.make_fast_synapse()
 
@@ -629,19 +527,6 @@ class DecodeEncode(Experiment):
         self.results["spike_rate"] = spike_rate
         self.results["tag_rate"] = tag_rate
 
-        #for i in range(100):
-        #    print("[%d] enabling traffic, counting tags out" % i)
-        #    HAL.start_traffic()
-        #    HAL.enable_output_recording()
-
-        #    time.sleep(self.pars["duration"])
-
-        #    spike_rate, tag_rate = self.count_after_experiment(measure_net)
-        #    self.results["spike_rate"] = spike_rate
-        #    self.results["tag_rate"] = tag_rate
-        #    print("[OUTPUT] sanity check: FIFO should not overflow")
-        #    print("[OUTPUT] total overflows:", HAL.get_overflow_counts())
-
         #####################################
         # go to power measurement configuration, make sure not overflowing
         power_net = create_decode_encode_network(
@@ -655,7 +540,6 @@ class DecodeEncode(Experiment):
         HAL.map(power_net)
 
         # give the neurons some juice
-        self.set_neurons_fast()
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
         self.make_fast_synapse()
 
@@ -678,7 +562,6 @@ class DecodeEncode(Experiment):
         HAL.map(power_net)
 
         # give the neurons some juice
-        self.set_neurons_fast()
         self.make_enabled_neurons_spike(self.pars["soma_bias"])
         self.make_fast_synapse()
 
@@ -688,77 +571,11 @@ class DecodeEncode(Experiment):
 
         print("remapped network, measure power now")
 
-
 ###########################################
-# run tests
-
-somaBias = 875
-SG_rate = 5000000
-dim = 3
-
-tests = [
-    #Static(),
-    #InputIO(input_rate=SG_rate),
-    #Static(),
-    #InputIO(input_rate=SG_rate),
-    #Static(),
-    #InputIO(input_rate=SG_rate),
-    Static(),
-    #InputIO(input_rate=SG_rate),
-    #FIFO(input_rate=SG_rate),
-    # Note: num_tap_points = width * height / 4
-    # Advice: Ensure that total spike rate of TAT is < ~100MHz  (input_rate * num_tap_points < 100MHz)
-    #TapPointAndAERRX(input_rate=8000, width=64, height=64),
-    #Decode(soma_bias=somaBias, d_val=.0078125/dim, Dout=dim),
-    #AERTX(soma_bias=somaBias, d_val=.0078125),
-    # Don't worry about doing the DecodeEncode tests for paper power measurements
-    #DecodeEncode(soma_bias=75, d_val=.00125, Dint=16, taps_per_dim=8),
-    #DecodeEncode(width=64, height=64, soma_bias=100, d_val=.0015, Dint=16, taps_per_dim=16, is_recur=True),
-    #Static(),
-    ]
-
-#input("Press Enter to start experiments...\n")
-
-for idx, test in enumerate(tests):
-    print("================================================================================")
-    print("EXP: running test", idx)
-    print("EXP: " + test.description)
-    print("================================================================================")
-
-    test.results["start_time"] = time.time()
-    test.run()
-    input("Press Enter to continue experiments...\n")
-    test.results["end_time"] = time.time()
-
-    #V = input("please input mean voltage during trial > ")
-    #try:
-    #    V = float(V)
-    #except:
-    #    print("ERROR: that wasn't a number, try again")
-    #    V = input("please input mean voltage during trial > ")
-
-    #test.results["V"] = V
-
-    print("EXP: done")
-
+# Print the pickled file
 import pickle
 
 fname = "trial_data.pck"
-
-# load old tests to append to
-yn = input("append to old results (" + str(fname) + ") ? (y/n) > ")
-if yn == "n":
-    old_tests = []
-else:
-    pfile = open(fname, "rb")
-    old_tests = pickle.load(pfile)
-    pfile.close()
-
-# save test parameters and results
-pfile = open(fname, "wb")
-pickle.dump(old_tests + tests, pfile)
-pfile.close()
-
 
 def print_pickle(fname):
     pfile = open(fname, "rb")
