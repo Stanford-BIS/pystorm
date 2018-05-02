@@ -126,7 +126,7 @@ duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, 
 ###########################################
 # call HAL.set_input_rate() to program SGs for each bin/dim
 
-HAL.driver.SetSpikeFilterDebug(0, True)
+# HAL.driver.SetSpikeFilterDebug(0, True)
 
 # have to do this before set_input_rates, so we don't get stalled
 HAL.start_traffic(flush=False)
@@ -207,17 +207,17 @@ HAL.disable_spike_recording(flush=False)
 HAL.disable_output_recording(flush=True)
 
 
-for core in range(0,2):
-    print(core)
-    tags = D.RecvUnpackedTags(core)
-    tagmap = {}
-    for i in range(0, len(tags[0])):
-        if tags[1][i] != 2047:
-            if tags[1][i] not in tagmap:
-                tagmap[tags[1][i]] = 0
-            tagmap[tags[1][i]] += tags[0][i]
+# for core in range(0,2):
+#     print(core)
+#     tags = D.RecvUnpackedTags(core)
+#     tagmap = {}
+#     for i in range(0, len(tags[0])):
+#         if tags[1][i] != 2047:
+#             if tags[1][i] not in tagmap:
+#                 tagmap[tags[1][i]] = 0
+#             tagmap[tags[1][i]] += tags[0][i]
 
-    print(tagmap)
+#     print(tagmap)
 
 
 ###########################################
