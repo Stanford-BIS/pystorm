@@ -381,7 +381,7 @@ class Network(object):
 
         #parition network
         if num_cores > 1:
-            self.partition_network(num_cores)
+            self.partition_network(num_cores, verbose)
         else:
             for rec in self.get_hardware_resources():
                 rec.core_id = 0
@@ -411,7 +411,7 @@ class Network(object):
                             " connects to off core HWResource " + str(conn.tgt) + " on core " + str(conn.tgt.core_id))
         return 0
 
-    def partition_network(self, num_cores):
+    def partition_network(self, num_cores, verbose = False):
         #sort into stuff that has to go together
         graph_objects = self.get_hardware_resources()
         graph_tuples = []
@@ -474,11 +474,16 @@ class Network(object):
         # print(adjlist)
         # print(nodew)
         # print(part_tuple)
-        # print(core_assignments)
-        # for i in range(0,len(h_r_per_core)):
-        #     for j in range(0, len(h_r_per_core[i])):
-        #         print(h_r_per_core[i][j])
-        #     print("\n")
+        if(verbose):
+            print("Cores:")
+            for i in range(0,len(h_r_per_core)):
+                print("Core " + str(i))
+                for j in range(0, len(h_r_per_core[i])):
+                    print(h_r_per_core[i][j])
+            print("\n")
+            print("Core Assignments:")
+            print(core_assignments)
+
 
     def print_network(self, core_index_dict):
         index_dict = {} #i know this is jank but whatever
