@@ -2,6 +2,7 @@
 from time import sleep
 import numpy as np
 import pystorm
+import os
 from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.neuromorph.core import Core
 from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
@@ -46,6 +47,12 @@ class HAL:
     driver: Instance of pystorm.PyDriver Driver
     """
     def __init__(self, use_soft_driver=False):
+        #point to metis DLL
+        metispath = "/".join(
+            pystorm.__file__.split('/')[:-2])+"/lib/Debug/libmetis.so"
+
+        os.environ["METIS_DLL"] = metispath
+
         if use_soft_driver:
             self.driver = bd.BDModelDriver()
         else:

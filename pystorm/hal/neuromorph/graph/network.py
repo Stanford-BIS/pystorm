@@ -412,6 +412,7 @@ class Network(object):
         return 0
 
     def partition_network(self, num_cores, verbose = False):
+
         #sort into stuff that has to go together
         graph_objects = self.get_hardware_resources()
         graph_tuples = []

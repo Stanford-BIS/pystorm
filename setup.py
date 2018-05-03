@@ -37,6 +37,7 @@ setup(
         'numpy>=1.7',
         'rectpack>=0.2',
         'pyyaml>=3.12',
+        'metis>=0.1'
     ],
     include_package_data=True,
     zip_safe=False
