@@ -97,6 +97,8 @@ ideal_outputs = np.dot(transform, arr_counts)
 # map network
 print("calling map")
 HAL.map(net, verbose=True)
+# print("remapping")
+# HAL.map(net, verbose=True, remap=True)
 
 # old_time = D.GetFPGATime()
 # for n in range(0, 3):

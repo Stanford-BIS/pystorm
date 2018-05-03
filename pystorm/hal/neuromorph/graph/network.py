@@ -226,8 +226,8 @@ class Network(object):
             core = self.cores[i]
 
             if premapped_neuron_array is not None:
-                assert(isinstance(premapped_neuron_array, core.NeuronArray))
-                core.NeuronArray = premapped_neuron_array
+                assert(isinstance(premapped_neuron_array[i], n_core.NeuronArray))
+                core.NeuronArray = premapped_neuron_array[i]
                 if verbose:
                     print("  replaced core.neuron_array with premapped_neuron_array")
 
@@ -358,17 +358,16 @@ class Network(object):
         core: array of ready-to-program core objects
         """
 
-        # preserve old pool mapping, if necessary (how to keep this?)
-        # if keep_pool_mapping:
-        #     if self.cores is not None:
-        #         premapped_neuron_array = self.cores.neuron_array
-        #     else:
-        #         print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
-        #         premapped_neuron_array = None
-        # else:
-        #     premapped_neuron_array = None
+        # preserve old pool mapping, if necessary
+        if keep_pool_mapping:
+            if self.cores is not None:
+                premapped_neuron_array = [self.cores[i].neuron_array for i in range(0, num_cores)]
+            else:
+                print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
+                premapped_neuron_array = None
+        else:
+            premapped_neuron_array = None
         self.num_cores = num_cores
-        premapped_neuron_array = None
 
         # create new core
         self.cores = [0]*num_cores
