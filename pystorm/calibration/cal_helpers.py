@@ -92,11 +92,17 @@ def create_1xN_enc_NxN_dec_network(net, pool_id, width, height, d_weight, spk_ty
         p1 = net.create_pool("p%d" % pool_id, (N, [tap_list]))
 
         i1 = net.create_input("i%d" % pool_id, 1)
-        b1 = net.create_bucket("b%d" % pool_id, N)
-        o1 = net.create_output("o%d" % pool_id, N)
+        b1 = net.create_bucket("b%d" % pool_id, N // 4)
+        o1 = net.create_output("o%d" % pool_id, N // 4)
         
         net.create_connection("i%d_to_p%d" % (pool_id, pool_id), i1, p1, None)
-        decoders = np.eye(N) * d_weight
+        #decoders = np.eye(N) * d_weight
+        decoders = np.zeros((N // 4, N))
+        for iy, y in enumerate(range(0, height, 2)):
+            for ix, x in enumerate(range(0, width, 2)):
+                icol = y * width + x
+                irow = iy * (width // 2) + ix
+                decoders[irow, icol] = d_weight
         net.create_connection("p%d_to_b%d" % (pool_id, pool_id), p1, b1, decoders)
         net.create_connection("b%d_to_o%d" % (pool_id, pool_id), b1, o1, None)
     else:
@@ -104,6 +110,34 @@ def create_1xN_enc_NxN_dec_network(net, pool_id, width, height, d_weight, spk_ty
         p1 = net.create_pool("p%d" % pool_id, zero_encs)
     
     return(p1)
+
+def record_spikes(HAL, net, meas_int=5):
+    import time
+    import numpy as np
+
+    # Keep next two seconds
+    time.sleep(meas_int)
+    HAL.disable_output_recording()
+    HAL.stop_traffic()
+    res = HAL.get_outputs()  # [[t_ns, id_op(o1), dim(0), count], ...]
+    print(HAL.driver.GetOutputQueueCounts())
+    ovf = HAL.get_overflow_counts()
+    if ovf > 0:
+        print("WARNING: Overflow detected")
+    dims = np.array(np.unique(res[:, 2]), dtype=np.int)
+    print("[INFO]: Output from '%d' neurons, num spikes=%d" % (len(dims), res.shape[0]))
+
+    spk_data = {_dim:[] for _dim in dims}  # dict of dimensions
+    for _idx, _ent in enumerate(res):
+        _did = _ent[2]
+        if _ent[3] > 1:
+            print("[WARNING]: %d spikes in one time bin" % _ent[3])
+        for _sid in range(_ent[3]):
+            spk_data[_did].append(_ent[0])
+        
+    HAL.enable_output_recording()
+    HAL.start_traffic()
+    return (spk_data)
 
 def measure_rate(HAL, net, input_rate, sil_int=2, meas_int=5):
     import time
