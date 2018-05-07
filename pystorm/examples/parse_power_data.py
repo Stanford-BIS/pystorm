@@ -167,8 +167,8 @@ def PlotPowerSubRanges(PM_list, windowLen, vertical_lines=[], bin_count=100, sav
             print("[%s] Mean:\t%f\tAvg. Std Err of the Mean:\t%f\tSNR:\t%f"
                 % (curPlotLabel, u_mean, sigma_mean, SNR_mean))
 
-            vertical_lines, start_time, end_time = get_switch_times(curTimestamps,
-                    n_cycles=4, duration=10, skip_durations=3)
+            vertical_lines, _, _ = get_switch_times(curTimestamps,
+                    n_cycles=40, duration=20, skip_durations=3)
 
             ax1 = plt.subplot(221)
             PlotPowerVsTime(power_sub_sample, timestamps_sub_sample, curPlotLabel)
@@ -283,7 +283,7 @@ def GetAvgDifferenceOfMeans(PM_list, n_cycles, duration,
         save_path='', lbl_prefix=''):
     means = []
     for j, curPMs in enumerate(PM_list):
-        curLabel = save_path[j]+lbl_prefix+"Run"+curPMs[1]
+        curLabel = save_path[j]+lbl_prefix[j]+"Run"+curPMs[1]
         print("Test Run:=========\n{}".format(curLabel))
 
         powers, curIndices, curVoltages, curTimestamps = getPowerVals(curPMs[0])
@@ -317,6 +317,7 @@ def GetAvgDifferenceOfMeans(PM_list, n_cycles, duration,
         diff_of_means = np.array([np.abs(x1 - x2) for x1, x2 in zip(powers_interleaved_means, powers_interleaved_means[1:])])
         num_diff = len(diff_of_means)
         #print("Diff of Powers Means:\n{}".format(diff_of_means))
+        print("Number of difference pairs: {}".format(num_diff))
             
         # Calculuate the mean difference of mean powers
         mean_diff_of_mean_powers = np.mean(diff_of_means)
@@ -334,8 +335,20 @@ def GetAvgDifferenceOfMeans(PM_list, n_cycles, duration,
         var_mean_diff_of_mean_powers = (1/num_diff**2)*(1/num_samples)*sum_of_var 
         print("Var of Mean Diff of Mean Powers: {}".format(var_mean_diff_of_mean_powers))
         print("Std Dev of Mean Diff of Mean Powers: {}".format(np.sqrt(var_mean_diff_of_mean_powers)))
-        print("SNR: {}\n".format(mean_diff_of_mean_powers/np.sqrt(var_mean_diff_of_mean_powers)))
+        print("SNR: {}".format(mean_diff_of_mean_powers/np.sqrt(var_mean_diff_of_mean_powers)))
 
+        # sample half the samples from the diff of means list
+        bootstrap_means = []
+        for i in range(100):
+            bootstrap_means.append(np.mean(np.random.choice(diff_of_means, int(num_diff/2), replace=False)))
+            #if i%10 == 0:
+            #    print(np.var(bootstrap_means))
+
+        bootstrap_mean = np.mean(bootstrap_means)
+        bootstrap_var = np.var(bootstrap_means)
+        #print("Bootstrap Mean: {}\tBootstrap Var: {}".format(bootstrap_mean, bootstrap_var))
+        bootstrapped_SNR = mean_diff_of_mean_powers/np.sqrt(bootstrap_var)
+        print("Bootstrap SNR: {}\n".format(bootstrapped_SNR))
 
 def ComparePvsV(PM_list, VM_list, dc_offset=0.0, bin_count=100, save_path='', lbl_prefix=''):
     if len(PM_list)==len(VM_list):
@@ -435,86 +448,78 @@ def ComparePvsP(PM_list1, PM_list2, dc_offset=0.0, bin_count=100, save_path='', 
         print("ERROR: Power measuerment list & voltage measurement list have different lengths")
 
 index_array = [
-#        "000",
-        "001",
-#        "002",
-#        "003",
-        "004",
-#        "005",
-        "006",
-#        "007",
+##        "000",
+#        "001",
+##        "002",
+##        "003",
+#        "004",
+##        "005",
+#        "006",
+##        "007",
 #        "008",
-#        "009",
-#        "010",
-#        "011",
-#        "012",
-#        "013",
-#        "014",
-#        "015",
-#        "016",
-#        "017",
-#        "018",
-#        "019",
+##        "009",
+        "010",
+##        "011",
+##        "012",
+##        "013",
+##        "014",
+##        "015",
+##        "016",
+##        "017",
+##        "018",
+##        "019",
         ]
 test_type = [
         "FIFO_InputRate5MHz",
         "TapPoint_AERRX_InputRate8kHzW64H64",
 #        "Static",
         "Decode_SomaBias875_dVal0.0026_Dout3",
-#        "AERTX_SomaBias875_dVal0.0078125",
-#        "InputIO_InputRate5MHz",
+        "AERTX_SomaBias875_dVal0.0078125",
+        "InputIO_InputRate5MHz",
+        "AERRX_InputRate5MHz",
         ]
 #test_type = "InputIO_InputRate5MHz"
-#test_type = [
-#        "Static",
-#        "InputIO_InputRate5MHz",
-#        "Static",
-#        "InputIO_InputRate5MHz",
-#        "Static",
-#        "InputIO_InputRate5MHz",
-#        "Static",
-#        "InputIO_InputRate5MHz",
-#        ]
 #test_type = "Static_to_InputIO_InputRate5MHz"
-
-
 #test_type = "Static"
 
-test_type = "Decode_SomaBias875_dVal0.0026_Dout3"
-test_type = test_type + "_hiaccuracy_2.5kreadings"
-#test_type = "TapPoint_AERRX_InputRate8kHzW64H64"
-#test_type = test_type + "_hiaccuracy_20kreadings"
-#test_type = "FIFO_InputRate5MHz"
-#test_type = test_type + "_hiaccuracy_6kreadings"
+test_type = [
+#        "FIFO_InputRate5MHz_hiaccuracy_6kreadings",
+#        "TapPoint_AERRX_InputRate8kHzW64H64_hiaccuracy_20kreadings",
+#        "Decode_SomaBias875_dVal0.0026_Dout3_hiaccuracy_2.5kreadings",
+#        "AERTX_SomaBias875_dVal0.0078125_hiaccuracy_9kreadings",
+        "InputIO_InputRate5MHz_hiaccuracy_9kreadings",
+#        "AERRX_InputRate8kHzW64H64_hiaccuracy_20kreadings",
+        ]
 
 #test_type = "AERTX_SomaBias875_dVal0.0078125"
-
-#test_type = test_type + "_hiaccuracy_20kreadings"
 
 M1_list = []
 M2_list = []
 
-file_path = "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006"
-sv_path = "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006"
-
 file_path = [
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/InputIO_FIFO_Vdd1.006",
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/FIFO_TAT-AERRX_Vdd1.006", 
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/InputIO_FIFO_Vdd1.006",
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/FIFO_TAT-AERRX_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/KillNeurons_AERTX_Vdd1.006", 
+        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/Static_InputIO_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/Static_AERRX_Vdd1.006", 
         ]
 sv_path = [
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/InputIO_FIFO_Vdd1.006",
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/FIFO_TAT-AERRX_Vdd1.006",
-        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/InputIO_FIFO_Vdd1.006",
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/FIFO_TAT-AERRX_Vdd1.006",
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/AERTX_PAT+ACC_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/KillNeurons_AERTX_Vdd1.006", 
+        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/Static_InputIO_Vdd1.006", 
+#        "PowerMeasurements_BDTB2_Green1_22C_Paper_InterleavedPowerTests/Static_AERRX_Vdd1.006", 
         ]
 
 for i, idx in enumerate(index_array):
-    if len(file_path) == 1:
+    if isinstance(file_path, str):
         L1Measurements = getData(file_path+"/smua1buffer%s.csv" % (idx))
         M1_list.append((L1Measurements,idx))
         L2Measurements = getData(file_path+"/smub1buffer%s.csv" % (idx))
         M2_list.append((L2Measurements,idx))
-    elif len(file_path) > 1:
+    elif isinstance(file_path, list):
         L1Measurements = getData(file_path[i]+"/smua1buffer%s.csv" % (idx))
         M1_list.append((L1Measurements,idx))
         L2Measurements = getData(file_path[i]+"/smub1buffer%s.csv" % (idx))
@@ -526,18 +531,25 @@ for i, idx in enumerate(index_array):
 
 
 #PlotPowerFullRange(M1_list, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
-#PlotPowerEachFullRange(M1_list, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+PlotPowerEachFullRange(M1_list, save_path=sv_path[0], lbl_prefix=test_type[0]+"_1V0D_")
 #ComparePvsV(M1_list, M2_list, dc_offset=1.0, save_path=sv_path)
 #ComparePvsP(M2_list, M1_list, dc_offset=0.0, save_path=sv_path, lbl_prefix=test_type+"_1V0Avs1V0D_")
-#PlotPowerSubRanges(M1_list, 500, save_path=sv_path, lbl_prefix=test_type+"_1V0D_")
+PlotPowerSubRanges(M1_list, 1000, save_path=sv_path[0], lbl_prefix=test_type[0]+"_1V0D_")
 #PlotPowerSubRanges(M2_list, 10000, save_path=sv_path, lbl_prefix=test_type+"_1V0A_")
 #plt.show()
 
 # For all three power tests
-GetAvgDifferenceOfMeans(M1_list, [34, 43, 20], [15, 40, 10], skip_cycles=[3, 3, 3], num_ops=[5e6, 8e3*1024, 65594880], save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
-# For AERTX_PAT+ACC
-#GetAvgDifferenceOfMeans(M1_list, 20, 10, skip_cycles=3, num_ops=65594880, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
-# For FIFO_TAT-AERRX
-#GetAvgDifferenceOfMeans(M1_list, 43, 40, skip_cycles=3, num_ops=8e3*1024, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+#lbl_prefix_list = ["_"+tt+"_1V0D" for tt in test_type]
+#GetAvgDifferenceOfMeans(M1_list, [34, 43, 20, 40], [15, 40, 10, 20], skip_cycles=[3, 3, 3, 3], num_ops=[5e6, 8e3*1024, 65594880, 26915146], save_path=sv_path, lbl_prefix=lbl_prefix_list)
 # For InputIO_FIFO
 #GetAvgDifferenceOfMeans(M1_list, 34, 15, skip_cycles=3, num_ops=5e6, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+# For FIFO_TAT-AERRX
+#GetAvgDifferenceOfMeans(M1_list, 43, 40, skip_cycles=3, num_ops=8e3*1024, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+# For AERTX_PAT+ACC
+#GetAvgDifferenceOfMeans(M1_list, 20, 10, skip_cycles=3, num_ops=65594880, save_path=sv_path, lbl_prefix="_"+test_type+"_1V0D")
+# For KillNeurons_AERTX
+#GetAvgDifferenceOfMeans(M1_list, [40], [20], skip_cycles=[3], num_ops=[26915146], save_path=[sv_path], lbl_prefix="_"+test_type+"_1V0D")
+# For Static_InputIO
+GetAvgDifferenceOfMeans(M1_list, [40], [20], skip_cycles=[3], num_ops=[5000000], save_path=sv_path, lbl_prefix="_"+test_type[0]+"_1V0D")
+# For Static_AERRX
+#GetAvgDifferenceOfMeans(M1_list, [40], [20], skip_cycles=[3], num_ops=[5000000], save_path=[sv_path], lbl_prefix="_"+test_type+"_1V0D")
