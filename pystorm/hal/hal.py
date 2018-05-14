@@ -358,18 +358,21 @@ class HAL:
         # this call is deprecated, has the following effect
         self.map(self.last_mapped_network, remap=True)
 
-    def map(self, network, remap=False, verbose=False, num_cores = NUM_CORES):
+    def map(self, network, remap=False, verbose=False, num_cores = NUM_CORES, spread = 1, map_reqs = None):
         """Maps a Network to low-level HAL objects and returns mapping info.
 
         Parameters
         ----------
         network: pystorm.hal.neuromorph.graph Network object
         remap: reuse as much of the previous mapping as possible (e.g. pools will retain their physical locations on the chip)
+        num_cores: number of cores to map (default: num cores in system)
+        spread: how much the mapping software weights towards spreading (>1 more likely to spread, <1 less likely to spread)
+        map_reqs: list of (graph_obj, core) tuples of objects that need to be on a specific core, in order of priority (first to last)
         """
         print("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
-        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = NUM_CORES)
+        core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = num_cores, spread = spread, map_reqs = map_reqs)
 
         self.last_mapped_network = network
         self.last_mapped_cores = core

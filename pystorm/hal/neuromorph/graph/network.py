@@ -346,12 +346,15 @@ class Network(object):
 
         return outputs, dims, counts
 
-    def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1):
+    def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1, spread=1,  map_reqs=None):
         """Create Resources and map them to a Core
 
         Parameters
         ----------
         core_parameters: parameters of the Core to be created
+        num_cores: number of cores to map (default: num cores in system)
+        spread: how much the mapping software weights towards spreading (>1 more likely to spread, <1 less likely to spread)
+        map_reqs: list of (graph_obj, core) tuples of objects that need to be on a specific core, in order of priority (first to last)
 
         Returns
         -------
@@ -380,7 +383,7 @@ class Network(object):
 
         #parition network
         if num_cores > 1:
-            self.partition_network(num_cores, verbose)
+            self.partition_network(num_cores, verbose, spread, map_reqs)
         else:
             for rec in self.get_hardware_resources():
                 rec.core_id = 0
@@ -401,6 +404,7 @@ class Network(object):
     def sanity_check(self):
         #check 1:
         #the only connections from core to core should be TATFanouts
+        #Add a check for max resources per core?
         hardware_resources = self.get_hardware_resources()
         for rec in hardware_resources:
             if rec.__class__.__name__ != "TATFanout":
@@ -410,7 +414,7 @@ class Network(object):
                             " connects to off core HWResource " + str(conn.tgt) + " on core " + str(conn.tgt.core_id))
         return 0
 
-    def partition_network(self, num_cores, verbose = False):
+    def partition_network(self, num_cores, verbose = False, spread, map_reqs):
 
         #sort into stuff that has to go together
         graph_objects = self.get_hardware_resources()
@@ -442,7 +446,7 @@ class Network(object):
         #define connections between the groups
         adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict)
         #appoximate load-per-node using number of neurons (for load balancing)
-        nodew = self.get_load_weights(graph_tuples, nodes, index_dict)
+        nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread)
         #convert to metis
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
@@ -548,7 +552,8 @@ class Network(object):
             h_r_per_core[core_assignments[graph_tuple[1]]].append(graph_tuple[0])
         return h_r_per_core
 
-    def get_load_weights(self, graph_tuples, nodes, index_dict):
+    def get_load_weights(self, graph_tuples, nodes, index_dict, spread):
+        #load weights are decreased based on spread constant (to cause things to get more spread)
         weights = [0]*nodes #weight[node] = weight
         for i in range(0, nodes):
             for j in range(0, len(graph_tuples)):
@@ -557,7 +562,7 @@ class Network(object):
                 if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "Neurons":
                     #assuming neurons dominate internal load
                     weight = curr_obj.N #num neurons
-                    weights[i] += weight
+                    weights[i] += weight * spread
         return weights
 
     def get_connections_and_weights(self, graph_tuples, nodes, index_dict):
