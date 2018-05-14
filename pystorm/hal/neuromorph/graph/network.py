@@ -443,6 +443,9 @@ class Network(object):
             if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
         nodes += 1
 
+        #pre-metis mapping (put things that we want together in the same node)
+        #pre-metis mapping 2 (give high edge weights to things on diff nodes)
+
         #define connections between the groups
         adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict, np.floor(1/spread) if spread < 1 else 1)
         #appoximate load-per-node using number of neurons (for load balancing)
@@ -452,11 +455,12 @@ class Network(object):
         print(nodew)
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         # neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
-
         #call metis
         print("partitioning graph across " + str(num_cores) + " cores")
         ubvec = [100] * metis_graph.ncon.value
-        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, ubvec = ubvec, recursive=False, objtype='vol')
+        print(metis_graph.adjwgt)
+        print(metis_graph.vwgt)
+        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, ubvec = ubvec, recursive=False, objtype='vol', dbglvl = 4)
         core_assignments = part_tuple[1];
         print(part_tuple)
         #temporarily force split
