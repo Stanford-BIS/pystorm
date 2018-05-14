@@ -414,7 +414,7 @@ class Network(object):
                             " connects to off core HWResource " + str(conn.tgt) + " on core " + str(conn.tgt.core_id))
         return 0
 
-    def partition_network(self, num_cores, verbose = False, spread, map_reqs):
+    def partition_network(self, num_cores, verbose = False, spread = 1, map_reqs = None):
 
         #sort into stuff that has to go together
         graph_objects = self.get_hardware_resources()
@@ -459,7 +459,8 @@ class Network(object):
         # core_assignments = [0, 1]
 
         #split resources up based on core
-        h_r_per_core = self.make_sub_resources(graph_tuples, core_assignments, num_cores)
+        h_r_per_core = self.make_sub_resources(graph_tuples, core_assignments, num_cores, map_reqs, verbose)
+
         core_index_dict = {} #i know this is still bad practice, fight me
         for i in range(0, len(h_r_per_core)):
             for resource in h_r_per_core[i]: 
@@ -484,9 +485,9 @@ class Network(object):
                 print("Core " + str(i))
                 for j in range(0, len(h_r_per_core[i])):
                     print(h_r_per_core[i][j])
-            print("\n")
-            print("Core Assignments:")
-            print(core_assignments)
+            # print("\n")
+            # print("Core Assignments:")
+            # print(core_assignments)
 
 
     def print_network(self, core_index_dict):
@@ -546,10 +547,30 @@ class Network(object):
                         new_h_r_per_core[i].append(temp_fanout)
         return new_h_r_per_core
 
-    def make_sub_resources(self, graph_tuples, core_assignments, num_cores):
+    def make_sub_resources(self, graph_tuples, core_assignments, num_cores, map_reqs, verbose):
+        #create HW resources per core
         h_r_per_core = [[] for _ in range(num_cores)]
         for graph_tuple in graph_tuples:
             h_r_per_core[core_assignments[graph_tuple[1]]].append(graph_tuple[0])
+
+        #attempt to reorder cores based on reqs
+        locked = [0]*num_cores #lock-in cores
+        if map_reqs is not None:
+            for req in map_reqs:
+                for k, v in req[0].resources.items():
+                    for i in range(len(h_r_per_core)):
+                        if v in h_r_per_core[i]:
+                            core_id = i
+                    if req[1] != core_id:
+                        if locked[core_id] != 0:
+                            if verbose: print("Unable to place " + str(req[0]) + " on core " + str(req[1]))
+                        else:
+                            #swap and lock core
+                            if verbose: print("Manually placed " + str(req[0]) + " on core " + str(req[1]))
+                            temp = h_r_per_core[core_id]
+                            h_r_per_core[core_id] = h_r_per_core[i]
+                            h_r_per_core[i] = temp
+                            locked[core_id] = 1
         return h_r_per_core
 
     def get_load_weights(self, graph_tuples, nodes, index_dict, spread):
