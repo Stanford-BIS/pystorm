@@ -96,7 +96,8 @@ ideal_outputs = np.dot(transform, arr_counts)
 
 # map network
 print("calling map")
-HAL.map(net, verbose=True)
+reqs = [(b2, 1), (b1, 0)]
+HAL.map(net, verbose=True, spread = 1, map_reqs = reqs)
 # print("remapping")
 # HAL.map(net, verbose=True, remap=True)
 

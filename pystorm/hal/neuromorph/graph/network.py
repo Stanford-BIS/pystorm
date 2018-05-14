@@ -444,10 +444,12 @@ class Network(object):
         nodes += 1
 
         #define connections between the groups
-        adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict)
+        adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict, np.floor(1/spread) if spread < 1 else 1)
         #appoximate load-per-node using number of neurons (for load balancing)
-        nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread)
+        nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread if spread > 1 else 1)
         #convert to metis
+        print(adjlist)
+        print(nodew)
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
 
@@ -562,15 +564,17 @@ class Network(object):
                         if v in h_r_per_core[i]:
                             core_id = i
                     if req[1] != core_id:
-                        if locked[core_id] != 0:
-                            if verbose: print("Unable to place " + str(req[0]) + " on core " + str(req[1]))
+                        if locked[core_id] != 0 or locked[req[1]] != 0:
+                            if verbose: 
+                                print("Unable to place " + str(req[0]) + " on core " + str(req[1]))
                         else:
                             #swap and lock core
-                            if verbose: print("Manually placed " + str(req[0]) + " on core " + str(req[1]))
+                            if verbose: 
+                                print("Manually placed " + str(req[0]) + " on core " + str(req[1]))
                             temp = h_r_per_core[core_id]
-                            h_r_per_core[core_id] = h_r_per_core[i]
-                            h_r_per_core[i] = temp
-                            locked[core_id] = 1
+                            h_r_per_core[core_id] = h_r_per_core[req[1]]
+                            h_r_per_core[req[1]] = temp
+                            locked[req[1]] = 1
         return h_r_per_core
 
     def get_load_weights(self, graph_tuples, nodes, index_dict, spread):
@@ -583,10 +587,10 @@ class Network(object):
                 if graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "Neurons":
                     #assuming neurons dominate internal load
                     weight = curr_obj.N #num neurons
-                    weights[i] += weight * spread
+                    weights[i] += int(weight * spread)
         return weights
 
-    def get_connections_and_weights(self, graph_tuples, nodes, index_dict):
+    def get_connections_and_weights(self, graph_tuples, nodes, index_dict, spread):
         #weight of src->dest = weights[src][dest] ***zero indexed now***
         weights = [[0 for _ in range(nodes)] for _ in range(nodes)]
 
@@ -601,7 +605,7 @@ class Network(object):
                     for conn in out_conns:
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
-                            weights[i][graph_tuples[k][1]] += out_weight;
+                            weights[i][graph_tuples[k][1]] += int(out_weight * spread);
                 elif graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "TATFanout":
                     #assuming traffic is linearly dependant on number of dimensions
                     out_weight = curr_obj.dimensions_in
@@ -609,7 +613,7 @@ class Network(object):
                     for conn in out_conns:
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
-                            weights[i][graph_tuples[k][1]] += out_weight;
+                            weights[i][graph_tuples[k][1]] += int(out_weight * spread);
 
         #convert to tuples
         weight_tuples = []
