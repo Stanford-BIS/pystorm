@@ -121,7 +121,7 @@ o2 = net.create_output("o2", Dout)
 
 net.create_connection("c_b2_to_p1", b2, p1, None)
 net.create_connection("c_i1_to_b2", i1, b2, np.identity(Din))
-net.create_connection("c_b2_to_p2", b2, p1, None)
+net.create_connection("c_b2_to_p2", b2, p2, None)
 net.create_connection("c_p2_to_b3", p2, b3, decoders)
 net.create_connection("c_b3_to_o2", b3, o2, None)
 decoder_conn = net.create_connection("c_p1_to_b1", p1, b1, decoders)
@@ -132,8 +132,8 @@ net.create_connection("c_b1_to_o1", b1, o1, None)
 
 # map network
 print("calling map")
-reqs = [(p1, 0), (p2, 1)]
-HAL.map(net, verbose = True, spread = 1, map_reqs = reqs)
+# reqs = [(p1, 0), (p2, 1)]
+HAL.map(net, verbose = True, spread = 0.000000001)#, map_reqs = reqs)
 
 ###########################################
 # compute sweep bins

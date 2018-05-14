@@ -451,12 +451,14 @@ class Network(object):
         print(adjlist)
         print(nodew)
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
-        neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
+        # neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
 
         #call metis
         print("partitioning graph across " + str(num_cores) + " cores")
-        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, tpwgts=neuron_constraints, recursive=False, objtype='vol')
+        ubvec = [100] * metis_graph.ncon.value
+        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, ubvec = ubvec, recursive=False, objtype='vol')
         core_assignments = part_tuple[1];
+        print(part_tuple)
         #temporarily force split
         # core_assignments = [0, 1]
 
