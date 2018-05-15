@@ -132,8 +132,8 @@ net.create_connection("c_b1_to_o1", b1, o1, None)
 
 # map network
 print("calling map")
-# reqs = [(p1, 0), (p2, 1)]
-HAL.map(net, verbose = True, spread = 0.000000001)#, map_reqs = reqs)
+reqs = [(p1, 0), (p2, 1)]
+HAL.map(net, verbose = True, spread = 1, map_reqs = reqs)
 
 ###########################################
 # compute sweep bins

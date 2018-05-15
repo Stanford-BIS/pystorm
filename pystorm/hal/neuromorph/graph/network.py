@@ -451,16 +451,11 @@ class Network(object):
         #appoximate load-per-node using number of neurons (for load balancing)
         nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread if spread > 1 else 1)
         #convert to metis
-        print(adjlist)
-        print(nodew)
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         # neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
         #call metis
         print("partitioning graph across " + str(num_cores) + " cores")
-        ubvec = [100] * metis_graph.ncon.value
-        print(metis_graph.adjwgt)
-        print(metis_graph.vwgt)
-        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, ubvec = ubvec, recursive=False, objtype='vol', dbglvl = 4)
+        part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, recursive=False, objtype='cut')
         core_assignments = part_tuple[1];
         print(part_tuple)
         #temporarily force split
