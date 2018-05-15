@@ -346,7 +346,7 @@ class Network(object):
 
         return outputs, dims, counts
 
-    def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1, spread=1,  map_reqs=None):
+    def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1, spread=1,  map_reqs=None, req_strength = 1000):
         """Create Resources and map them to a Core
 
         Parameters
@@ -383,7 +383,7 @@ class Network(object):
 
         #parition network
         if num_cores > 1:
-            self.partition_network(num_cores, verbose, spread, map_reqs)
+            self.partition_network(num_cores, verbose, spread, map_reqs, req_strength)
         else:
             for rec in self.get_hardware_resources():
                 rec.core_id = 0
@@ -414,7 +414,7 @@ class Network(object):
                             " connects to off core HWResource " + str(conn.tgt) + " on core " + str(conn.tgt.core_id))
         return 0
 
-    def partition_network(self, num_cores, verbose = False, spread = 1, map_reqs = None):
+    def partition_network(self, num_cores, verbose = False, spread = 1, map_reqs = None, req_strength = 1000):
 
         #sort into stuff that has to go together
         graph_objects = self.get_hardware_resources()
@@ -444,10 +444,9 @@ class Network(object):
         nodes += 1
 
         #define connections between the groups
-        adjlist = self.get_connections_and_weights(graph_tuples, nodes, num_cores, index_dict, np.floor(1/spread) if spread < 1 else 1, map_reqs)
+        adjlist = self.get_connections_and_weights(graph_tuples, nodes, num_cores, index_dict, np.floor(1/spread) if spread < 1 else 1, map_reqs, req_strength)
         #appoximate load-per-node using number of neurons (for load balancing) **Add other resource weights?**
         nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread if spread > 1 else 1)
-        print(adjlist)
         #convert to metis
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         # neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
@@ -455,7 +454,7 @@ class Network(object):
         print("partitioning graph across " + str(num_cores) + " cores")
         part_tuple = metis.part_graph(graph=metis_graph, nparts=num_cores, recursive=False, objtype='cut')
         core_assignments = part_tuple[1];
-        print(part_tuple)
+        # print(part_tuple)
         #temporarily force split
         # core_assignments = [0, 1]
 
@@ -589,7 +588,7 @@ class Network(object):
                     weights[i] += int(weight * spread)
         return weights
 
-    def get_connections_and_weights(self, graph_tuples, nodes, num_cores, index_dict, spread, map_reqs):
+    def get_connections_and_weights(self, graph_tuples, nodes, num_cores, index_dict, spread, map_reqs, req_strength):
         #weight of src->dest = weights[src][dest] ***zero indexed now***
         weights = [[0 for _ in range(nodes)] for _ in range(nodes)]
 
@@ -616,17 +615,14 @@ class Network(object):
                             weights[i][graph_tuples[k][1]] += int(out_weight * spread);
                             weights[graph_tuples[k][1]][i] += int(out_weight * spread);
 
-        #if two things are supposed to be together, add 1000 to their conn weight
-        #if two things are supposed to be apart, subtract 1000 to their conn weight
-        #make these numbers parameterized
+        #if two things are supposed to be together, add req_strength to their conn weight
+        #if two things are supposed to be apart, subtract req_strength to their conn weight
         if map_reqs is not None:
-            attract = 1000
-            repel = -1000
+            attract = req_strength
+            repel = -1 * req_strength
             reqs = [[] for _ in range(num_cores)]
             for req in map_reqs:
                 reqs[req[1]].append(req[0])
-
-            print(reqs)
             for core in reqs:
                 for i in core:
                     for key1, val in i.resources.items():
@@ -643,8 +639,6 @@ class Network(object):
                                         k = index_dict[v]
                                         m = index_dict[val]
                                         weights[graph_tuples[m][1]][graph_tuples[k][1]] += repel
-
-            print(weights)
 
         #convert to tuples
         weight_tuples = []
