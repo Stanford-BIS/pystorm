@@ -443,13 +443,11 @@ class Network(object):
             if graph_tuples[i][1] > nodes: nodes = graph_tuples[i][1]
         nodes += 1
 
-        #pre-metis mapping (put things that we want together in the same node)
-        #pre-metis mapping 2 (give high edge weights to things on diff nodes)
-
         #define connections between the groups
-        adjlist = self.get_connections_and_weights(graph_tuples, nodes, index_dict, np.floor(1/spread) if spread < 1 else 1)
-        #appoximate load-per-node using number of neurons (for load balancing)
+        adjlist = self.get_connections_and_weights(graph_tuples, nodes, num_cores, index_dict, np.floor(1/spread) if spread < 1 else 1, map_reqs)
+        #appoximate load-per-node using number of neurons (for load balancing) **Add other resource weights?**
         nodew = self.get_load_weights(graph_tuples, nodes, index_dict, spread if spread > 1 else 1)
+        print(adjlist)
         #convert to metis
         metis_graph = metis.adjlist_to_metis(adjlist, nodew)
         # neuron_constraints = [1/num_cores] * num_cores #assuming all cores have the same weights
@@ -591,7 +589,7 @@ class Network(object):
                     weights[i] += int(weight * spread)
         return weights
 
-    def get_connections_and_weights(self, graph_tuples, nodes, index_dict, spread):
+    def get_connections_and_weights(self, graph_tuples, nodes, num_cores, index_dict, spread, map_reqs):
         #weight of src->dest = weights[src][dest] ***zero indexed now***
         weights = [[0 for _ in range(nodes)] for _ in range(nodes)]
 
@@ -607,6 +605,7 @@ class Network(object):
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
                             weights[i][graph_tuples[k][1]] += int(out_weight * spread);
+                            weights[graph_tuples[k][1]][i] += int(out_weight * spread);
                 elif graph_tuples[j][1] == i and curr_obj.__class__.__name__ == "TATFanout":
                     #assuming traffic is linearly dependant on number of dimensions
                     out_weight = curr_obj.dimensions_in
@@ -615,6 +614,37 @@ class Network(object):
                         k = index_dict[conn.tgt]
                         if graph_tuples[k][1] != i:
                             weights[i][graph_tuples[k][1]] += int(out_weight * spread);
+                            weights[graph_tuples[k][1]][i] += int(out_weight * spread);
+
+        #if two things are supposed to be together, add 1000 to their conn weight
+        #if two things are supposed to be apart, subtract 1000 to their conn weight
+        #make these numbers parameterized
+        if map_reqs is not None:
+            attract = 1000
+            repel = -1000
+            reqs = [[] for _ in range(num_cores)]
+            for req in map_reqs:
+                reqs[req[1]].append(req[0])
+
+            print(reqs)
+            for core in reqs:
+                for i in core:
+                    for key1, val in i.resources.items():
+                        for j in core:
+                            if i != j:
+                                for key, v in j.resources.items():
+                                    k = index_dict[v]
+                                    m = index_dict[val]
+                                    weights[graph_tuples[m][1]][graph_tuples[k][1]] += attract
+                        for other_core in reqs:
+                            if core != other_core:
+                                for j in other_core:
+                                    for key, v in j.resources.items():
+                                        k = index_dict[v]
+                                        m = index_dict[val]
+                                        weights[graph_tuples[m][1]][graph_tuples[k][1]] += repel
+
+            print(weights)
 
         #convert to tuples
         weight_tuples = []
