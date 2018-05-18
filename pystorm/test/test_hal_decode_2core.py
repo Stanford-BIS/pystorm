@@ -132,7 +132,7 @@ net.create_connection("c_b1_to_o1", b1, o1, None)
 
 # map network
 print("calling map")
-reqs = [(p1, 1), (p2, 1)]
+reqs = [(p1, 1), (p2, 0)]
 HAL.map(net, verbose = True, spread = 1, map_reqs = reqs, req_strength = 100)
 
 ###########################################
