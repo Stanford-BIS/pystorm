@@ -142,9 +142,7 @@ class HAL:
     def start_hardware(self):
         """Starts the driver"""
         comm_state = self.driver.Start()
-        if comm_state < 0:
-            print("Comm failed to init fully, exiting")
-            exit(0)
+        assert comm_state >= 0, "Comm failed to init"
 
     def stop_hardware(self):
         """Stops the driver"""
