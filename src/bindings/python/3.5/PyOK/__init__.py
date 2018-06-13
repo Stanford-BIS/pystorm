@@ -63,3 +63,18 @@ def InitOK(fpga_bitcode):
         print("FrontPanel support is not enabled")
         return None
     return dev
+
+
+def GetFPGASerialNumber():
+    dev = okCFrontPanel()
+    m_devInfo = okTDeviceInfo()
+
+    if dev.OpenBySerial("") != ErrorCode.NoError:
+        print("Device could not be opened. Is one connected?")
+        return None
+
+    dev.GetDeviceInfo(m_devInfo)
+    print("Received FPGA Serial Number: %s" % m_devInfo.serialNumber)
+    return m_devInfo.serialNumber
+
+
