@@ -7,6 +7,7 @@
 #include "common/MutexBuffer.h"
 #include "common/vector_util.h"
 #include <okFrontPanelDLL.h>
+//#include <string>
 
 namespace pystorm {
 namespace bddriver {
@@ -43,6 +44,9 @@ public:
     CommStreamState GetStreamState() { return m_state; }
     MutexBuffer<COMMWord>* getReadBuffer() { return m_read_buffer; }
     MutexBuffer<COMMWord>* getWriteBuffer() { return m_write_buffer; }
+
+    /// Create getter function for HW ID, which in the case of the OK, is a serial number
+    std::string GetHWID();
 
 protected:
   MutexBuffer<COMMWord>* m_read_buffer;

@@ -534,6 +534,30 @@ bool Driver::SetToggleDump(unsigned int core_id, bdpars::BDHornEP reg_id, bool e
   return dump_en;
 }
 
+/// Return the hardware identifier
+std::string Driver::GetHWID() {
+  std::string hw_id;
+
+#ifdef BD_COMM_TYPE_SOFT
+  cout << "Setting HW ID for CommSoft to soft_id" << endl;
+  hw_id = comm_->GetHWID();
+#elif BD_COMM_TYPE_USB
+  cout << "Setting HW ID for CommSoft to usb_id" << endl;
+  hw_id = "usb_id";
+#elif BD_COMM_TYPE_MODEL
+  cout << "Setting HW ID for BDModelComm to model_id" << endl;
+  hw_id = comm_->GetHWID();
+#elif BD_COMM_TYPE_OPALKELLY
+  cout << "Setting HW ID for OK to Opal Kelly Serial Number" << endl;
+  hw_id = comm_->GetHWID();
+#else
+  cout << "Improper Comm type defined, no HW ID identifiable" << endl;
+  assert(false && "unhandled comm_type");
+#endif
+
+  return hw_id;
+}
+
 /// Turn on tag traffic in datapath (also calls Start/KillSpikes)
 void Driver::SetTagTrafficState(unsigned int core_id, bool en, bool flush) {
 

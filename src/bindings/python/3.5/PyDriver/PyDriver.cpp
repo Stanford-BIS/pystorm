@@ -446,6 +446,9 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvUnpackedTags", &Driver::RecvUnpackedTags, "Receive unpacked tags from both tag output leaves, the Acc and TAT\nreturns {counts, tags, routes, times}", py::arg("core_id"), py::arg("timeout_us")=1000);
     cl.def("GetOutputQueueCounts", &Driver::GetOutputQueueCounts, "Returns the total number of elements in each output queue");
 
+    // added manually
+    cl.def("GetHWID", &Driver::GetHWID, "Returns the unique hardware identifier for the comm hardware");
+
     cl.def("GetRegState", (const struct std::pair<const unsigned long, bool> (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::Driver::GetRegState, "Get register contents by name.\n\nC++: pystorm::bddriver::Driver::GetRegState(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const --> const struct std::pair<const unsigned long, bool>", py::arg("core_id"), py::arg("reg_id"));
     cl.def("GetMemState", (const class std::vector<unsigned long, class std::allocator<unsigned long> > * (pystorm::bddriver::Driver::*)(pystorm::bddriver::bdpars::BDMemId, unsigned int) const) &pystorm::bddriver::Driver::GetMemState, "Get software state of memory contents: this DOES NOT dump the memory.\n\nC++: pystorm::bddriver::Driver::GetMemState(pystorm::bddriver::bdpars::BDMemId, unsigned int) const --> const class std::vector<unsigned long, class std::allocator<unsigned long> > *", py::return_value_policy::automatic, py::arg("mem_id"), py::arg("core_id"));
   }

@@ -35,6 +35,8 @@ class CommBDModel : public Comm {
   MutexBuffer<COMMWord>* getReadBuffer() { return read_buffer_; }
   MutexBuffer<COMMWord>* getWriteBuffer() { return write_buffer_; }
 
+  /// Create getter function for HW ID, which in the case of the OK, is a serial number
+  std::string GetHWID();
  private:
   // I can't think of how this would be subclassed, so private
   
