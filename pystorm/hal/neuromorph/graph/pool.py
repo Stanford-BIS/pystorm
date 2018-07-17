@@ -1,4 +1,4 @@
-from .graph_object import GraphObject, ConnectionTypeError, FanoutError
+from .graph_object import GraphObject
 import pystorm.hal.neuromorph.hardware_resources as hwr
 
 import numpy as np

@@ -1,20 +1,34 @@
 from abc import ABC, abstractmethod
 
 # GraphObject-specific exceptions
-class ConnectionTypeError(Exception):
-    def __init__(input_obj, output_obj):
+class GraphObjectError(Exception):
+    """Base class for GraphObject Exceptions"""
+    name = "graph_object.py"
+
+class ConnectionTypeError(GraphObjectError):
+    """Exception to raise when connected GraphObject types are incompatible"""
+    def __init__(self, input_obj, output_obj):
         self.input_obj = input_obj
         self.output_obj = output_obj
-        self.message(str(type(self.input_obj)) + " can't be connected to " + str(type(self.output_obj)) + ".\n" +
-                "tried to connect" + self.input_obj.get_label() + " to " + self.output_obj.get_label())
+        self.message = (
+            str(type(self.input_obj)) + " can't be connected to " +
+            str(type(self.output_obj)) + ".\n" + "tried to connect" +
+            self.input_obj.get_label() + " to " + self.output_obj.get_label())
+    def __str__(self):
+        return self.message
 
-class FanoutError(Exception):
-    def __init__(obj, fanout, max_fanout=1):
+class FanoutError(GraphObjectError):
+    """Exception to raise when a GraphObject's fanout is too large"""
+    def __init__(self, obj, max_fanout=1):
         self.obj = obj
         self.fanout = len(obj.out_conns)
-        self.message(self.obj.get_label() + " of type " + type(self.obj) +
-                " can only have fanout of " + str(max_fanout) + ". Tried making fanout of " + str(self.fanout))
-
+        self.max_fanout = max_fanout
+        self.message = (
+            self.obj.get_label() + " of type " + str(type(self.obj)) +
+            " can only have max fanout of " + str(self.max_fanout) +
+            " but tried making fanout of " + str(self.fanout))
+    def __str__(self):
+        return self.message
 
 class GraphObject(ABC):
     def __init__(self, label):
@@ -68,7 +82,7 @@ class GraphObject(ABC):
     # we want to ensure we don't clobber any resources
     def _append_resource(self, key, resource):
         key = self.__check_key(key)
-        
+
         if key in self.resources:
             print("tried to add the same resource key twice")
             print("  to ", self.label, self)
@@ -104,6 +118,3 @@ class GraphObject(ABC):
     def _check_conn_from_type(self, src, allowed_types):
         if type(src).__name__ not in allowed_types:
             raise ConnectionTypeError(src, self)
-
-
-

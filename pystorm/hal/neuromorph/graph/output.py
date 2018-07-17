@@ -17,7 +17,7 @@ class Output(GraphObject):
 
     def create_connection_resources(self):
         if (len(self.out_conns) > 0):
-            raise FanoutError(len(self.out_conns), 0)
+            raise FanoutError(self, max_fanout=0)
 
     def _connect_from(self, src, src_resource_key, conn):
         self._check_conn_from_type(src, ["Bucket"])
