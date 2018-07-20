@@ -19,7 +19,7 @@ class Pool(GraphObject):
     y: int
         neuron pool is physically a rectangle; y dimension of neuron pool
     """
-    def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0):
+    def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0, user_xy_loc=(None, None)):
         super(Pool, self).__init__(label)
         self.label = label
         self.encoders = encoders
@@ -32,6 +32,7 @@ class Pool(GraphObject):
 
         self.x = x
         self.y = y
+        self.user_xy_loc = user_xy_loc
         self.gain_divisors = gain_divisors
         self.biases = biases
 
@@ -67,7 +68,7 @@ class Pool(GraphObject):
     def create_intrinsic_resources(self):
         # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
         self._append_resource("TATTapPoint", hwr.TATTapPoint(self.encoders))
-        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases))
+        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, self.user_xy_loc))
 
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
 

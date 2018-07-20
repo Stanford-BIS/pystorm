@@ -165,7 +165,7 @@ class Neurons(Resource):
 
     pool_yx_to_aer = None
 
-    def __init__(self, y, x, gain_divisors, biases):
+    def __init__(self, y, x, gain_divisors, biases, xy_loc=(None, None)):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
@@ -183,10 +183,9 @@ class Neurons(Resource):
 
         # allocate
         # y and x locations in units of minimum pool x and y dimensions
+        self.x_loc, self.y_loc = xy_loc # user can specify (for all pools only)
         self.py_loc = None
         self.px_loc = None
-        self.y_loc = None
-        self.x_loc = None
 
         # posttranslate
         self.PAT_contents = None

@@ -467,6 +467,10 @@ class NeuronArray(object):
         self.biases = np.zeros((self.y, self.x), dtype='int')
         self.nrns_used = np.zeros((self.y, self.x), dtype='int')
 
+        # whether the user is supplying xy locations for all pools 
+        # or whether the rectpacker is used
+        self.user_specified_alloc = False
+
     def add_pool(self, pool):
         self.alloc.add_pool(pool.py, pool.px, id(pool))
 
@@ -476,7 +480,16 @@ class NeuronArray(object):
         Returns the start coordinates of the pool in units of minimum pool size
         """
         # coordinates and dimensions in units of minimum pool size
-        py, px, pw, ph = self.alloc.allocate(id(pool))
+        if pool.x_loc is None and pool.y_loc is None:
+            assert(not self.user_specified_alloc and "either specify xy for all pools or none")
+            py, px, pw, ph = self.alloc.allocate(id(pool))
+        else:
+            self.user_specified_alloc = True
+            py = pool.y_loc // self.pool_size_y
+            px = pool.x_loc // self.pool_size_x
+            pw = pool.x // self.pool_size_x
+            ph = pool.y // self.pool_size_y
+
         #print("in NeuronArray allocate for", id(pool))
         #print(py, px, ph, pw)
         self.pool_allocations[pool] = dict(py=py, px=px, pw=pw, ph=ph)
