@@ -304,6 +304,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def_readwrite("CloseDiffusorAllCuts", &pystorm::bddriver::Driver::CloseDiffusorAllCuts);
 
     // XY versions of calls, added manually
+    cl.def("OpenDiffusorCutXY", &pystorm::bddriver::Driver::OpenDiffusorCutXY);
+    cl.def("CloseDiffusorCutXY", &pystorm::bddriver::Driver::CloseDiffusorCutXY);
     cl.def("EnableSomaXY", &Driver::EnableSomaXY);
     cl.def("DisableSomaXY", &Driver::DisableSomaXY);
     cl.def("SetSomaGainXY", &Driver::SetSomaGainXY);

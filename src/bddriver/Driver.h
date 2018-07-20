@@ -427,6 +427,16 @@ class Driver {
                 std::placeholders::_3,
                 bdpars::DiffusorCutStatusId::CLOSE);
 
+  void OpenDiffusorCutXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::DiffusorCutLocationId cut_id) {
+      unsigned int tile_id = BDPars_.GetMemAERAddr(x, y);
+      OpenDiffusorCut(core_id, tile_id, cut_id);
+  }
+
+  void CloseDiffusorCutXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::DiffusorCutLocationId cut_id) {
+      unsigned int tile_id = BDPars_.GetMemAERAddr(x, y);
+      CloseDiffusorCut(core_id, tile_id, cut_id);
+  }
+
   /// Set all the diffusor cuts' status for a tile
   void SetDiffusorAllCutsStatus(unsigned int core_id, unsigned int tile_id,
       bdpars::DiffusorCutStatusId status);

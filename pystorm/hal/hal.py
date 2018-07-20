@@ -378,10 +378,12 @@ class HAL:
 
         for pool, pool_allocation in core.neuron_array.pool_allocations.items():
             # convert minimum pool units into tile units
+            # a pool consists of 4 (2x2 tiles)
+            # XXX this constant of 2 shouldn't be hardcoded
             x_min = pool_allocation['px']*2
-            x_max = pool_allocation['px']*2+pool_allocation['pw']*2-1
             y_min = pool_allocation['py']*2
-            y_max = pool_allocation['py']*2+pool_allocation['ph']*2-1
+            x_max = x_min + pool_allocation['pw']*2
+            y_max = y_min + pool_allocation['ph']*2
 
             #print("x_min", x_min)
             #print("x_max", x_max)
@@ -389,27 +391,23 @@ class HAL:
             #print("y_max", y_max)
 
             # cut top edge
-            for x_idx in range(x_min, x_max+1):
-                tile_id = x_idx + y_min*core.NeuronArray_width_in_tiles
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+            for x_idx in range(x_min, x_max):
+                self.driver.OpenDiffusorCutXY(CORE_ID, x_idx, y_max-1, DIFFUSOR_NORTH_LEFT)
+                self.driver.OpenDiffusorCutXY(CORE_ID, x_idx, y_max-1, DIFFUSOR_NORTH_RIGHT)
             # cut left edge
-            for y_idx in range(y_min, y_max+1):
-                tile_id = x_min + y_idx*core.NeuronArray_width_in_tiles
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+            for y_idx in range(y_min, y_max):
+                self.driver.OpenDiffusorCutXY(CORE_ID, x_min, y_idx, DIFFUSOR_WEST_TOP)
+                self.driver.OpenDiffusorCutXY(CORE_ID, x_min, y_idx, DIFFUSOR_WEST_BOTTOM)
             # cut bottom edge if not at edge of neuron array
             if y_max < core.NeuronArray_height_in_tiles-1:
-                for x_idx in range(x_min, x_max+1):
-                    tile_id = x_idx + y_max+1*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_LEFT)
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_NORTH_RIGHT)
+                for x_idx in range(x_min, x_max):
+                    self.driver.OpenDiffusorCutXY(CORE_ID, x_idx, y_max, DIFFUSOR_NORTH_LEFT)
+                    self.driver.OpenDiffusorCutXY(CORE_ID, x_idx, y_max, DIFFUSOR_NORTH_RIGHT)
             # cut right edge if not at edge of neuron array
             if x_max < core.NeuronArray_width_in_tiles-1:
-                for y_idx in range(y_min, y_max+1):
-                    tile_id = x_max+1 + y_idx*core.NeuronArray_width_in_tiles
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_TOP)
-                    self.driver.OpenDiffusorCut(CORE_ID, tile_id, DIFFUSOR_WEST_BOTTOM)
+                for y_idx in range(y_min, y_max):
+                    self.driver.OpenDiffusorCutXY(CORE_ID, x_max, y_idx, DIFFUSOR_WEST_TOP)
+                    self.driver.OpenDiffusorCutXY(CORE_ID, x_max, y_idx, DIFFUSOR_WEST_BOTTOM)
 
         # enable somas inside pool
         # remember, x_min/x_max are tile units, 16 neurons per tile
