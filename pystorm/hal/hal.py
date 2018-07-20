@@ -6,6 +6,10 @@ from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.neuromorph.core import Core
 from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
 DIFFUSOR_WEST_TOP = bd.bdpars.DiffusorCutLocationId.WEST_TOP
@@ -65,7 +69,7 @@ class HAL:
         self.init_hardware()
 
     def init_hardware(self):
-        print("HAL: clearing hardware state")
+        logger.info("HAL: clearing hardware state")
 
         # stop spikes before resetting
         #self.stop_all_inputs()
@@ -326,7 +330,7 @@ class HAL:
         network: pystorm.hal.neuromorph.graph Network object
         remap: reuse as much of the previous mapping as possible (e.g. pools will retain their physical locations on the chip)
         """
-        print("HAL: doing logical mapping")
+        logger.info("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
         core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose)
@@ -335,20 +339,20 @@ class HAL:
         self.last_mapped_core = core
 
         # implement core objects, calling driver
-        print("HAL: programming mapping results to hardware")
+        logger.info("HAL: programming mapping results to hardware")
         self.implement_core()
 
     def dump_core(self):
-        print("PAT")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
-        print("TAT0")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
-        print("TAT1")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
-        print("AM")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
-        print("MM")
-        print(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
+        logger.info("PAT")
+        logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
+        logger.info("TAT0")
+        logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
+        logger.info("TAT1")
+        logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
+        logger.info("AM")
+        logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
+        logger.info("MM")
+        logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
@@ -385,10 +389,12 @@ class HAL:
             x_max = x_min + pool_allocation['pw']*2
             y_max = y_min + pool_allocation['ph']*2
 
-            #print("x_min", x_min)
-            #print("x_max", x_max)
-            #print("y_min", y_min)
-            #print("y_max", y_max)
+
+            logger.debug("pool {}".format(str(pool)))
+            logger.debug("    px_min {}".format(x_min))
+            logger.debug("    px_max {}".format(x_max))
+            logger.debug("    py_min {}".format(y_min))
+            logger.debug("    py_max {}".format(y_max))
 
             # cut top edge
             for x_idx in range(x_min, x_max):
@@ -416,12 +422,12 @@ class HAL:
         for x in range(core.NeuronArray_width):
             for y in range(core.NeuronArray_height):
                 if core.neuron_array.nrns_used[y, x] == 1:
-                    #print("enabling soma", nrn_y_idx, nrn_x_idx)
+                    logger.debug("enabling soma %d, %d (x, y)", x, y)
                     self.driver.EnableSomaXY(CORE_ID, x, y)
 
         # enable used synapses
         for tx, ty in core.neuron_array.syns_used:
-            #print("enabling synapse", tx, ty)
+            logger.debug("enabling synapse", tx, ty)
             self.driver.EnableSynapseXY(CORE_ID, tx, ty)
 
         # set gain and bias twiddle bits
@@ -463,7 +469,7 @@ class HAL:
         self.driver.SetSpikeFilterIncrementConst(CORE_ID, 1)
 
         # remove any evidence of old network in driver queues
-        print("HAL: clearing queued-up outputs")
+        logger.info("HAL: clearing queued-up outputs")
         self.driver.ClearOutputs()
 
         # voodoo sleep, (wait for everything to go in)

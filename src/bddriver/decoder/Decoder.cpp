@@ -24,9 +24,9 @@ void Decoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
 
-  if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
-    cout << "WARNING: bddriver::Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
-  }
+  // if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
+  //   cout << "WARNING: bddriver::Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
+  // }
 
   if (popped_vect->size() > 0) {
     Decode(std::move(popped_vect));
