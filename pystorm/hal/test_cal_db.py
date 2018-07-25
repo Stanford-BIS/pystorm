@@ -1,8 +1,10 @@
 from cal_db import *
 import numpy as np
 
+# test with synthetic activations
+
 cdb = CalibrationDB('testdb')
-cdb.clear_dataframes()
+cdb.init_dataframes() # force clearing of data
 
 act1 = np.random.randint(2, size=(4096,))
 act1 = act1 / np.linalg.norm(act1)
@@ -40,4 +42,7 @@ cdb2 = CalibrationDB('testdb')
 hopefully_caldata1 = cdb.get_calibration('chip1', 'synapse', 'tau')
 
 assert(np.sum(np.abs(hopefully_caldata1 - caldata1) < .001) == len(caldata1))
+
+# test with HAL's activation-gathering functions
+
 

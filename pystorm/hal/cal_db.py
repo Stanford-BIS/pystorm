@@ -42,7 +42,7 @@ class CalibrationDB(object):
         # special-purpose DF to store chip activation patterns
         # in this case, the chips are columns, instead of being indices
         self.activations = pd.DataFrame()
-        self.ACTIVATION_MATCH_THR = .7
+        self.ACTIVATION_MATCH_THR = .6
 
         # main data storage objects
 
@@ -65,12 +65,10 @@ class CalibrationDB(object):
         #   NOTE to assign, use slice() (DF must still be sorted)
         #   self.cals['soma'].loc['chipA', slice(0,7), slice(0,7)), 'bias'] = blah
         # etc.
-        self.clear_dataframes()
+        self.init_dataframes()
+        self.load_all()
 
-        for cal_obj in self.CAL_TYPES:
-            self.load_from_file(cal_obj)
-
-    def clear_dataframes(self):
+    def init_dataframes(self):
         self.cals = {}
         for cal_obj in self.CAL_TYPES:
             self.cals[cal_obj] = pd.DataFrame()
@@ -82,7 +80,10 @@ class CalibrationDB(object):
         fname = self.get_obj_fname(cal_obj)
         try:
             df = pd.DataFrame.from_csv(fname)
-            self.cals[cal_obj] = df 
+            if cal_obj == 'activation':
+                self.activations = df
+            else:
+                self.cals[cal_obj] = df 
         except FileNotFoundError:
             pass # this is OK, we'll just create them later
         except:
@@ -93,11 +94,24 @@ class CalibrationDB(object):
     def write_to_file(self, cal_obj):
         fname = self.get_obj_fname(cal_obj)
         try:
-            self.cals[cal_obj].to_csv(fname)
+            if cal_obj == 'activation':
+                self.activations.to_csv(fname)
+            else:
+                self.cals[cal_obj].to_csv(fname)
         except:
             print("Unexpected error when trying to write CalibrationDB to file:",
                   sys.exc_info()[0])
             raise
+
+    def commit_all(self):
+        for cal_obj in self.cals:
+            self.write_to_file(cal_obj)
+        self.write_to_file('activation')
+
+    def load_all(self):
+        for cal_obj in self.CAL_TYPES:
+            self.load_from_file(cal_obj)
+        self.load_from_file('activation')
 
     def make_cyx_index(self, chip, y, x):
         mg = np.meshgrid(range(y), range(x))
@@ -119,7 +133,13 @@ class CalibrationDB(object):
         return sims
         
     def find_chip(self, activation):
-        """Given an activation, determine whether activation matches any previously-seen chip"""
+        """Given an activation, determine whether activation matches any previously-seen chip
+        Returns
+        -------
+        (chip, sims)
+        chip: the name of the matching chip, or None
+        sims: the list of inner products of this activation with all chips in the DB
+        """
         sims = self.get_activation_similarities(activation)
 
         match_sims = sims > np.array(self.ACTIVATION_MATCH_THR)
@@ -130,28 +150,27 @@ class CalibrationDB(object):
                 match_chips.append(chip)
 
         if len(match_chips) == 0:
-            return None
-        if len(match_chips) == 1:
-            return match_chips[0]
+            return None, sims
+        elif len(match_chips) == 1:
+            return match_chips[0], sims
         else:
-            errstr = " ".join(["activation matched >1 following chips", match_chips, "exiting"])
+            errstr = " ".join(["activation matched >1 following chips", str(match_chips), 
+                "inner products:", str(sims),"exiting"])
             raise ValueError(errstr)
 
-    def add_new_chip(self, activation, chip):
+    def add_new_chip(self, activation, chip, commit_now=True):
         """Add a new chip to the database"""
         # ensure that the chip you're trying to add doesn't exist
         # if there's one match, do nothing
-        matching_chip = self.find_chip(activation)
+        matching_chip, sims = self.find_chip(activation)
 
         if matching_chip is None:
-            new_activations = pd.Series(activation, 
-                    index=self.make_cal_obj_index(None, 'soma'))
-            self.activations[chip] = new_activations
-            for cal_obj in self.CAL_TYPES:
-                empty_rows = pd.DataFrame(index=self.make_cal_obj_index(chip, cal_obj))
-                self.cals[cal_obj] = self.cals[cal_obj].append(empty_rows)
+            self.activations[chip] = activation
         else:
-            raise ValueError('adding chip that already exists!')
+            raise ValueError('adding chip that already exists! Inner product was' + str(np.max(sims)))
+
+        if commit_now:
+            self.write_to_file('activation')
 
     def check_cal_pars(self, chip, cal_obj, cal_type):
         if cal_obj not in self.cals:
@@ -175,7 +194,7 @@ class CalibrationDB(object):
 
     def add_calibration(self, chip, cal_obj, cal_type, values, value_indices=None, commit_now=True):
         """
-        Add new data to soma calibration for a particular chip
+        Add new data to soma calibration for a particular chip. Overwrites old data.
 
         Inputs:
         =======
@@ -202,12 +221,11 @@ class CalibrationDB(object):
                 raise ValueError(errstr)
 
             else:
-                #if cal_type not in self.cals[cal_obj].columns
-                #    new_df = pd.DataFrame(flat_values, 
-                #            index=self.make_cal_obj_index(chip, cal_obj),
-                #            columns=[cal_type])
-                #    self.cals[cal_obj] = new_df
-                #else:
+                # append some empty rows if the dataframe is empty
+                if chip not in self.cals[cal_obj].index:
+                    empty_rows = pd.DataFrame(index=self.make_cal_obj_index(chip, cal_obj))
+                    self.cals[cal_obj] = self.cals[cal_obj].append(empty_rows)
+
                 self.cals[cal_obj].sort_index(inplace=True)
                 self.cals[cal_obj].loc[(chip, slice(0,dimy), slice(0,dimx)), cal_type] = flat_values
         else:
