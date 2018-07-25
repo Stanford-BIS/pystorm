@@ -18,7 +18,7 @@ if np.sum(act > 0) < 10:
     sys.exit(0)
 
 curr_chip_name, sims = HAL.cdb.find_chip(act)
-print("inner products to chips currently in DB were:"
+print("inner products to chips currently in DB were:")
 print(np.sort(sims)[::-1])
 
 if curr_chip_name is None:
