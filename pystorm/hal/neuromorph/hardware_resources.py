@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
 
+import logging
+logger = logging.getLogger(__name__)
+
 HOME_ROUTE = 255
 
 class ResourceConnection(object):
@@ -226,7 +229,7 @@ class Neurons(Resource):
     def allocate(self, core):
         """neuron array allocation"""
         self.py_loc, self.px_loc = core.neuron_array.allocate(self)
-        #print("pool alloced to", self.py_loc, ",", self.px_loc)
+        logger.debug("pool alloced to {}, {}".format(self.py_loc, self.px_loc))
         self.y_loc = self.py_loc * core.NeuronArray_pool_size_y
         self.x_loc = self.px_loc * core.NeuronArray_pool_size_x
 
@@ -255,19 +258,21 @@ class Neurons(Resource):
                         (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
                         (bddriver.PATWord.MM_ADDRESS_HI, MMAY_prog)])
         elif len(self.conns_out) > 1:
-            print("ERROR: pool had", len(self.conns_out), "output connections")
+            logger.critical("pool had", len(self.conns_out), "output connections")
             assert(False and "Neurons can have only one output connection")
 
     def assign(self, core):
         """PAT assignment"""
-        #print("pool at", self.px_loc, ",", self.py_loc)
+        logger.debug("pool at {}, {}".format(self.px_loc, self.py_loc))
         if len(self.conns_out) == 1:
             for py_idx in range(self.py):
                 for px_idx in range(self.px):
                     aer_pool_addr_bits = Neurons.pool_yx_to_aer[
                         py_idx + self.py_loc, px_idx + self.px_loc]
                     to_assign = self.PAT_contents[py_idx, px_idx]
-                    #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
+                    logger.debug(
+                        "assigning for sub addr {}, {} at {}".format(
+                            px_idx, py_idx, aer_pool_addr_bits))
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
 
         core.neuron_array.assign(self)
@@ -316,13 +321,11 @@ class MMWeights(Resource):
 
         # this is the threshold value we should use (and scale the user weights by, in this case)
         _, thr_vals = AMBuckets.thr_idxs_vals(max_abs_row_weights, core)
-        #print("thr vals")
-        #print(thr_vals)
 
         W = (user_W.T * thr_vals).T
         W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
 
-        #print("thrs:", thr_vals, "W:", W)
+        logger.debug("thrs: {} W: {}".format(thr_vals, W))
         W = dec2onesc(W, core.max_weight_value)
 
         return W
@@ -334,7 +337,6 @@ class MMWeights(Resource):
             max_conns_in=1, max_conns_out=1)
 
         self.user_W = W
-        #print("XXX init'ing MMWeights, user_W=", self.user_W, " ", id(self.user_W))
 
         # do caching based on object id of W, object id of self
         MMWeights.forward_cache[id(self)] = id(W)
@@ -384,7 +386,7 @@ class MMWeights(Resource):
             self.is_dec = isinstance(self.conns_in[0].src, Neurons)
         else:
             self.is_dec = False
-            print("Warning: in pretranslate, odd situation: MMWeights with no input connection")
+            logger.warning("in pretranslate, odd situation: MMWeights with no input connection")
 
         # generate slice indexing
         if self.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
@@ -433,8 +435,8 @@ class MMWeights(Resource):
                     y = yx // core.NeuronArray_width
                     x = yx  % core.NeuronArray_width
                     MMWeights.yx_to_aer[y, x] = aer_sub_addr
-                #print("aer-xy conversion table:")
-                #print(MMweights.yx_to_aer)
+                logger.debug("aer-xy conversion table:")
+                logger.debug(MMWeights.yx_to_aer)
 
             # init with zeros, there are potentially unused entries for the "edge" neurons
             self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int)
@@ -442,9 +444,6 @@ class MMWeights(Resource):
 
             # iterate over neurons in y,x address order (matrix indexing order)
             yx_nrn_idx = 0
-
-            #print("prog W")
-            #print(self.programmed_W)
 
             for y in range(self.conns_in[0].src.y):
                 for x in range(self.conns_in[0].src.x):
@@ -461,10 +460,10 @@ class MMWeights(Resource):
                     self.W_slices[slice_idx][:, aer_sub_idx] = self.programmed_W[:, yx_nrn_idx]
                     yx_nrn_idx += 1
 
-                    #print("yx_nrn_idx", yx_nrn_idx)
-                    #print("suby", suby)
-                    #print("subx", subx)
-                    #print("aer_sub_idx", aer_sub_idx)
+                    logger.debug("yx_nrn_idx %d", yx_nrn_idx)
+                    logger.debug("suby %d", suby)
+                    logger.debug("subx %d", subx)
+                    logger.debug("aer_sub_idx %d", aer_sub_idx)
 
 
         else:
@@ -712,10 +711,10 @@ class TATTapPoint(Resource):
                     s = int(entry)
                     taps_and_signs[d].append((t, s))
 
-        #print("matrix:")
-        #print(M)
-        #print("taps and signs:")
-        #print(taps_and_signs)
+        logger.debug("matrix:")
+        logger.debug(M)
+        logger.debug("taps and signs:")
+        logger.debug(taps_and_signs)
         return taps_and_signs
 
     @property
@@ -775,7 +774,7 @@ class TATTapPoint(Resource):
                 self.tap_ys.append(syn_y)
                 self.tap_xs.append(syn_x)
                 self.signs.append(bin_sign(s))
-                #print("HWR: x", syn_x, "y", syn_y)
+                logger.debug("HWR: x %d  y %d", syn_x, syn_y)
                 if t_idx % 2 == 1:
                     stop = 1*(t_idx == self.Ks[-1] - 1)
                     self.stops.append(stop)
@@ -857,7 +856,7 @@ class TATFanout(Resource):
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size
-        #print("IN TAGS", self.in_tags)
+        #logger.debug("IN TAGS", self.in_tags)
 
     def posttranslate(self, core):
 

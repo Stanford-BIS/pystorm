@@ -84,8 +84,8 @@ class GraphObject(ABC):
         key = self.__check_key(key)
 
         if key in self.resources:
-            print("tried to add the same resource key twice")
-            print("  to ", self.label, self)
+            logger.critical("tried to add the same resource key twice")
+            logger.critical("  to {} {}".format(self.label, self))
             assert(False)
 
         self.resources[key] = resource

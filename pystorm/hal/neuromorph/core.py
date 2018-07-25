@@ -2,6 +2,9 @@ import numpy as np
 import rectpack # for NeuronAllocator
 from pystorm.PyDriver import bddriver as bd
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -119,7 +122,7 @@ class NeuronAllocator(object):
         pid: int
             id(pool)
         """
-        #print("added", pid, "at", px, ",", py)
+        logger.debug("added", pid, "at", px, ",", py)
         self.packer.add_rect(px, py, rid=pid)
 
     def allocate(self, calling_pid):
@@ -135,11 +138,10 @@ class NeuronAllocator(object):
         pid: id(pool)
         """
         if not self.pack_called:
-            #print("called allocate")
             self.packer.pack()
             for rect in self.packer.rect_list():
                 _, x, y, w, h, pid = rect
-                #print(x, y, w, h, pid)
+                logger.debug(x, y, w, h, pid)
                 self.alloc_results[pid] = (y, x, h, w)
             self.pack_called = True
 
@@ -227,7 +229,7 @@ class MMAllocator(MemAllocator):
     def allocate_pool_dec(self, D):
 
         if D > self.shape[1]:
-            print("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
+            logger.critical("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
             assert False
 
         # can fit in the current mem row, just increment xpos when done
@@ -368,7 +370,7 @@ class TAT(object):
         return self.alloc.allocate(size)
 
     def assign(self, data, start):
-        #print("assign called:", type(data), data)
+        logger.debug("assign called: {} {}".format(str(type(data)), data))
         self.mem.assign_1d_block(data, start)
 
     def __str__(self):
@@ -497,10 +499,11 @@ class NeuronArray(object):
     
     def assign(self, pool):
         if pool not in self.pool_allocations:
-            print("ERROR: did not find supplied pool in core.neuron_array.pool_allocations.")
-            print("  You are probably using neuromorph.map_resources_to_core with a premapped_neuron_aray argument")
-            print("  If this is the case, the network you are mapping is probably different than")
-            print("  the one that was used to map the core that premapped_neuron_array came from")
+            logger.critical(
+                "did not find supplied pool in core.neuron_array.pool_allocations.\n"+
+                "  You are probably using neuromorph.map_resources_to_core with a premapped_neuron_aray argument\n"+
+                "  If this is the case, the network you are mapping is probably different than\n"+
+                "  the one that was used to map the core that premapped_neuron_array came from\n")
             assert(False)
 
         alloc = self.pool_allocations[pool]

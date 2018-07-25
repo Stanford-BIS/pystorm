@@ -1,5 +1,9 @@
 from . _PyOK import *
 
+import loggging
+
+logger = logging.(__name__)
+
 ErrorNames = dict({
       0 : 'NoError'             ,
      -1 : 'Failed'              ,
@@ -33,34 +37,34 @@ def InitOK(fpga_bitcode):
     m_devInfo = okTDeviceInfo()
 
     if okFrontPanelDLL_LoadLib(None) is False:
-        print("FrontPanel library could not be loaded");
+        logger.critical("FrontPanel library could not be loaded");
         return None
 
     lib_date, lib_time = okFrontPanelDLL_GetVersion()
-    print("FrontPanel library loaded")
-    print("Built: %s, %s" % (lib_date, lib_time))
+    logger.info("FrontPanel library loaded")
+    logger.info("Built: %s, %s" % (lib_date, lib_time))
 
     if dev.OpenBySerial("") != ErrorCode.NoError:
-        print("Device could not be opened. Is one connected?")
+        logger.critical("Device could not be opened. Is one connected?")
         return None
 
     dev.GetDeviceInfo(m_devInfo)
-    print("Found a device: %s" % m_devInfo.productName)
+    logger.info("Found a device: %s" % m_devInfo.productName)
 
     dev.LoadDefaultPLLConfiguration()
 
-    print("Device firmware version: %d.%d" % (m_devInfo.deviceMajorVersion, m_devInfo.deviceMinorVersion))
-    print("Device serial number: %s" % m_devInfo.serialNumber)
-    print("Device product ID: %d" % m_devInfo.productID)
+    logger.info("Device firmware version: %d.%d" % (m_devInfo.deviceMajorVersion, m_devInfo.deviceMinorVersion))
+    logger.info("Device serial number: %s" % m_devInfo.serialNumber)
+    logger.info("Device product ID: %d" % m_devInfo.productID)
 
     if dev.ConfigureFPGA(fpga_bitcode) != ErrorCode.NoError:
-        print("FPGA configuration failed.")
+        logger.critical("FPGA configuration failed.")
         return None
 
     if dev.IsFrontPanelEnabled():
-        print("FrontPanel support is enabled")
+        logger.info("FrontPanel support is enabled")
     else:
-        print("FrontPanel support is not enabled")
+        logger.critical("FrontPanel support is not enabled")
         return None
     return dev
 
@@ -70,11 +74,11 @@ def GetFPGASerialNumber():
     m_devInfo = okTDeviceInfo()
 
     if dev.OpenBySerial("") != ErrorCode.NoError:
-        print("Device could not be opened. Is one connected?")
+        logger.critical("Device could not be opened. Is one connected?")
         return None
 
     dev.GetDeviceInfo(m_devInfo)
-    print("Received FPGA Serial Number: %s" % m_devInfo.serialNumber)
+    logger.info("Received FPGA Serial Number: %s" % m_devInfo.serialNumber)
     return m_devInfo.serialNumber
 
 

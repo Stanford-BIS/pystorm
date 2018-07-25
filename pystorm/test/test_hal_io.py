@@ -14,6 +14,9 @@ SLOP_TIME = 0.2 # time for traffic to flush
 RUN_TIME_NS = int(RUN_TIME*1E9)
 SLOP_TIME_NS = int(SLOP_TIME*1E9)
 
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
+
 def test_hal_io():
     """Perform the test"""
 

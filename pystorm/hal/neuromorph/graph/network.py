@@ -6,7 +6,12 @@ from . import input
 from . import output
 from . import connection
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 import pystorm.hal.neuromorph.core as core
+
 n_core = core
 
 class Network(object):
@@ -105,7 +110,8 @@ class Network(object):
     def create_connection(self, label, src, dest, weights):
         """Add a connection to the network"""
         if weights is not None and not isinstance(dest, bucket.Bucket):
-            print("connection weights are only used when the destination node is a Bucket")
+            logger.critical(
+                "connection weights are only used when the destination node is a Bucket")
             raise NotImplementedError
         if isinstance(weights, Number):
             weights = np.array([[weights]])
@@ -165,52 +171,44 @@ class Network(object):
 
         for resource in hardware_resources:
             resource.pretranslate_early(core)
-        if verbose:
-            print("finished pretranslate_early")
+        logger.info("finished pretranslate_early")
 
         for resource in hardware_resources:
             resource.pretranslate(core)
-        if verbose:
-            print("finished pretranslate")
+        logger.info("finished pretranslate")
 
         for resource in hardware_resources:
             resource.allocate_early(core)
-        if verbose:
-            print("finished allocate_early")
+        logger.info("finished allocate_early")
 
         core.MM.alloc.switch_to_trans()  # switch allocation mode of MM
         for resource in hardware_resources:
             resource.allocate(core)
-        if verbose:
-            print("finished allocate")
+        logger.info("finished allocate")
 
         if premapped_neuron_array is not None:
             assert(isinstance(premapped_neuron_array, n_core.NeuronArray))
             core.NeuronArray = premapped_neuron_array
-            if verbose:
-                print("  replaced core.neuron_array with premapped_neuron_array")
+            logger.info("  replaced core.neuron_array with premapped_neuron_array")
 
         for resource in hardware_resources:
             resource.posttranslate_early(core)
-        if verbose:
-            print("finished posttranslate_early")
+        logger.info("finished posttranslate_early")
 
         for resource in hardware_resources:
             resource.posttranslate(core)
-        if verbose:
-            print("finished posttranslate")
+        logger.info("finished posttranslate")
 
         for resource in hardware_resources:
             resource.assign(core)
-        if verbose:
-            print("finished assign")
+        logger.info("finished assign")
 
-        fname = "mapped_core.txt"
-        np.set_printoptions(threshold=np.nan)
-        print("mapping results written to", fname)
-        f = open(fname, "w")
-        f.write(str(core))
-        f.close()
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            fname = "mapped_core.txt"
+            np.set_printoptions(threshold=np.nan)
+            logger.debug("mapping results written to {}".format(fname))
+            with open(fname, "w") as f:
+                f.write(str(core))
 
     def create_output_translators(self):
         self.spike_filter_idx_to_output = {}
@@ -233,7 +231,9 @@ class Network(object):
         filtered_spk_times = []
         for spk_id, spk_time in zip(spk_ids, spk_times):
             if spk_id not in self.spk_to_pool_nrn_idx:
-                print("WARNING: translate_spikes: got out-of-bounds spike from neuron id (probably sticky bits)", spk_id)
+                logger.warning(
+                    "translate_spikes: got out-of-bounds spike from neuron id {}".format(spk_id) +
+                    " (probably sticky bits)")
             else:
                 pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
                 pool_ids.append(pool_id)
@@ -254,7 +254,9 @@ class Network(object):
             if abs(to_append) < 1000:
                 counts.append(to_append)
             else:
-                print("WARNING: discarding absurdly large tag filter value (probably sticky bits, or abuse of tag filter)")
+                logger.warning(
+                    "discarding absurdly large tag filter value " + 
+                    "(probably sticky bits, or abuse of tag filter)")
                 counts.append(0)
 
         outputs = [self.spike_filter_idx_to_output[filt_idx][0] for filt_idx in filt_idxs]
@@ -279,7 +281,9 @@ class Network(object):
             if self.core is not None:
                 premapped_neuron_array = self.core.neuron_array
             else:
-                print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
+                logger.warning(
+                    "  keep_pool_mapping=True used before map_network() " +
+                    "was called at least once. Ignoring.")
                 premapped_neuron_array = None
         else:
             premapped_neuron_array = None
