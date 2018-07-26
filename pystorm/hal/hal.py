@@ -57,7 +57,7 @@ class HAL:
 
         # init calibration DB
         cal_db_fname_prefix = "/".join(
-            pystorm.__file__.split('/')[:-2])+"/pystorm/calibration/data/cal_db"
+            pystorm.__file__.split('/')[:-2])+"/pystorm/calibration/data/pystorm_cal_db/cal_db"
         self.cdb = CalibrationDB(cal_db_fname_prefix)
         self.chip_activation = None
         self.chip_name = None
