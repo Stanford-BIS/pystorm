@@ -6,6 +6,7 @@ from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.neuromorph.core import Core
 from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
 
+from pystorm.hal.cal_db import CalibrationDB
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,14 @@ class HAL:
         else:
             self.driver = bd.Driver()
 
+        # init calibration DB
+        cal_db_fname_prefix = "/".join(
+            pystorm.__file__.split('/')[:-2])+"/pystorm/calibration/data/pystorm_cal_db/cal_db"
+        self.cdb = CalibrationDB(cal_db_fname_prefix)
+        self.chip_activation = None
+        self.chip_name = None
+
+        # init FPGA from bitfile
         okfile = "/".join(
             pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
         self.driver.SetOKBitFile(okfile)
@@ -474,6 +483,131 @@ class HAL:
 
         # voodoo sleep, (wait for everything to go in)
         sleep(2)
+
+    def get_unique_chip_activation(self):
+        """measure chip activity under controlled conditions, creating a unique identifier
+
+        returns
+        -------
+        4096-element unit vector, representing which neurons spike under controlled conditions
+        """
+
+        # DO NOT MODIFY ANY PARAMETERS (or anything in this function, really)
+        # will invalidate old activations that key CalibrationDB
+
+        WIDTH = 64
+        HEIGHT = 64
+        N = WIDTH * HEIGHT
+        TCOLLECT = .5 # how long to measure spikes
+
+        DAC_SETTINGS = { 
+            bd.bdpars.BDHornEP.DAC_SYN_EXC     : 512,
+            bd.bdpars.BDHornEP.DAC_SYN_DC      : 544,
+            bd.bdpars.BDHornEP.DAC_SYN_INH     : 512,
+            bd.bdpars.BDHornEP.DAC_SYN_LK      : 10,
+            bd.bdpars.BDHornEP.DAC_SYN_PD      : 40,
+            bd.bdpars.BDHornEP.DAC_SYN_PU      : 1024,
+            bd.bdpars.BDHornEP.DAC_DIFF_G      : 1024,
+            bd.bdpars.BDHornEP.DAC_DIFF_R      : 500,
+            bd.bdpars.BDHornEP.DAC_SOMA_REF    : 1,
+            bd.bdpars.BDHornEP.DAC_SOMA_OFFSET : 2}
+        GAIN_DIV = 1
+        BIAS = -3
+
+        # turn on 1/4 of synapses (all on has too high bias)
+        taps = [[]] 
+        for x in range(0,WIDTH,4):
+            for y in range(0,HEIGHT,4):
+                n_idx = y * WIDTH + x
+                taps[0].append((n_idx, 1)) # sign doesn't matter, we're not sending input
+        taps = (N, taps) 
+
+        # map network
+        from pystorm.hal.neuromorph import graph
+        net =  graph.Network("net")
+        pool = net.create_pool("pool", taps, biases=BIAS, gain_divisors=GAIN_DIV)
+        self.map(net)
+
+        # overwrite DAC
+        for dac in DAC_SETTINGS:
+            self.driver.SetDACCount(CORE_ID, dac, DAC_SETTINGS[dac])
+
+        # collect data
+        self.start_traffic(flush=False)
+        self.enable_spike_recording(flush=True)
+
+        start_time = self.get_time()
+
+        sleep(TCOLLECT * 1.1) # fudge to make sure we don't turn it off too early
+
+        self.stop_traffic(flush=False)
+        self.disable_spike_recording(flush=True)
+        print("done collecting data")
+
+        spikes = self.get_spikes()
+
+        cts = np.zeros((N,), dtype=int)
+        for t, p, n in spikes:
+            # discard p, just one pool
+            if t > start_time and t < start_time + TCOLLECT * 1e9:
+                cts[n] += 1
+
+        # turn the cts into a unit vector representing 
+        # if each neuron fired (1) or didn't fire (-1)
+        act = (cts > 0) * 2 - 1
+        act = act / np.linalg.norm(act)
+        self.chip_activation = act
+        return act
+
+    def get_calibration_db(self):
+        """returns CalibrationDB object"""
+        return self.cdb()
+
+    def get_calibration(self, cal_obj, cal_type):
+        """Get calibration values for attached chip
+
+        Parameters
+        ----------
+        cal_obj: Name of thing being calibrated (e.g "soma" or "synapse")
+        cal_type: Calibration name
+
+
+        Returns
+        -------
+        pandas dataframe with calibration data or None if chip not in DB.
+            Dataframe may still be empty if data has not been collected but chip is known
+        """
+        if self.chip_activation is None:
+            self.get_unique_chip_activation()
+        self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
+        if self.chip_name is None:
+            return None
+        else:
+            return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type)
+
+    def add_calibration(self, cal_obj, cal_type, cal_data):
+        """Add calibration values for attached chip
+
+        Will raise a ValueError if called for previously-un-registered chip
+
+        Parameters
+        ----------
+        cal_obj: Name of thing being calibrated (e.g "soma" or "synapse")
+        cal_type: Calibration name
+        cal_data: Calibration data of appropriate length for cal_obj
+
+        Returns
+        -------
+        pandas dataframe with calibration data or None if chip not in DB.
+            Dataframe may still be empty if data has not been collected but chip is known
+        """
+        if self.chip_activation is None:
+            self.get_unique_chip_activation()
+        self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
+        if self.chip_name is None:
+            raise ValueError("HAL.add_calibration called for previously unknown chip")
+        else:
+            self.cdb.add_calibration(self.chip_name, cal_obj, cal_type, cal_data)
 
 def parse_hal_binned_tags(hal_binned_tags):
     """Parses the tag information from the output of HAL

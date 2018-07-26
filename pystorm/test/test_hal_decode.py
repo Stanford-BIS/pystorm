@@ -15,8 +15,8 @@ np.random.seed(0)
 # pool size parameters
 
 K = 8
-width = 8
-height = 8
+width = 16
+height = 16
 width_height = (width, height)
 N = width * height
 
@@ -111,7 +111,7 @@ decoders = np.zeros((Dout, N))
 #decoders = np.ones((Dout, N)) * .2 # sanity check: is accumulator mapping correctly?
 
 i1 = net.create_input("i1", Din)
-p1 = net.create_pool("p1", tap_matrix)
+p1 = net.create_pool("p1", tap_matrix, biases=-3)
 b1 = net.create_bucket("b1", Dout)
 o1 = net.create_output("o1", Dout)
 
@@ -282,7 +282,12 @@ if p1 in As:
     print('total count in bounds, in exp duration:', np.sum(As[p1]))
 
     plt.figure()
-    plt.plot(A.T)
+    x = np.linspace(-1, 1, A.T.shape[0])
+    #plt.plot(x, A.T)
+    sorted_A = np.sort(A.T, axis=0)
+    plt.plot(x, sorted_A) # kind of cheating
+        
+    plt.axis([-1, 1, 0, 1000])
     plt.savefig("hal_tuning_curves.pdf")
 
 print("got", len(spikes), "spikes")

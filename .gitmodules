@@ -1,0 +1,3 @@
+[submodule "pystorm/calibration/data/pystorm_cal_db"]
+	path = pystorm/calibration/data/pystorm_cal_db
+	url = https://github.com/Stanford-BIS/pystorm_cal_db

@@ -154,7 +154,7 @@ def make_imshow(nrn_cts, idx, bias):
     axes[1,1].set_title('med f > mean*' + str(BAD_NRN_THR))
     axes[1,1].imshow(med > np.mean(nrn_cts) * BAD_NRN_THR)
 
-    plt.savefig('syn_mm_nrn_cts_' + str(idx) + '_' + str(bias) + '.png')
+    plt.savefig('data/syn_mm_nrn_cts_' + str(idx) + '_' + str(bias) + '.png')
 
 # sweep which of the 4 synapses in the tile we use
 all_bad_syn = np.zeros((32, 32), dtype=bool)
@@ -192,7 +192,6 @@ for i in [0, 1, 2, 3]:
 
 plt.figure()
 plt.imshow(all_bad_syn)
-plt.savefig('all_bad_syn')
-import pickle
-pickle.dump(all_bad_syn, open('all_bad_syn.pck', 'wb'))
+plt.savefig('data/all_bad_syn.png')
 
+HAL.add_calibration('synapse', 'high_bias_magnitude', all_bad_syn)
