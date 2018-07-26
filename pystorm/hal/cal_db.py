@@ -42,7 +42,7 @@ class CalibrationDB(object):
         # special-purpose DF to store chip activation patterns
         # in this case, the chips are columns, instead of being indices
         self.activations = pd.DataFrame()
-        self.ACTIVATION_MATCH_THR = .6
+        self.ACTIVATION_MATCH_THR = .5
 
         # main data storage objects
 
@@ -165,7 +165,11 @@ class CalibrationDB(object):
         matching_chip, sims = self.find_chip(activation)
 
         if matching_chip is None:
-            self.activations[chip] = activation
+            if chip in self.activations.columns:
+                raise ValueError("Chip name already in database, but activation didn't match." + 
+                    'Possible false negative. Highest inner product was' + str(np.max(sims)))
+            else:
+                self.activations[chip] = activation
         else:
             raise ValueError('adding chip that already exists! Inner product was' + str(np.max(sims)))
 
