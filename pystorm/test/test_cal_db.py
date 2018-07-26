@@ -44,5 +44,12 @@ hopefully_caldata1 = cdb.get_calibration('chip1', 'synapse', 'tau')
 assert(np.sum(np.abs(hopefully_caldata1 - caldata1) < .001) == len(caldata1))
 
 # test with HAL's activation-gathering functions
+# just making sure that the data from this function is well-formed
+# make sure that real key doesn't collide with a random one
+
+from pystorm.hal import HAL
+HAL = HAL()
+real_act = HAL.get_unique_chip_activation()
+cdb.add_new_chip(real_act, 'realchip', commit_now=True)
 
 
