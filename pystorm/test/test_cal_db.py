@@ -1,4 +1,4 @@
-from cal_db import *
+from pystorm.hal.cal_db import *
 import numpy as np
 
 # test with synthetic activations
@@ -6,10 +6,10 @@ import numpy as np
 cdb = CalibrationDB('testdb')
 cdb.init_dataframes() # force clearing of data
 
-act1 = np.random.randint(2, size=(4096,))
+act1 = 2 * np.random.randint(2, size=(4096,)) - 1
 act1 = act1 / np.linalg.norm(act1)
 
-act2 = np.random.randint(2, size=(4096,))
+act2 = 2 * np.random.randint(2, size=(4096,)) - 1
 act2 = act2 / np.linalg.norm(act2)
 
 cdb.add_new_chip(act1, 'chip1')
@@ -37,19 +37,26 @@ hopefully_caldata1 = cdb.get_calibration('chip1', 'synapse', 'tau')
 
 assert(np.sum(np.abs(hopefully_caldata1 - caldata1) < .001) == len(caldata1))
 
+# test reading in .csvs
+
 cdb2 = CalibrationDB('testdb')
+
+print(cdb2.activations)
 
 hopefully_caldata1 = cdb.get_calibration('chip1', 'synapse', 'tau')
 
 assert(np.sum(np.abs(hopefully_caldata1 - caldata1) < .001) == len(caldata1))
 
-# test with HAL's activation-gathering functions
-# just making sure that the data from this function is well-formed
-# make sure that real key doesn't collide with a random one
+caldata4 = np.random.rand(1024)
+cdb.add_calibration('chip2', 'synapse', 'pulse_width', caldata4)
 
-from pystorm.hal import HAL
-HAL = HAL()
-real_act = HAL.get_unique_chip_activation()
-cdb.add_new_chip(real_act, 'realchip', commit_now=True)
+## test with HAL's activation-gathering functions
+## just making sure that the data from this function is well-formed
+## make sure that real key doesn't collide with a random one
+#
+#from pystorm.hal import HAL
+#HAL = HAL()
+#real_act = HAL.get_unique_chip_activation()
+#cdb.add_new_chip(real_act, 'realchip', commit_now=True)
 
 

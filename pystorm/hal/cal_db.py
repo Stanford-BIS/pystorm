@@ -72,6 +72,7 @@ class CalibrationDB(object):
         self.cals = {}
         for cal_obj in self.CAL_TYPES:
             self.cals[cal_obj] = pd.DataFrame()
+        self.activations = pd.DataFrame()
 
     def get_obj_fname(self, cal_obj):
         return self.fname_base + '_' + cal_obj + '.csv'
@@ -79,10 +80,11 @@ class CalibrationDB(object):
     def load_from_file(self, cal_obj):
         fname = self.get_obj_fname(cal_obj)
         try:
-            df = pd.DataFrame.from_csv(fname)
             if cal_obj == 'activation':
+                df = pd.read_csv(fname, index_col=[0])
                 self.activations = df
             else:
+                df = pd.read_csv(fname, index_col=[0, 1, 2])
                 self.cals[cal_obj] = df 
         except FileNotFoundError:
             pass # this is OK, we'll just create them later
@@ -228,7 +230,7 @@ class CalibrationDB(object):
                 # append some empty rows if the dataframe is empty
                 if chip not in self.cals[cal_obj].index:
                     empty_rows = pd.DataFrame(index=self.make_cal_obj_index(chip, cal_obj))
-                    self.cals[cal_obj] = self.cals[cal_obj].append(empty_rows)
+                    self.cals[cal_obj] = self.cals[cal_obj].append(empty_rows, sort=True)
 
                 self.cals[cal_obj].sort_index(inplace=True)
                 self.cals[cal_obj].loc[(chip, slice(0,dimy), slice(0,dimx)), cal_type] = flat_values
