@@ -182,14 +182,14 @@ class CalibrationDB(object):
         if cal_obj not in self.cals:
             errstr = " ".join(["check_cal_pars(): you supplied calibration object", cal_obj,
                   "which isn't known to CalibrationDB.",
-                  "All calibrations must be registered in self.cals",
+                  "All calibrations must be added to self.cals",
                   "supported objects:", str(self.cals.keys())])
             raise ValueError(errstr)
 
         if cal_type not in self.CAL_TYPES[cal_obj]:
             errstr = " ".join(["check_cal_pars(): you supplied calibration type", cal_type, 
                   "which isn't known to CalibrationDB.",
-                  "All calibrations must be registered in self.CAL_TYPES",
+                  "All calibrations must be added to self.CAL_TYPES",
                   "supported calibration types for this object:", str(self.CAL_TYPES[cal_obj])])
             raise ValueError(errstr)
 
