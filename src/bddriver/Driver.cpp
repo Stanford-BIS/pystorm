@@ -632,6 +632,8 @@ std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int
 
 void Driver::SetDACCount(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush) {
 
+  assert(value >= 1 && value <= 1024 && "DAC value must be between 1 and 1024")
+
   // look up state of connection to ADC
   BDWord reg_val = bd_state_.at(core_id).GetReg(signal_id).first;
   bool DAC_to_ADC_conn_curr_state = GetField(reg_val, DACWord::DAC_TO_ADC_CONN);
