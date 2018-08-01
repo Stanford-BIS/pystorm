@@ -417,7 +417,7 @@ def fit_taus(S_yxs, plot=False, plot_fname_pre=None, pyx=8):
         plt.figure()
         taus_hist = taus[~np.isnan(taus)]
         plt.hist(taus_hist.flatten(), bins=20)
-        plt.title('tau distribution')
+        plt.title('tau distribution\nmean = ' + str(np.mean(taus_hist)) + ' std = ' + str(np.std(taus_hist)))
         plt.savefig(plot_fname_pre + '_tau_hist.png')
 
         # imshow of tau locations
@@ -458,7 +458,7 @@ def plot_yx_data(yx_datas, mask=None, t=None):
 if __name__ == "__main__":
 
     np.random.seed(0)
-    matplotlib.use('MacOSX')
+    #matplotlib.use('MacOSX')
     matplotlib.rcParams['interactive'] == False
 
     parser = argparse.ArgumentParser(description='calibrate synaptic taus, for a particular DAC_SYN_LK value')
@@ -494,6 +494,6 @@ if __name__ == "__main__":
 
     # record to cal_db
     synapse_cal = 'tau_dac_' + str(args.DAC_SYN_LK_value)
-    HAL = HAL()
+    #HAL = HAL()
     HAL.add_calibration('synapse', synapse_cal, taus)
 
