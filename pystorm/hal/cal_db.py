@@ -13,7 +13,11 @@ class CalibrationDB(object):
         self.fname_base = fname_base
 
         self.SYNAPSE_CALS = [
-            'tau',
+            'tau_dac_1', 
+            'tau_dac_2', 
+            'tau_dac_4', 
+            'tau_dac_8', 
+            'tau_dac_16', 
             'pulse_width',
             'high_bias_magnitude',
             ]
@@ -189,8 +193,8 @@ class CalibrationDB(object):
         if cal_type not in self.CAL_TYPES[cal_obj]:
             errstr = " ".join(["check_cal_pars(): you supplied calibration type", cal_type, 
                   "which isn't known to CalibrationDB.",
-                  "All calibrations must be added to self.CAL_TYPES",
-                  "supported calibration types for this object:", str(self.CAL_TYPES[cal_obj])])
+                  "All calibrations must be added to self.CAL_TYPES[" + cal_obj + "]",
+                  "supported calibration types for this object (" + cal_obj + "):", str(self.CAL_TYPES[cal_obj])])
             raise ValueError(errstr)
 
         if chip not in self.activations.columns:

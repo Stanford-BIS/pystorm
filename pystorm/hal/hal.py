@@ -571,19 +571,15 @@ class HAL:
         cal_obj: Name of thing being calibrated (e.g "soma" or "synapse")
         cal_type: Calibration name
 
-
         Returns
         -------
-        pandas dataframe with calibration data or None if chip not in DB.
+        pandas dataframe with calibration data
             Dataframe may still be empty if data has not been collected but chip is known
         """
         if self.chip_activation is None:
             self.get_unique_chip_activation()
         self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
-        if self.chip_name is None:
-            return None
-        else:
-            return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type)
+        return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type)
 
     def add_calibration(self, cal_obj, cal_type, cal_data):
         """Add calibration values for attached chip
