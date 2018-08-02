@@ -1025,6 +1025,8 @@ class Driver {
 
   // basis of experiment time, set when ResetFPGAClock is called
   std::chrono::high_resolution_clock::time_point base_time_ = std::chrono::high_resolution_clock::now(); 
+  // last-seen FPGA time, returned if GetFPGATime is called before receipt (or processing) of new times
+  BDTime last_time_ = 0;
 
 
   /// array mapping SG generator idx -> enabled/disabled
