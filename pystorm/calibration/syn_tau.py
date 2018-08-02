@@ -429,7 +429,6 @@ def fit_taus(S_yxs, plot=False, plot_fname_pre=None, pyx=8):
         # step response curve fits
         plot_yx_data([Z_ons[:pyx, :pyx, :], curves[:pyx, :pyx, :]], mask=~np.isnan(taus), t=t)
         plt.savefig(plot_fname_pre + '_curve_fits.png')
-        print('plotting over')
 
     return taus
 
@@ -450,7 +449,6 @@ def plot_yx_data(yx_datas, mask=None, t=None):
                         axes[py, px].plot(t, yx_data[py, px, :])
                     else:
                         axes[py, px].plot(yx_data[py, px, :])
-    plt.show()
     
     return axes
     
@@ -458,12 +456,11 @@ def plot_yx_data(yx_datas, mask=None, t=None):
 if __name__ == "__main__":
 
     np.random.seed(0)
-    #matplotlib.use('MacOSX')
     matplotlib.rcParams['interactive'] == False
 
     parser = argparse.ArgumentParser(description='calibrate synaptic taus, for a particular DAC_SYN_LK value')
     parser.add_argument('DAC_SYN_LK_value', type=int, help='the value of DAC_SYN_LK to calibrate for. Only certain values are tracked by the calibration DB')
-    parser.add_argument('--num_trials', type=int, default=20, help='the number of trials to average responses over')
+    parser.add_argument('--num_trials', type=int, default=8, help='the number of trials to average responses over')
     parser.add_argument('--fit_only', action='store_true', help='use pickled data, just fit tau')
     parser.add_argument('--no_plots', action='store_true', help='suppress generation of plots')
     parser.add_argument('--plot_range', type=int, default=8, help='plot only [:plot_range, :plot_range] corner')
