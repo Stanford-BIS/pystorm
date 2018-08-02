@@ -266,13 +266,9 @@ BDTime Driver::GetFPGATime() {
   std::vector<BDTime> times = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_MSB, 1000).second;
   auto dont_care = RecvFromEP(0, bdpars::FPGAOutputEP::UPSTREAM_HB_LSB, 1000).second; // drain the LSBs too so the queue doesn't pile up
   if (times.size() > 0) {
-    return times.back();
-  } else {
-#ifndef __OPTIMIZE__
-    cout << "WARNING: GetFPGATime: haven't received any upstream HBs! Returning 0" << endl;
-#endif
-    return 0;
+    last_time_ = times.back();
   }
+  return last_time_;
 }
 
 BDTime Driver::GetDriverTime() const {
@@ -632,7 +628,7 @@ std::pair<unsigned int, unsigned int> Driver::GetFIFOOverflowCounts(unsigned int
 
 void Driver::SetDACCount(unsigned int core_id, bdpars::BDHornEP signal_id, unsigned int value, bool flush) {
 
-  assert(value >= 1 && value <= 1024 && "DAC value must be between 1 and 1024")
+  assert(value >= 1 && value <= 1024 && "DAC value must be between 1 and 1024");
 
   // look up state of connection to ADC
   BDWord reg_val = bd_state_.at(core_id).GetReg(signal_id).first;
