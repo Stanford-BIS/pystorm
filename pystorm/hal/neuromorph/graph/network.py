@@ -242,42 +242,23 @@ class Network(object):
         return pool_ids, nrn_idxs, filtered_spk_times
 
     def translate_binned_spikes(self, binned_spikes):
-        import time
         pool_bins = {}
 
-        starttime = time.time()
         for pool in self.pools:
             pool_bins[pool] = np.zeros((len(binned_spikes), pool.n_neurons), dtype=int) 
-        print("memory alloc took", time.time() - starttime)
 
-        starttime = time.time()
+        # can take list-of-lists or normal array
         binarr = np.asarray(binned_spikes)
-        print("arr-ification took", time.time() - starttime)
 
-        starttime = time.time()
         binarr = binarr.reshape((len(binned_spikes), 64, 64))
-        print("reshape took", time.time() - starttime)
 
-        starttime = time.time()
         for pool in pool_bins:
             xloc, yloc = pool.mapped_xy
             width = pool.x
             height = pool.y
 
             pool_bins[pool] = binarr[:, yloc:yloc+height, xloc:xloc+width].flatten()
-        print("data rearrangement took", time.time() - starttime)
 
-        #starttime = time.time()
-        #for bin_idx, spike_bin in enumerate(binned_spikes):
-        #    arr_bin = np.array(spike_bin).reshape((64, 64)) # not a copy, just creates a new view
-        #    for pool in pool_bins:
-        #        xloc, yloc = pool.mapped_xy
-        #        width = pool.x
-        #        height = pool.y
-
-        #        pool_bins[pool][bin_idx] = arr_bin[yloc:yloc+height, xloc:xloc+width].flatten()
-        #print("data rearrangement took", time.time() - starttime)
-                
         return pool_bins
 
     def translate_tags(self, filt_idxs, filt_states):

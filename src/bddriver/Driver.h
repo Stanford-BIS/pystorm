@@ -843,8 +843,8 @@ class Driver {
     return {xy_addresses, aer_times};
   }
 
-std::tuple<std::vector<std::array<unsigned int, bdpars::BDPars::NumNeurons>>, 
-        std::vector<BDTime>> RecvBinnedSpikes(unsigned int core_id, BDTime bin_time_ns);
+std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int> 
+        RecvBinnedSpikes(unsigned int core_id, BDTime bin_time_ns);
 
   /// Receive a stream of spikes in XY address space (Y msb, X lsb)
   std::tuple<std::vector<unsigned int>, std::vector<float>> RecvXYSpikesSeconds(unsigned int core_id) {

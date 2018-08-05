@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 
@@ -417,7 +418,31 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikes", &Driver::RecvSpikes, "Receive a stream of spikes\n\nC++: pystorm::bddriver::Driver::RecvSpikes(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
     cl.def("RecvXYSpikes", &Driver::RecvXYSpikes, "Receive a stream of spikes in XY address space (Y msb, X lsb)", py::arg("core_id"));
     cl.def("RecvXYSpikesSeconds", &Driver::RecvXYSpikesSeconds, "Receive a stream of spikes in XY address space (Y msb, X lsb), times as float seconds", py::arg("core_id"));
-    cl.def("RecvBinnedSpikes", &Driver::RecvBinnedSpikes, "Receive a series of binned spike counts in XY address space (Y msb, X lsb), binned along bin_time_ns", py::arg("core_id"), py::arg("bin_time_ns"));
+
+    // fancy call, converts raw array data to numpy arrays (without copy, is extremely fast)
+    cl.def("RecvBinnedSpikes", 
+        [](Driver &d, unsigned int core_id, unsigned int bin_time_ns) {
+            uint32_t* binned_spikes;
+            uint64_t* bin_times;
+            unsigned int num_bins;
+            unsigned int num_neurons;
+            std::tie(binned_spikes, bin_times, num_bins, num_neurons) = 
+                d.RecvBinnedSpikes(core_id, bin_time_ns);
+
+            auto binned_spikes_arr = py::array_t<uint32_t>(
+                std::vector<ptrdiff_t>{num_bins, num_neurons},
+                binned_spikes);
+
+
+            auto bin_times_arr = py::array_t<uint64_t>(
+                std::vector<ptrdiff_t>{num_bins},
+                bin_times);
+
+            std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {binned_spikes_arr, bin_times_arr};
+            return to_return;
+        }, 
+        "Receive a series of binned spike counts in XY address space (Y msb, X lsb), binned along bin_time_ns", py::arg("core_id"), py::arg("bin_time_ns"));
+
     cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
     cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
     cl.def("RecvXYSpikesMasked", &pystorm::bddriver::Driver::RecvXYSpikesMasked, "Similar to `RecvXYSpikes`, but provides masked data", py::arg("core_id"));

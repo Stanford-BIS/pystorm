@@ -258,13 +258,9 @@ class HAL:
              [bin0 time, ..., binN time])
         Timestamps are in nanoseconds
         """
-        starttime = time.time()
         binned_spikes, bin_times = self.driver.RecvBinnedSpikes(CORE_ID, bin_time_ns)
-        print("driver RecvBinnedSpikes took", time.time() - starttime)
 
-        starttime = time.time()
         trans_spikes = self.last_mapped_network.translate_binned_spikes(binned_spikes)
-        print("translate_binned_spikes took", time.time() - starttime)
 
         return trans_spikes, bin_times
 
@@ -274,17 +270,11 @@ class HAL:
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
         Timestamps are in nanoseconds
         """
-        starttime = time.time()
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
-        print("driver RecvXYSpikes took", time.time() - starttime)
 
-        starttime = time.time()
         pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
-        print("translate_spikes took", time.time() - starttime)
 
-        starttime = time.time()
         ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
-        print("creating array took", time.time() - starttime)
         return ret_data
     
     def stop_all_inputs(self, time=0, flush=True):
@@ -577,7 +567,6 @@ class HAL:
 
         self.stop_traffic(flush=False)
         self.disable_spike_recording(flush=True)
-        print("done collecting data")
 
         spikes = self.get_spikes()
 

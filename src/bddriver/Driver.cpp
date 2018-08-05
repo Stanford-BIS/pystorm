@@ -1183,37 +1183,51 @@ std::pair<std::vector<unsigned int>, std::vector<float>> Driver::RecvXYSpikesMas
     return {xy_addresses, xy_times};
 }
 
-std::tuple<std::vector<std::array<unsigned int, bdpars::BDPars::NumNeurons>>, 
-        std::vector<BDTime>> Driver::RecvBinnedSpikes(unsigned int core_id, BDTime bin_time_ns) {
+std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int> 
+        Driver::RecvBinnedSpikes(unsigned int core_id, BDTime bin_time_ns) {
+
     auto spike_words = RecvSpikes(core_id);
     std::vector<BDWord> aer_addresses = spike_words.first;
     std::vector<BDTime> aer_times = spike_words.second;
     unsigned int num_spikes = aer_addresses.size();
 
-    std::vector<std::array<unsigned int, kBDPars_.NumNeurons>> binned_spikes;
-    binned_spikes.push_back({}); // means array of 0s
+    constexpr unsigned int kNumNeurons = kBDPars_.NumNeurons;
 
-    std::vector<BDTime> bin_times;
-    bin_times.push_back(aer_times[0]);
+    BDTime last_time = aer_times.back();
+    BDTime first_time = aer_times.front();
+    BDTime total_time = last_time - first_time;
+    unsigned int num_bins = total_time / bin_time_ns + 1;
 
-    BDTime curr_frame_start_time = aer_times[0];
+    // contiguous array representing 2D array of data, num_binsx4096
+    // can be consequently converted to other data types (like py::array)
+    uint32_t * binned_spikes = new uint32_t[num_bins * kNumNeurons];
+
+    // start times of each bin
+    uint64_t * bin_times = new uint64_t[num_bins];
+    bin_times[0] = first_time;
+
+    unsigned int curr_bin_idx = 0;
+    unsigned int curr_base_addr = 0;
 
     for(unsigned int idx = 0; idx < num_spikes; idx++){
         auto _addr = aer_addresses[idx];
         BDTime time = aer_times[idx];
-        if (time - curr_frame_start_time >= bin_time_ns) {
-            binned_spikes.push_back({}); // means array of 0s
-            bin_times.push_back(time);
-            curr_frame_start_time = time;
+
+        // move to next bin, if necessary
+        if (time - bin_times[curr_bin_idx] >= bin_time_ns) {
+            curr_bin_idx++;
+            curr_base_addr += kNumNeurons;
+            bin_times[curr_bin_idx] = time;
         }
 
         // squash bad spikes without report, this call is all about performance
-        if (_addr < kBDPars_.NumNeurons) {
+        if (_addr < kNumNeurons) {
             unsigned int yx_addr = kBDPars_.GetSomaXYAddr(_addr);
-            binned_spikes.back()[yx_addr]++;
+            unsigned int binned_spikes_addr = curr_base_addr + yx_addr;
+            binned_spikes[binned_spikes_addr]++;
         }
     }
-    return {binned_spikes, bin_times};
+    return {binned_spikes, bin_times, num_bins, kNumNeurons};
 }
 
 void Driver::SendTags(unsigned int core_id, const std::vector<BDWord>& tags, const std::vector<BDTime> times, bool flush) {
