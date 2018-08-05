@@ -8,6 +8,18 @@ namespace pystorm {
 namespace bddriver {
 namespace bdpars {
 
+constexpr unsigned int BDPars::NumNeurons;
+constexpr unsigned int BDPars::NumSynapses;
+constexpr unsigned int BDPars::NumCores;
+constexpr unsigned int BDPars::DnEPFPGARegOffset;
+constexpr unsigned int BDPars::DnEPFPGANumReg;
+constexpr unsigned int BDPars::DnEPFPGAChannelOffset;
+constexpr unsigned int BDPars::DnEPFPGANumChan;
+constexpr unsigned int BDPars::DnEPFPGABitsPerReg;
+constexpr unsigned int BDPars::DnEPFPGABitsPerChannel;
+constexpr unsigned int BDPars::DnWordsPerFrame;
+constexpr unsigned int BDPars::DnTimeUnitsPerHB;
+
 // clang-format off
 
 std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {

@@ -171,6 +171,7 @@ def end_collection(HAL):
     #print("done collecting data")
 
     spikes = HAL.get_spikes()
+
     #tile_cts = count_spikes_by_tile(spikes)
     nrn_cts = count_spikes_by_nrn(spikes)
     #print("done counting spikes")
@@ -185,7 +186,9 @@ def end_collection_bin_spikes(HAL, boundaries):
     #print("done collecting data")
 
     raw_spikes = HAL.get_spikes()
+
     parsed_spikes = parse_hal_spikes(raw_spikes)
+
     binned_spikes = bin_tags_spikes(parsed_spikes, boundaries)
     #print("done binning spikes")
 

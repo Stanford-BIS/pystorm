@@ -93,7 +93,7 @@ struct OKPars {
 ///     Provide thread-safe communication and buffering for the inputs and outputs of Encoder
 ///     and decoder. Note that there are many decoder output buffers, one per funnel leaf.
 ///
-/// - BDPars
+/// - kBDPars
 ///     Holds all the nitty-gritty hardware information. The rest of the driver doesn't know
 ///     anything about word field orders or sizes, for example.
 ///
@@ -112,7 +112,7 @@ class Driver {
   /// Return a global instance of bddriver
   // static Driver * GetInstance();
 
-  inline const bdpars::BDPars *GetBDPars() { return bd_pars_; }
+  inline const bdpars::BDPars *GetBDPars() { return &kBDPars_; }
   inline const BDState *GetState(unsigned int core_id) { return &bd_state_[core_id]; }
 
   void testcall(const std::string &msg);
@@ -219,7 +219,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSomaID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                bd_pars_->config_soma_mem_,
+                kBDPars_.config_soma_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -277,31 +277,31 @@ class Driver {
 
   /// Enable Soma in XY space
   void EnableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSomaAERAddr(x, y);
     EnableSoma(core_id, AER_addr);
   }
 
   /// Disable Soma in XY space
   void DisableSomaXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSomaAERAddr(x, y);
     DisableSoma(core_id, AER_addr);
   }
 
   /// Set Soma gain in XY space
   void SetSomaGainXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaGainId gain) {
-    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSomaAERAddr(x, y);
     SetSomaGain(core_id, AER_addr, gain);
   }
 
   /// Set Soma offset sign in XY space
   void SetSomaOffsetSignXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetSignId sign) {
-    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSomaAERAddr(x, y);
     SetSomaOffsetSign(core_id, AER_addr, sign);
   }
 
   /// Set Soma offset multiplier in XY space
   void SetSomaOffsetMultiplierXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::SomaOffsetMultiplierId multiplier) {
-    unsigned int AER_addr = bd_pars_->GetSomaAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSomaAERAddr(x, y);
     SetSomaOffsetMultiplier(core_id, AER_addr, multiplier);
   }
   
@@ -313,7 +313,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::ConfigSynapseID>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                bd_pars_->config_synapse_mem_,
+                kBDPars_.config_synapse_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -364,22 +364,22 @@ class Driver {
                 bdpars::SynapseStatusId::DISABLED);
 
   void EnableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSynAERAddr(x, y);
     EnableSynapse(core_id, AER_addr);
   }
 
   void DisableSynapseXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSynAERAddr(x, y);
     DisableSynapse(core_id, AER_addr);
   }
   
   void EnableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSynAERAddr(x, y);
     EnableSynapseADC(core_id, AER_addr);
   }
 
   void DisableSynapseADCXY(unsigned int core_id, unsigned int x, unsigned int y) {
-    unsigned int AER_addr = bd_pars_->GetSynAERAddr(x, y);
+    unsigned int AER_addr = kBDPars_.GetSynAERAddr(x, y);
     DisableSynapseADC(core_id, AER_addr);
   }
     
@@ -402,7 +402,7 @@ class Driver {
     std::bind(&Driver::SetConfigMemory<bdpars::DiffusorCutLocationId>, this,
                 std::placeholders::_1,
                 std::placeholders::_2,
-                bd_pars_->config_diff_cut_mem_,
+                kBDPars_.config_diff_cut_mem_,
                 std::placeholders::_3,
                 std::placeholders::_4
             );
@@ -428,12 +428,12 @@ class Driver {
                 bdpars::DiffusorCutStatusId::CLOSE);
 
   void OpenDiffusorCutXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::DiffusorCutLocationId cut_id) {
-      unsigned int tile_id = BDPars_.GetMemAERAddr(x, y);
+      unsigned int tile_id = kBDPars_.GetMemAERAddr(x, y);
       OpenDiffusorCut(core_id, tile_id, cut_id);
   }
 
   void CloseDiffusorCutXY(unsigned int core_id, unsigned int x, unsigned int y, bdpars::DiffusorCutLocationId cut_id) {
-      unsigned int tile_id = BDPars_.GetMemAERAddr(x, y);
+      unsigned int tile_id = kBDPars_.GetMemAERAddr(x, y);
       CloseDiffusorCut(core_id, tile_id, cut_id);
   }
 
@@ -618,8 +618,8 @@ class Driver {
 
     std::vector<BDWord> packed(size);
     for (unsigned int i = 0; i < size; i++) {
-      unsigned int addr0 = BDPars_.GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
-      unsigned int addr1 = BDPars_.GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
+      unsigned int addr0 = kBDPars_.GetSynAERAddr(synapse_xs[2*i  ], synapse_ys[2*i  ]);
+      unsigned int addr1 = kBDPars_.GetSynAERAddr(synapse_xs[2*i+1], synapse_ys[2*i+1]);
       unsigned int sign0 = synapse_signs[2*i  ];
       unsigned int sign1 = synapse_signs[2*i+1];
       packed[i] = PackWord<TATSpikeWord>({
@@ -727,7 +727,7 @@ class Driver {
     BDWord default_word = PackWord<PATWord>({{PATWord::AM_ADDRESS, (1<<FieldWidth(PATWord::AM_ADDRESS)) - 1}, 
                                             {PATWord::MM_ADDRESS_HI, (1<<FieldWidth(PATWord::MM_ADDRESS_HI)) - 1}, 
                                             {PATWord::MM_ADDRESS_LO, (1<<FieldWidth(PATWord::MM_ADDRESS_LO)) - 1}});
-    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::PAT).size;
+    unsigned int mem_size = kBDPars_.mem_info_.at(bdpars::BDMemId::PAT).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
 
@@ -737,7 +737,7 @@ class Driver {
     BDWord default_word = PackWord<TATTagWord>({{TATTagWord::STOP, 1}, 
                                                 {TATTagWord::TAG, (1<<FieldWidth(TATTagWord::TAG)) - 1}, 
                                                 {TATTagWord::GLOBAL_ROUTE, (1<<FieldWidth(TATTagWord::GLOBAL_ROUTE)) - 1}});
-    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::TAT0).size;
+    unsigned int mem_size = kBDPars_.mem_info_.at(bdpars::BDMemId::TAT0).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
 
@@ -747,14 +747,14 @@ class Driver {
     BDWord default_word = PackWord<TATTagWord>({{TATTagWord::STOP, 1}, 
                                                 {TATTagWord::TAG, (1<<FieldWidth(TATTagWord::TAG)) - 1}, 
                                                 {TATTagWord::GLOBAL_ROUTE, (1<<FieldWidth(TATTagWord::GLOBAL_ROUTE)) - 1}});
-    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::TAT1).size;
+    unsigned int mem_size = kBDPars_.mem_info_.at(bdpars::BDMemId::TAT1).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
 
   /// Default (safe) values for MM
   /// zero weight squashes everything
   std::vector<BDWord> GetDefaultMMEntries() const {
-    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::MM).size;
+    unsigned int mem_size = kBDPars_.mem_info_.at(bdpars::BDMemId::MM).size;
     return std::vector<BDWord>(mem_size, 0);
   }
 
@@ -764,7 +764,7 @@ class Driver {
     BDWord default_word = PackWord<AMWord>({{AMWord::STOP, 1},
                                           {AMWord::THRESHOLD, 1},
                                           {AMWord::NEXT_ADDRESS, (1<<FieldWidth(AMWord::NEXT_ADDRESS)) - 1}});
-    unsigned int mem_size = bd_pars_->mem_info_.at(bdpars::BDMemId::AM).size;
+    unsigned int mem_size = kBDPars_.mem_info_.at(bdpars::BDMemId::AM).size;
     return std::vector<BDWord>(mem_size, default_word);
   }
 
@@ -835,13 +835,16 @@ class Driver {
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
         if (_addr < 4096) {
-            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
+            xy_addresses[idx] = kBDPars_.GetSomaXYAddr(aer_addresses[idx]);
         } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
         }
     }
     return {xy_addresses, aer_times};
   }
+
+std::tuple<std::vector<std::array<unsigned int, bdpars::BDPars::NumNeurons>>, 
+        std::vector<BDTime>> RecvBinnedSpikes(unsigned int core_id, BDTime bin_time_ns);
 
   /// Receive a stream of spikes in XY address space (Y msb, X lsb)
   std::tuple<std::vector<unsigned int>, std::vector<float>> RecvXYSpikesSeconds(unsigned int core_id) {
@@ -856,7 +859,7 @@ class Driver {
     for(unsigned int idx = 0; idx < num_spikes; ++idx){
         auto _addr = aer_addresses[idx];
         if (_addr < 4096) {
-            xy_addresses[idx] = bd_pars_->GetSomaXYAddr(aer_addresses[idx]);
+            xy_addresses[idx] = kBDPars_.GetSomaXYAddr(aer_addresses[idx]);
             xy_times[idx] = static_cast<float>(aer_times[idx]) * 1e-9;
         } else {
             cout << "WARNING: Invalid spike address: " << _addr << endl;
@@ -921,8 +924,8 @@ class Driver {
   void SetSpikeFilterIncrementConst(unsigned int core_id, unsigned int increment, bool flush=true) {
     uint16_t inc_lo = GetField(increment, THREEFPGAREGS::W0);
     uint16_t inc_hi = GetField(increment, THREEFPGAREGS::W1);
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT0), {inc_lo});
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT1), {inc_hi});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT0), {inc_lo});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::SF_INCREMENT_CONSTANT1), {inc_hi});
     if (flush) Flush();
   }
 
@@ -930,15 +933,15 @@ class Driver {
   void SetSpikeFilterDecayConst(unsigned int core_id, unsigned int decay, bool flush=true) {
     uint16_t dec_lo = GetField(decay, THREEFPGAREGS::W0);
     uint16_t dec_hi = GetField(decay, THREEFPGAREGS::W1);
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT0), {dec_lo});
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT1), {dec_hi});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT0), {dec_lo});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::SF_DECAY_CONSTANT1), {dec_hi});
     if (flush) Flush();
   }
   
   /// Set number of spike filters to report
   void SetNumSpikeFilters(unsigned int core_id, unsigned int num, bool flush=true) {
     assert(num <= max_num_SF_);
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::SF_FILTS_USED), {num});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::SF_FILTS_USED), {num});
     if (flush) Flush();
   }
 
@@ -961,7 +964,7 @@ class Driver {
   // enable or disable dumping of raw tags entering spike filter
   void SetSpikeFilterDebug(unsigned int core_id, bool en) {
     uint64_t en_int = static_cast<unsigned int>(en);
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::TS_REPORT_TAGS), {en_int});
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::TS_REPORT_TAGS), {en_int});
   }
 
   //////////////////////////////////////////////////////////////////////////
@@ -1006,7 +1009,8 @@ class Driver {
       return RecvFromEP(core_id, ep_code);
   }
 
-  static const bdpars::BDPars BDPars_;
+  /// parameters describing BD hardware
+  static const bdpars::BDPars kBDPars_;
  protected:
 
   ////////////////////////////////
@@ -1064,8 +1068,6 @@ class Driver {
   /// Issues two push words (PAT dumps) to force out the 2 trapped words
   void IssuePushWords();
 
-  /// parameters describing BD hardware
-  const bdpars::BDPars *bd_pars_;
   /// best-of-driver's-knowledge state of bd hardware
   std::vector<BDState> bd_state_;
 
@@ -1131,7 +1133,7 @@ class Driver {
   // can call SendToEP on BDHornEP, FPGARegEP, FPGAChannelEP instead of uint8_t ep_code
   template <class T>
   void SendToEP(unsigned int core_id, T ep, const std::vector<BDWord> &payload, const std::vector<BDTime> &times = {}) {
-    SendToEP(core_id, bd_pars_->DnEPCodeFor(ep), payload, times);
+    SendToEP(core_id, kBDPars_.DnEPCodeFor(ep), payload, times);
   }
 
   /// Pops from a <leaf_id>'s dec_bufs_out_[] <num_to_recv> payloads
@@ -1149,7 +1151,7 @@ class Driver {
   template <class T>
   std::pair<std::vector<BDWord>,
             std::vector<BDTime>>
-    RecvFromEP(unsigned int core_id, T ep_enum, unsigned int timeout_us=0) { return RecvFromEP(core_id, bd_pars_->UpEPCodeFor(ep_enum), timeout_us); }
+    RecvFromEP(unsigned int core_id, T ep_enum, unsigned int timeout_us=0) { return RecvFromEP(core_id, kBDPars_.UpEPCodeFor(ep_enum), timeout_us); }
 
   ////////////////////////////////
   // memory programming helpers

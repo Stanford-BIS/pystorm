@@ -1,5 +1,6 @@
 """Provides the hardware abstraction layer"""
 from time import sleep
+import time
 import numpy as np
 import pystorm
 from pystorm.PyDriver import bddriver as bd
@@ -239,17 +240,51 @@ class HAL:
 
         return np.array([times, outputs, dims, counts]).T
 
+    def get_binned_spikes(self, bin_time_ns):
+        """Returns all the pending spikes gathered since this was last called.
+        Returns one numpy array per pool. Highest performance if binning is ultimately desired.
+
+        Inputs:
+        ======
+        bin_time_ns: binning interval. All spikes currently-queued in the driver will be placed in a bin. 
+                     Be cautious calling this multiple times in sucession, bins will not be aligned.
+                     Using upstream time resolution equal to binning interval is recommended, and avoids
+                     this issue (although bins may still overlap, they will align)
+
+        Output:
+        =======
+        Data format: tuple(dict of numpy arrays, list of bin times): 
+            ({pool0id:[[bin0 data], ..., [binN data]], ..., poolNid:[[bin0 data], ..., [binN data]]}, 
+             [bin0 time, ..., binN time])
+        Timestamps are in nanoseconds
+        """
+        starttime = time.time()
+        binned_spikes, bin_times = self.driver.RecvBinnedSpikes(CORE_ID, bin_time_ns)
+        print("driver RecvBinnedSpikes took", time.time() - starttime)
+
+        starttime = time.time()
+        trans_spikes = self.last_mapped_network.translate_binned_spikes(binned_spikes)
+        print("translate_binned_spikes took", time.time() - starttime)
+
+        return trans_spikes, bin_times
+
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
 
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
-        Timestamps are in microseconds
+        Timestamps are in nanoseconds
         """
+        starttime = time.time()
         spk_ids, spk_times = self.driver.RecvXYSpikes(CORE_ID)
+        print("driver RecvXYSpikes took", time.time() - starttime)
 
+        starttime = time.time()
         pool_ids, nrn_idxs, filtered_spk_times = self.last_mapped_network.translate_spikes(spk_ids, spk_times)
+        print("translate_spikes took", time.time() - starttime)
 
+        starttime = time.time()
         ret_data = np.array([filtered_spk_times, pool_ids, nrn_idxs]).T
+        print("creating array took", time.time() - starttime)
         return ret_data
     
     def stop_all_inputs(self, time=0, flush=True):
@@ -276,7 +311,7 @@ class HAL:
         rate: int
             desired tag rate for the Input/dimension in Hz
         time: int (default=0)
-            time to send inputs, in microseconds. 0 means immediately
+            time to send inputs, in nanoseconds. 0 means immediately
         flush: bool (default true)
             whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
@@ -300,7 +335,7 @@ class HAL:
         rates: list of ints
             desired tag rate for each Input/dimension in Hz
         time: int (default=0)
-            time to send inputs, in microseconds. 0 means immediately
+            time to send inputs, in nanoseconds. 0 means immediately
         flush: bool (default true)
             whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
