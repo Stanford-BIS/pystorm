@@ -102,11 +102,10 @@ def end_collection_bin_spikes_new_way(HAL):
     #print("done collecting data")
 
     starttime = time.time()
-    binned_tags, bin_times = HAL.get_binned_outputs()
-    print("  get_binned_outputs took (total)", time.time() - starttime)
-    print(np.sum(binned_tags, axis=0))
-    print(binned_tags.shape)
-    print(bin_times.shape)
+    binned_tags, bin_times = HAL.get_array_outputs()
+    print("  get_array_outputs took (total)", time.time() - starttime)
+    o0, _ = next(iter(binned_tags))
+    print([np.sum(binned_tags[o0, d]) for d in range(D)])
 
     return binned_tags, bin_times
     

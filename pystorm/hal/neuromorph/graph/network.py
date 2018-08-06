@@ -284,6 +284,13 @@ class Network(object):
 
         return outputs, dims, counts
 
+    def translate_tag_array(self, tag_array):
+        sub_array_dict = {}
+        for filt_idx in range(tag_array.shape[1]):
+            output_id, dim = self.spike_filter_idx_to_output[filt_idx]
+            sub_array_dict[output_id, dim] = tag_array[:, filt_idx]
+        return sub_array_dict
+
     def map(self, core_parameters, keep_pool_mapping=False, verbose=False):
         """Create Resources and map them to a Core
 
