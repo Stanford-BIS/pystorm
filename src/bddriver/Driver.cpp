@@ -1333,7 +1333,6 @@ void Driver::SetSpikeGeneratorRates(
 
 }
 
-
 std::pair<std::vector<BDWord>,
           std::vector<BDTime>> Driver::RecvTags(unsigned int core_id, unsigned int timeout_us) {
 
@@ -1351,6 +1350,56 @@ std::pair<std::vector<BDWord>,
   tat_tags.second.insert(tat_tags.second.end() , acc_tags.second.begin() , acc_tags.second.end());
 
   return tat_tags;
+}
+
+std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int> 
+        Driver::RecvSpikeFilterStatesArray(unsigned int core_id, unsigned int num_tag_streams) {
+
+    // don't use this call if you're doing something weird that requires acc tags
+    // minimum non-zero timeout (shortest possible wait, 1 us is nothing in most cases)
+    std::vector<BDWord> words;
+    std::vector<BDTime> times;
+    std::tie(words, times) = RecvFromEP(core_id, bdpars::FPGAOutputEP::SF_OUTPUT, 1);
+
+    unsigned int num_words = words.size();
+
+    BDTime last_time = times.back();
+    BDTime first_time = times.front();
+    BDTime total_time = last_time - first_time;
+    unsigned int num_bins = total_time / ns_per_HB_ + 1;
+
+    // contiguous array representing 2D array of data, num_binsx4096
+    // can be consequently converted to other data types (like py::array)
+    uint32_t * tag_arr = new uint32_t[num_bins * num_tag_streams];
+
+    // start times of each bin
+    uint64_t * bin_times = new uint64_t[num_bins];
+    bin_times[0] = first_time;
+
+    unsigned int curr_bin_idx = 0;
+    unsigned int curr_base_addr = 0;
+
+    for(unsigned int idx = 0; idx < num_words; idx++){
+        unsigned int filter_id = GetField(words[idx], FPGASFWORD::FILTIDX);
+        uint32_t filter_state = GetField(words[idx], FPGASFWORD::STATE);
+        BDTime time = times[idx];
+
+        // move to next bin, if necessary
+        if (time - bin_times[curr_bin_idx] >= ns_per_HB_) {
+            curr_bin_idx++;
+            curr_base_addr += num_tag_streams;
+            bin_times[curr_bin_idx] = time;
+        }
+
+        // squash bad spikes without report, this call is all about performance
+        if (filter_id < num_tag_streams) {
+            unsigned int addr = curr_base_addr + filter_id;
+            if (addr > num_tag_streams * num_bins) {
+            }
+            tag_arr[addr] = filter_state;
+        }
+    }
+    return {tag_arr, bin_times, num_bins, num_tag_streams};
 }
 
 void Driver::SendToEP(unsigned int core_id,

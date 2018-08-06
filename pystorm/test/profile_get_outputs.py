@@ -5,15 +5,17 @@ import matplotlib.pyplot as plt
 import time
 import pickle
 
-from pystorm.hal import HAL, parse_hal_spikes, bin_tags_spikes
+from pystorm.hal import HAL, parse_hal_spikes, parse_hal_binned_tags, bin_tags_spikes
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
-# the whole chip
-WIDTH = 64 # array width
-HEIGHT = 64 # array height
+WIDTH = 32
+HEIGHT = 32
 N = WIDTH * HEIGHT
+
+# dimensions to collect tags from
+D = 8
 
 CORE_ID = 0
 
@@ -34,9 +36,11 @@ def map_network(HAL):
     net = graph.Network("net")
 
     # get bad_syn, but make even
-    bad_syn = HAL.get_calibration('synapse', 'high_bias_magnitude').values
+    bad_syn = HAL.get_calibration('synapse', 'high_bias_magnitude').values.reshape((32, 32))
+    bad_syn = bad_syn[:HEIGHT//2, :WIDTH//2].flatten()
     bad_idx = np.arange(N//4)[bad_syn]
-    bad_syn[bad_idx[-1]] = 0
+    if np.sum(bad_syn) % 2 == 1:
+        bad_syn[bad_idx[-1]] = 0
     bad_syn = bad_syn.reshape((HEIGHT//2, WIDTH//2))
 
     taps = np.zeros((HEIGHT, WIDTH), dtype=int)
@@ -44,6 +48,13 @@ def map_network(HAL):
     taps = taps.reshape((N,1))
 
     pool = net.create_pool("pool", taps, biases=SOMA_BIAS)
+    bucket = net.create_bucket("bucket", D)
+    output = net.create_output("output", D)
+
+    decoders = np.array([[1 / 2**d for d in range(D)] for n in range(N)]).T
+
+    net.create_connection("p2b", pool, bucket, decoders)
+    net.create_connection("b2o", bucket, output, None)
 
     # map network
     #print("calling map")
@@ -58,40 +69,46 @@ def start_collection(HAL):
 
     #print("starting data collection")
     HAL.start_traffic(flush=False)
-    HAL.enable_spike_recording(flush=True)
+    HAL.enable_output_recording(flush=True)
 
 def end_collection_bin_spikes_old_way(HAL, boundaries):
 
     HAL.stop_traffic(flush=False)
-    HAL.disable_spike_recording(flush=True)
+    HAL.disable_output_recording(flush=True)
     #print("done collecting data")
 
     starttime = time.time()
-    raw_spikes = HAL.get_spikes()
-    print("  get_spikes took (total)", time.time() - starttime)
+    raw_tags = HAL.get_outputs()
+    print(len(raw_tags))
+    print("  get_outputs took (total)", time.time() - starttime)
 
     starttime = time.time()
-    parsed_spikes = parse_hal_spikes(raw_spikes)
-    print("parse_hal_spikes took", time.time() - starttime)
+    parsed_tags = parse_hal_binned_tags(raw_tags)
+    print("parse_hal_binned_tags took", time.time() - starttime)
 
     starttime = time.time()
-    binned_spikes = bin_tags_spikes(parsed_spikes, boundaries)
+    binned_tags = bin_tags_spikes(parsed_tags, boundaries)
+    for obj in binned_tags:
+        print(np.sum(binned_tags[obj], axis=1))
     print("bin_tags_spikes took", time.time() - starttime)
     #print("done binning spikes")
 
-    return binned_spikes, raw_spikes
+    return binned_tags, raw_tags
 
 def end_collection_bin_spikes_new_way(HAL):
 
     HAL.stop_traffic(flush=False)
-    HAL.disable_spike_recording(flush=True)
+    HAL.disable_output_recording(flush=True)
     #print("done collecting data")
 
     starttime = time.time()
-    binned_spikes, bin_times = HAL.get_binned_spikes(NS_RES)
-    print("  get_binned_spikes took (total)", time.time() - starttime)
+    binned_tags, bin_times = HAL.get_binned_outputs()
+    print("  get_binned_outputs took (total)", time.time() - starttime)
+    print(np.sum(binned_tags, axis=0))
+    print(binned_tags.shape)
+    print(bin_times.shape)
 
-    return binned_spikes, bin_times
+    return binned_tags, bin_times
     
 if __name__ == "__main__":
     HAL = HAL() # HAL is a global, used by run_tau_exp, assign it here
@@ -125,7 +142,6 @@ if __name__ == "__main__":
         time.sleep(TCOLLECT * 1.05)
 
         binned, bin_times = end_collection_bin_spikes_new_way(HAL)
-        p0 = next(iter(binned))
 
         times.append(time.time() - starttime)
 

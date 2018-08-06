@@ -264,6 +264,11 @@ class HAL:
 
         return trans_spikes, bin_times
 
+    def get_binned_outputs(self):
+        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
+        tag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(CORE_ID, N_SF)
+        return tag_arr, bin_times
+
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
 

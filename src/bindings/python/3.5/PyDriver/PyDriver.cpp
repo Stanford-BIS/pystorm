@@ -466,6 +466,31 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikeFilterStates", &Driver::RecvSpikeFilterStates, "Get FPGA SpikeFilter outputs",
         py::arg("core_id"), py::arg("timeout_us"));
 
+
+    // fancy call that arranges SpikeFilterStates as a numpy array
+    cl.def("RecvSpikeFilterStatesArray",
+        [](Driver &d, unsigned int core_id, unsigned int num_tag_streams) {
+            uint32_t* tag_arr;;
+            uint64_t* bin_times;
+            unsigned int num_bins;
+            unsigned int num_tag_streams_out;
+            std::tie(tag_arr, bin_times, num_bins, num_tag_streams_out) = 
+                d.RecvSpikeFilterStatesArray(core_id, num_tag_streams);
+
+            auto tag_np_arr = py::array_t<uint32_t>(
+                std::vector<ptrdiff_t>{num_bins, num_tag_streams_out},
+                tag_arr);
+
+            auto bin_times_np_arr = py::array_t<uint64_t>(
+                std::vector<ptrdiff_t>{num_bins},
+                bin_times);
+
+            std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {tag_np_arr, bin_times_np_arr};
+            return to_return;
+        }, 
+        "Receive spike filter states organized as np array. Unlike the similar RecvBinnedSpikes call, the binning resolution is not selectable, and must be controlled by setting the upstream HB interval", py::arg("core_id"), py::arg("num_tag_streams"));
+
+
     cl.def("SetSpikeFilterDebug",&Driver::SetSpikeFilterDebug, "enable or disable dumping of raw tags entering spike filter", 
         py::arg("core_id"), py::arg("en"));
 

@@ -967,6 +967,10 @@ std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int>
     SendToEP(core_id, kBDPars_.DnEPCodeFor(bdpars::FPGARegEP::TS_REPORT_TAGS), {en_int});
   }
 
+/// Organizes filter values as an array (castable to a numpy array in the bindings)
+/// Requires user to set bin time to upstream time resoultion (heartbeat interval)
+std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int> RecvSpikeFilterStatesArray(unsigned int core_id, unsigned int num_tag_streams);
+
   //////////////////////////////////////////////////////////////////////////
   // Utility
   //////////////////////////////////////////////////////////////////////////

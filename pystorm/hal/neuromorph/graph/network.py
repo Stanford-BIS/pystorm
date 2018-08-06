@@ -271,7 +271,7 @@ class Network(object):
             else:
                 to_append = f
 
-            if abs(to_append) < 1000:
+            if abs(to_append) < 10000:
                 counts.append(to_append)
             else:
                 logger.warning(
