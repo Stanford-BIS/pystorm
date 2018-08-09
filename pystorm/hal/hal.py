@@ -267,6 +267,20 @@ class HAL:
         return trans_spikes, bin_times
 
     def get_array_outputs(self):
+        """Returns all binned output tags gathered since this was last called, 
+        Each Output is associated with an array of values, indexed by time bin index and dimension
+
+        Whether or not you get return values is enabled/disabled by
+        enable/disable_output_recording()
+
+        Binning interval is controlled by set_time_resolution()'s upstream_ns parameter.
+
+        Outputs:
+        =======
+        Data format: tuple({output_id : (np.array of values indexed [time_bin_idx, dimension])}, 
+            (np.array of time bin values for all output_ids))
+        Timestamps are in nanoseconds
+        """
         N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
         tag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(CORE_ID, N_SF)
         return self.last_mapped_network.translate_tag_array(tag_arr), bin_times
