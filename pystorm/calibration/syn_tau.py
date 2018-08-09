@@ -152,8 +152,9 @@ def end_collection(HAL):
 
     binned_spikes, _ = HAL.get_binned_spikes(UPSTREAM_RES_NS)
 
+    # transpose everything, since that's how the script originally worked
     pool_id = next(iter(binned_spikes)) # there's only one pool
-    nrn_cts = np.sum(binned_spikes[pool_id], axis=1).reshape((HEIGHT, WIDTH))
+    nrn_cts = np.sum(binned_spikes[pool_id].T, axis=1).reshape((HEIGHT, WIDTH))
 
     #return tile_cts, nrn_cts
     return nrn_cts
@@ -175,7 +176,8 @@ def end_collection_bin_spikes(HAL, start_time, end_time):
 
     pool_id = next(iter(binned_spikes)) # there's only one pool
 
-    window = binned_spikes[pool_id][:, start_idx:end_idx]
+    # transpose everything, since that's how the script originally worked
+    window = binned_spikes[pool_id].T[:, start_idx:end_idx]
 
     return window
 

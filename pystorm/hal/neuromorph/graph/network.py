@@ -255,7 +255,7 @@ class Network(object):
             width = pool.x
             height = pool.y
 
-            pool_bins[pool] = binned_2d[:, yloc:yloc+height, xloc:xloc+width].reshape((binned_spikes.shape[0], pool.n_neurons)).T
+            pool_bins[pool] = binned_2d[:, yloc:yloc+height, xloc:xloc+width].reshape((binned_spikes.shape[0], pool.n_neurons))
 
         return pool_bins
 
@@ -286,7 +286,8 @@ class Network(object):
         sub_array_dict = {}
         for filt_idx in range(tag_array.shape[1]):
             output_id, dim = self.spike_filter_idx_to_output[filt_idx]
-            sub_array_dict[output_id, dim] = tag_array[:, filt_idx]
+            if dim == 0:
+                sub_array_dict[output_id] = tag_array[:, filt_idx:filt_idx + output_id.dimensions].T
         return sub_array_dict
 
     def map(self, core_parameters, keep_pool_mapping=False, verbose=False):
