@@ -485,25 +485,40 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     // fancy call that arranges SpikeFilterStates as a numpy array
     cl.def("RecvSpikeFilterStatesArray",
         [](Driver &d, unsigned int core_id, unsigned int num_tag_streams) {
-            uint32_t* tag_arr;;
+            uint32_t* tag_arr;
             uint64_t* bin_times;
             unsigned int num_bins;
             unsigned int num_tag_streams_out;
             std::tie(tag_arr, bin_times, num_bins, num_tag_streams_out) = 
                 d.RecvSpikeFilterStatesArray(core_id, num_tag_streams);
 
+            py::capsule free_tag_arr_when_done(tag_arr, [](void *f) {
+                uint32_t *tag_arr = reinterpret_cast<uint32_t *>(f);
+                delete[] tag_arr; 
+            });
+
             auto tag_np_arr = py::array_t<uint32_t>(
                 std::vector<ptrdiff_t>{num_bins, num_tag_streams_out},
-                tag_arr);
+                std::vector<ptrdiff_t>{num_tag_streams_out*4, 4},
+                tag_arr,
+                free_tag_arr_when_done);
+
+            py::capsule free_bin_times_when_done(bin_times, [](void *f) {
+                uint64_t *bin_times = reinterpret_cast<uint64_t *>(f);
+                delete[] bin_times; 
+            });
 
             auto bin_times_np_arr = py::array_t<uint64_t>(
                 std::vector<ptrdiff_t>{num_bins},
-                bin_times);
+                std::vector<ptrdiff_t>{8},
+                bin_times,
+                free_bin_times_when_done
+            );
 
             std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {tag_np_arr, bin_times_np_arr};
             return to_return;
         }, 
-        "Receive spike filter states organized as np array. Unlike the similar RecvBinnedSpikes call, the binning resolution is not selectable, and must be controlled by setting the upstream HB interval", py::arg("core_id"), py::arg("num_tag_streams"));
+        py::return_value_policy::take_ownership, "Receive spike filter states organized as np array. Unlike the similar RecvBinnedSpikes call, the binning resolution is not selectable, and must be controlled by setting the upstream HB interval", py::arg("core_id"), py::arg("num_tag_streams"));
 
 
     cl.def("SetSpikeFilterDebug",&Driver::SetSpikeFilterDebug, "enable or disable dumping of raw tags entering spike filter", 
