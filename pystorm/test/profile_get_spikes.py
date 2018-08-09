@@ -20,7 +20,9 @@ CORE_ID = 0
 SOMA_BIAS = 1
 DAC_BIAS_SCALE = 1 # avoid > 10
 TCOLLECT = 1 # how long to turn on spikes for
-NTRIAL = 4 # how many trials to average stats over
+
+NTRIAL_OLD = 2 # how many trials to average stats over
+NTRIAL_NEW = 20 # how many trials to average stats over
 
 NS_RES = 1000000
 
@@ -99,7 +101,7 @@ if __name__ == "__main__":
     net = map_network(HAL)
 
     times = []
-    for i in range(NTRIAL):
+    for i in range(NTRIAL_OLD):
         starttime = time.time()
 
         fpga_time = HAL.get_time()
@@ -116,7 +118,7 @@ if __name__ == "__main__":
     print("mean cycle time OLD", np.mean(times))
 
     times = []
-    for i in range(NTRIAL):
+    for i in range(NTRIAL_NEW):
         starttime = time.time()
 
         fpga_time = HAL.get_time()

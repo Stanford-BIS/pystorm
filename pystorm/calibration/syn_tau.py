@@ -168,21 +168,14 @@ def end_collection_bin_spikes(HAL, start_time, end_time):
 
     #starttime = time.time()
     binned_spikes, bin_times = HAL.get_binned_spikes(UPSTREAM_RES_NS)
-
-    #for t in bin_times:
-    #    print("python", t)
-
     #print("getting spikes took", time.time() - starttime)
+
     start_idx = np.searchsorted(bin_times, start_time)
     end_idx = np.searchsorted(bin_times, end_time)
 
     pool_id = next(iter(binned_spikes)) # there's only one pool
 
     window = binned_spikes[pool_id][:, start_idx:end_idx]
-    print(window.shape)
-
-    #for t in bin_times:
-    #    print("python2", t)
 
     return window
 

@@ -429,19 +429,34 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
             std::tie(binned_spikes, bin_times, num_bins, num_neurons) = 
                 d.RecvBinnedSpikes(core_id, bin_time_ns);
 
+            py::capsule free_binned_spikes_when_done(binned_spikes, [](void *f) {
+                uint32_t *binned_spikes = reinterpret_cast<uint32_t *>(f);
+                delete[] binned_spikes; 
+            });
+
             auto binned_spikes_arr = py::array_t<uint32_t>(
                 std::vector<ptrdiff_t>{num_bins, num_neurons},
-                binned_spikes);
+                std::vector<ptrdiff_t>{num_neurons*4, 4},
+                binned_spikes,
+                free_binned_spikes_when_done
+            );
 
+            py::capsule free_bin_times_when_done(bin_times, [](void *f) {
+                uint64_t *bin_times = reinterpret_cast<uint64_t *>(f);
+                delete[] bin_times; 
+            });
 
             auto bin_times_arr = py::array_t<uint64_t>(
                 std::vector<ptrdiff_t>{num_bins},
-                bin_times);
+                std::vector<ptrdiff_t>{8},
+                bin_times,
+                free_bin_times_when_done
+            );
 
             std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {binned_spikes_arr, bin_times_arr};
             return to_return;
         }, 
-        "Receive a series of binned spike counts in XY address space (Y msb, X lsb), binned along bin_time_ns", py::arg("core_id"), py::arg("bin_time_ns"));
+        py::return_value_policy::take_ownership, "Receive a series of binned spike counts in XY address space (Y msb, X lsb), binned along bin_time_ns", py::arg("core_id"), py::arg("bin_time_ns"));
 
     cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
     cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
