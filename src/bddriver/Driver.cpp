@@ -1200,25 +1200,45 @@ std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int>
 
     // contiguous array representing 2D array of data, num_binsx4096
     // can be consequently converted to other data types (like py::array)
+    // can be a "high" estimate
     uint32_t * binned_spikes = new uint32_t[num_bins * kNumNeurons];
+    for (unsigned int i = 0; i < num_bins * kNumNeurons; i++) {
+        binned_spikes[i] = 0;
+    }
 
     // start times of each bin
     uint64_t * bin_times = new uint64_t[num_bins];
-    bin_times[0] = first_time;
+    for (unsigned int i = 0; i < num_bins; i++) {
+        bin_times[i] = first_time + bin_time_ns * i;
+    }
 
     unsigned int curr_bin_idx = 0;
     unsigned int curr_base_addr = 0;
+
+    uint64_t prev_time = first_time;
 
     for(unsigned int idx = 0; idx < num_spikes; idx++){
         auto _addr = aer_addresses[idx];
         BDTime time = aer_times[idx];
 
-        // move to next bin, if necessary
-        if (time - bin_times[curr_bin_idx] >= bin_time_ns) {
-            curr_bin_idx++;
-            curr_base_addr += kNumNeurons;
-            bin_times[curr_bin_idx] = time;
+        // move to a different bin, if necessary
+        if (bin_times[curr_bin_idx] != time) {
+            prev_time = bin_times[curr_bin_idx];
+
+            curr_bin_idx = (time - first_time) / bin_time_ns;
+            curr_base_addr = curr_bin_idx * kNumNeurons;
+
+            //if (prev_time + bin_time_ns != time) {
+            //    cout << "LAST_T " << prev_time << endl;            
+            //    cout << "NOW_T " << time << endl;
+            //}
+
         }
+        //if (time - bin_times[curr_bin_idx] >= bin_time_ns) {
+        //    curr_bin_idx++;
+        //    curr_base_addr += kNumNeurons;
+        //    bin_times[curr_bin_idx] = time;
+        //}
 
         // squash bad spikes without report, this call is all about performance
         if (_addr < kNumNeurons) {
@@ -1227,6 +1247,11 @@ std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int>
             binned_spikes[binned_spikes_addr]++;
         }
     }
+
+    //for (unsigned int i = 0; i < num_bins; i++) {
+    //    cout << "driver " << bin_times[i] << endl;
+    //}
+
     return {binned_spikes, bin_times, num_bins, kNumNeurons};
 }
 
@@ -1399,7 +1424,7 @@ std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int>
             tag_arr[addr] = filter_state;
         }
     }
-    return {tag_arr, bin_times, num_bins, num_tag_streams};
+    return {tag_arr, bin_times, curr_bin_idx + 1, num_tag_streams};
 }
 
 void Driver::SendToEP(unsigned int core_id,

@@ -245,19 +245,17 @@ class Network(object):
         pool_bins = {}
 
         for pool in self.pools:
-            pool_bins[pool] = np.zeros((len(binned_spikes), pool.n_neurons), dtype=int) 
+            pool_bins[pool] = np.zeros((binned_spikes.shape[0], pool.n_neurons), dtype=int) 
 
         # can take list-of-lists or normal array
-        binarr = np.asarray(binned_spikes)
-
-        binarr = binarr.reshape((len(binned_spikes), 64, 64))
+        binned_2d = binned_spikes.reshape((len(binned_spikes), 64, 64))
 
         for pool in pool_bins:
             xloc, yloc = pool.mapped_xy
             width = pool.x
             height = pool.y
 
-            pool_bins[pool] = binarr[:, yloc:yloc+height, xloc:xloc+width].flatten()
+            pool_bins[pool] = binned_2d[:, yloc:yloc+height, xloc:xloc+width].reshape((binned_spikes.shape[0], pool.n_neurons)).T
 
         return pool_bins
 

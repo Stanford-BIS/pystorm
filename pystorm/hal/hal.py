@@ -253,11 +253,13 @@ class HAL:
 
         Output:
         =======
-        Data format: tuple(dict of numpy arrays, list of bin times): 
+        Data format: tuple(dict of numpy arrays, array of bin times): 
             ({pool0id:[[bin0 data], ..., [binN data]], ..., poolNid:[[bin0 data], ..., [binN data]]}, 
              [bin0 time, ..., binN time])
         Timestamps are in nanoseconds
         """
+        import time
+
         binned_spikes, bin_times = self.driver.RecvBinnedSpikes(CORE_ID, bin_time_ns)
 
         trans_spikes = self.last_mapped_network.translate_binned_spikes(binned_spikes)

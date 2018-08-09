@@ -49,8 +49,8 @@ BIAS_TWIDDLE = 1
 # misc driver parameters
 
 # rate-based analysis, don't need terribly fine resolution
-downstream_time_res = 10000 # ns
-upstream_time_res = 1000000 # ns = 1 ms, targeting 100 ms tau, so this is 100 times finer
+DOWNSTREAM_RES_NS = 10000 # ns
+UPSTREAM_RES_NS = 10000000 # ns = 1 ms, targeting 100 ms tau, so this is 100 times finer
 
 ###########################################
 # experiment code
@@ -78,29 +78,9 @@ def open_all_diff_cuts(HAL):
     for tile_id in range(256):
         HAL.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
 
-def count_spikes_by_tile(spikes):
-    cts = np.zeros((TILES_Y, TILES_X), dtype=int)
-    for t, p, n in spikes:
-        # discard p, just one pool
-        y = n // WIDTH
-        x = n % HEIGHT
-        ty = y // TILE_XY
-        tx = x // TILE_XY
-        cts[ty, tx] += 1 
-    return cts
-
-def count_spikes_by_nrn(spikes):
-    cts = np.zeros((HEIGHT, WIDTH), dtype=int)
-    for t, p, n in spikes:
-        # discard p, just one pool
-        y = n // WIDTH
-        x = n % HEIGHT
-        cts[y, x] += 1 
-    return cts
-
 def map_network(HAL, syn_idx, biases, syn_lk):
 
-    HAL.set_time_resolution(downstream_time_res, upstream_time_res)
+    HAL.set_time_resolution(DOWNSTREAM_RES_NS, UPSTREAM_RES_NS)
     
     net = graph.Network("net")
 
@@ -170,29 +150,41 @@ def end_collection(HAL):
     HAL.disable_spike_recording(flush=True)
     #print("done collecting data")
 
-    spikes = HAL.get_spikes()
+    binned_spikes, _ = HAL.get_binned_spikes(UPSTREAM_RES_NS)
 
-    #tile_cts = count_spikes_by_tile(spikes)
-    nrn_cts = count_spikes_by_nrn(spikes)
-    #print("done counting spikes")
+    pool_id = next(iter(binned_spikes)) # there's only one pool
+    nrn_cts = np.sum(binned_spikes[pool_id], axis=1).reshape((HEIGHT, WIDTH))
 
     #return tile_cts, nrn_cts
-    return None, nrn_cts
+    return nrn_cts
 
-def end_collection_bin_spikes(HAL, boundaries):
+def end_collection_bin_spikes(HAL, start_time, end_time):
+    # windows the data to the relevant time range
+    # returns numpy array
 
     HAL.stop_traffic(flush=False)
     HAL.disable_spike_recording(flush=True)
     #print("done collecting data")
 
-    raw_spikes = HAL.get_spikes()
+    #starttime = time.time()
+    binned_spikes, bin_times = HAL.get_binned_spikes(UPSTREAM_RES_NS)
 
-    parsed_spikes = parse_hal_spikes(raw_spikes)
+    #for t in bin_times:
+    #    print("python", t)
 
-    binned_spikes = bin_tags_spikes(parsed_spikes, boundaries)
-    #print("done binning spikes")
+    #print("getting spikes took", time.time() - starttime)
+    start_idx = np.searchsorted(bin_times, start_time)
+    end_idx = np.searchsorted(bin_times, end_time)
 
-    return binned_spikes, raw_spikes
+    pool_id = next(iter(binned_spikes)) # there's only one pool
+
+    window = binned_spikes[pool_id][:, start_idx:end_idx]
+    print(window.shape)
+
+    #for t in bin_times:
+    #    print("python2", t)
+
+    return window
 
 def compute_tile_medians(nrn_cts):
     med = np.zeros((TILES_Y, TILES_X), dtype=int)
@@ -281,14 +273,14 @@ def run_tau_exp(HAL, num_trials, syn_lk):
 
         time.sleep(TBASELINE)
 
-        _, nrn_cts_f0 = end_collection(HAL)
+        nrn_cts_f0 = end_collection(HAL)
 
         # f(.5 * FMAX)
         HAL.set_input_rate(inp, 0, FMAX // 2, time=0) 
         start_collection(HAL)
 
         time.sleep(TBASELINE)
-        _, nrn_cts_fhigh = end_collection(HAL)
+        nrn_cts_fhigh = end_collection(HAL)
 
         HAL.set_input_rate(inp, 0, 0, time=0) 
         time.sleep(.1)
@@ -298,7 +290,7 @@ def run_tau_exp(HAL, num_trials, syn_lk):
         start_collection(HAL)
 
         time.sleep(TBASELINE)
-        _, nrn_cts_fmax = end_collection(HAL)
+        nrn_cts_fmax = end_collection(HAL)
 
         HAL.set_input_rate(inp, 0, 0, time=0) 
         time.sleep(.1)
@@ -328,20 +320,19 @@ def run_tau_exp(HAL, num_trials, syn_lk):
             end_ns = fpga_time + (TFUDGE + THOLD0 + THOLD1) * 1e9
             print('start_s', start_ns / 1e9)
             print('end_s', end_ns / 1e9)
-            binned_spikes, raw_spikes = end_collection_bin_spikes(HAL, np.linspace(start_ns, end_ns, 100))
+
+            binned_spikes = end_collection_bin_spikes(HAL, start_ns, end_ns)
             all_binned_spikes[(syn_y, syn_x)].append(binned_spikes)
+
     return all_binned_spikes, all_linear
 
 ############################################
 # data processing/tau fitting code
 
-def collapse_multitrial(As, poolkeys=None):
-    if poolkeys is None:
-        poolkeys = [next(iter(A_single)) for A_single in As]
-        
-    A = np.zeros_like(As[0][poolkeys[0]])
-    for A_single, pk in zip(As, poolkeys):
-        A += A_single[pk]
+def collapse_multitrial(As):
+    A = np.zeros_like(As[0])
+    for A_single in As:
+        A += A_single
     return A
 
 def get_syn_responses(A, linear):
@@ -440,7 +431,7 @@ def plot_yx_data(yx_datas, mask=None, t=None):
     PY = yx_datas[0].shape[0]
     PX = yx_datas[0].shape[1]
     
-    fs = (PX*1, PY*1)
+    fs = (PX*3, PY*3)
     fig, axes = plt.subplots(PY, PX, figsize=fs, sharex=True)
     plt.tight_layout(w_pad=.1, h_pad=.1)
         
@@ -478,9 +469,28 @@ if __name__ == "__main__":
         HAL = HAL() # HAL is a global, used by run_tau_exp, assign it here
         all_binned_spikes, all_linear = run_tau_exp(HAL, args.num_trials, args.DAC_SYN_LK_value)
         pickle.dump([all_binned_spikes, all_linear], open(pck_fname, 'wb'))
+        
+    plt.figure()
+    pid = next(iter(all_binned_spikes[0,0]))
+    oneA = all_binned_spikes[0,0][0]
+    plt.plot(oneA.T)
+    plt.savefig('data/Atest.png')
+
+    plt.figure()
+    plt.plot(np.sum(oneA.T, axis=1))
+    plt.savefig('data/Asum.png')
 
     # collapse multitrial data
     collapsed_As = [collapse_multitrial(all_binned_spikes[k]) for k in all_binned_spikes]
+
+    plt.figure()
+    oneA = collapsed_As[0]
+    plt.plot(oneA.T)
+    plt.savefig('data/Acoll.png')
+
+    plt.figure()
+    plt.plot(np.sum(oneA.T, axis=1))
+    plt.savefig('data/Acollsum.png')
 
     syn_yx_list = [k for k in all_binned_spikes]
     linear_list = [all_linear[k] for k in all_binned_spikes]
@@ -488,6 +498,16 @@ if __name__ == "__main__":
     # combine data from quadrants
     S_yxs = [get_syn_responses(A, linear) for A, linear in zip(collapsed_As, linear_list)]
     Sall_yx = combine_quadrant_responses(S_yxs, syn_yx_list)
+
+    print(Sall_yx.shape)
+
+    plt.figure()
+    plt.plot(Sall_yx[0, 0, :])
+    plt.savefig('data/syn_responses_00.png')
+
+    plt.figure()
+    plt.plot(Sall_yx[0, 1, :])
+    plt.savefig('data/syn_responses_01.png')
 
     # fit tau
     taus = fit_taus(Sall_yx, plot=~args.no_plots, plot_fname_pre='data/tau_step_response', pyx=args.plot_range)
