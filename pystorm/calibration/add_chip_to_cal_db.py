@@ -2,15 +2,14 @@ import argparse
 import numpy as np
 import sys
 
-from pystorm.hal import HAL
-HAL = HAL()
-
 parser = argparse.ArgumentParser(description='register a chip in the calibration database')
 parser.add_argument('chip_name', type=str, help='the name you want to assign to the attached chip')
 args = parser.parse_args()
 
 chip_name = args.chip_name
 
+from pystorm.hal import HAL
+HAL = HAL()
 act = HAL.get_unique_chip_activation()
 
 if np.sum(act > 0) < 10:

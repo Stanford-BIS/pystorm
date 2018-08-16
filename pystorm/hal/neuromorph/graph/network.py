@@ -110,7 +110,7 @@ class Network(object):
     def create_connection(self, label, src, dest, weights):
         """Add a connection to the network"""
         if weights is not None and not isinstance(dest, bucket.Bucket):
-            logger.critical(
+            logger.error(
                 "connection weights are only used when the destination node is a Bucket")
             raise NotImplementedError
         if isinstance(weights, Number):
