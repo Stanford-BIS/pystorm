@@ -343,9 +343,9 @@ class HAL:
         inputs: list of Input object
         dims : list of ints
             dimensions within each Input object to send to
-        rates: list of ints
+        rates: list of ints (or floats, which will be rounded)
             desired tag rate for each Input/dimension in Hz
-        time: int (default=0)
+        time: int (or float, which will be rounded) (default=0)
             time to send inputs, in nanoseconds. 0 means immediately
         flush: bool (default true)
             whether to flush the inputs through the driver immediately.
@@ -355,14 +355,17 @@ class HAL:
         WARNING: If <flush> is True, calling this will block traffic until the max <time>
         provided has passed!
         """
-        assert len(inputs) == len(dims) == len(rates)
+        if not (len(inputs) == len(dims) == len(rates)):
+            raise ValueError("inputs, dims, and rates all have to be the same length")
+        if not isinstance(inputs[0], pystorm.hal.neuromorph.graph.Input):
+            raise ValueError("inputs have to be of type neuromorph.graph.Input")
 
         gen_idxs = [
             inp.generator_idxs[dim] for inp, dim in zip(inputs, dims)]
         out_tags = [
             inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
-        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, rates, time, flush)
+        self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, np.round(rates).astype(int), int(time), flush)
 
 
     ##############################################################################
