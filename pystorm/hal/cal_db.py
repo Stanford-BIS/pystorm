@@ -262,5 +262,6 @@ class CalibrationDB(object):
         self.check_cal_pars(chip, cal_obj, cal_type)
 
         self.cals[cal_obj].sort_index(inplace=True)
-        return self.cals[cal_obj].loc[(chip, slice(None), slice(None)), cal_type]
+        data = self.cals[cal_obj].loc[(chip, slice(None), slice(None)), cal_type]
+        return data.reset_index(level=0, drop=True)
 
