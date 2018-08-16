@@ -354,15 +354,15 @@ def combine_quadrant_responses(S_yxs, syn_yxs):
 def respfunc(t, tau):
     return 1 - np.exp(-t / tau)
 
-def fit_taus(S_yxs, plot=False, plot_fname_pre=None, pyx=8):
+def fit_taus(S_yxs, thold0, thold1, plot=False, plot_fname_pre=None, pyx=8):
 
     from scipy.optimize import curve_fit
 
     taus = np.zeros((S_yxs.shape[0], S_yxs.shape[1]))
     Z_mins = np.zeros_like(taus)
     Z_maxs = np.zeros_like(taus)
-    
-    idx_start = int(np.round(THOLD0 / (THOLD0 + THOLD1) * S_yxs.shape[2]))
+
+    idx_start = int(np.round(thold0 / (thold0 + thold1) * S_yxs.shape[2]))
     len_Z_on = S_yxs.shape[2] - idx_start
     
     Z_ons = np.zeros((S_yxs.shape[0], S_yxs.shape[1], len_Z_on))
@@ -376,21 +376,26 @@ def fit_taus(S_yxs, plot=False, plot_fname_pre=None, pyx=8):
             # saturating exponential going 0 -> 1
 
             # window
-            idx_start = int(np.round(THOLD0 / (THOLD0 + THOLD1) * len(Z)))
+            idx_start = int(np.round(thold0 / (thold0 + thold1) * len(Z)))
+            Z_off = Z[:idx_start]
             Z_on = Z[idx_start:]
     
-            t = np.linspace(0, THOLD1, len(Z_on))
+            t = np.linspace(0, thold1, len(Z_on))
 
             # shift and scale
-            Z_min = np.min(Z_on)
+            Z_min = np.mean(Z_off)
             Z_scaled = Z_on - Z_min
-            Z_max = np.mean(Z_scaled[Z_scaled.shape[0] // 2:])
+            # assume signal is settled in second half of Z_on
+            Z_max = np.mean(Z_scaled[Z_scaled.shape[0] // 2:]) 
             Z_scaled = Z_scaled / Z_max
             Z_mins[ty, tx] = Z_min
             Z_maxs[ty, tx] = Z_max
             
-            mean_off = np.mean(np.abs(Z[:idx_start]))
-            mean_on = np.mean(np.abs(Z[idx_start:]))
+            mean_off = np.mean(Z_off)
+            Z_on_settled = Z_on[Z_on.shape[0] // 2:]
+            mean_on = np.mean(Z_on_settled)
+
+            # if the synapse's (linear) neurons actually responded
             if np.abs(mean_on - mean_off) > .05 * mean_off: 
 
                 popt, pcov = curve_fit(respfunc, t, Z_scaled)
@@ -398,6 +403,8 @@ def fit_taus(S_yxs, plot=False, plot_fname_pre=None, pyx=8):
                 
                 curves[ty, tx, :] = Z_max * respfunc(t, taus[ty, tx]) + Z_min
                 Z_ons[ty, tx] = Z_on
+                
+            # if they didn't don't try to estimate tau
             else:
                 taus[ty, tx] = np.nan
             
@@ -435,9 +442,14 @@ def plot_yx_data(yx_datas, mask=None, t=None):
             for yx_data in yx_datas:
                 if mask is not None and mask[py, px]:
                     if t is not None:
-                        axes[py, px].plot(t, yx_data[py, px, :])
+                        if PY > 1 and PX > 1:
+                            axes[py, px].plot(t, yx_data[py, px, :])
+                        else:
+                            axes.plot(t, yx_data[py, px, :])
                     else:
-                        axes[py, px].plot(yx_data[py, px, :])
+                        if PY > 1 and PX > 1:
+                            axes[py, px].plot(yx_data[py, px, :])
+                        axes.plot(yx_data[py, px, :])
     
     return axes
     
@@ -449,7 +461,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='calibrate synaptic taus, for a particular DAC_SYN_LK value')
     parser.add_argument('DAC_SYN_LK_value', type=int, help='the value of DAC_SYN_LK to calibrate for. Only certain values are tracked by the calibration DB')
-    parser.add_argument('--num_trials', type=int, default=8, help='the number of trials to average responses over')
+    parser.add_argument('--num_trials', type=int, default=20, help='the number of trials to average responses over')
     parser.add_argument('--fit_only', action='store_true', help='use pickled data, just fit tau')
     parser.add_argument('--no_plots', action='store_true', help='suppress generation of plots')
     parser.add_argument('--plot_range', type=int, default=8, help='plot only [:plot_range, :plot_range] corner')
@@ -505,7 +517,7 @@ if __name__ == "__main__":
     plt.savefig('data/syn_responses_01.png')
 
     # fit tau
-    taus = fit_taus(Sall_yx, plot=~args.no_plots, plot_fname_pre='data/tau_step_response', pyx=args.plot_range)
+    taus = fit_taus(Sall_yx, THOLD0, THOLD1, plot=~args.no_plots, plot_fname_pre='data/tau_step_response', pyx=args.plot_range)
 
     # record to cal_db
     synapse_cal = 'tau_dac_' + str(args.DAC_SYN_LK_value)
