@@ -57,6 +57,9 @@ class RunControl(object):
             Uses hardware binning interval to bin spikes (HAL.upstream_ns)
         """
 
+        if step_options is not None:
+            raise NotImplementedError("step_options argument isn't supported yet")
+
         TFUDGE = .05 # software stack jitter, turn on data collection a little before start_time, etc.
         if start_time is None:
             start_time = min([input_vals[inp][0][0] for inp in input_vals])
