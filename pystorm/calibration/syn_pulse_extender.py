@@ -30,13 +30,14 @@ np.set_printoptions(precision=2)
 
 CORE = 0
 NRN_N = 4096
-SYN_N = 1
+# SYN_N = 1
 # SYN_N = 4
+# SYN_N = 8
 # SYN_N = 16
 # SYN_N = 64
-# SYN_N = 1024
+SYN_N = 1024
 
-DEFAULT_TEST_TIME = 2.0 # time to collect overflow data
+DEFAULT_TEST_TIME = 1.0 # time to collect overflow data
 DEFAULT_SLOP_TIME = 0.2 # time to allow traffic to flush at the start and end of an experiment
 
 SPIKE_GEN_TIME_UNIT_NS = 10000 # time unit of fpga spike generator
@@ -52,9 +53,9 @@ FIFO_BUFFER_SIZE = 255
 VALIDATE_HIGH_BUF_RATE = 500 # upper bound padding to test high side of max_rate
 
 SYN_PU = 1024 # analog bias setting
-SYN_PD = 40 # analog bias setting
+SYN_PD = 20 # analog bias setting
 
-RATE = 10000 # maximum rate to test
+RATE = 20000 # maximum rate to test
 
 SPIKE_GEN_RATE = compute_spike_gen_rates(RATE-1, RATE, SPIKE_GEN_TIME_UNIT_NS)[0]
 
@@ -120,16 +121,20 @@ def toggle_spk_generator(rate, test_time, slop_time):
         CORE, [SPIKE_GEN_IDX], [TAT_IDX], [0], time=cur_time_ns+test_time_ns+slop_time_ns)
     sleep(test_time + 2*slop_time)
     overflow_0, _ = HAL.driver.GetFIFOOverflowCounts(CORE)
-    print("\tRate {:.1f}, overflow_count {} overflow rate {:.1f}".format(
-        rate, overflow_0, overflow_0/test_time))
     return overflow_0
 
 def test_syn(syn_idx, test_time, slop_time):
     """Deliver spikes to a synapse to find its spike consumption rate"""
+    HAL.stop_traffic(flush=True)
+    sleep(0.1)
+    HAL.start_traffic(flush=True)
     set_tat(syn_idx)
     # check overflow rate at max spike gen rate to predict max synapse rate
     overflows = toggle_spk_generator(SPIKE_GEN_RATE, test_time, slop_time)
-    max_rate = overflows / test_time
+    overflow_rate = overflows / test_time
+    max_rate = 2 * overflow_rate # 2 spikes per TAT entry
+    print("Synapse {}, Input Rate {:.1f} overflow_count {} overflow rate {:.1f}".format(
+        syn_idx, SPIKE_GEN_RATE, overflows, overflow_rate))
     return max_rate
 
 def report_time_remaining(start_time, syn_idx):
@@ -138,24 +143,20 @@ def report_time_remaining(start_time, syn_idx):
         n_syn_completed = syn_idx+1
         delta_time = get_time()-start_time
         est_time_remaining = delta_time/(syn_idx+1) * (SYN_N-n_syn_completed)
-        print("estimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
+        print("\tEstimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
             est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def plot_data(max_rates_2):
+def plot_data(max_rates):
     """Plot the data"""
-    syn_n = len(max_rates_2)
-    max_rates = max_rates_2*2
+    syn_n = len(max_rates)
     max_rates_mean = np.mean(max_rates)
     max_rates_min = np.min(max_rates)
     max_rates_max = np.max(max_rates)
 
-    fig_1d, axs = plt.subplots(ncols=2, figsize=(14, 6))
-    axs[0].plot(max_rates, 'o', markersize=1.5)
-    axs[0].set_xlabel("Synapse Index")
-    axs[0].set_ylabel("Max Input Rate / 2 (spks/s)")
-    axs[1].plot(max_rates, 'o', markersize=1.5)
-    axs[1].set_xlabel("Synapse Index")
-    axs[1].set_ylabel("Max Input Rate (spks/s)")
+    fig_1d, axs = plt.subplots(figsize=(8, 6))
+    axs.plot(max_rates, 'o', markersize=1.5)
+    axs.set_xlabel("Synapse Index")
+    axs.set_ylabel("Max Input Rate (spks/s)")
     fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
 
     if syn_n > 1: # make histograms
@@ -253,21 +254,19 @@ def check_synapse_max_rates(parsed_args):
     """Run the check"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
-        max_rates_2 = load_txt_data(DATA_DIR + "max_rates_2.txt")
+        max_rates = load_txt_data(DATA_DIR + "max_rates.txt")
     else:
-        max_rates_2 = np.zeros(SYN_N)
+        max_rates = np.zeros(SYN_N)
         build_net()
         set_analog()
         set_hal()
         start_time = get_time()
         for syn_idx in range(SYN_N):
-            print("Testing synapse {}".format(syn_idx))
-            max_rates_2[syn_idx] = test_syn(syn_idx, DEFAULT_TEST_TIME, DEFAULT_SLOP_TIME)
+            max_rates[syn_idx] = test_syn(syn_idx, DEFAULT_TEST_TIME, DEFAULT_SLOP_TIME)
             report_time_remaining(start_time, syn_idx)
-        np.savetxt(DATA_DIR + "max_rates_2.txt", max_rates_2)
-        np.savetxt(DATA_DIR + "max_rates.txt", max_rates_2*2)
+        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
 
-    plot_data(max_rates_2)
+    plot_data(max_rates)
     plt.show()
 
 if __name__ == "__main__":
