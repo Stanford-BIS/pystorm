@@ -34,8 +34,8 @@ NRN_N = 4096
 # SYN_N = 4
 # SYN_N = 8
 # SYN_N = 16
-SYN_N = 64
-# SYN_N = 1024
+# SYN_N = 64
+SYN_N = 1024
 
 DEFAULT_TEST_TIME = 1.0 # time to collect overflow data
 DEFAULT_SLOP_TIME = 0.2 # time to allow traffic to flush at the start and end of an experiment
@@ -53,7 +53,7 @@ FIFO_BUFFER_SIZE = 255
 VALIDATE_HIGH_BUF_RATE = 500 # upper bound padding to test high side of max_rate
 
 SYN_PU = 1024 # analog bias setting
-SYN_PD = 20 # analog bias setting
+SYN_PD = 30 # analog bias setting
 
 RATE = 20000 # maximum rate to test
 
@@ -65,9 +65,7 @@ if not os.path.isdir(DATA_DIR):
 
 def parse_args():
     """Parse command line arguments"""
-    parser = argparse.ArgumentParser(description='Characterize the synapse max input firing rates')
-    parser.add_argument(
-        "-r", action="store_true", dest="use_saved_data", help='reuse saved data')
+    parser = argparse.ArgumentParser(description='Characterize the synapse pulse extender')
     args = parser.parse_args()
     return args
 
@@ -250,24 +248,23 @@ def plot_data(max_rates):
         fig_tile.suptitle("Dividing Synapses by Position in Tile")
         fig_tile.savefig(DATA_DIR + "syn_tile.pdf")
 
-def check_synapse_max_rates(parsed_args):
-    """Run the check"""
-    use_saved_data = parsed_args.use_saved_data
-    if use_saved_data:
-        max_rates = load_txt_data(DATA_DIR + "max_rates.txt")
-    else:
-        max_rates = np.zeros(SYN_N)
-        build_net()
-        set_analog()
-        set_hal()
-        start_time = get_time()
-        for syn_idx in range(SYN_N):
-            max_rates[syn_idx] = test_syn(syn_idx, DEFAULT_TEST_TIME, DEFAULT_SLOP_TIME)
-            report_time_remaining(start_time, syn_idx)
-        np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
+def calibrate_syn_pulse_extender(parsed_args):
+    """Run the calibration"""
+    max_rates = np.zeros(SYN_N)
+    build_net()
+    set_analog()
+    set_hal()
+    start_time = get_time()
+    for syn_idx in range(SYN_N):
+        max_rates[syn_idx] = test_syn(syn_idx, DEFAULT_TEST_TIME, DEFAULT_SLOP_TIME)
+        report_time_remaining(start_time, syn_idx)
+    np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
+
+    pulse_widths = (1./max_rates).reshape((32, 32))
+    HAL.add_calibration("synapse", "pulse_width", pulse_widths)
 
     plot_data(max_rates)
     plt.show()
 
 if __name__ == "__main__":
-    check_synapse_max_rates(parse_args())
+    calibrate_syn_pulse_extender(parse_args())
