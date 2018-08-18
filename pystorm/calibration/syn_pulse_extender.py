@@ -34,8 +34,8 @@ NRN_N = 4096
 # SYN_N = 4
 # SYN_N = 8
 # SYN_N = 16
-# SYN_N = 64
-SYN_N = 1024
+SYN_N = 64
+# SYN_N = 1024
 
 DEFAULT_TEST_TIME = 1.0 # time to collect overflow data
 DEFAULT_SLOP_TIME = 0.2 # time to allow traffic to flush at the start and end of an experiment
@@ -99,6 +99,9 @@ def set_hal():
 
 def set_tat(syn_idx):
     """Set up the tag action table to send spikes to an individual synapse"""
+    HAL.stop_traffic(flush=True)
+    sleep(DEFAULT_SLOP_TIME)
+    HAL.start_traffic(flush=True)
     addr = HAL.driver.BDPars.GetSynAERAddr(syn_idx)
     tat_entry = bd.PackWord([
         (bd.TATSpikeWord.STOP, TAT_STOP_BIT),
@@ -125,9 +128,6 @@ def toggle_spk_generator(rate, test_time, slop_time):
 
 def test_syn(syn_idx, test_time, slop_time):
     """Deliver spikes to a synapse to find its spike consumption rate"""
-    HAL.stop_traffic(flush=True)
-    sleep(0.1)
-    HAL.start_traffic(flush=True)
     set_tat(syn_idx)
     # check overflow rate at max spike gen rate to predict max synapse rate
     overflows = toggle_spk_generator(SPIKE_GEN_RATE, test_time, slop_time)
@@ -168,8 +168,8 @@ def plot_data(max_rates):
         axs[0].set_ylabel("Counts")
         axs[0].set_title(
             "Full Rate Histogram\n"+
-            "Mean:{:,.0f} Min:{:,.0f} Max:{:,.0f}".format(
-                max_rates_mean, max_rates_min, max_rates_max))
+            "Min:{:,.0f} Mean:{:,.0f} Max:{:,.0f}".format(
+                max_rates_min, max_rates_mean, max_rates_max))
         axs[1].plot(np.sort(max_rates), (np.arange(syn_n)+1)/syn_n)
         axs[1].axvline(max_rates_mean, color="k", linewidth=1, label="mean")
         axs[1].set_xlabel("Max Input Rate (spks/s)")
