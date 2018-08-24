@@ -661,17 +661,14 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    def __init__(self, encoders_or_taps):
+    def __init__(self, num_neurons, taps):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-        if isinstance(encoders_or_taps, tuple):
-            self.N, self.taps_and_signs = encoders_or_taps
-            self.D = len(self.taps_and_signs)
-        else:
-            self.N, self.D = encoders_or_taps.shape
-            self.taps_and_signs = self.encoders_to_taps(encoders_or_taps)
+        self.N = num_neurons
+        self.taps_and_signs = taps
+        self.D = len(self.taps_and_signs)
 
         self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 
@@ -692,30 +689,6 @@ class TATTapPoint(Resource):
         # posttranslate
         self.mapped_taps = None
         self.contents = None
-
-    def encoders_to_taps(self, M):
-        """encoder entries should be in {-1, 0, 1}
-        converts this representation to the sparse representation used by TATTapPoint
-        """
-        nrns = M.shape[0]
-        dims = M.shape[1]
-
-        taps_and_signs = [[] for d in range(dims)]
-        for d in range(dims):
-            for n in range(nrns):
-                entry = M[n, d]
-                assert entry in [-1, 0, 1], (
-                    "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
-                if entry != 0:
-                    t = n
-                    s = int(entry)
-                    taps_and_signs[d].append((t, s))
-
-        logger.debug("matrix:")
-        logger.debug(M)
-        logger.debug("taps and signs:")
-        logger.debug(taps_and_signs)
-        return taps_and_signs
 
     @property
     def dimensions_out(self):

@@ -72,33 +72,36 @@ class Network(object):
         assert x*y == n_neurons
         return x, y
 
-    def create_pool(self, label, encoders, gain_divisors=1, biases=0, xy=None, user_xy_loc=(None,None)):
+    def create_pool(self, label, taps, gain_divisors=1, biases=0, xy=None, user_xy_loc=(None,None)):
         """Adds a Pool object to the network.
         
         Parameters
         ----------
         label: string
             name of pool
-        encoders:
-            encoder matrix (pre-diffuser), size neurons-by-dimensions.
-            Elements must be in {-1, 0, 1}.
-            Implicitly describes pool dimensionality and number of neurons.
+        taps:
+            Two options:
+            1. encoder matrix (pre-diffuser), size neurons-by-dimensions.
+               Elements must be in {-1, 0, 1}.
+               Implicitly describes pool dimensionality and number of neurons.
+            2. sparse tap list (N, [[tap dim 0 list], ... , [tap dim D-1 list]]) the equivalent tap list
+               [tap dim d list] has elements (neuron idx, tap sign) where tap sign is in {-1, 1}
         xy: tuple: (int, int)
             user-specified x, y shape. x * y must match encoder shape
         """
-        if isinstance(encoders, tuple):
-            n_neurons, tap_list = encoders
-            dimensions = len(tap_list)
-        else:
-            n_neurons, dimensions = encoders.shape
 
-        # if xy
+        # need to infer number of neurons to get a x, y shape
         if xy is None:
-            x, y = self._flat_to_rectangle(n_neurons)
+            if isinstance(taps, tuple):
+                n_neurons, _ = taps
+            else:
+                n_neurons, _ = taps.shape
+                x, y = self._flat_to_rectangle(n_neurons)
         else:
             x, y = xy
 
-        p = pool.Pool(label, encoders, x, y, gain_divisors, biases, user_xy_loc)
+
+        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc)
         self.pools.append(p)
         return p
 

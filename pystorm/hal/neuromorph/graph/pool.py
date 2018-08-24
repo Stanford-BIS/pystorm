@@ -10,25 +10,32 @@ class Pool(GraphObject):
     ----------
     label: string
         name of pool
-    encoders:
-        encoder matrix (pre-diffuser), size neurons-by-dimensions.
-        Elements must be in {-1, 0, 1}.
-        Implicitly describes pool dimensionality and number of neurons.
+    tap_spec:
+        Two options:
+        1. encoder matrix (pre-diffuser), size neurons-by-dimensions.
+           Elements must be in {-1, 0, 1}.
+           Implicitly describes pool dimensionality and number of neurons.
+        2. sparse tap list (N, [[tap dim 0 list], ... , [tap dim D-1 list]]) the equivalent tap list
+           [tap dim d list] has elements (neuron idx, tap sign) where tap sign is in {-1, 1}
     x: int
         neuron pool is physically a rectangle; x dimension of neuron pool
     y: int
         neuron pool is physically a rectangle; y dimension of neuron pool
     """
-    def __init__(self, label, encoders, x, y, gain_divisors=1, biases=0, user_xy_loc=(None, None)):
+    def __init__(self, label, tap_spec, x, y, gain_divisors=1, biases=0, user_xy_loc=(None, None)):
         super(Pool, self).__init__(label)
         self.label = label
-        self.encoders = encoders
 
-        if isinstance(encoders, tuple):
-            self.n_neurons, tap_list = encoders
+        # create tap list from tap matrix, if necessary
+        if isinstance(tap_spec, tuple):
+            self.n_neurons, tap_list = tap_spec
             self.dimensions = len(tap_list)
+            self.tap_list = tap_list
+            self.tap_matrix = None
         else:
-            self.n_neurons, self.dimensions = encoders.shape
+            self.n_neurons, self.dimensions = tap_spec.shape
+            self.tap_list = Pool.tap_matrix_to_list(tap_spec)
+            self.tap_matrix = tap_spec
 
         self.x = x
         self.y = y
@@ -59,6 +66,33 @@ class Pool(GraphObject):
     def __repr__(self):
         return "Pool " + self.label
 
+    @staticmethod
+    def tap_matrix_to_list(M):
+        """Converts tap matrix to tap list
+        Inputs:
+        ======
+        M, the tap matrix
+
+        Returns:
+        =======
+        [[tap dim 0 list], ... , [tap dim D-1 list]] the equivalent tap list
+        """
+        nrns = M.shape[0]
+        dims = M.shape[1]
+
+        taps_and_signs = [[] for d in range(dims)]
+        for d in range(dims):
+            for n in range(nrns):
+                entry = M[n, d]
+                if entry not in [-1, 0, 1]:
+                    raise ValueError("tap_matrix entries must be in -1, 0, 1")
+                if entry != 0:
+                    t = n
+                    s = int(entry)
+                    taps_and_signs[d].append((t, s))
+
+        return taps_and_signs
+
     def get_num_dimensions(self):
         return self.dimensions
 
@@ -67,7 +101,7 @@ class Pool(GraphObject):
 
     def create_intrinsic_resources(self):
         # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
-        self._append_resource("TATTapPoint", hwr.TATTapPoint(self.encoders))
+        self._append_resource("TATTapPoint", hwr.TATTapPoint(self.n_neurons, self.tap_list))
         self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, self.user_xy_loc))
 
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
