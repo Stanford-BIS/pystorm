@@ -96,10 +96,9 @@ class Network(object):
                 n_neurons, _ = taps
             else:
                 n_neurons, _ = taps.shape
-                x, y = self._flat_to_rectangle(n_neurons)
+            x, y = self._flat_to_rectangle(n_neurons)
         else:
             x, y = xy
-
 
         p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc)
         self.pools.append(p)
