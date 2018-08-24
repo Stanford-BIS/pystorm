@@ -509,6 +509,8 @@ class NetBuilder(object):
 
         """
 
+        raise NotImplementedError("this function isn't tested yet")
+
         SAMPLE_FUDGE = 2 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
         SAMPLE_ANGLES = [np.pi / 4, np.pi / 8, np.pi / 16]
         HOLD_TIME = 1 # seconds
