@@ -10,8 +10,8 @@ def load_txt_data(fname, dtype=None):
             data = np.loadtxt(fname, dtype=dtype)
         else:
             data = np.loadtxt(fname)
-    except FileNotFoundError:
-        print("\nError: Could not find saved data {}\n".format(fname))
+    except (FileNotFoundError, IOError) as err:
+        print("\nError: {}\n".format(err))
         sys.exit(1)
     return data
 
@@ -19,8 +19,8 @@ def load_npy_data(fname):
     """Load numpy npy data from fname"""
     try:
         data = np.load(fname)
-    except FileNotFoundError:
-        print("\nError: Could not find saved data {}\n".format(fname))
+    except (FileNotFoundError, IOError) as err:
+        print("\nError: {}\n".format(err))
         sys.exit(1)
     return data
 
@@ -29,8 +29,8 @@ def load_pickle_data(fname):
     try:
         with open(fname, "rb") as pickle_file:
             data = pickle.load(pickle_file)
-    except FileNotFoundError:
-        print("\nError: Could not find saved data {}\n".format(fname))
+    except (FileNotFoundError, IOError) as err:
+        print("\nError: {}\n".format(err))
         sys.exit(1)
     return data
 

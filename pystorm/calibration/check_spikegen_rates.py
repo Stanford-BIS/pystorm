@@ -1,4 +1,4 @@
-"""Check the accuracy of the input rates
+"""Check the accuracy of the spike generator input rates
 
 Set up the following traffic flow:
 spike generator -> accumulator (weight 1) -> fpga -> pc
@@ -151,7 +151,7 @@ def plot_rates(rates, measured_rates):
 
     fig.savefig(DATA_DIR + "input_rates.pdf")
 
-def check_input_rates(parsed_args):
+def check_spikegen_rates(parsed_args):
     """Perform the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
@@ -185,4 +185,4 @@ def check_input_rates(parsed_args):
     plt.show()
 
 if __name__ == "__main__":
-    check_input_rates(parse_args())
+    check_spikegen_rates(parse_args())

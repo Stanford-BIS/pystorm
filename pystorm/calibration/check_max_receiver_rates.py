@@ -1,7 +1,7 @@
 """Test the receiver's max throughput by sending spikes to synapes
 
 Synapses can only take in spike at up to a certain rate
-Test the max rates first with calibration and then use the max rate info to drive
+Test the max synapse rates first with calibration and then use the max rate info to drive
 the receiver with as much traffic as possible
 """
 import os
@@ -570,7 +570,7 @@ def plot_test_slots(recv_data, test_slots_data):
                   "Estimated Max Input Rate {:.1f} Mspks/s".format(max_rate*1E-6))
     fig.savefig(DATA_DIR + "test_slots.pdf")
 
-def check_max_input_spike_rates(parsed_args):
+def check_max_receiver_rates(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
     test_set = parsed_args.test_set
@@ -616,4 +616,4 @@ def check_max_input_spike_rates(parsed_args):
     plt.show()
 
 if __name__ == "__main__":
-    check_max_input_spike_rates(parse_args())
+    check_max_receiver_rates(parse_args())
