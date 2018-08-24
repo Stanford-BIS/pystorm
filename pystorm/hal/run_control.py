@@ -68,6 +68,7 @@ class RunControl(object):
             end_time = max([input_vals[inp][0][-1] for inp in input_vals])
 
         def start_sweep(get_raw_spikes, get_outputs):
+            """Activate chip traffic"""
             if get_raw_spikes:
                 self.HAL.enable_spike_recording(flush=False)
             if get_outputs:
@@ -76,7 +77,7 @@ class RunControl(object):
 
 
         def end_sweep(get_raw_spikes, get_outputs, start_time, end_time):
-
+            """"Deactivate chip traffic, and gather output spikes and tags"""
             def window_dict_of_arrays(dict_of_arrays, bin_times, start_time, end_time):
                 start_idx = np.searchsorted(bin_times, start_time)
                 end_idx = np.searchsorted(bin_times, end_time)
@@ -108,8 +109,7 @@ class RunControl(object):
             return (windowed_outputs, output_bin_times), (windowed_spikes, spike_bin_times)
 
         def enqueue_input_vals(input_vals):
-
-            # queue up inputs
+            """Queue up input sequence in hardware"""
             for input_obj in input_vals:
                 times, rates = input_vals[input_obj]
                 assert(len(times) == rates.shape[0])

@@ -148,6 +148,7 @@ class HAL:
         self.stop_hardware()
 
     def get_time(self):
+        """Returns the time in nanoseconds"""
         return self.driver.GetFPGATime()
 
     def reset_time(self):
