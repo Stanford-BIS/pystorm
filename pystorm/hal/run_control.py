@@ -75,10 +75,10 @@ class RunControl(object):
                 self.HAL.enable_output_recording(flush=False)
             self.HAL.start_traffic(flush=True)
 
-
         def end_sweep(get_raw_spikes, get_outputs, start_time, end_time):
             """"Deactivate chip traffic, and gather output spikes and tags"""
             def window_dict_of_arrays(dict_of_arrays, bin_times, start_time, end_time):
+                """Clip spike and output data in dictionary of arrays to start and end time"""
                 start_idx = np.searchsorted(bin_times, start_time)
                 end_idx = np.searchsorted(bin_times, end_time)
 

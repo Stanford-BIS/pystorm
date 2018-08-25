@@ -259,7 +259,6 @@ class NetBuilder(object):
 
         return tap_matrix.reshape((SY, SX, D))
 
-
     @staticmethod
     def syn_taps_to_nrn_taps(tap_matrix):
         SY, SX, D = tap_matrix.shape
@@ -582,8 +581,6 @@ class NetBuilder(object):
 
         return est_encs, est_offsets, mean_residuals, insufficient_samples
                 
-        
-
     def determine_good_fmaxes(self, safety_margin=1.3):
         """Determine maximum input rate (fmax) for all Pools at a given dac value
 

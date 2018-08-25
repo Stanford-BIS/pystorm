@@ -610,7 +610,11 @@ class HAL:
 
     def get_calibration_db(self):
         """returns CalibrationDB object"""
-        return self.cdb()
+        return self.cdb
+
+    def get_calibration_obj_types(self):
+        """Returns the calibration objects and types data structure"""
+        return self.cdb.CAL_TYPES
 
     def get_calibration(self, cal_obj, cal_type):
         """Get calibration values for attached chip
