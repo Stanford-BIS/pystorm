@@ -5,7 +5,6 @@ spike generator -> accumulator (weight 1) -> fpga -> pc
 
 Vary the input spike rates and measure the output spike rates
 """
-import os
 import time
 import argparse
 import numpy as np
@@ -16,7 +15,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 
 HAL = HAL()
 
@@ -34,9 +33,7 @@ TGT_RATE_MAX = 700000
 
 FLOAT_TOL = 0.000001 # for handling floating to integer comparisons
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""

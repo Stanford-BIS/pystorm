@@ -10,7 +10,6 @@ The input -> fifo -> tat -> synapse path will quickly back up
 and, due to the datapath operation,  the rate of overflows will match the synapse's consumption
 rate
 """
-import os
 from time import sleep
 from time import time as get_time
 import argparse
@@ -24,7 +23,7 @@ from pystorm.PyDriver import bddriver as bd
 HAL = HAL()
 
 from utils.exp import clear_overflows, compute_spike_gen_rates
-from utils.file_io import load_txt_data
+from utils.file_io import set_data_dir
 
 np.set_printoptions(precision=2)
 
@@ -59,13 +58,11 @@ RATE = 20000 # maximum rate to test
 
 SPIKE_GEN_RATE = compute_spike_gen_rates(RATE-1, RATE, SPIKE_GEN_TIME_UNIT_NS)[0]
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
 
 def parse_args():
     """Parse command line arguments"""
     parser = argparse.ArgumentParser(description='Characterize the synapse pulse extender')
+    parser.add_argument("--syn_pd", dest="syn_pd", type=int, default=SYN_PD, help="Set DAC_SYN_PD bias. Default {}".format(SYN_PD))
     args = parser.parse_args()
     return args
 
@@ -77,9 +74,9 @@ def build_net():
     net.create_pool("p", tap_matrix)
     HAL.map(net)
 
-def set_analog():
+def set_analog(syn_pd):
     """Sets the synapse config bits and the bias currents"""
-    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD, SYN_PD)
+    HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PD, syn_pd)
     HAL.driver.SetDACCount(CORE, bd.bdpars.BDHornEP.DAC_SYN_PU, SYN_PU)
     for n_idx in range(NRN_N):
         HAL.driver.SetSomaEnableStatus(CORE, n_idx, bd.bdpars.SomaStatusId.DISABLED)
@@ -144,7 +141,7 @@ def report_time_remaining(start_time, syn_idx):
         print("\tEstimated time remaining: {:.0f} s = {:.1f} min = {:.2f} hr...".format(
             est_time_remaining, est_time_remaining/60., est_time_remaining/60./60.))
 
-def plot_data(max_rates):
+def plot_data(max_rates, data_dir):
     """Plot the data"""
     syn_n = len(max_rates)
     max_rates_mean = np.mean(max_rates)
@@ -155,7 +152,7 @@ def plot_data(max_rates):
     axs.plot(max_rates, 'o', markersize=1.5)
     axs.set_xlabel("Synapse Index")
     axs.set_ylabel("Max Input Rate (spks/s)")
-    fig_1d.savefig(DATA_DIR + "syn_idx_vs_max_rate.pdf")
+    fig_1d.savefig(data_dir + "syn_idx_vs_max_rate.pdf")
 
     if syn_n > 1: # make histograms
         fig_hist, axs = plt.subplots(ncols=2, figsize=(12, 6))
@@ -175,7 +172,7 @@ def plot_data(max_rates):
         axs[1].set_title("Full Rate Cumulative Distribution Function")
 
         fig_hist.suptitle("All Synapses")
-        fig_hist.savefig(DATA_DIR + "histogram.pdf")
+        fig_hist.savefig(data_dir + "histogram.pdf")
 
     if syn_n == NRN_N//4: # all syn_n tested
         sqrt_n = int(np.ceil(np.sqrt(syn_n)))
@@ -186,7 +183,7 @@ def plot_data(max_rates):
         axs.set_xlabel("Synapse X Coordinate")
         axs.set_ylabel("Synapse Y Coordinate")
         axs.set_title("Max Input Rate (spks/s)")
-        fig_heatmap.savefig(DATA_DIR + "2d_heatmap.pdf")
+        fig_heatmap.savefig(data_dir + "2d_heatmap.pdf")
 
         max_rates_hex = np.nan*np.ones((sqrt_n, sqrt_n*2+1))
         max_rates_hex[0::2, 0:sqrt_n*2:2] = max_rates_2d[0::2, :]
@@ -200,7 +197,7 @@ def plot_data(max_rates):
         axs.set_yticks([])
         plt.colorbar(ims)
         axs.set_title("Max Input Rate (spks/s)")
-        fig_hex_heatmap.savefig(DATA_DIR + "2d_hex_heatmap.pdf")
+        fig_hex_heatmap.savefig(data_dir + "2d_hex_heatmap.pdf")
 
         tile_max_rates = dict(
             upper_left=max_rates_2d[0::2, 0::2].flatten(),
@@ -246,24 +243,26 @@ def plot_data(max_rates):
         axs[2].set_title("Quantile-Quantiles")
         axs[2].legend(title="Position 0 : Position 1")
         fig_tile.suptitle("Dividing Synapses by Position in Tile")
-        fig_tile.savefig(DATA_DIR + "syn_tile.pdf")
+        fig_tile.savefig(data_dir + "syn_tile.pdf")
 
 def calibrate_syn_pulse_extender(parsed_args):
     """Run the calibration"""
+    syn_pd = parsed_args.syn_pd
+    data_dir = set_data_dir(__file__, "dac_syn_pd_" + str(syn_pd))
     max_rates = np.zeros(SYN_N)
     build_net()
-    set_analog()
+    set_analog(syn_pd)
     set_hal()
     start_time = get_time()
     for syn_idx in range(SYN_N):
         max_rates[syn_idx] = test_syn(syn_idx, DEFAULT_TEST_TIME, DEFAULT_SLOP_TIME)
         report_time_remaining(start_time, syn_idx)
-    np.savetxt(DATA_DIR + "max_rates.txt", max_rates)
+    np.savetxt(data_dir + "max_rates.txt", max_rates)
 
     pulse_widths = (1./max_rates).reshape((32, 32))
-    HAL.add_calibration("synapse", "pulse_width", pulse_widths)
+    HAL.add_calibration("synapse", "pulse_width_dac_{}".format(syn_pd), pulse_widths)
 
-    plot_data(max_rates)
+    plot_data(max_rates, data_dir)
     plt.show()
 
 if __name__ == "__main__":

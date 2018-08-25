@@ -18,9 +18,9 @@ class CalibrationDB(object):
             'tau_dac_4', 
             'tau_dac_8', 
             'tau_dac_16', 
-            'pulse_width',
             'high_bias_magnitude',
             ]
+        self.SYNAPSE_CALS += ["pulse_width_dac_" + str(i) for i in range(20, 41)]
 
         self.SOMA_CALS = [
             ]
