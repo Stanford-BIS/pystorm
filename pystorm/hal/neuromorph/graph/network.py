@@ -100,7 +100,6 @@ class Network(object):
         else:
             x, y = xy
 
-
         p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc)
         self.pools.append(p)
         return p

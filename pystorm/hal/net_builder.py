@@ -58,7 +58,7 @@ class NetBuilder(object):
         return net
 
     @staticmethod
-    def create_default_yx_taps(SY, SX, D, bad_syn):
+    def create_default_yx_taps(SY, SX, D, bad_syn=None):
         """create 'good' (i.e. maximally adjacently orthogonal) arrays of synapses
 
         Inputs:
@@ -77,6 +77,9 @@ class NetBuilder(object):
         
         if isinstance(bad_syn, np.ndarray) and bad_syn.shape != (SY, SX):
             raise ValueError("bad_syn should be 2D array-like and shape (SY, SX)")
+
+        if bad_syn is None:
+            bad_syn = np.array([[False] * SY] * SX, dtype=bool)
 
         def get_bad_syn(y, x):
             if isinstance(bad_syn, pd.DataFrame):
@@ -255,7 +258,7 @@ class NetBuilder(object):
                                 raise RuntimeError("failed to get orthogonal vector 100 times" + 
                                     "something is probably wrong with neighborhood logic")
 
-                    tap_matrix[y, x, :] = candidate_vect
+                        tap_matrix[y, x, :] = candidate_vect
 
         return tap_matrix.reshape((SY, SX, D))
 
