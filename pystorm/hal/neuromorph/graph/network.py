@@ -96,7 +96,7 @@ class Network(object):
                 n_neurons, _ = taps
             else:
                 n_neurons, _ = taps.shape
-                x, y = self._flat_to_rectangle(n_neurons)
+            x, y = self._flat_to_rectangle(n_neurons)
         else:
             x, y = xy
 
