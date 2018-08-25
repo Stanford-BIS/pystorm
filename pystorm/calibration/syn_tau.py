@@ -10,6 +10,9 @@ from pystorm.hal import HAL, parse_hal_spikes, bin_tags_spikes
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
+from utils.file_io import load_txt_data, set_data_dir
+DATA_DIR = set_data_dir(__file__)
+
 ###########################################
 # pool size parameters
 
@@ -246,7 +249,7 @@ def process_baseline(f0, fhigh, fmax):
     print("frac. fired and not saturated = ", "{0:.4f}".format(total_good / N))
     print("frac. NOT fired and not saturated = ", "{0:.4f}".format(total_weird / N))
 
-    plt.savefig('data/syn_tau_baseline.png')
+    plt.savefig(DATA_DIR + 'syn_tau_baseline.png')
 
     return fired & not_sat
 
@@ -469,7 +472,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # read pickle or collect data
-    pck_fname = 'data/all_step_response_spikes.pck'
+    pck_fname = DATA_DIR + 'all_step_response_spikes.pck'
     if args.fit_only:
         all_binned_spikes, all_linear = pickle.load(open(pck_fname, 'rb'))
     else: 
@@ -481,11 +484,11 @@ if __name__ == "__main__":
     pid = next(iter(all_binned_spikes[0,0]))
     oneA = all_binned_spikes[0,0][0]
     plt.plot(oneA.T)
-    plt.savefig('data/Atest.png')
+    plt.savefig(DATA_DIR + 'Atest.png')
 
     plt.figure()
     plt.plot(np.sum(oneA.T, axis=1))
-    plt.savefig('data/Asum.png')
+    plt.savefig(DATA_DIR + 'Asum.png')
 
     # collapse multitrial data
     collapsed_As = [collapse_multitrial(all_binned_spikes[k]) for k in all_binned_spikes]
@@ -493,11 +496,11 @@ if __name__ == "__main__":
     plt.figure()
     oneA = collapsed_As[0]
     plt.plot(oneA.T)
-    plt.savefig('data/Acoll.png')
+    plt.savefig(DATA_DIR + 'Acoll.png')
 
     plt.figure()
     plt.plot(np.sum(oneA.T, axis=1))
-    plt.savefig('data/Acollsum.png')
+    plt.savefig(DATA_DIR + 'Acollsum.png')
 
     syn_yx_list = [k for k in all_binned_spikes]
     linear_list = [all_linear[k] for k in all_binned_spikes]
@@ -510,14 +513,14 @@ if __name__ == "__main__":
 
     plt.figure()
     plt.plot(Sall_yx[0, 0, :])
-    plt.savefig('data/syn_responses_00.png')
+    plt.savefig(DATA_DIR + 'syn_responses_00.png')
 
     plt.figure()
     plt.plot(Sall_yx[0, 1, :])
-    plt.savefig('data/syn_responses_01.png')
+    plt.savefig(DATA_DIR + 'syn_responses_01.png')
 
     # fit tau
-    taus = fit_taus(Sall_yx, THOLD0, THOLD1, plot=~args.no_plots, plot_fname_pre='data/tau_step_response', pyx=args.plot_range)
+    taus = fit_taus(Sall_yx, THOLD0, THOLD1, plot=~args.no_plots, plot_fname_pre=DATA_DIR + 'tau_step_response', pyx=args.plot_range)
 
     # record to cal_db
     synapse_cal = 'tau_dac_' + str(args.DAC_SYN_LK_value)

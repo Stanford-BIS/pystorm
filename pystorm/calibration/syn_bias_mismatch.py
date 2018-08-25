@@ -7,8 +7,11 @@ HAL = HAL()
 
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
+from utils.file_io import set_data_dir
 
 np.random.seed(0)
+
+DATA_DIR = set_data_dir(__file__)
 
 ###########################################
 # pool size parameters
@@ -154,7 +157,7 @@ def make_imshow(nrn_cts, idx, bias):
     axes[1,1].set_title('med f > mean*' + str(BAD_NRN_THR))
     axes[1,1].imshow(med > np.mean(nrn_cts) * BAD_NRN_THR)
 
-    plt.savefig('data/syn_mm_nrn_cts_' + str(idx) + '_' + str(bias) + '.png')
+    plt.savefig(DATA_DIR + 'syn_mm_nrn_cts_' + str(idx) + '_' + str(bias) + '.png')
 
 # sweep which of the 4 synapses in the tile we use
 all_bad_syn = np.zeros((32, 32), dtype=bool)
@@ -192,6 +195,6 @@ for i in [0, 1, 2, 3]:
 
 plt.figure()
 plt.imshow(all_bad_syn)
-plt.savefig('data/all_bad_syn.png')
+plt.savefig(DATA_DIR + 'all_bad_syn.png')
 
 HAL.add_calibration('synapse', 'high_bias_magnitude', all_bad_syn)
