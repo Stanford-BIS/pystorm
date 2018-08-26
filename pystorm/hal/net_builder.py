@@ -262,7 +262,6 @@ class NetBuilder(object):
 
         return tap_matrix.reshape((SY, SX, D))
 
-
     @staticmethod
     def syn_taps_to_nrn_taps(tap_matrix):
         SY, SX, D = tap_matrix.shape
@@ -631,7 +630,6 @@ class NetBuilder(object):
 
         return est_encs, est_offsets, baselines, mean_residuals, insufficient_samples
                 
-
     def validate_est_encs(self, est_encs, est_offsets, pool, inp, sample_pts, fmax):
         """Validate the output of determine_est_encs
 
@@ -692,7 +690,6 @@ class NetBuilder(object):
         RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
         return RMSE, meas_A, est_A
         
-
     def determine_good_fmaxes(self, safety_margin=1.3):
         """Determine maximum input rate (fmax) for all Pools at a given dac value
 

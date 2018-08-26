@@ -18,7 +18,7 @@ from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
 from utils.exp import clear_spikes
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 HAL = HAL()
 
 CORE = 0
@@ -31,9 +31,7 @@ NEURONS = 4096
 RUN_TIME = 0.1
 INTER_RUN_TIME = 0.1
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""

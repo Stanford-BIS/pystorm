@@ -20,7 +20,7 @@ from pystorm.hal.hal import parse_hal_binned_tags
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 HAL = HAL()
 
 CORE = 0
@@ -45,9 +45,7 @@ INTER_SAMPLE_TIME = 0.3
 # when the fpga gets saturated, timing info gets corrupted
 MAX_REASONABLE_RATE = 50E6
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""

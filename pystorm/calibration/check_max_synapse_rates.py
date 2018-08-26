@@ -24,7 +24,7 @@ from pystorm.PyDriver import bddriver as bd
 HAL = HAL()
 
 from utils.exp import clear_overflows, compute_spike_gen_rates
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 
 np.set_printoptions(precision=2)
 
@@ -58,9 +58,7 @@ MAX_RATE = 100000 # maximum rate to test
 
 SPIKE_GEN_RATES = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""

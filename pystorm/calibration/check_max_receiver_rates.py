@@ -14,7 +14,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils.file_io import load_pickle_data, save_pickle_data
+from utils.file_io import load_pickle_data, save_pickle_data, set_data_dir
 from utils.exp import clear_overflows, compute_spike_gen_rates
 HAL = HAL()
 
@@ -34,9 +34,7 @@ SLOT_TEST_N_RATES = 20
 SLOT_TEST_MIN_RATE = 8000
 MAX_TAT_ENTRIES = 2048
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 SYN_MAX_RATE_FILE = DATA_DIR + "max_rates.txt"
 SYN_MAX_RATE_FRAC = 1.00
