@@ -274,6 +274,25 @@ class NetBuilder(object):
         return nrn_tap_matrix.reshape((Y * X, D))
 
     @staticmethod
+    def make_taps_even(taps):
+        """taking a tap list or tap matrix, make the number of taps per dim even
+        modifies taps, removing taps to meet the  eveness condition
+        """
+        if isinstance(taps, list):
+            for tap_dim in taps:
+                if len(tap_dim) % 2 == 1:
+                    tap_dim = tap_dim[:-1]
+        else:
+            dims = taps.shape[1]
+            for d in range(dims):
+                tap_dim = taps[:, d]
+                if int(np.sum(np.abs(tap_dim))) % 2 == 1:
+                    nonzero_idxs = np.arange(len(tap_dim))[tap_dim != 0]
+                    rand_nonzero_idx = nonzero_idxs[np.random.randint(np.sum(tap_dim != 0))]
+                    taps[rand_nonzero_idx, d] = 0
+
+
+    @staticmethod
     def get_approx_encoders(tap_list_or_matrix, pooly, poolx, lam):
         """from a tap_list or tap_matrix, infer approximate encoders
         See determine_encoders_and_offsets for more detail.
@@ -294,7 +313,7 @@ class NetBuilder(object):
         elif isinstance(tap_list_or_matrix, np.ndarray):
             # tap matrix is shaped like an encoder, we need enc dims as the 0th matrix dim
             _, dimensions = tap_list_or_matrix.shape
-            tap_matrix = tap_list_or_matrix.T.reshape(tap_matrix.shape[0], pooly, poolx)
+            tap_matrix = tap_list_or_matrix.T.reshape(tap_list_or_matrix.shape[1], pooly, poolx)
         else:
             raise ValueError("tap_list_or_matrix must be a list of lists or a numpy ndarray")
 
@@ -512,12 +531,12 @@ class NetBuilder(object):
 
         """
 
-        raise NotImplementedError("this function isn't tested yet")
-
         SAMPLE_FUDGE = 2 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
-        SAMPLE_ANGLES = [np.pi / 4, np.pi / 8, np.pi / 16]
+        NUM_SAMPLE_ANGLES = 2
+        SAMPLE_ANGLES = [np.pi / 2**i for i in range(2, NUM_SAMPLE_ANGLES+2)]
         HOLD_TIME = 1 # seconds
         BASELINE_TIME = 1 # seconds
+        LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds
 
         if self.net is None:
             raise ValueError("no Network attached to NetBuilder")
@@ -537,28 +556,39 @@ class NetBuilder(object):
         run = RunControl(self.HAL, self.net)
 
         # get baseline firing rates
+        print("getting baseline firing rates of population")
         tnow = self.HAL.get_time()
-        input_vals = {inp: (np.array([[0] * pool.dimensions]), np.array([tnow + .1e9]))}
-        _, spikes = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                        start_time=times[0], end_time=times[-1] + BASELINE_TIME)
+        times = np.array([tnow + .1e9])
+        zero_rates = np.zeros((1, pool.dimensions))
+        input_vals = {inp: (times, zero_rates)}
+        _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+                                                  start_time=times[0], end_time=times[-1] + BASELINE_TIME)
+        spikes, spike_bin_times = spikes_and_bin_times
         baselines = np.mean(spikes[pool], axis=0)
 
         done = False
         unsolved_encs = approx_enc
         all_sample_pts = None
         all_spikes = None
+
         for sample_angle in SAMPLE_ANGLES:
             # generate sample points around unsolved_encs
             num_samples_per = (pool.dimensions + 1) * SAMPLE_FUDGE
-            sample_pts = NetBuilder.get_sample_points_around_encs(unsolved_encs, sample_angle, num_samples_per)
+            sample_pts, unique_encs = NetBuilder.get_sample_points_around_encs(unsolved_encs, sample_angle, num_samples_per)
 
             # the input sweep of those sample_pts
+            print("running sample sweep at sample_angle =", sample_angle, "rad")
+            print("  taking", sample_pts.shape[0], "sample points for", unique_encs.shape[0], "unique encs")
+            print("  will run for", HOLD_TIME * sample_pts.shape[0] / 60, "min.")
             tnow = self.HAL.get_time()
-            times = tnow + .1e9 + np.linspace(0, sample_pts.shape[0] * HOLD_TIME, HOLD_TIME)
+            times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
             sample_freqs = sample_pts * fmax
-            input_vals = {inp: (sample_freqs, times)}
-            _, spikes = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                            start_time=times[0], end_time=times[-1] + HOLD_TIME)
+            input_vals = {inp: (times, sample_freqs)}
+            start_time = times[0]
+            end_time = times[-1] + HOLD_TIME * 1e9
+            _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+                                            start_time=start_time, end_time=end_time)
+            spikes, spike_bin_times = spikes_and_bin_times
 
             # each input sweep adds to the dataset that goes into the solver
             # that means that we re-solve for all neurons each sample
@@ -567,24 +597,100 @@ class NetBuilder(object):
             if all_sample_pts is None:
                 all_sample_pts = sample_pts
             else:
-                all_sample_pts = np.vstack(all_sample_pts, sample_pts)
+                all_sample_pts = np.vstack((all_sample_pts, sample_pts))
 
+            def spike_bins_to_rates(spikes, spike_bin_times, input_times):
+                rates = np.zeros((len(input_times), spikes.shape[1]))
+                for inp_idx, time in enumerate(input_times):
+                    # XXX this is kind of overkill, should be able to infer indices
+                    valid_start_time = time + LPF_DISCARD_TIME * 1e9
+                    valid_end_time   = time + HOLD_TIME * 1e9
+                    start_bin_idx = np.searchsorted(spike_bin_times, valid_start_time)
+                    end_bin_idx = np.searchsorted(spike_bin_times, valid_end_time)
+                    summed_spikes = np.sum(spikes[start_bin_idx:end_bin_idx], axis=0)
+                    rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
+                return rates
+
+            print("doing spike processing")
+            spike_rates = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
             if all_spikes is None:
-                all_spikes = spikes[pool]
+                all_spikes = spike_rates
             else:
-                all_spikes = np.vstack(all_spikes, spikes[pool])
+                all_spikes = np.vstack((all_spikes, spike_rates))
 
+            print("estimating encoders")
             est_encs, est_offsets, mean_residuals, insufficient_samples = \
                 NetBuilder.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, baselines)
 
             # whittle away at set of neurons we still need more data for
-            unsolved_encs = approx_encs[insufficient_samples]
+            unsolved_encs = approx_enc[insufficient_samples]
+            print(np.sum(insufficient_samples), "neurons still need more points")
 
         # neurons without an estimated offset after trying tightest SAMPLE_ANGLE are assumed
         # to have offset < sqrt(D), we have given up on them
 
-        return est_encs, est_offsets, mean_residuals, insufficient_samples
+        return est_encs, est_offsets, baselines, mean_residuals, insufficient_samples
                 
+
+    def validate_est_encs(self, est_encs, est_offsets, pool, inp, sample_pts, fmax):
+        """Validate the output of determine_est_encs
+
+        Samples neuron firing rates at supplied sample_pts, compares to 
+        est_encs * sample_pts + est_offsets, to directly assess predictive
+        quality of est_encs and est_offsets.
+
+        Inputs:
+        =======
+        est_encs (NxD array) : encoder estimates
+        est_offsets (N array) : offset estimates
+        pool (Pool graph object) : pool that these apply to
+        inp (Input graph object) : input that these apply to
+        sample_pts (SxD array) : points to sample in the input space
+        fmax (float) : fmax to use
+
+        Returns:
+        =======
+        rmse_err, meas_rates, est_rates
+        rmse_err (float) : RMSE firing rate error
+        meas_rates (SxN array) : firing rates of each neuron at each sample_pt
+        est_rates (SxN array) : what the est_encoders/offsets predicted
+        """ 
+
+        HOLD_TIME = 1 # seconds
+        LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds
+
+        # set up run controller to help us do sweeps
+        run = RunControl(self.HAL, self.net)
+
+        tnow = self.HAL.get_time()
+        times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
+        start_time = times[0]
+        end_time = times[-1] + HOLD_TIME * 1e9
+        sample_freqs = sample_pts * fmax
+
+        input_vals = {inp: (times, sample_freqs)}
+
+        _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+                                        start_time=start_time, end_time=end_time)
+        spikes, spike_bin_times = spikes_and_bin_times
+
+        def spike_bins_to_rates(spikes, spike_bin_times, input_times):
+            rates = np.zeros((len(input_times), spikes.shape[1]))
+            for inp_idx, time in enumerate(input_times):
+                # XXX this is kind of overkill, should be able to infer indices
+                valid_start_time = time + LPF_DISCARD_TIME * 1e9
+                valid_end_time   = time + HOLD_TIME * 1e9
+                start_bin_idx = np.searchsorted(spike_bin_times, valid_start_time)
+                end_bin_idx = np.searchsorted(spike_bin_times, valid_end_time)
+                summed_spikes = np.sum(spikes[start_bin_idx:end_bin_idx], axis=0)
+                rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
+            return rates
+
+        est_A = np.dot(sample_pts, est_encs.T) + est_offsets
+        meas_A = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
+
+        RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
+        return RMSE, meas_A, est_A
         
 
     def determine_good_fmaxes(self, safety_margin=1.3):

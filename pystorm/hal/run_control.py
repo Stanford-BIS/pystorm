@@ -57,6 +57,9 @@ class RunControl(object):
             Uses hardware binning interval to bin spikes (HAL.upstream_ns)
         """
 
+        if self.HAL.last_mapped_network != self.net:
+            raise RuntimeError("trying to run un-mapped network")
+
         if step_options is not None:
             raise NotImplementedError("step_options argument isn't supported yet")
 
@@ -81,7 +84,15 @@ class RunControl(object):
                 start_idx = np.searchsorted(bin_times, start_time)
                 end_idx = np.searchsorted(bin_times, end_time)
 
-                return {obj:dict_of_arrays[obj][start_idx:end_idx, :] for obj in dict_of_arrays}
+                windowed_bin_times = bin_times[start_idx:end_idx]
+
+                windowed_dict_of_arrays = \
+                    {obj:dict_of_arrays[obj][start_idx:end_idx, :] for obj in dict_of_arrays}
+
+                assert(windowed_bin_times.shape[0] == 
+                       windowed_dict_of_arrays[next(iter(windowed_dict_of_arrays))].shape[0])
+
+                return windowed_dict_of_arrays, windowed_bin_times
 
             if get_raw_spikes:
                 self.HAL.disable_spike_recording(flush=False)
@@ -92,7 +103,8 @@ class RunControl(object):
             # use hardware binning interval
             if get_raw_spikes:
                 binned_spikes, spike_bin_times = self.HAL.get_binned_spikes(self.HAL.upstream_ns)
-                windowed_spikes = window_dict_of_arrays(binned_spikes, spike_bin_times, start_time, end_time)
+                windowed_spikes, spike_bin_times = \
+                    window_dict_of_arrays(binned_spikes, spike_bin_times, start_time, end_time)
 
             else:
                 windowed_spikes = None
@@ -100,7 +112,8 @@ class RunControl(object):
 
             if len(self.net.get_outputs()) > 0 and get_outputs:
                 array_outputs, output_bin_times = self.HAL.get_array_outputs()
-                windowed_outputs = window_dict_of_arrays(array_outputs, output_bin_times, start_time, end_time)
+                windowed_outputs, output_bin_times = \
+                    window_dict_of_arrays(array_outputs, output_bin_times, start_time, end_time)
             else:
                 windowed_outputs = None
                 output_bin_times = None
