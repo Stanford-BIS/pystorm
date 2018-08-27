@@ -9,8 +9,8 @@ class NetBuilder(object):
 
         Inputs:
         =======
-        HAL : (HAL object)
-        net : (hal.neuromorph.graph object, default None) 
+        HAL (HAL object) : 
+        net (hal.neuromorph.graph object, default None) : 
             User may provide a custom network they constructed.
             If no network is supplied, typically one will be added with a 
             call like NetBuilder.create_single_pool_net()
@@ -19,6 +19,29 @@ class NetBuilder(object):
         self.net = net
 
     def create_single_pool_net(self, Y, X, tap_matrix=None, decoders=None, biases=0, gain_divs=1):
+        """Creates a Network with a single Pool
+        
+        Inputs:
+        =======
+        Y (int) : number of rows in the pool
+        X (int) : number of columns in the pool
+        tap_matrix ((N, dim) array or None (default)) :
+            array of tap point/dimension assignments to each neuron
+                if provided, Network will have an Input connected to its Pool
+            if None, Network will not have an Input
+        decoders ((N, dim) array or None (default)) :
+            array of each neuron's decoding weight in each dimension
+                if provided, Network will have an Ouput connected to its Pool
+            if None, Network will not have an Output
+        biases ((N,) int array or int) :
+            bias bits for each neuron
+        gain_divs ((N,) int array or int) :
+            gain divisor bits for each neuron
+
+        Returns:
+        ========
+        Network object
+        """
         N = Y * X
 
         if tap_matrix is None:
@@ -31,6 +54,8 @@ class NetBuilder(object):
             else:
                 Din = tap_matrix.shape[1]
                 tap_spec = tap_matrix
+        assert tap_spec.shape[0] == N, (
+            "tap matrix has {} entries but Y*X={}".format(tap_spec.shape[0], Y*X))
 
         if decoders is None:
             Dout = 0
@@ -289,7 +314,6 @@ class NetBuilder(object):
                     nonzero_idxs = np.arange(len(tap_dim))[tap_dim != 0]
                     rand_nonzero_idx = nonzero_idxs[np.random.randint(np.sum(tap_dim != 0))]
                     taps[rand_nonzero_idx, d] = 0
-
 
     @staticmethod
     def get_approx_encoders(tap_list_or_matrix, pooly, poolx, lam):

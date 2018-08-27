@@ -51,9 +51,12 @@ class Pool(GraphObject):
 
         # check that it's an array now
         for obj in [self.gain_divisors, self.biases]:
-            assert(isinstance(obj, np.ndarray) and "gain and bias parameters must be ints or numpy arrays of ints") 
-            assert(obj.dtype == np.dtype('int64') or obj.dtype == np.dtype('int32') and "gain and bias parameters must be arrays of ints")
-            assert(len(obj) == self.n_neurons and "gain and bias parameters must be arrays of length N")
+            assert isinstance(obj, np.ndarray), (
+                "gain and bias parameters must be ints or numpy arrays of ints")
+            assert (obj.dtype == np.dtype('int64') or obj.dtype == np.dtype('int32')), (
+                "gain and bias parameters must be arrays of ints")
+            assert len(obj) == self.n_neurons, (
+                "gain and bias parameters must be arrays of length N")
 
         # allowed gains are 1x, 1/2x, 1/3x, 1/4x
         assert(np.all(self.gain_divisors >= 1) and np.all(self.gain_divisors <= 4))
