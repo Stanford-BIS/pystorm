@@ -167,8 +167,11 @@ class NetBuilder(object):
                         neighbors = []
                         if D >= 2:
                             if x > 0:
-                                neighbors.append('l')
-                            elif D == 2 and x == 0 and y > 0: # helps 2D with few taps
+                                if ~get_bad_syn(y, x - 1):
+                                    neighbors.append('l')
+                                elif D == 2 and y > 0: # helps 2D with few taps
+                                    neighbors.append('u')
+                            elif D == 2 and y > 0: # helps 2D with few taps
                                 neighbors.append('u')
                         if D >= 3:
                             if y > 0:
@@ -228,6 +231,8 @@ class NetBuilder(object):
 
                                     # for any vector that "works", so does its opposite
                                     # use the one that moves the mean encoder closer to zero
+                                    # XXX can also take into account if not orthogonal to 
+                                    # some neighbors, esp for D == 2
                                     if use_mean:
                                         curr_sum = np.sum(tap_matrix, axis=(0,1))
                                         pos_norm = np.linalg.norm(curr_sum + candidate_vect)
@@ -263,13 +268,13 @@ class NetBuilder(object):
         return tap_matrix.reshape((SY, SX, D))
 
     @staticmethod
-    def syn_taps_to_nrn_taps(tap_matrix):
+    def syn_taps_to_nrn_taps(tap_matrix, spacing=1):
         SY, SX, D = tap_matrix.shape
-        Y = SY * 2
-        X = SX * 2
+        Y = SY * 2 * spacing
+        X = SX * 2 * spacing
         nrn_tap_matrix = np.zeros((Y, X, D))
         for d in range(D):
-            nrn_tap_matrix[::2, ::2, d] = tap_matrix[:, :, d]
+            nrn_tap_matrix[::2*spacing, ::2*spacing, d] = tap_matrix[:, :, d]
         return nrn_tap_matrix.reshape((Y * X, D))
 
     @staticmethod
@@ -350,59 +355,73 @@ class NetBuilder(object):
         """
         dimensions = approx_enc.shape[1]
 
-        # do thresholding/ceil'ing
-        threshold = .05
-        thresh_enc = approx_enc.copy()
-        thresh_enc[np.abs(thresh_enc) <= threshold] = 0
-        thresh_enc[thresh_enc > 0] = 1
-        thresh_enc[thresh_enc < 0] = -1
+        if dimensions == 1:
+            # take a different approach for D == 1
+            # there can only be 2 unique encs
+            unique_encs = np.array([[1], [-1]])
 
-        # clear redundant encs
-        unique_encs = np.unique(thresh_enc, axis=0)
-        num_unique, _ = unique_encs.shape
+            sample_points = np.zeros((2 * num_samples_per,))
+            min_val = np.sin(angle_away)
+            max_val = 1
+            sample_points[:num_samples_per] = np.linspace(min_val, max_val, num_samples_per)
+            sample_points[num_samples_per:] = np.linspace(-min_val, -max_val, num_samples_per)
 
-        def get_point_angle_away(pt, angle):
-            # 1. generate random point
-            # 2. remove projection onto original point 
-            #    (get random point orthogonal to original)
-            # 3. add back scaled amount of original point that gives desired angle
-            dims = len(pt)
-            pt_norm = np.linalg.norm(pt)
-            if pt_norm > 0:
-                unit_pt = pt / pt_norm
+            return sample_points.reshape((num_samples_per * 2, 1)), unique_encs
 
-                # 1. 
-                rand_pt = np.random.randn(dims)
-                rand_pt /= np.linalg.norm(rand_pt)
+        else:
+            # do thresholding/ceil'ing
+            threshold = .05
+            thresh_enc = approx_enc.copy()
+            thresh_enc[np.abs(thresh_enc) <= threshold] = 0
+            thresh_enc[thresh_enc > 0] = 1
+            thresh_enc[thresh_enc < 0] = -1
 
-                # 2. 
-                proj = unit_pt * np.dot(unit_pt, rand_pt)
-                rand_orthog_pt = rand_pt - proj
-                rand_orthog_pt /= np.linalg.norm(rand_orthog_pt)
-                assert(np.abs(np.dot(rand_orthog_pt, unit_pt)) <= .0001)
+            # clear redundant encs
+            unique_encs = np.unique(thresh_enc, axis=0)
+            num_unique, _ = unique_encs.shape
 
-                # 3. 
-                perp_component = np.cos(angle) * rand_orthog_pt
-                pll_component = np.sin(angle) * unit_pt
-                angle_away_pt = perp_component + pll_component
-                return angle_away_pt
-            else:
-                return np.zeros_like(pt)
+            def get_point_angle_away(pt, angle):
+                # 1. generate random point
+                # 2. remove projection onto original point 
+                #    (get random point orthogonal to original)
+                # 3. add back scaled amount of original point that gives desired angle
+                dims = len(pt)
+                pt_norm = np.linalg.norm(pt)
+                if pt_norm > 0:
+                    unit_pt = pt / pt_norm
 
-        sample_points = np.zeros((num_unique * num_samples_per, dimensions))
-        for n in range(num_unique):
-            sample_points[num_samples_per * n, :] = unique_encs[n] # use thresholded enc as middle point
-            for pt_idx in range(num_samples_per - 1): # create D more points around this point
-                unit_vect_angle_away = get_point_angle_away(unique_encs[n], angle_away)
-                # scale unit vector up to unit cube
-                longest_comp = np.max(np.abs(unit_vect_angle_away)) 
-                if longest_comp > 0:
-                    scaled_angle_away = unit_vect_angle_away / longest_comp
+                    # 1. 
+                    rand_pt = np.random.randn(dims)
+                    rand_pt /= np.linalg.norm(rand_pt)
+
+                    # 2. 
+                    proj = unit_pt * np.dot(unit_pt, rand_pt)
+                    rand_orthog_pt = rand_pt - proj
+                    rand_orthog_pt /= np.linalg.norm(rand_orthog_pt)
+                    assert(np.abs(np.dot(rand_orthog_pt, unit_pt)) <= .0001)
+
+                    # 3. 
+                    perp_component = np.cos(angle) * rand_orthog_pt
+                    pll_component = np.sin(angle) * unit_pt
+                    angle_away_pt = perp_component + pll_component
+                    return angle_away_pt
                 else:
-                    scaled_angle_away = np.zeros_like(unit_vect_angle_away)
-                sample_points[num_samples_per * n + pt_idx] = scaled_angle_away
+                    return np.zeros_like(pt)
 
-        return sample_points, unique_encs
+            sample_points = np.zeros((num_unique * num_samples_per, dimensions))
+            for n in range(num_unique):
+                sample_points[num_samples_per * n, :] = unique_encs[n] # use thresholded enc as middle point
+                for pt_idx in range(num_samples_per - 1): # create D more points around this point
+                    unit_vect_angle_away = get_point_angle_away(unique_encs[n], angle_away)
+                    # scale unit vector up to unit cube
+                    longest_comp = np.max(np.abs(unit_vect_angle_away)) 
+                    if longest_comp > 0:
+                        scaled_angle_away = unit_vect_angle_away / longest_comp
+                    else:
+                        scaled_angle_away = np.zeros_like(unit_vect_angle_away)
+                    sample_points[num_samples_per * n + pt_idx] = scaled_angle_away
+
+            return sample_points, unique_encs
 
     @staticmethod
     def estimate_encs_from_tuning_curves(sample_pts, firing_rates, baselines, fired_tolerance=.1):
@@ -628,7 +647,11 @@ class NetBuilder(object):
         # neurons without an estimated offset after trying tightest SAMPLE_ANGLE are assumed
         # to have offset < sqrt(D), we have given up on them
 
-        return est_encs, est_offsets, baselines, mean_residuals, insufficient_samples
+        debug = {'mean_residuals': mean_residuals,
+                 'all_sample_pts': all_sample_pts,
+                 'all_spikes': all_spikes}
+        
+        return est_encs, est_offsets, insufficient_samples, debug
                 
     def validate_est_encs(self, est_encs, est_offsets, pool, inp, sample_pts, fmax):
         """Validate the output of determine_est_encs
@@ -684,7 +707,7 @@ class NetBuilder(object):
                 rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
             return rates
 
-        est_A = np.dot(sample_pts, est_encs.T) + est_offsets
+        est_A = np.maximum(0, np.dot(sample_pts, est_encs.T) + est_offsets)
         meas_A = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
 
         RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
