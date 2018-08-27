@@ -29,7 +29,7 @@ class NetBuilder(object):
             array of tap point/dimension assignments to each neuron
                 if provided, Network will have an Input connected to its Pool
             if None, Network will not have an Input
-        decoders ((N, dim) array or None (default)) :
+        decoders ((dim, N) array or None (default)) :
             array of each neuron's decoding weight in each dimension
                 if provided, Network will have an Ouput connected to its Pool
             if None, Network will not have an Output
@@ -72,7 +72,7 @@ class NetBuilder(object):
         if Dout > 0:
             b1 = net.create_bucket("b1", Dout)
             o1 = net.create_output("o1", Dout)
-            decoder_conn = net.create_connection("c_p1_to_b1", p1, b1, decoders)
+            net.decoder_conn = net.create_connection("c_p1_to_b1", p1, b1, decoders)
             net.create_connection("c_b1_to_o1", b1, o1, None)
 
         if Din > 0:

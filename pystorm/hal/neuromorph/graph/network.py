@@ -289,7 +289,7 @@ class Network(object):
         for filt_idx in range(tag_array.shape[1]):
             output_id, dim = self.spike_filter_idx_to_output[filt_idx]
             if dim == 0:
-                sub_array_dict[output_id] = tag_array[:, filt_idx:filt_idx + output_id.dimensions].T
+                sub_array_dict[output_id] = tag_array[:, filt_idx:filt_idx + output_id.dimensions]
         return sub_array_dict
 
     def map(self, core_parameters, keep_pool_mapping=False, verbose=False):

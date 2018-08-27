@@ -92,8 +92,9 @@ class RunControl(object):
                 windowed_dict_of_arrays = {
                     obj:dict_of_arrays[obj][start_idx:end_idx, :] for obj in dict_of_arrays}
 
-                assert(windowed_bin_times.shape[0] ==
-                       windowed_dict_of_arrays[next(iter(windowed_dict_of_arrays))].shape[0])
+                assert (windowed_bin_times.shape[0] ==
+                        windowed_dict_of_arrays[next(iter(windowed_dict_of_arrays))].shape[0]), (
+                            "Mismatch between windowed bin times length and windowed array length")
 
                 return windowed_dict_of_arrays, windowed_bin_times
 
@@ -108,7 +109,6 @@ class RunControl(object):
                 binned_spikes, spike_bin_times = self.HAL.get_binned_spikes(self.HAL.upstream_ns)
                 windowed_spikes, spike_bin_times = window_dict_of_arrays(
                     binned_spikes, spike_bin_times, start_time, end_time)
-
             else:
                 windowed_spikes = None
                 spike_bin_times = None
@@ -153,4 +153,3 @@ class RunControl(object):
         outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time)
 
         return outputs, spikes
-
