@@ -67,17 +67,17 @@ class NetBuilder(object):
 
         # decoders are initially zero
         # we remap them later (without touching the rest of the network) using HAL.remap_weights()
-        p1 = net.create_pool("p1", tap_spec, biases=biases, gain_divisors=gain_divs, xy=(X, Y))
+        net.pool = net.create_pool("p1", tap_spec, biases=biases, gain_divisors=gain_divs, xy=(X, Y))
 
         if Dout > 0:
             b1 = net.create_bucket("b1", Dout)
-            o1 = net.create_output("o1", Dout)
-            net.decoder_conn = net.create_connection("c_p1_to_b1", p1, b1, decoders)
-            net.create_connection("c_b1_to_o1", b1, o1, None)
+            net.output = net.create_output("o1", Dout)
+            net.decoder_conn = net.create_connection("c_p1_to_b1", net.pool, b1, decoders)
+            net.create_connection("c_b1_to_o1", b1, net.output, None)
 
         if Din > 0:
-            i1 = net.create_input("i1", Din)
-            net.create_connection("c_i1_to_p1", i1, p1, None)
+            net.input = net.create_input("i1", Din)
+            net.create_connection("c_i1_to_p1", net.input, net.pool, None)
 
         self.net = net
         return net
