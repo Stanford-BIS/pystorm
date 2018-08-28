@@ -198,7 +198,7 @@ class CalibrationDB(object):
             raise ValueError(errstr)
 
         if chip not in self.activations.columns:
-            errstr = " ".join(["check_cal_pars(): you supplied chip", chip, 
+            errstr = " ".join(["check_cal_pars(): you supplied chip", str(chip),
                   "which is not in the CalibrationDB, use add_new_chip() first, exiting"])
             raise ValueError(errstr)
 
