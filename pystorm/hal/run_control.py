@@ -31,7 +31,7 @@ class RunControl(object):
     #    HAL.flush()
 
     def run_input_sweep(self, input_vals, get_raw_spikes=True, get_outputs=True,
-                        start_time=None, end_time=None, step_options=None):
+                        start_time=None, end_time=None, step_options=None, rel_time=True):
         """Run a simple input sweep, return the binned output values or raw spikes
 
         input_vals : {input_obj : ((len-T array) times, (TxD array) rates)}
@@ -48,6 +48,9 @@ class RunControl(object):
             function is called every step_sleep_time. get_fpga_time()
             will be used to stamp the times that the call actually occurred at.
             to_fill_with_outputs/times should be empty lists that are filled up
+        rel_time : (bool)
+            If true, interprets and returns times relative to the current FPGA time
+            If false interprets and returns times relative to the time since the FPGA started
 
         Returns:
         ========
@@ -81,14 +84,14 @@ class RunControl(object):
                 self.HAL.enable_output_recording(flush=False)
             self.HAL.start_traffic(flush=True)
 
-        def end_sweep(get_raw_spikes, get_outputs, start_time, end_time):
+        def end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns):
             """"Deactivate chip traffic, and gather output spikes and tags"""
-            def window_dict_of_arrays(dict_of_arrays, bin_times, start_time, end_time):
+            def window_dict_of_arrays(dict_of_arrays, bin_times, start_time, end_time, offset_ns):
                 """Clip spike and output data in dictionary of arrays to start and end time"""
-                start_idx = np.searchsorted(bin_times, start_time)
-                end_idx = np.searchsorted(bin_times, end_time)
+                start_idx = np.searchsorted(bin_times, start_time + offset_ns)
+                end_idx = np.searchsorted(bin_times, end_time + offset_ns)
 
-                windowed_bin_times = bin_times[start_idx:end_idx]
+                windowed_bin_times = bin_times[start_idx:end_idx] - offset_ns
 
                 windowed_dict_of_arrays = {
                     obj:dict_of_arrays[obj][start_idx:end_idx, :] for obj in dict_of_arrays}
@@ -109,7 +112,7 @@ class RunControl(object):
             if get_raw_spikes:
                 binned_spikes, spike_bin_times = self.HAL.get_binned_spikes(self.HAL.upstream_ns)
                 windowed_spikes, spike_bin_times = window_dict_of_arrays(
-                    binned_spikes, spike_bin_times, start_time, end_time)
+                    binned_spikes, spike_bin_times, start_time, end_time, offset_ns)
             else:
                 windowed_spikes = None
                 spike_bin_times = None
@@ -117,24 +120,19 @@ class RunControl(object):
             if len(self.net.get_outputs()) > 0 and get_outputs:
                 array_outputs, output_bin_times = self.HAL.get_array_outputs()
                 windowed_outputs, output_bin_times = window_dict_of_arrays(
-                    array_outputs, output_bin_times, start_time, end_time)
+                    array_outputs, output_bin_times, start_time, end_time, offset_ns)
             else:
                 windowed_outputs = None
                 output_bin_times = None
 
             return (windowed_outputs, output_bin_times), (windowed_spikes, spike_bin_times)
 
-        def enqueue_input_vals(input_vals):
+        def enqueue_input_vals(input_vals, offset_ns):
             """Queue up input sequence in hardware"""
-            now_ns = self.HAL.get_time()
             for input_obj in input_vals:
                 times, rates = input_vals[input_obj]
                 assert len(times) == rates.shape[0]
                 assert input_obj.dimensions == rates.shape[1]
-                if times[-1] < now_ns:
-                    logger.warning(
-                        "All input times for %s are before current time. " +
-                        "Input times should be referenced to hal.get_time()", str(input_obj))
 
                 T, D = rates.shape
 
@@ -142,15 +140,20 @@ class RunControl(object):
                 dims = [d for d in range(D)]
 
                 for tidx, t in enumerate(times):
-                    self.HAL.set_input_rates(objs, dims, rates[tidx, :], time=t, flush=False)
+                    self.HAL.set_input_rates(objs, dims, rates[tidx, :], time=t+offset_ns, flush=False)
 
+        now_ns = self.HAL.get_time()
+        if rel_time:
+            offset_ns = now_ns
+        else:
+            offset_ns = 0
         start_sweep(get_raw_spikes, get_outputs) # this will cause a flush
-        enqueue_input_vals(input_vals) # no flush yet
+        enqueue_input_vals(input_vals, offset_ns) # no flush yet
         self.HAL.flush()
 
-        sleeptime = (end_time - start_time) / 1e9
+        sleeptime = end_time / 1e9
         time.sleep(sleeptime + TFUDGE * 2)
 
-        outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time)
+        outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns)
 
         return outputs, spikes
