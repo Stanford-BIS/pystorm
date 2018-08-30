@@ -8,7 +8,7 @@ class Bucket(GraphObject):
         self.dimensions = dimensions
 
     def __repr__(self):
-        return "Bucket " + self.label
+        return "Bucket " + self.label + ". dimensions = " + str(self.dimensions)
 
     def get_num_dimensions(self):
         return self.dimensions

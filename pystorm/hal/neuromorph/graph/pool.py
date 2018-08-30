@@ -67,10 +67,10 @@ class Pool(GraphObject):
         assert(self.n_neurons == x * y)
 
     def __repr__(self):
-        return "Pool " + self.label
+        return "Pool " + self.label + ". dims in = " + str(self.dimensions) + ". neurons = " + str(self.n_neurons)
 
     @staticmethod
-    def tap_matrix_to_list(M):
+    def tap_matrix_to_list(M): 
         """Converts tap matrix to tap list
         Inputs:
         ======
