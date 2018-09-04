@@ -232,7 +232,6 @@ class Neurons(Resource):
         logger.debug("pool alloced to {}, {}".format(self.py_loc, self.px_loc))
         self.y_loc = self.py_loc * core.NeuronArray_pool_size_y
         self.x_loc = self.px_loc * core.NeuronArray_pool_size_x
-        print('pool at', self.y_loc, self.x_loc)
 
     def posttranslate(self, core):
         """PAT assignment setup"""
