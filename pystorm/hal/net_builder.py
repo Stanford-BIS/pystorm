@@ -74,7 +74,6 @@ class NetBuilder(object):
             net.output = net.create_output("o1", Dout)
             net.decoder_conn = net.create_connection("c_p1_to_b1", net.pool, b1, decoders)
             net.create_connection("c_b1_to_o1", b1, net.output, None)
-
         if Din > 0:
             net.input = net.create_input("i1", Din)
             net.create_connection("c_i1_to_p1", net.input, net.pool, None)
@@ -789,4 +788,3 @@ class NetBuilder(object):
         # connect diffusor around pools
         for tile_id in range(256):
             self.HAL.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
-
