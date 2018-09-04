@@ -533,6 +533,9 @@ class HAL:
 
         # voodoo sleep, (wait for everything to go in)
         sleep(2)
+    
+    def get_driver_state(self):
+        return self.driver.GetState(CORE_ID)
 
     def get_unique_chip_activation(self):
         """measure chip activity under controlled conditions, creating a unique identifier

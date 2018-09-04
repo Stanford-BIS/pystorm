@@ -267,6 +267,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     py::class_<pystorm::bddriver::BDState> cl(M("pystorm::bddriver"), "BDState", "Keeps track of currently set register values, toggle states, memory values, etc.\n\n Also encodes timing assumptions: e.g. as soon as the traffic toggles are turned\n off in software, it is not necessarily safe to start programming memories:\n there is some amount of time that we must wait for the traffic to drain completely.\n the length of this delay is kept in DriverPars, and is used by BDState to implement\n an interface that the driver can use to block until it is safe.");
     cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *>(), py::arg("bd_pars"));
 
+    cl.def("CompareTo", &pystorm::bddriver::BDState::CompareTo, "compare to another BDState obj", py::arg("state_to_compare"));
+
     cl.def(py::init<const class pystorm::bddriver::BDState &>(), py::arg(""));
 
     cl.def("SetMem", (void (pystorm::bddriver::BDState::*)(pystorm::bddriver::bdpars::BDMemId, unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &)) &pystorm::bddriver::BDState::SetMem, "C++: pystorm::bddriver::BDState::SetMem(pystorm::bddriver::bdpars::BDMemId, unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &) --> void", py::arg("mem_id"), py::arg("start_addr"), py::arg("data"));

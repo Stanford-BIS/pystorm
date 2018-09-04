@@ -679,14 +679,14 @@ class NetBuilder(object):
                     rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
                 return rates
 
-            print("doing spike processing")
+            #print("doing spike processing")
             spike_rates = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
             if all_spikes is None:
                 all_spikes = spike_rates
             else:
                 all_spikes = np.vstack((all_spikes, spike_rates))
 
-            print("estimating encoders")
+            #print("estimating encoders")
             est_encs, est_offsets, mean_residuals, insufficient_samples = \
                 NetBuilder.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver="scipy_opt")
 

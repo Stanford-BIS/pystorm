@@ -144,6 +144,10 @@ void BDState::WaitForTrafficOff() const {
   }
 }
 
+bool BDState::CompareTo(const BDState & other_state_obj) const {
+  return *this == other_state_obj;
+}
+
 /// Compare BDStates to see if all the fields match.
 /// Useful for testing when using BDModel. Can compare Driver's
 /// BDState to the BDModels BDState
