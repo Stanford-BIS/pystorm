@@ -510,7 +510,7 @@ class AMBuckets(Resource):
         # must be in [-64, 64]
         # this is equivalent to restricting the user weights to be in [-1, 1]
         assert np.max(max_abs_row_weights) <= 1, (
-            "max abs(weight) must be <= 1 but max abs(weight)={:.3f}".format(
+            "max abs(weight) must be <= 1 but max abs(weight)={:f}".format(
             np.max(max_abs_row_weights)))
 
         # compute all possible hardware threshold vals (64, 128, 256, ...)
