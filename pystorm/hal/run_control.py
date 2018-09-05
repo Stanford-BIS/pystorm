@@ -68,7 +68,9 @@ class RunControl(object):
         if step_options is not None:
             raise NotImplementedError("step_options argument isn't supported yet")
 
-        TFUDGE = .1 # software stack jitter, turn on data collection a little before start_time, etc.
+        # software stack jitter, turn on data collection a little before start_time, etc.
+        TFUDGE = 0.1
+        TFUDGE_NS = TFUDGE*1E9
         if start_time is None:
             start_time = min([input_vals[inp][0][0] for inp in input_vals])
 
@@ -82,6 +84,22 @@ class RunControl(object):
             if get_outputs:
                 self.HAL.enable_output_recording(flush=False)
             self.HAL.start_traffic(flush=True)
+
+        def enqueue_input_vals(input_vals, offset_ns):
+            """Queue up input sequence in hardware"""
+            for input_obj in input_vals:
+                times, rates = input_vals[input_obj]
+                assert len(times) == rates.shape[0]
+                assert input_obj.dimensions == rates.shape[1]
+
+                T, D = rates.shape
+
+                objs = [input_obj] * D
+                dims = [d for d in range(D)]
+
+                for tidx, t in enumerate(times):
+                    self.HAL.set_input_rates(
+                        objs, dims, rates[tidx, :], time=t + offset_ns, flush=False)
 
         def end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns):
             """"Deactivate chip traffic, and gather output spikes and tags"""
@@ -126,34 +144,19 @@ class RunControl(object):
 
             return (windowed_outputs, output_bin_times), (windowed_spikes, spike_bin_times)
 
-        def enqueue_input_vals(input_vals, offset_ns):
-            """Queue up input sequence in hardware"""
-            for input_obj in input_vals:
-                times, rates = input_vals[input_obj]
-                assert len(times) == rates.shape[0]
-                assert input_obj.dimensions == rates.shape[1]
-
-                T, D = rates.shape
-
-                objs = [input_obj] * D
-                dims = [d for d in range(D)]
-
-                for tidx, t in enumerate(times):
-                    self.HAL.set_input_rates(objs, dims, rates[tidx, :], time=t + offset_ns, flush=False)
-
         now_ns = self.HAL.get_time()
         if rel_time:
-            offset_ns = now_ns + TFUDGE
+            offset_ns = now_ns + TFUDGE_NS
         else:
-            offset_ns = 0 + TFUDGE
+            offset_ns = 0 + TFUDGE_NS
         start_sweep(get_raw_spikes, get_outputs) # this will cause a flush
         enqueue_input_vals(input_vals, offset_ns) # no flush yet
         self.HAL.flush()
 
         if rel_time: 
-            sleeptime = (end_time + TFUDGE) / 1e9
+            sleeptime = (end_time + TFUDGE_NS) / 1e9
         else:
-            sleeptime = (end_time - now_ns + TFUDGE) / 1e9
+            sleeptime = (end_time - now_ns + TFUDGE_NS) / 1e9
             
         time.sleep(sleeptime + TFUDGE * 2)
 
