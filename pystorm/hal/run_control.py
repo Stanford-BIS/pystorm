@@ -68,7 +68,7 @@ class RunControl(object):
         if step_options is not None:
             raise NotImplementedError("step_options argument isn't supported yet")
 
-        TFUDGE = .05 # software stack jitter, turn on data collection a little before start_time, etc.
+        TFUDGE = .1 # software stack jitter, turn on data collection a little before start_time, etc.
         if start_time is None:
             start_time = min([input_vals[inp][0][0] for inp in input_vals])
 
@@ -139,18 +139,22 @@ class RunControl(object):
                 dims = [d for d in range(D)]
 
                 for tidx, t in enumerate(times):
-                    self.HAL.set_input_rates(objs, dims, rates[tidx, :], time=t+offset_ns, flush=False)
+                    self.HAL.set_input_rates(objs, dims, rates[tidx, :], time=t + offset_ns, flush=False)
 
         now_ns = self.HAL.get_time()
         if rel_time:
-            offset_ns = now_ns
+            offset_ns = now_ns + TFUDGE
         else:
-            offset_ns = 0
+            offset_ns = 0 + TFUDGE
         start_sweep(get_raw_spikes, get_outputs) # this will cause a flush
         enqueue_input_vals(input_vals, offset_ns) # no flush yet
         self.HAL.flush()
 
-        sleeptime = end_time / 1e9
+        if rel_time: 
+            sleeptime = (end_time + TFUDGE) / 1e9
+        else:
+            sleeptime = (end_time - now_ns + TFUDGE) / 1e9
+            
         time.sleep(sleeptime + TFUDGE * 2)
 
         outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns)

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pystorm.hal.run_control import RunControl
+from pystorm.hal import data_utils
 
 class NetBuilder(object):
 
@@ -650,12 +651,13 @@ class NetBuilder(object):
             print("  will run for", HOLD_TIME * sample_pts.shape[0] / 60, "min.")
             tnow = self.HAL.get_time()
             times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
+            times_w_end = np.arange(sample_pts.shape[0] + 1) * HOLD_TIME * 1e9 + tnow + .1e9
             sample_freqs = sample_pts * fmax
             input_vals = {inp: (times, sample_freqs)}
             start_time = times[0]
             end_time = times[-1] + HOLD_TIME * 1e9
             _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                            start_time=start_time, end_time=end_time)
+                                            start_time=start_time, end_time=end_time, rel_time=False)
             spikes, spike_bin_times = spikes_and_bin_times
 
             # each input sweep adds to the dataset that goes into the solver
@@ -667,20 +669,9 @@ class NetBuilder(object):
             else:
                 all_sample_pts = np.vstack((all_sample_pts, sample_pts))
 
-            def spike_bins_to_rates(spikes, spike_bin_times, input_times):
-                rates = np.zeros((len(input_times), spikes.shape[1]))
-                for inp_idx, time in enumerate(input_times):
-                    # XXX this is kind of overkill, should be able to infer indices
-                    valid_start_time = time + LPF_DISCARD_TIME * 1e9
-                    valid_end_time   = time + HOLD_TIME * 1e9
-                    start_bin_idx = np.searchsorted(spike_bin_times, valid_start_time)
-                    end_bin_idx = np.searchsorted(spike_bin_times, valid_end_time)
-                    summed_spikes = np.sum(spikes[start_bin_idx:end_bin_idx], axis=0)
-                    rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
-                return rates
-
             #print("doing spike processing")
-            spike_rates = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
+            discard_frac = LPF_DISCARD_TIME / HOLD_TIME
+            spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, times_w_end, init_discard_frac=discard_frac)
             if all_spikes is None:
                 all_spikes = spike_rates
             else:
@@ -735,6 +726,7 @@ class NetBuilder(object):
 
         tnow = self.HAL.get_time()
         times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
+        times_w_end = np.arange(sample_pts.shape[0] + 1) * HOLD_TIME * 1e9 + tnow + .1e9
         start_time = times[0]
         end_time = times[-1] + HOLD_TIME * 1e9
         sample_freqs = sample_pts * fmax
@@ -742,23 +734,13 @@ class NetBuilder(object):
         input_vals = {inp: (times, sample_freqs)}
 
         _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                        start_time=start_time, end_time=end_time)
+                                        start_time=start_time, end_time=end_time, rel_time=False)
+        print("done sweeping")
         spikes, spike_bin_times = spikes_and_bin_times
 
-        def spike_bins_to_rates(spikes, spike_bin_times, input_times):
-            rates = np.zeros((len(input_times), spikes.shape[1]))
-            for inp_idx, time in enumerate(input_times):
-                # XXX this is kind of overkill, should be able to infer indices
-                valid_start_time = time + LPF_DISCARD_TIME * 1e9
-                valid_end_time   = time + HOLD_TIME * 1e9
-                start_bin_idx = np.searchsorted(spike_bin_times, valid_start_time)
-                end_bin_idx = np.searchsorted(spike_bin_times, valid_end_time)
-                summed_spikes = np.sum(spikes[start_bin_idx:end_bin_idx], axis=0)
-                rates[inp_idx] = summed_spikes / (HOLD_TIME - LPF_DISCARD_TIME)
-            return rates
-
         est_A = np.maximum(0, np.dot(sample_pts, est_encs.T) + est_offsets)
-        meas_A = spike_bins_to_rates(spikes[pool], spike_bin_times, times)
+        discard_frac = LPF_DISCARD_TIME / HOLD_TIME
+        meas_A = data_utils.bins_to_rates(spikes[pool], spike_bin_times, times_w_end, init_discard_frac=discard_frac)
 
         RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
         return RMSE, meas_A, est_A
