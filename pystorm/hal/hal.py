@@ -537,6 +537,31 @@ class HAL:
     def get_driver_state(self):
         return self.driver.GetState(CORE_ID)
 
+    def DAC_name_to_handle(self, dac_name):
+        name_to_handle = {
+            'DAC_SYN_EXC'     : bd.bdpars.BDHornEP.DAC_SYN_EXC,
+            'DAC_SYN_DC'      : bd.bdpars.BDHornEP.DAC_SYN_DC,
+            'DAC_SYN_INH'     : bd.bdpars.BDHornEP.DAC_SYN_INH,
+            'DAC_SYN_LK'      : bd.bdpars.BDHornEP.DAC_SYN_LK,
+            'DAC_SYN_PD'      : bd.bdpars.BDHornEP.DAC_SYN_PD,
+            'DAC_SYN_PU'      : bd.bdpars.BDHornEP.DAC_SYN_PU,
+            'DAC_DIFF_G'      : bd.bdpars.BDHornEP.DAC_DIFF_G,
+            'DAC_DIFF_R'      : bd.bdpars.BDHornEP.DAC_DIFF_R,
+            'DAC_SOMA_REF'    : bd.bdpars.BDHornEP.DAC_SOMA_REF,
+            'DAC_SOMA_OFFSET' : bd.bdpars.BDHornEP.DAC_SOMA_OFFSET,
+        }
+        if dac_name not in name_to_handle:
+            raise ValueError("supplied bad dac_name: " + dac_name +
+                ". Name must be one of " + str(name_to_handle.keys()))
+        handle = name_to_handle[dac_name]
+        return handle
+
+    def set_DAC_value(self, dac_name, value):
+        self.driver.SetDACCount(CORE_ID , self.DAC_name_to_handle(dac_name), value) 
+
+    def get_DAC_value(self, dac_name):
+        return self.driver.GetDACCurrentCount(CORE_ID , self.DAC_name_to_handle(dac_name)) 
+
     def get_unique_chip_activation(self):
         """measure chip activity under controlled conditions, creating a unique identifier
 
@@ -554,16 +579,16 @@ class HAL:
         TCOLLECT = .5 # how long to measure spikes
 
         DAC_SETTINGS = { 
-            bd.bdpars.BDHornEP.DAC_SYN_EXC     : 512,
-            bd.bdpars.BDHornEP.DAC_SYN_DC      : 544,
-            bd.bdpars.BDHornEP.DAC_SYN_INH     : 512,
-            bd.bdpars.BDHornEP.DAC_SYN_LK      : 10,
-            bd.bdpars.BDHornEP.DAC_SYN_PD      : 40,
-            bd.bdpars.BDHornEP.DAC_SYN_PU      : 1024,
-            bd.bdpars.BDHornEP.DAC_DIFF_G      : 1024,
-            bd.bdpars.BDHornEP.DAC_DIFF_R      : 500,
-            bd.bdpars.BDHornEP.DAC_SOMA_REF    : 1,
-            bd.bdpars.BDHornEP.DAC_SOMA_OFFSET : 2}
+            'DAC_SYN_EXC'     : 512,
+            'DAC_SYN_DC'      : 544,
+            'DAC_SYN_INH'     : 512,
+            'DAC_SYN_LK'      : 10,
+            'DAC_SYN_PD'      : 40,
+            'DAC_SYN_PU'      : 1024,
+            'DAC_DIFF_G'      : 1024,
+            'DAC_DIFF_R'      : 500,
+            'DAC_SOMA_REF'    : 1,
+            'DAC_SOMA_OFFSET' : 2}
         GAIN_DIV = 1
         BIAS = -3
 
@@ -578,12 +603,12 @@ class HAL:
         # map network
         from pystorm.hal.neuromorph import graph
         net =  graph.Network("net")
-        pool = net.create_pool("pool", taps, biases=BIAS, gain_divisors=GAIN_DIV)
+        pool = net.create_pool("pool", taps, biases=BIAS, gain_divisors=GAIN_DIV, allow_weird_taps=True)
         self.map(net)
 
         # overwrite DAC
         for dac in DAC_SETTINGS:
-            self.driver.SetDACCount(CORE_ID, dac, DAC_SETTINGS[dac])
+            self.set_DAC_value(dac, DAC_SETTINGS[dac])
 
         # collect data
         self.start_traffic(flush=False)
@@ -619,7 +644,7 @@ class HAL:
         """Returns the calibration objects and types data structure"""
         return self.cdb.CAL_TYPES
 
-    def get_calibration(self, cal_obj, cal_type):
+    def get_calibration(self, cal_obj, cal_type, return_as_numpy=False):
         """Get calibration values for attached chip
 
         Parameters
@@ -635,7 +660,7 @@ class HAL:
         if self.chip_activation is None:
             self.get_unique_chip_activation()
         self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
-        return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type)
+        return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type, return_as_numpy)
 
     def add_calibration(self, cal_obj, cal_type, cal_data):
         """Add calibration values for attached chip

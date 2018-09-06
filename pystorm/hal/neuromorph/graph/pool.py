@@ -21,12 +21,12 @@ class Pool(GraphObject):
         neuron pool is physically a rectangle; x dimension of neuron pool
     y: int
         neuron pool is physically a rectangle; y dimension of neuron pool
-    allow_redundant_taps : bool (default False)
+    allow_weird_taps : bool (default False)
         suppress check for whether tap points are used multiple times
     """
     def __init__(self, label, tap_spec, x, y, 
             gain_divisors=1, biases=0, user_xy_loc=(None, None),
-            allow_redundant_taps=False):
+            allow_weird_taps=False):
         super(Pool, self).__init__(label)
         self.label = label
 
@@ -47,8 +47,7 @@ class Pool(GraphObject):
             self.tap_list = Pool.tap_matrix_to_list(tap_spec)
             self._tap_matrix = tap_spec
 
-
-        if not allow_redundant_taps:
+        if not allow_weird_taps:
             self.check_tap_list_for_collision()
 
         # if user supplied int for entire population, expand into array
@@ -76,35 +75,18 @@ class Pool(GraphObject):
 
     # make sure that the tap point assignment isn't likely to cause problems
     def check_tap_list_for_collision(self):
-        used_syns = set()
-        for dim_taps in self.tap_list:
-            for nrn_id, sign in dim_taps:
-                nrn_y = nrn_id // self.x
-                nrn_x = nrn_id % self.x
-                syn_y = nrn_y // 2
-                syn_x = nrn_x // 2
-                key = (syn_y, syn_x)
+        syn_use_counts = self.syn_use_counts_matrix
 
-                # if already present, raise error
-                if key in used_syns:
-                    # n, d
-                    used = np.sum(np.abs(self.tap_matrix), axis=1) # used by any dim
-                    # y//2, 2 , x//2, 2, d
-                    syn_blocks_used = used.reshape((self.y//2, 2, self.x//2, 2))
-                    used_taps = np.sum(syn_blocks_used, axis=(1, 3))
-
-                    errstr = "Bad tap point assignment:\n"
-                    errstr += "  Tap point matrix use counts (by any dim):\n"
-                    errstr += str(used.reshape(self.y, self.x)) + '\n'
-                    errstr += "  Synapse use counts (by any dim). Should be <= 1:\n"
-                    errstr += str(used_taps) + '\n'
-                    errstr += 'Collision detected at (syn_y, syn_x) = ' + str(key) + \
-                        ', (nrn_y, nrn_x) = ' + str((nrn_y, nrn_x)) + \
-                        ' (and maybe other places, see above matrix). ' + \
-                        'Supply the "allow_redudant_taps" argument to suppress this error ' + \
-                        '(if you know what you\'re doing).'
-                    raise ValueError(errstr)
-                used_syns.add(key)
+        if (syn_use_counts > 1).any():
+            errstr = "Bad tap point assignment:\n"
+            errstr += "  Synapse use counts (by any dim). Should be <= 1:\n"
+            errstr += str(syn_use_counts) + '\n'
+            errstr += 'Collision detected at (syn_y, syn_x) = ' + str(key) + \
+                ', (nrn_y, nrn_x) = ' + str((nrn_y, nrn_x)) + \
+                ' (and maybe other places, see above matrix). ' + \
+                'Supply the "allow_redudant_taps" argument to suppress this error ' + \
+                '(if you know what you\'re doing).'
+            raise ValueError(errstr)
 
     def __repr__(self):
         return "Pool " + self.label + ". dims in = " + str(self.dimensions) + ". neurons = " + str(self.n_neurons)
@@ -164,6 +146,14 @@ class Pool(GraphObject):
         if self._tap_matrix is None:
             self._tap_matrix = Pool.tap_list_to_matrix(self.tap_list, self.n_neurons)
         return self._tap_matrix
+
+    @property
+    def syn_use_counts_matrix(self):
+        used_by_dims = np.sum(np.abs(self.tap_matrix), axis=1) # used by any dim
+        # shaped H//2, 2 , W//2, 2, D
+        syn_blocks_used = used_by_dims.reshape((self.height//2, 2, self.width//2, 2)) 
+        syn_use_counts = np.sum(syn_blocks_used, axis=(1, 3))
+        return syn_use_counts
 
     @property
     def encoders(self):

@@ -608,7 +608,7 @@ class NetBuilder(object):
         LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds
 
         if self.net is None:
-            raise ValueError("no Network attached to NetBuilder")
+            raise RuntimeError("no Network attached to NetBuilder")
 
         # estimate "middle points" for each neuron
         # first just compute approximate encoders based on exponential decays
@@ -745,25 +745,113 @@ class NetBuilder(object):
         RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
         return RMSE, meas_A, est_A
         
-    def determine_good_fmaxes(self, safety_margin=1.3):
-        """Determine maximum input rate (fmax) for all Pools at a given dac value
+    def determine_bad_syns(self, pulse_attrition=.05):
+        """Looks at synapse-related calibration data, discards synapses that have 
+        high bias offset contributions and very slow synapses. Suggests an fmax to the
+        user based on the slowest remaining synapse.
 
-        Retrieves the synaptic delay calibration.
-        Uses the current value of DAC_SYN_PD.
+        Uses the current value of DAC_SYN_PD when retrieving the synaptic delay calibration.
 
-        Inputs:
-        =======
-        safety_margin (float, default 1.3) : margin to allow for decode mixing
+        Parameters:
+        ==========
+        pulse_attrition (float, defalut .05) : fraction of synapses to discard based
+            on having long pulse extender values
 
         Returns:
         =======
-        {pool_id : fmax}
+        ((width, height) array of bools for which synapses are bad, debug_info)
+            debug info is dict with keys 
+                {'pulse widths',
+                 'pulse widths w/o high_bias syns'}
+        """
+
+        # look up high bias synapses
+        high_bias = self.HAL.get_calibration(
+            'synapse', 'high_bias_magnitude', return_as_numpy=True)
+
+        # look up pulse widths
+        curr_DAC_SYN_PD = self.HAL.get_DAC_value('DAC_SYN_PD')
+        pulse_widths = self.HAL.get_calibration(
+            'synapse', 'pulse_width_dac_' + str(curr_DAC_SYN_PD), return_as_numpy=True)
+
+        # disable synapses below attrition point
+        pwflat = pulse_widths.flatten()
+        fmaxes = 1 / pwflat
+        order = np.argsort(fmaxes)
+        cutoff_idx = order[int(pulse_attrition * len(fmaxes))]
+        fmax = fmaxes[cutoff_idx] # absolute max possible fmax
+        slow_pulse = fmaxes <= fmax
+        slow_pulse = slow_pulse.reshape(high_bias.shape)
+
+        all_bad_syn = slow_pulse | high_bias
+
+        dbg = {'pulse_widths': pulse_widths, 'slow_pulse':slow_pulse, 'high_bias': high_bias}
+        
+        return all_bad_syn, dbg
+
+    def determine_safe_fmaxes(self, safety_margin=.85, pool_locations=None, DAC_SYN_PD=None):
+        """for all pools in the network, determine the best possible fmax * safety_margin
+        given its tap point assignment
+
+        The network that you're calling this for needs to be mapped, or you 
+        need to tell it where you're going to put each pool.
+
+        Parameters:
+        ===========
+        safety_margin (float, default .85) : fmax margin to allow for decode mixing
+        pool (Pool object) : pool to evaluate this for (depends on tap points used)
+        pool_point_locations : (dict {pool id : (y,x) location}, default None)
+            manual specification of pool locations, avoids requirement that network is mapped
+        DAC_SYN_PD (int, default None) : which value of DAC_SYN_PD to use to retrieve the fmax
+            calibration data. Supplying none causes the function to use the currently-set value
+
+        Returns:
+        =======
+        dict with:
+        {pool id : safe fmax for pool}
+        for all pools in the NetBuilder's current Network
         """
 
         if self.net is None:
-            raise ValueError("no Network attached to NetBuilder")
+            raise RuntimeError("no Network attached to NetBuilder")
 
-        raise NotImplementedError("synaptic delay calibration not hooked in yet")
+        # fill in pool_locations from mapping info, if possible
+        if pool_locations is None:
+
+            if self.HAL.last_mapped_network != self.net:
+                raise RuntimeError("Trying to run un-mapped network. Run map first.")
+
+            pool_locations = {}
+            for pool in self.net.get_pools():
+                x, y = pool.mapped_xy
+                pool_locations[pool] = (y, x)
+
+        pool_wh = {}
+        for pool in self.net.get_pools():
+            pool_wh[pool] = (pool.width, pool.height)
+        
+        # pull pulse width calibration data
+        if DAC_SYN_PD is None:
+            DAC_SYN_PD = self.HAL.get_DAC_value('DAC_SYN_PD')
+        pulse_widths = self.HAL.get_calibration('synapse', 'pulse_width_dac_' + str(DAC_SYN_PD), return_as_numpy=True)
+
+        # for each pool, figure out which tap points it uses
+        # align that set within the global pulse_widths data
+        # figure out what the slowest allowed fmax is of all of them
+        safe_fmaxes = {}
+        for pool in pool_locations:
+            pool_w, pool_h = pool_wh[pool]
+            pool_y, pool_x = pool_locations[pool]
+            pool_pulse_widths = pulse_widths[pool_y//2 : (pool_y + pool_h)//2, 
+                                             pool_x//2 : (pool_x + pool_w)//2]
+
+            syns_used = pool.syn_use_counts_matrix >= 1
+            used_pw = pool_pulse_widths[syns_used]
+            max_pw = np.max(used_pw)
+
+            safe_fmaxes[pool] = 1 / max_pw * safety_margin
+
+        return safe_fmaxes
 
     def open_all_diff_cuts(self):
         CORE_ID = 0        

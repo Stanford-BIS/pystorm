@@ -31,7 +31,8 @@ class RunControl(object):
     #    HAL.flush()
 
     def run_input_sweep(self, input_vals, get_raw_spikes=True, get_outputs=True,
-                        start_time=None, end_time=None, step_options=None, rel_time=True):
+                        start_time=None, end_time=None, step_options=None, rel_time=True,
+                        toggle_driver_traffic=False):
         """Run a simple input sweep, return the binned output values or raw spikes
 
         input_vals : {input_obj : ((len-T array) times, (TxD array) rates)}
@@ -51,6 +52,8 @@ class RunControl(object):
         rel_time : (bool)
             If true, interprets and returns times relative to the current FPGA time
             If false interprets and returns times relative to the time since the FPGA started
+        toggle_driver_traffic (bool, default False) : calls HAL.start_hardware and 
+            HAL.stop_hardware before and after the sweep, toggling the Driver's run state
 
         Returns:
         ========
@@ -144,6 +147,10 @@ class RunControl(object):
 
             return (windowed_outputs, output_bin_times), (windowed_spikes, spike_bin_times)
 
+        if toggle_driver_traffic: 
+            raise NotImplementedError("toggle_driver_traffic not currently supported")
+            self.HAL.start_hardware()
+
         now_ns = self.HAL.get_time()
         if rel_time:
             offset_ns = now_ns + TFUDGE_NS
@@ -161,5 +168,9 @@ class RunControl(object):
         time.sleep(sleeptime + TFUDGE * 2)
 
         outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns)
+
+        if toggle_driver_traffic:
+            raise NotImplementedError("toggle_driver_traffic not currently supported")
+            self.HAL.stop_hardware()
 
         return outputs, spikes

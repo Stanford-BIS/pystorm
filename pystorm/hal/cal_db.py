@@ -245,7 +245,7 @@ class CalibrationDB(object):
             self.write_to_file(cal_obj)
             
 
-    def get_calibration(self, chip, cal_obj, cal_type):
+    def get_calibration(self, chip, cal_obj, cal_type, return_as_numpy=False):
         """Get a copy of the calibration DF for a particular calibration
 
         Inputs:
@@ -257,11 +257,18 @@ class CalibrationDB(object):
         Returns:
         =======
         Pandas dataframe indexed y,x with the requested data
+            OR
+        (y, x) numpy array
         """
 
         self.check_cal_pars(chip, cal_obj, cal_type)
 
         self.cals[cal_obj].sort_index(inplace=True)
         data = self.cals[cal_obj].loc[(chip, slice(None), slice(None)), cal_type]
-        return data.reset_index(level=0, drop=True)
+        no_chip = data.reset_index(level=0, drop=True)
+        if return_as_numpy:
+            cal_y, cal_x = self.CAL_SIZES[cal_obj]
+            return no_chip.values.reshape((cal_y, cal_x))
+        else:
+            return no_chip
 

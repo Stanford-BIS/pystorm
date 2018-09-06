@@ -73,7 +73,7 @@ class Network(object):
         return x, y
 
     def create_pool(self, label, taps, 
-            gain_divisors=1, biases=0, xy=None, user_xy_loc=(None,None), allow_redundant_taps=False):
+            gain_divisors=1, biases=0, xy=None, user_xy_loc=(None,None), allow_weird_taps=False):
         """Adds a Pool object to the network.
         
         Parameters
@@ -89,7 +89,7 @@ class Network(object):
                [tap dim d list] has elements (neuron idx, tap sign) where tap sign is in {-1, 1}
         xy: tuple: (int, int)
             user-specified x, y shape. x * y must match encoder shape
-        allow_redundant_taps : bool (default False)
+        allow_weird_taps : bool (default False)
             suppress check for whether tap points are used multiple times
         """
 
@@ -103,7 +103,7 @@ class Network(object):
         else:
             x, y = xy
 
-        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_redundant_taps)
+        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps)
         self.pools.append(p)
         return p
 
