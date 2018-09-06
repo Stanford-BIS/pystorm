@@ -52,7 +52,7 @@ FIFO_BUFFER_SIZE = 255
 VALIDATE_HIGH_BUF_RATE = 500 # upper bound padding to test high side of max_rate
 
 SYN_PU = 1024 # analog bias setting
-SYN_PD = 30 # analog bias setting
+SYN_PD = 40 # analog bias setting
 
 RATE = 20000 # maximum rate to test
 
