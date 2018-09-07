@@ -282,6 +282,7 @@ class BDPars {
   
   // DAC info
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
+  unsigned int GetDACDefaultCount(BDHornEP signal_id) { return dac_info_.at(signal_id).default_count; };
 
   // maps for AER address translation
   std::array<unsigned int, 4096> soma_xy_to_aer_;

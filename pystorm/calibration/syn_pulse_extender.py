@@ -51,8 +51,8 @@ TAT_SIGN_1 = 1
 FIFO_BUFFER_SIZE = 255
 VALIDATE_HIGH_BUF_RATE = 500 # upper bound padding to test high side of max_rate
 
-SYN_PU = 1024 # analog bias setting
-SYN_PD = 40 # analog bias setting
+SYN_PU = HAL.get_DAC_value('DAC_SYN_PU') # analog bias setting
+SYN_PD = HAL.get_DAC_value('DAC_SYN_PD') # analog bias setting
 
 RATE = 20000 # maximum rate to test
 
@@ -248,7 +248,7 @@ def plot_data(max_rates, data_dir):
 def calibrate_syn_pulse_extender(parsed_args):
     """Run the calibration"""
     syn_pd = parsed_args.syn_pd
-    data_dir = set_data_dir(__file__, "dac_syn_pd_" + str(syn_pd))
+    data_dir = set_data_dir(__file__, "dac_syn_pd_" + str(syn_pd) + "/")
     max_rates = np.zeros(SYN_N)
     build_net()
     set_analog(syn_pd)
