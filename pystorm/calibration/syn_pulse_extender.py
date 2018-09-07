@@ -248,7 +248,7 @@ def plot_data(max_rates, data_dir):
 def calibrate_syn_pulse_extender(parsed_args):
     """Run the calibration"""
     syn_pd = parsed_args.syn_pd
-    data_dir = set_data_dir(__file__, "dac_syn_pd_" + str(syn_pd))
+    data_dir = set_data_dir(__file__, "dac_syn_pd_" + str(syn_pd) + "/")
     max_rates = np.zeros(SYN_N)
     build_net()
     set_analog(syn_pd)
