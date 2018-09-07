@@ -19,6 +19,9 @@ class NetBuilder(object):
         self.HAL = HAL
         self.net = net
 
+    def add_net(self, net):
+        self.net = net
+
     def create_single_pool_net(self, Y, X, tap_matrix=None, decoders=None, biases=0, gain_divs=1):
         """Creates a Network with a single Pool
         
@@ -750,8 +753,7 @@ class NetBuilder(object):
         
     def determine_bad_syns(self, pulse_attrition=.05):
         """Looks at synapse-related calibration data, discards synapses that have 
-        high bias offset contributions and very slow synapses. Suggests an fmax to the
-        user based on the slowest remaining synapse.
+        high bias offset contributions and very slow synapses. 
 
         Uses the current value of DAC_SYN_PD when retrieving the synaptic delay calibration.
 
