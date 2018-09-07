@@ -29,6 +29,19 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 CORE_ID = 0 # hardcoded for now
 
+_bdp = bd.bdpars.BDPars()
+DAC_DEFAULTS = dict(
+    DAC_SYN_EXC     = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_EXC),
+    DAC_SYN_DC      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_DC),
+    DAC_SYN_INH     = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_INH),
+    DAC_SYN_LK      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_LK),
+    DAC_SYN_PD      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_PD),
+    DAC_SYN_PU      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_PU),
+    DAC_DIFF_G      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_DIFF_G),
+    DAC_DIFF_R      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_DIFF_R),
+    DAC_SOMA_REF    = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SOMA_REF),
+    DAC_SOMA_OFFSET = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SOMA_OFFSET),)
+
 class Singleton:
     """Decorator class ensuring that at most one instance of a decorated class exists"""
     def __init__(self,klass):
@@ -92,12 +105,12 @@ class HAL:
         # there are scale factors on each of the outputs
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , DAC_DEFAULTS['DAC_SYN_EXC']) # excitatory level, scaled 1/8
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , DAC_DEFAULTS['DAC_SYN_DC']) # DC baseline level, scaled 1/16
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , DAC_DEFAULTS['DAC_SYN_INH']) # inhibitory level, scaled 1/128
 
         # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , DAC_DEFAULTS['DAC_SYN_LK'])
 
         # synapse pulse extender rise time/fall time
         # 1/DAC_SYN_PD ~ synapse PE fall time 
@@ -106,21 +119,21 @@ class HAL:
         # making the rise longer doesn't have much of a practical purpose
         # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
         # be careful setting these too small, you don't want to saturate the synapse
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , 40)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , DAC_DEFAULTS['DAC_SYN_PD'])
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , DAC_DEFAULTS['DAC_SYN_PU'])
 
         # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
         # lower ratio is more spread out
         # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , DAC_DEFAULTS['DAC_DIFF_G'])
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , DAC_DEFAULTS['DAC_DIFF_R'])
 
         # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , DAC_DEFAULTS['DAC_SOMA_REF'])
 
         # DAC_SOMA_OFFSET scales the bias twiddle bits
         # Ben says that increasing this beyond 10 could cause badness
-        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
+        self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , DAC_DEFAULTS['DAC_SOMA_OFFSET'])
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
@@ -130,14 +143,16 @@ class HAL:
 
         Parameters
         ==========
-        downstream_ns: Controls the fineness of when the FPGA can inject inputs to BD.
-                       Also controls the time resolution of the FPGA tag stream generators
-                       (set_input_rates() periods will be a multiple of this).
-        upstream_ns: Controls the period of upstream heartbeats from the FPGA.
-                     Every upstream_ns, the FPGA reports the current time.
-                     The Driver uses the most recent HB to timestamp upstream traffic.
-                     Also controls the period with which the FPGA emits filtered outputs.
-                     get_outputs() will have a new entry every upstream_ns.
+        downstream_ns: int (optional)
+            Controls the fineness of when the FPGA can inject inputs to BD.
+            Also controls the time resolution of the FPGA tag stream generators
+            (set_input_rates() periods will be a multiple of this).
+        upstream_ns: int (optional)
+            Controls the period of upstream heartbeats from the FPGA.
+            Every upstream_ns, the FPGA reports the current time.
+            The Driver uses the most recent HB to timestamp upstream traffic.
+            Also controls the period with which the FPGA emits filtered outputs.
+            get_outputs() will have a new entry every upstream_ns.
         """
         self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
