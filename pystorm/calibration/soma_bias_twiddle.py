@@ -132,6 +132,7 @@ def estimate_bias_twiddles(args):
 
             net = net_builder.create_single_pool_net(Y, X, tap_matrix, biases=bias)
             pool = net.get_pools()[0]
+            print(net.get_inputs())
             inp = net.get_inputs()[0]
 
             hal.map(net)
@@ -187,7 +188,7 @@ def estimate_bias_twiddles(args):
 
         if hal is None:
             hal = HAL()
-        hal.add_calibration('soma', soma_cal_type, offset_diff)
+        hal.add_calibration('soma', soma_cal_type, all_fout_diffs[bias])
 
 if __name__ == "__main__":
     estimate_bias_twiddles(parse_args())
