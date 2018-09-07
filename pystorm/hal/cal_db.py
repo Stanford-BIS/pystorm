@@ -24,6 +24,10 @@ class CalibrationDB(object):
 
         self.SOMA_CALS = [
             ]
+        self.SOMA_CALS += ['bias_twiddle_' + sign + str(bias) + '_dac_' + str(dac) 
+                           for sign in ('p', 'n')
+                           for bias in range(1,4)
+                           for dac in (1, 2, 4)]
 
         self.CAL_TYPES = {'synapse': self.SYNAPSE_CALS, 
                           'soma': self.SOMA_CALS}

@@ -545,7 +545,7 @@ class NetBuilder(object):
 
         return est_encs, est_offsets, mean_residuals, insufficient_samples
 
-    def determine_encoders_and_offsets(self, pool, inp, fmax):
+    def determine_encoders_and_offsets(self, pool, inp, fmax, num_sample_angles=3):
         """Estimate the gains and biases of each neuron in the network
 
         An exhaustive (O(2**D)) scanning of the input space is not necessary.
@@ -594,6 +594,10 @@ class NetBuilder(object):
 
         est_encoders: NxD array of estimated encoders * gains
         est_offsets: N-array of estimated offsets
+
+        encoders * gains are in Hz, converting input value to output firing rate
+        offsets are in Hz of output firing rate
+
         mean_residuals: N-array of fit errors
         insufficient_points: N-array of bools indicating that there weren't
             enough points to perform the fit accurately
@@ -601,8 +605,7 @@ class NetBuilder(object):
         """
 
         SAMPLE_FUDGE = 2 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
-        NUM_SAMPLE_ANGLES = 3
-        SAMPLE_ANGLES = [np.pi / 2**i for i in range(2, NUM_SAMPLE_ANGLES+2)]
+        SAMPLE_ANGLES = [np.pi / 2**i for i in range(2, num_sample_angles+2)]
         HOLD_TIME = 1 # seconds
         BASELINE_TIME = 1 # seconds
         LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds

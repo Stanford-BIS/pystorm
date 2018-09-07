@@ -472,7 +472,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # read pickle or collect data
-    pck_fname = DATA_DIR + 'all_step_response_spikes.pck'
+    pck_fname = DATA_DIR + 'syn_tau_raw_data.pck'
     if args.fit_only:
         all_binned_spikes, all_linear = pickle.load(open(pck_fname, 'rb'))
     else: 

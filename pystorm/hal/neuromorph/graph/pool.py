@@ -51,9 +51,9 @@ class Pool(GraphObject):
             self.check_tap_list_for_collision()
 
         # if user supplied int for entire population, expand into array
-        if isinstance(self.gain_divisors, int):
+        if np.issubdtype(type(self.gain_divisors), np.integer):
             self.gain_divisors = np.ones((self.n_neurons,), dtype='int') * self.gain_divisors
-        if isinstance(self.biases, int):
+        if np.issubdtype(type(self.biases), np.integer):
             self.biases = np.ones((self.n_neurons,), dtype='int') * self.biases
 
         # check that it's an array now
