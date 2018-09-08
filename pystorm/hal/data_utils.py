@@ -25,7 +25,7 @@ def bins_to_rates(counts, orig_bin_times, desired_bin_edges, init_discard_frac=0
     to obtain rates. 
 
     !!!For this to work well, either the output bins should divide the input bins
-    evenly, or the the input bins should be much finer than the output ones!!!
+    evenly, or the input bins should be much finer than the output ones!!!
 
     Caution: This is not a high-performance call. There are faster,
     but less convenient ways to achieve this when performance is an issue.
