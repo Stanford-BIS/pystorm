@@ -293,7 +293,12 @@ class NetBuilder(object):
 
                         tap_matrix[y, x, :] = candidate_vect
 
-        return tap_matrix.reshape((SY, SX, D))
+        tap_matrix = tap_matrix.reshape((SY, SX, D))
+        for i in range(D):
+            items = np.nonzero(tap_matrix[:, i])[0]
+            if len(items) % 2 == 1:
+                tap_matrix[items[-1], i] = 0
+        return tap_matrix
 
     @staticmethod
     def syn_taps_to_nrn_taps(tap_matrix, spacing=1):
