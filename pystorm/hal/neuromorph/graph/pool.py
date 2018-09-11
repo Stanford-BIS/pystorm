@@ -105,11 +105,11 @@ class Pool(GraphObject):
         (DxN array, elements in {-1, 0, 1}) : the encoder-like tap matrix
         """
         D = len(L)
-        M = np.zeros((D, N), dtype=int)
+        M = np.zeros((N, D), dtype=int)
 
         for d_idx, dim_taps in enumerate(L):
             for tap_idx, sign in dim_taps:
-                M[d_idx, tap_idx] = sign
+                M[tap_idx, d_idx] = sign
         return M
 
     @staticmethod
