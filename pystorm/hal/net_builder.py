@@ -22,7 +22,7 @@ class NetBuilder(object):
     def add_net(self, net):
         self.net = net
 
-    def create_single_pool_net(self, Y, X, tap_matrix=None, decoders=None, biases=0, gain_divs=1):
+    def create_single_pool_net(self, Y, X, tap_matrix=None, decoders=None, biases=0, gain_divs=1, loc_yx=(0, 0)):
         """Creates a Network with a single Pool
         
         Inputs:
@@ -71,7 +71,7 @@ class NetBuilder(object):
 
         # decoders are initially zero
         # we remap them later (without touching the rest of the network) using HAL.remap_weights()
-        net.pool = net.create_pool("p1", tap_spec, biases=biases, gain_divisors=gain_divs, xy=(X, Y))
+        net.pool = net.create_pool("p1", tap_spec, biases=biases, gain_divisors=gain_divs, xy=(X, Y), user_xy_loc=(loc_yx[1], loc_yx[0]))
 
         if Dout > 0:
             b1 = net.create_bucket("b1", Dout)
@@ -299,6 +299,51 @@ class NetBuilder(object):
             if len(items) % 2 == 1:
                 tap_matrix[items[-1], i] = 0
         return tap_matrix
+
+    def slice_pool_in_half(self, pool):
+        """Opens the diffusor down the middle of a pool. Good for 1D pools with default diffusors
+        
+        Parameters:
+        ==========
+        pool (Pool object) the pool (in the currently mapped network) to cut
+        """ 
+
+        raise NotImplementedError("haven't tested this yet")
+
+        if self.net is None:
+            raise RuntimeError("no Network attached to NetBuilder")
+        if self.HAL.last_mapped_network != self.net:
+            raise RuntimeError("Trying to run un-mapped network. Run map first.")
+        if pool not in self.net.get_pools():
+            raise ValueError("supplied pool was not in the current network")
+        
+        ## these are all tile coordinates
+        #x_off = LX // 2 // 2
+        #y_off = LY // 2 // 2
+        #num_tiles_vert = SY // 2
+        #x_idx = SX // 2 // 2 #east of midline tile idx
+
+        ##print(x_idx + x_off, y_idx + y_off)
+        #hal.driver.OpenDiffusorCutXY(0, x_idx + x_off, y_idx + y_off, DIFFUSOR_WEST_TOP)
+        #hal.driver.OpenDiffusorCutXY(0, x_idx + x_off, y_idx + y_off, DIFFUSOR_WEST_BOTTOM)
+
+    def open_all_diff_cuts(self):
+        """Opens all the diffusor cuts (no current passes)
+
+        works on an already-mapped network. Remapping will erase this state.
+        """
+
+        # this isn't strictly necessary (the fn doesn't operate on self.net)
+        # but it does enforce that the network is already mapped
+        if self.net is None:
+            raise RuntimeError("no Network attached to NetBuilder")
+        if self.HAL.last_mapped_network != self.net:
+            raise RuntimeError("Trying to run un-mapped network. Run map first.")
+
+        CORE_ID = 0        
+        # connect diffusor around pools
+        for tile_id in range(256):
+            self.HAL.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
 
     @staticmethod
     def syn_taps_to_nrn_taps(tap_matrix, spacing=1):
@@ -553,7 +598,7 @@ class NetBuilder(object):
 
         return est_encs, est_offsets, mean_residuals, insufficient_samples
 
-    def determine_encoders_and_offsets(self, pool, inp, fmax, num_sample_angles=3):
+    def determine_encoders_and_offsets(self, pool, inp, fmax, num_sample_angles=3, solver='scipy_opt'):
         """Estimate the gains and biases of each neuron in the network
 
         An exhaustive (O(2**D)) scanning of the input space is not necessary.
@@ -690,7 +735,7 @@ class NetBuilder(object):
 
             #print("estimating encoders")
             est_encs, est_offsets, mean_residuals, insufficient_samples = \
-                NetBuilder.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver="scipy_opt")
+                NetBuilder.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver=solver)
 
             # whittle away at set of neurons we still need more data for
             unsolved_encs = approx_enc[insufficient_samples]
@@ -863,8 +908,266 @@ class NetBuilder(object):
 
         return safe_fmaxes
 
-    def open_all_diff_cuts(self):
-        CORE_ID = 0        
-        # connect diffusor around pools
-        for tile_id in range(256):
-            self.HAL.driver.OpenDiffusorAllCuts(CORE_ID, tile_id)
+    def get_all_bias_twiddles(self):
+        """collect the different soma bias twiddle calibrations into one data structure
+        use the data associated with the current DAC_SOMA_OFFSET setting
+
+        Returns:
+        =======
+        6x64x64 array of offsets
+        """
+
+        # look up current DAC setting
+        curr_DAC_SOMA_OFFSET = self.HAL.get_DAC_value('DAC_SOMA_OFFSET')
+
+        all_offsets = np.zeros((7, 64, 64))
+        for i, p, b in zip([0, 1, 2, 4, 5, 6], ['n']*3 + ['p']*3, [3, 2, 1, 1, 2, 3]):
+            all_offsets[i] = self.HAL.get_calibration(
+                'soma', 'bias_twiddle_' + p + str(b) + '_dac_' + str(curr_DAC_SOMA_OFFSET), 
+                return_as_numpy=True)
+
+        return all_offsets
+
+    @staticmethod
+    def extrapolate_bias_twiddles(bias_twiddles):
+        pass
+    
+    def get_pool_bias_twiddles(self, pool):
+
+        BIAS_LEVELS = 7
+    
+        if self.net is None:
+            raise RuntimeError("no Network attached to NetBuilder")
+        if self.HAL.last_mapped_network != self.net:
+            raise RuntimeError("Trying to run un-mapped network. Run map first.")
+        if pool not in self.net.get_pools():
+            raise ValueError("supplied pool was not in the current network")
+
+        all_offsets = self.get_all_bias_twiddles()
+
+        x_loc, y_loc = pool.mapped_xy
+        pool_tw_offsets = self.get_all_bias_twiddles()[:, y_loc : y_loc + pool.height,
+                                                          x_loc : x_loc + pool.width]
+        pool_tw_offsets = pool_tw_offsets.reshape((BIAS_LEVELS, pool.n_neurons))
+
+        return pool_tw_offsets
+
+    def optimize_bias_twiddles(self, pool, encoders, offsets_at_b3, policy='greedy_flat'):
+
+        if self.net is None:
+            raise RuntimeError("no Network attached to NetBuilder")
+        if self.HAL.last_mapped_network != self.net:
+            raise RuntimeError("Trying to run un-mapped network. Run map first.")
+        if pool not in self.net.get_pools():
+            raise ValueError("supplied pool was not in the current network")
+
+        pool_tw_offsets = self.get_pool_bias_twiddles(pool)
+
+        return NetBuilder.pick_good_twiddles(encoders, offsets_at_b3, pool_tw_offsets, policy)
+
+    @staticmethod
+    def pick_good_twiddles(encoders, offsets_at_b3, pool_tw_offsets, policy='greedy_flat'):
+
+        BIAS_LEVELS = 7
+        N_NEURONS = len(offsets_at_b3)
+
+        #                measured at +3  (biases relative to 3)
+        offset_options = offsets_at_b3 + pool_tw_offsets - pool_tw_offsets[BIAS_LEVELS - 1]
+
+        gains = np.linalg.norm(encoders, axis=1)
+        initial_intercepts = -offsets_at_b3 / gains
+        twiddle_intercept_deltas = -(pool_tw_offsets - pool_tw_offsets[BIAS_LEVELS - 1]) / gains
+
+        intercept_options = twiddle_intercept_deltas + initial_intercepts
+        good_options_mask = (intercept_options < 1) & (intercept_options > -1)
+
+        # fill these in for each policy
+        tw_assignments = np.zeros((N_NEURONS), dtype=int)
+        new_offsets = np.zeros(tw_assignments.shape, dtype=float)
+        good = np.zeros(tw_assignments.shape, dtype=bool)
+        bin_counts = None
+
+        # used to define bin_counts
+        num_bins = 20
+        bin_edges = np.linspace(-1, 1, num_bins+1)
+
+        if policy == 'random':
+            for n in range(N_NEURONS):
+                if ~np.isnan(initial_intercepts[n]):
+                    good_options_idxs = np.arange(BIAS_LEVELS)[good_options_mask[:, n].flatten()]
+                    if len(good_options_idxs) > 0:
+                        bias_idx = good_options_idxs[np.random.randint(len(good_options_idxs))]
+                        nrn_is_good = True
+                    else:
+                        # we might be firing all the time, or we might be straddling the 
+                        # 'good' range with our intercept options,
+                        # pick the closest, err high
+                        bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
+                        nrn_is_good = False
+                else:
+                    # if the intercept is NaN, this must be a never-fires guy
+                    bias_idx = BIAS_LEVELS - 1 # +3
+                    nrn_is_good = False
+
+                tw_assignments[n] = bias_idx
+                new_offsets[n] = offset_options[bias_idx, n]
+                good[n] = nrn_is_good
+
+            bin_counts = np.histogram(-new_offsets / gains, bin_edges)
+
+        elif policy == 'center':
+            for n in range(N_NEURONS):
+                if ~np.isnan(initial_intercepts[n]):
+                    good_options_idxs = np.arange(BIAS_LEVELS)[good_options_mask[:, n].flatten()]
+                    this_nrn_offset_options = offset_options[:, n]
+                    this_nrn_mask = good_options_mask[:, n]
+                    good_options = this_nrn_offset_options[this_nrn_mask]
+                    if len(good_options_idxs) > 0:
+                        bias_idx = good_options_idxs[np.argmin(np.abs(good_options))]
+                        nrn_is_good = True
+                    else:
+                        # we might be firing all the time, or we might be straddling the 
+                        # 'good' range with our intercept options,
+                        # pick the closest, err high
+                        bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
+                        nrn_is_good = False
+                else:
+                    # if the intercept is NaN, this must be a never-fires guy
+                    bias_idx = BIAS_LEVELS - 1 # +3
+                    nrn_is_good = False
+
+                tw_assignments[n] = bias_idx
+                new_offsets[n] = offset_options[bias_idx, n]
+                good[n] = nrn_is_good
+
+            bin_counts = np.histogram(-new_offsets / gains, bin_edges)
+            
+        elif policy == 'greedy_flat':
+            # divide space of intercepts into bins, iterate through neurons, 
+            # take the DAC setting that puts neuron in the least-currently-filled bin
+
+            # f(x) = 0 = f'(x) = x * e_unit * g + b (intercept = x condition)
+            # g/b = -1/(x * e_unit)
+            # x * e_unit = -b/g
+
+            bin_counts = np.zeros((num_bins,))
+
+            def binify(val):
+                return (((val + 1) / 2) * num_bins).astype(int)
+
+            for n in range(N_NEURONS):
+                if ~np.isnan(initial_intercepts[n]):
+                    good_options_idxs = np.arange(BIAS_LEVELS)[good_options_mask[:, n].flatten()]
+                    good_intercepts = intercept_options[good_options_idxs, n]
+
+                    if len(good_options_idxs) > 0:
+                        option_bin_idxs = binify(good_intercepts) # bin idxs of [-1, 1] ints
+                        option_bin_counts = bin_counts[option_bin_idxs] # counts of those bins
+
+                        # idx to the smallest of those counts
+                        # also the idx to the good_options_idxs that produces it
+                        best_good_option_idx = np.argmin(option_bin_counts) 
+                        
+                        # bin idx to increment
+                        best_bin_idx = option_bin_idxs[best_good_option_idx] 
+
+                        bin_counts[best_bin_idx] += 1
+
+                        bias_idx = good_options_idxs[best_good_option_idx]
+                        nrn_is_good = True
+
+                    else:
+                        # we might be firing all the time, or we might be straddling the 
+                        # 'good' range with our intercept options,
+                        # pick the closest, err high
+                        bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
+                        nrn_is_good = False
+                else:
+                    # if the intercept is NaN, this must be a never-fires guy
+                    bias_idx = BIAS_LEVELS - 1 # +3
+                    nrn_is_good = False
+
+                tw_assignments[n] = bias_idx
+                new_offsets[n] = offset_options[bias_idx, n]
+                good[n] = nrn_is_good
+            
+        elif policy == 'flat':
+            # consider all possible DAC settings across all neurons simulatenously
+            # choose the settings that achieve the flattest possible intercept distribution
+            raise NotImplementedError("policy not implemented")
+            gains = np.linalg.norm(encoders, axis=1)
+        else:
+            raise NotImplementedError("unkown policy")
+
+
+        def tw_idx_to_val(idx):
+            vals = [-3, -2, -1, 0, 1, 2, 3]
+            return vals[idx]
+
+        tw_vals = np.zeros(tw_assignments.shape, dtype=int)
+        for n in range(N_NEURONS):
+            tw_vals[n] = tw_idx_to_val(tw_assignments[n])
+            
+        dbg = {'options' : intercept_options}
+
+        return tw_vals, new_offsets, good, bin_counts, dbg
+
+    @staticmethod
+    def get_gains(encoders):
+        return np.linalg.norm(encoders, axis=1)
+
+    @staticmethod
+    def get_good_mask(encoders, offsets):
+        gains = NetBuilder.get_gains(encoders)
+        intercepts = -offsets / gains
+        good_mask = (intercepts < 1) & (intercepts > -1)
+        return good_mask
+
+    @staticmethod
+    def plot_neuron_yield_cone(encoders, offsets, good, old_encs_offsets_and_vals=None, ax=None, xylim=None, title=None, figsize=(15, 15)):
+
+        import matplotlib.pyplot as plt
+
+        gains = NetBuilder.get_gains(encoders)
+
+        if ax is None:
+            plt.figure(figsize=figsize)
+            ax = plt.gca()
+
+        colors = []
+        for g in good:
+            if g:
+                colors.append('g')
+            else:
+                colors.append('r')
+        ax.scatter(gains, offsets, c=colors)
+        if xylim is None:
+            cone_max = max(gains[~np.isnan(gains)])
+        else:
+            cone_max = xylim[1]
+        x = np.linspace(0, cone_max, 100)
+        ax.plot(x, x)
+        ax.plot(x, -x)
+        if title is None:
+            ax.set_title('neuron gain and bias')
+        else:
+            ax.set_title(title)
+        ax.set_xlabel('gain')
+        ax.set_ylabel('bias')
+
+        if xylim is not None:
+            ax.axis(xylim)
+
+        if old_encs_offsets_and_vals is not None:
+            old_encs, old_offsets, vals = old_encs_offsets_and_vals
+            old_gains = NetBuilder.get_gains(old_encs)
+            cmap = plt.get_cmap('RdBu')(np.linspace(0, 1, 7))
+
+            for n_idx, g0, g1, o0, o1, v in zip(range(len(old_gains)), old_gains, gains, old_offsets, offsets, vals):
+                if np.isnan(o1):
+                    ax.scatter(g0, o0, marker='x', c=colors[n_idx])
+                else:
+                    vidx = v + 3
+                    ax.plot([g0, g1], [o0, o1], c=cmap[vidx])
+
+

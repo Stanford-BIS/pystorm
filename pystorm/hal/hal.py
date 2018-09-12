@@ -577,6 +577,47 @@ class HAL:
     def get_DAC_value(self, dac_name):
         return self.driver.GetDACCurrentCount(CORE_ID , self.DAC_name_to_handle(dac_name)) 
 
+    def set_diffusor(y, x, direction, state):
+        """open or close the diffusor near neuron y, x
+
+        Parameters:
+        ==========
+        y, x (ints) : location of neuron around which to set the diffusor
+        direction (string, {'up', 'right', 'down', 'left'}) : which side to open/close
+        state (string, {'break', 'join'}) : what to do to the diffusor
+        """
+
+        raise NotImplementedError("haven't tested this yet")
+
+        NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
+        NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
+        WEST_TOP = bd.bdpars.DiffusorCutLocationId.WEST_TOP
+        WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
+
+        ty = y // 4
+        tx = x // 4
+        if direction == 'down':
+            ty += 1
+            sides = (NORTH_LEFT, NORTH_RIGHT)
+        elif direction == 'right':
+            tx += 1
+            sides = (WEST_TOP, WEST_BOTTOM)
+        elif direction == 'up':
+            sides = (NORTH_LEFT, NORTH_RIGHT)
+        elif direction == 'left':
+            sides = (WEST_TOP, WEST_BOTTOM)
+        else:
+            raise ValueError("direction must be in {'up', 'right', 'down', 'left'}")
+
+        if state == 'break':
+            for side in sides:
+                hal.driver.OpenDiffusorCutXY(CORE_ID, tx, ty, side)
+        elif state == 'join':
+            for side in sides:
+                hal.driver.CloseDiffusorCutXY(CORE_ID, tx, ty, side)
+        else:
+            raise ValueError("state must be in {'join', 'break'}")
+        
     def get_unique_chip_activation(self):
         """measure chip activity under controlled conditions, creating a unique identifier
 
