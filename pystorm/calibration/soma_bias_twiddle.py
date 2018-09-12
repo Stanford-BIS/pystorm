@@ -7,10 +7,12 @@ import pickle
 
 DATA_DIR = set_data_dir(__file__)
 
-Y = 64
-X = 64
-N = X * Y
 SOMA_OFFSET = 2
+NUM_CHUNKS_YX = 2 # avoid overwhelming bandwidth by breaking run into chunks
+
+Y = 64 // NUM_CHUNKS_YX
+X = 64 // NUM_CHUNKS_YX
+N = X * Y
 
 SY = Y // 2
 SX = X // 2
@@ -105,7 +107,7 @@ def estimate_bias_twiddles(args):
     """
 
     # bias levels allowed
-    biases = np.array([-3, -2, -1, 0, 1, 2, 3], dtype=int)
+    biases = np.array([3, 2, 1, 0, -1, -2, -3], dtype=int)
 
     # collect data, or load pickle
     pck_fname = DATA_DIR + 'soma_bias_twiddle_raw_data.pck'
@@ -114,46 +116,67 @@ def estimate_bias_twiddles(args):
         hal = None
     else: 
         all_offsets = {}
+
         for bias in biases:
-            print("===============")
-            print("RUNNING BIAS", bias)
-            print("===============")
-            hal = HAL()
 
-            # set up NetBuilder, we're going to make a basic pool
-            net_builder = NetBuilder(hal)
-            # use all-1 taps, except bad synapses
-            bad_syn, _ = net_builder.determine_bad_syns()
-            taps = np.zeros((Y, X))
-            taps[::2, ::2] = ~bad_syn
-            tap_matrix = taps.reshape((N, 1))
-            NetBuilder.make_taps_even(tap_matrix)
+            print("Y,X", Y, X)
+            bias_offsets = np.zeros((64, 64))
+            all_offsets[bias] = bias_offsets
+
+            for chunk_y, chunk_x in [(y, x) for y in range(NUM_CHUNKS_YX) 
+                                            for x in range(NUM_CHUNKS_YX)]:
+                print(chunk_y, chunk_x)
+                Y_loc = chunk_y * Y
+                X_loc = chunk_x * X
+                SY_loc = Y_loc // 2
+                SX_loc = X_loc // 2
 
 
-            net = net_builder.create_single_pool_net(Y, X, tap_matrix, biases=bias)
-            pool = net.get_pools()[0]
-            print(net.get_inputs())
-            inp = net.get_inputs()[0]
+                print("===============")
+                print("RUNNING BIAS", bias)
+                print("===============")
+                hal = HAL()
 
-            hal.map(net)
+                # set up NetBuilder, we're going to make a basic pool
+                net_builder = NetBuilder(hal)
+                # use all-1 taps, except bad synapses
+                bad_syn, _ = net_builder.determine_bad_syns()
+                taps = np.zeros((Y, X))
+                taps[::2, ::2] = ~bad_syn[SY_loc:SY_loc + SY, 
+                                          SX_loc:SX_loc + SX]
+                tap_matrix = taps.reshape((N, 1))
+                NetBuilder.make_taps_even(tap_matrix)
 
-            # broad diffusor
-            hal.set_DAC_value('DAC_DIFF_G', 64)
-            hal.set_DAC_value('DAC_DIFF_R', 1024)
 
-            # don't want saturation, min t_ref
-            #hal.set_DAC_value('DAC_SOMA_REF', 1024)
+                net = net_builder.create_single_pool_net(Y, X, tap_matrix, biases=bias, loc_yx=(Y_loc, X_loc))
+                pool = net.get_pools()[0]
+                print(net.get_inputs())
+                inp = net.get_inputs()[0]
 
-            # some crazy guys might saturate, but you won't overwhelm the USB
-            hal.set_DAC_value('DAC_SOMA_REF', 10)
+                hal.map(net)
 
-            # stress the safety margin: we want as many neurons to fire as possible
-            safe_fmaxes = net_builder.determine_safe_fmaxes(safety_margin=.95)
-            FMAX = safe_fmaxes[pool]
+                # broad diffusor
+                hal.set_DAC_value('DAC_DIFF_G', 64)
+                hal.set_DAC_value('DAC_DIFF_R', 1024)
 
-            est_encs, est_offsets, insufficient_samples, debug = \
-                net_builder.determine_encoders_and_offsets(pool, inp, FMAX, num_sample_angles=1)
-            all_offsets[bias] = est_offsets
+                # don't want saturation, min t_ref
+                hal.set_DAC_value('DAC_SOMA_REF', 1024)
+
+                # some crazy guys might saturate, but you won't overwhelm the USB
+                #hal.set_DAC_value('DAC_SOMA_REF', 10)
+
+                # stress the safety margin: we want as many neurons to fire as possible
+                safe_fmaxes = net_builder.determine_safe_fmaxes(safety_margin=.95)
+                FMAX = safe_fmaxes[pool]
+
+                est_encs, est_offsets, insufficient_samples, debug = \
+                    net_builder.determine_encoders_and_offsets(pool, inp, FMAX, num_sample_angles=1)
+                bias_offsets[Y_loc:Y_loc + Y, 
+                              X_loc:X_loc + X] = est_offsets.reshape((Y, X))
+
+        # reshape data
+        for bias in all_offsets:
+            all_offsets[bias] = all_offsets[bias].flatten()
 
         # save results
         pickle.dump(all_offsets, open(pck_fname, 'wb'))
