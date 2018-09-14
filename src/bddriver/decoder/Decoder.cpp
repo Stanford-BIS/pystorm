@@ -24,9 +24,9 @@ void Decoder::RunOnce() {
   // we may time out for the Pop, (which can block indefinitely), giving us a chance to be killed
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
 
-  // if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
-  //   cout << "WARNING: bddriver::Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
-  // }
+  if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
+    cout << "WARNING: bddriver::Decoder (upstream data processing) is too slow. Running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
+  }
 
   if (popped_vect->size() > 0) {
     Decode(std::move(popped_vect));
@@ -94,7 +94,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
             {{TWOFPGAPAYLOADS::MSB, payload},
              {TWOFPGAPAYLOADS::LSB, last_HB_LSB_recvd_}});
         if (this_HB - curr_HB_recvd_ != curr_HB_recvd_ - last_HB_recvd_) { 
-          cout << "WARNING: bddriver::Decoder::Decode: possibly missed an upstream HB. Jump was " <<
+          cout << "WARNING: bddriver::Decoder::Decode: upstream USB is too slow. Possibly missed an upstream HB. Jump was " <<
             this_HB - curr_HB_recvd_ << ". Last jump was " << curr_HB_recvd_ - last_HB_recvd_ << endl;
         }
         last_HB_recvd_ = curr_HB_recvd_;
@@ -112,7 +112,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
         break; // all further words in the block are guaranteed to be nops!
 
       } else if (ep_code == bd_pars_->DnEPCodeFor(bdpars::BDHornEP::RI)) { // note, Dn, not UpEPCode
-        cout << "WARNING: bddriver::Decoder: got tag intended for another BD (a few on startup is normal)" << endl;
+        //cout << "WARNING: bddriver::Decoder: got tag intended for another BD (a few on startup is normal)" << endl;
       
       // otherwise, forward to Driver
       } else {
@@ -147,7 +147,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
   //cout << "decoder processed " << words_processed * 4 << " bytes" << endl;
 
   if (!had_nop) {
-    cout << "WARNING: bddriver::Decoder::Decode: didn't receive any nops in a read, FPGA possibly stalled BD" << endl;
+    cout << "WARNING: bddriver::Decoder::Decode: upstream USB is too slow. Didn't receive any nops in a read, FPGA possibly stalled BD, lost data" << endl;
   }
 }
 

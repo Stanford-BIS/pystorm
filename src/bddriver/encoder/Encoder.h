@@ -5,6 +5,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <chrono>
 
 #include "common/BDPars.h"
 #include "common/DriverPars.h"
@@ -34,7 +35,17 @@ class Encoder : public Xcoder {
 
   ~Encoder(){};
 
+  // driver calls this. NOT THREADSAFE. MUST STOP ENCODER BEFORE CALLING!
+  void ResetBaseTime(); 
+
  private:
+
+  std::deque<std::pair<unsigned int, BDTime>> block_sizes_times_outstanding_;
+  unsigned int total_outstanding_ = 0;
+
+  std::chrono::high_resolution_clock::time_point base_time_ = 
+    std::chrono::high_resolution_clock::now(); 
+
   const unsigned int timeout_us_;
   MutexBuffer<EncInput>* in_buf_;
   MutexBuffer<EncOutput>* out_buf_;
@@ -43,11 +54,13 @@ class Encoder : public Xcoder {
 
   std::unique_ptr<std::vector<EncOutput>> output_block_; // encoder builds up one set of blocks at a time
 
+  BDTime GetRelativeTime() const;
   void RunOnce();
   inline void PushWord(uint32_t word); // helper for Encode, does serialization into output_block_
   inline void PadNopsAndFlush(); // pushes nops until the output_block_ is a multiple of WORDS_PER_BLOCK
   inline void FlushWords(); // flushes words to comm, padding to complete the current block
   void Encode(const std::unique_ptr<std::vector<EncInput>> inputs);
+
 };
 
 }  // bddriver

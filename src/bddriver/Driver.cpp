@@ -254,6 +254,13 @@ void Driver::IssuePushWords() {
 void Driver::ResetFPGATime() {
   base_time_ = std::chrono::high_resolution_clock::now(); // set time basis
 
+  // Encoder::ResetBaseTime() is not threadsafe. To avoid hitting a mutex in a
+  // high-throughput region of code, we enforce safety by putting the competing
+  // thread to sleep
+  enc_->Stop();
+  enc_->ResetBaseTime();
+  enc_->Start();
+
   BDWord reset_time_1 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 1}});
   BDWord reset_time_0 = PackWord<FPGAResetClock>({{FPGAResetClock::RESET_STATE, 0}});
   SendToEP(0, bdpars::FPGARegEP::TM_PC_RESET_TIME, {reset_time_1, reset_time_0}); // XXX core_id?

@@ -4,6 +4,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <chrono>
 
 #include "common/DriverPars.h"
 #include "common/BDPars.h"
@@ -32,6 +33,16 @@ void PrintBinaryAsStr(uint32_t b, unsigned int N) {
       cout << "0";
   }
   cout << endl;
+}
+
+void Encoder::ResetBaseTime() {
+  base_time_ = std::chrono::high_resolution_clock::now();
+}
+
+BDTime Encoder::GetRelativeTime() const {
+  auto time_point_now = std::chrono::high_resolution_clock::now();
+  auto ns_now = std::chrono::duration_cast<std::chrono::nanoseconds>(time_point_now - base_time_);
+  return ns_now.count();
 }
 
 void Encoder::RunOnce() {
@@ -82,13 +93,62 @@ inline void Encoder::PadNopsAndFlush() {
 inline void Encoder::FlushWords() {
 
   assert(driverpars::WRITE_BLOCK_SIZE % 4 == 0);
-  assert(output_block_->size() % driverpars::WRITE_BLOCK_SIZE == 0);
+  unsigned int this_block_size = output_block_->size();
+  assert(this_block_size % driverpars::WRITE_BLOCK_SIZE == 0);
 
   // move output_block_
   out_buf_->Push(std::move(output_block_)); 
-
-  // construct new output_block_
   output_block_ = std::make_unique<std::vector<EncOutput>>();
+
+  // figure out if USB is too slow
+  /*
+  have to figure out if the contents of the MB between us
+  and the Comm contains stale traffic, based on its current
+  capacity and our record of the times associated with the traffic
+  that we've sent and the times we've sent them
+
+  words_outstanding_ has data like: 
+
+  [pushed M_0 words for ts_0,
+   pushed M_1 words for ts_1,
+     ...
+   pushed M_NCURR words for ts_NCURR]
+
+  if current MB capacity is X:
+  
+  find min N s.t. : (X - sum_N_NCURR_downto_N(Mi)) > 0
+  ts_N is then the stalest time in the buffer
+
+  if t_wall_time - ts_N > tolerance, emit a warning that the USB is slow
+
+  we can then discard words_outstanding_[:N]
+  */
+
+  block_sizes_times_outstanding_.push_back({this_block_size, last_HB_sent_at_});
+  total_outstanding_ += this_block_size;
+
+  unsigned int MB_size = out_buf_->TotalSize();
+
+  // trim from the end of our deque until we're only slightly greater than the current size
+  BDTime block_time; // will record stalest time when done
+  while (true) {
+    auto front_block = block_sizes_times_outstanding_.front();
+    block_time = front_block.first;
+    unsigned int block_size = front_block.second;
+
+    if (total_outstanding_ - block_size < MB_size) {
+      break; // gone too far
+    } else {
+      total_outstanding_ -= block_size;
+      block_sizes_times_outstanding_.pop_front();
+    }
+  }
+  BDTime wall_time = GetRelativeTime();
+  BDTime stale_time = wall_time - block_time;
+  if (stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS) {
+      cout << "WARNING: bddriver::Encoder: Downstream USB is too slow. Running " << stale_time << " ns behind" << endl;
+  }
+  
 }
 
 void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
@@ -120,6 +180,14 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
       // package the event's time into a spike
       if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {
+        // make sure we're not sending something stale
+        // if we are, emit warning
+        BDTime wall_time = GetRelativeTime();
+        BDTime stale_time = wall_time - time;
+        if (stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS) {
+            cout << "WARNING: bddriver::Encoder: Encoder (downstream data processing) is too slow. Running " << stale_time << " ns behind" << endl;
+        }
+
         last_HB_sent_at_ = time;
 
         // need to insert two words

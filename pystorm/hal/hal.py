@@ -90,6 +90,7 @@ class HAL:
         self.last_mapped_core = None
 
         self.init_hardware()
+        self.SIR_count = 0
 
     def init_hardware(self):
         logger.info("HAL: clearing hardware state")
@@ -351,6 +352,7 @@ class HAL:
 
         self.set_input_rates([inp], [dim], [rate], time, flush)
 
+
     def set_input_rates(self, inputs, dims, rates, time=0, flush=True):
         """Controls tag stream generators rates (on the FPGA)
 
@@ -382,6 +384,7 @@ class HAL:
             inp.generator_out_tags[dim] for inp, dim in zip(inputs, dims)]
 
         self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, np.round(rates).astype(int), int(time), flush)
+        self.SIR_count += 1
 
 
     ##############################################################################
