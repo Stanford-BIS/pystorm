@@ -14,10 +14,10 @@ np.random.seed(1)
 IO_FREQ = 1000 # Hz
 T = 10 # s
 
-Y = 8
-X = 8
+Y = 16
+X = 16
 N = X * Y
-D = 2 # want lots of dims to crank the traffic
+D = 20 # want lots of dims to crank the traffic
 BIAS = 0
 
 SY = Y // 2
@@ -50,7 +50,7 @@ run = RunControl(hal, net)
 
 # make inputs at IO_FREQ
 
-IO_times = np.linspace(0, T, T*IO_FREQ) * 1e9
+IO_times = np.linspace(0, T, T*IO_FREQ) * 1e9 + 10e9
 rates = np.zeros((len(IO_times), D))
 
 import time

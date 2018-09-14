@@ -51,6 +51,8 @@ class Encoder : public Xcoder {
   MutexBuffer<EncOutput>* out_buf_;
   const bdpars::BDPars * bd_pars_;
   BDTime last_HB_sent_at_;
+  bool had_new_HB_ = false;
+  unsigned int words_processed = 0;
 
   std::unique_ptr<std::vector<EncOutput>> output_block_; // encoder builds up one set of blocks at a time
 

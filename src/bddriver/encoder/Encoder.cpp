@@ -51,6 +51,49 @@ void Encoder::RunOnce() {
   if (popped_vect->size() > 0) {
     Encode(std::move(popped_vect));
   }
+
+  unsigned int MB_size = out_buf_->TotalSize();
+  if (MB_size > 10 * driverpars::WRITE_BLOCK_SIZE) {
+
+    // trim from the end of our deque until we're only slightly greater than the current size
+    BDTime block_time = 0; // will record stalest time when done
+    while (true) {
+      if (block_sizes_times_outstanding_.size() > 0) {
+        assert(total_outstanding_ > 0);
+        assert(total_outstanding_ >= MB_size);
+
+        auto front_block = block_sizes_times_outstanding_.front();
+        unsigned int block_size = front_block.first;
+        block_time = front_block.second;
+        assert(block_size <= total_outstanding_);
+
+        if (total_outstanding_ - block_size < MB_size) {
+          break; // gone too far
+        } else {
+          total_outstanding_ -= block_size;
+          block_sizes_times_outstanding_.pop_front();
+          //cout << "times " << endl;
+          //cout << "  " << total_outstanding_ << endl;
+          //cout << "  " << block_size << endl;
+          //cout << "  " << MB_size << endl;
+        }
+      } else {
+        break;
+      }
+    }
+    BDTime wall_time = GetRelativeTime() / 10000;
+    //BDTime wall_time = last_HB_sent_at_;
+    BDTime stale_time = wall_time - block_time;
+    if (wall_time > block_time && block_time > 0 && stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS / 10000) {
+        cout << wall_time << endl;
+        cout << block_time << endl;
+        cout << MB_size << endl;
+        cout << "WARNING: bddriver::Encoder: Downstream USB is too slow. Running " << stale_time << " time_units behind" << endl;
+    }
+    if (MB_size > 1000) {
+      cout << "MB size " << MB_size << endl;
+    }
+  }
 }
 
 inline void Encoder::PushWord(uint32_t word) {
@@ -94,6 +137,7 @@ inline void Encoder::FlushWords() {
 
   assert(driverpars::WRITE_BLOCK_SIZE % 4 == 0);
   unsigned int this_block_size = output_block_->size();
+  words_processed += this_block_size;
   assert(this_block_size % driverpars::WRITE_BLOCK_SIZE == 0);
 
   // move output_block_
@@ -124,30 +168,17 @@ inline void Encoder::FlushWords() {
   we can then discard words_outstanding_[:N]
   */
 
-  block_sizes_times_outstanding_.push_back({this_block_size, last_HB_sent_at_});
+  BDTime block_time;
+  if (had_new_HB_) {
+    block_time = last_HB_sent_at_;
+    had_new_HB_ = false;
+    //cout << "new time " << block_time << endl;
+    //cout << "words_processed " << words_processed << endl;
+  } else {
+    block_time = 0;
+  }
+  block_sizes_times_outstanding_.push_back({this_block_size, block_time});
   total_outstanding_ += this_block_size;
-
-  unsigned int MB_size = out_buf_->TotalSize();
-
-  // trim from the end of our deque until we're only slightly greater than the current size
-  BDTime block_time; // will record stalest time when done
-  while (true) {
-    auto front_block = block_sizes_times_outstanding_.front();
-    block_time = front_block.first;
-    unsigned int block_size = front_block.second;
-
-    if (total_outstanding_ - block_size < MB_size) {
-      break; // gone too far
-    } else {
-      total_outstanding_ -= block_size;
-      block_sizes_times_outstanding_.pop_front();
-    }
-  }
-  BDTime wall_time = GetRelativeTime();
-  BDTime stale_time = wall_time - block_time;
-  if (stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS) {
-      cout << "WARNING: bddriver::Encoder: Downstream USB is too slow. Running " << stale_time << " ns behind" << endl;
-  }
   
 }
 
@@ -182,13 +213,15 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {
         // make sure we're not sending something stale
         // if we are, emit warning
-        BDTime wall_time = GetRelativeTime();
-        BDTime stale_time = wall_time - time;
-        if (stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS) {
-            cout << "WARNING: bddriver::Encoder: Encoder (downstream data processing) is too slow. Running " << stale_time << " ns behind" << endl;
-        }
+
+        //BDTime wall_time = GetRelativeTime();
+        //BDTime stale_time = wall_time - time;
+        //if (stale_time > driverpars::WRITE_LAG_WARNING_TIME_NS) {
+        //    cout << "WARNING: bddriver::Encoder: Encoder (downstream data processing) is too slow. Running " << stale_time / 1e6 << " ms behind" << endl;
+        //}
 
         last_HB_sent_at_ = time;
+        had_new_HB_ = true;
 
         // need to insert two words
         uint32_t time_chunk[3];
