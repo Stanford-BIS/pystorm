@@ -458,6 +458,9 @@ class HAL:
             # convert minimum pool units into tile units
             # a pool consists of 4 (2x2 tiles)
             # XXX this constant of 2 shouldn't be hardcoded
+            # XXX this should move to where core.Neurons.diffusor_cuts is set
+            #   not touching it for now. don't want to break it and in the middle of 
+            #   something else
             x_min = pool_allocation['px']*2
             y_min = pool_allocation['py']*2
             x_max = x_min + pool_allocation['pw']*2
@@ -489,8 +492,18 @@ class HAL:
                     self.driver.OpenDiffusorCutXY(CORE_ID, x_max, y_idx, DIFFUSOR_WEST_TOP)
                     self.driver.OpenDiffusorCutXY(CORE_ID, x_max, y_idx, DIFFUSOR_WEST_BOTTOM)
 
+        # implement user-controlled diffusor cuts
+        # XXX see above XXX comment
+        diffusor_cuts = core.neuron_array.diffusor_cuts
+        for direction, cuts in diffusor_cuts.items():
+            for y in range(cuts.shape[0]):
+                for x in range(cuts.shape[1]):
+                    if cuts[y, x]:
+                        self.HAL.set_diffusor(y, x, direction, 'broken')
+
         # enable somas inside pool
         # remember, x_min/x_max are tile units, 16 neurons per tile
+        # XXX this heavy lifting should be done in core.assign, too
         assert(core.NeuronArray_width == core.neuron_array.nrns_used.shape[1])
         assert(core.NeuronArray_height == core.neuron_array.nrns_used.shape[0])
         for x in range(core.NeuronArray_width):
@@ -577,17 +590,18 @@ class HAL:
     def get_DAC_value(self, dac_name):
         return self.driver.GetDACCurrentCount(CORE_ID , self.DAC_name_to_handle(dac_name)) 
 
-    def set_diffusor(y, x, direction, state):
+    def set_diffusor(self, y, x, direction, state):
         """open or close the diffusor near neuron y, x
+
+        the diffusor can only be cut at the 4x4 tile boundaries, so the call
+        rounds the requested x,y to this resolution
 
         Parameters:
         ==========
         y, x (ints) : location of neuron around which to set the diffusor
         direction (string, {'up', 'right', 'down', 'left'}) : which side to open/close
-        state (string, {'break', 'join'}) : what to do to the diffusor
+        state (string, {'broken', 'joined'}) : what to do to the diffusor
         """
-
-        raise NotImplementedError("haven't tested this yet")
 
         NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
         NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -609,14 +623,16 @@ class HAL:
         else:
             raise ValueError("direction must be in {'up', 'right', 'down', 'left'}")
 
-        if state == 'break':
+        if state == 'broken':
             for side in sides:
-                hal.driver.OpenDiffusorCutXY(CORE_ID, tx, ty, side)
-        elif state == 'join':
+                self.driver.OpenDiffusorCutXY(CORE_ID, tx, ty, side)
+                #print('open', tx, ty, side)
+        elif state == 'joined':
             for side in sides:
-                hal.driver.CloseDiffusorCutXY(CORE_ID, tx, ty, side)
+                self.driver.CloseDiffusorCutXY(CORE_ID, tx, ty, side)
+                #print('close', tx, ty, side)
         else:
-            raise ValueError("state must be in {'join', 'break'}")
+            raise ValueError("state must be in {'joined', 'broken'}")
         
     def get_unique_chip_activation(self):
         """measure chip activity under controlled conditions, creating a unique identifier

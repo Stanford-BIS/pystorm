@@ -467,6 +467,10 @@ class NeuronArray(object):
         # filled in assign
         self.gain_divisors = np.ones((self.y, self.x), dtype='int')
         self.biases = np.zeros((self.y, self.x), dtype='int')
+        self.diffusor_cuts = dict(left = np.zeros((self.y, self.x), dtype='bool'),
+                                  up = np.zeros((self.y, self.x), dtype='bool'),
+                                  right = np.zeros((self.y, self.x), dtype='bool'),
+                                  down = np.zeros((self.y, self.x), dtype='bool'))
         self.nrns_used = np.zeros((self.y, self.x), dtype='int')
 
         # whether the user is supplying xy locations for all pools 
@@ -520,6 +524,9 @@ class NeuronArray(object):
                 assert(self.nrns_used[abs_idx] == 0)
                 self.nrns_used[abs_idx] = 1
 
+        if pool.diffusor_cuts_yx is not None:
+            for y, x, direction in pool.diffusor_cuts_yx:
+                self.diffusor_cuts[direction][y + y_loc, x + x_loc] = True
 
 class FPGASpikeFilters(object):
 

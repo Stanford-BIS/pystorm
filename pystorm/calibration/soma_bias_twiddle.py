@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from pystorm.hal import HAL
 from pystorm.hal.net_builder import NetBuilder
+from pystorm.hal.calibrator import Calibrator
 from utils.file_io import load_txt_data, set_data_dir
 import pickle
 
@@ -54,8 +55,12 @@ def estimate_bias_twiddles(args):
 
     The bias recorded is the difference between the output firing rate for 
     the current twiddle value, and the output firing rate at twiddle=0. 
-    For neurons that didn't fire at all for a given bias level, biases are estimated
-    based on the global averages.
+    For neurons that didn't fire at all for a given bias level, NaNs are recorded
+
+    READ THIS: you probably want to access this calibration through 
+    Calibrator.get_all_bias_twiddles or Calibrator.get_pool_bias_twiddles(),
+    this will package the data in a convenient form, and give you the option to fill 
+    in the NaN entries with reasonable guesses.
 
     The common use case for this calibration is to determine how to set twiddles to maximize
     "neuron yield", the set of neurons where |g / b| > 1:
@@ -95,7 +100,7 @@ def estimate_bias_twiddles(args):
     ~~~~~~~~~~~~~~~~
 
     The bias value recorded by this calibration is in the same units as that returned
-    by NetBuilder.determine_encoders_and_offsets()'s offsets (b in the above equations). 
+    by Calibrator.get_encoders_and_offsets()'s offsets (b in the above equations). 
     Given the encoders and offsets taken at bias twiddle = 0, b, as well as the output
     of this calibration, b(tw), it is straightforward to optimize optimize the following:
 
@@ -139,8 +144,11 @@ def estimate_bias_twiddles(args):
 
                 # set up NetBuilder, we're going to make a basic pool
                 net_builder = NetBuilder(hal)
+
+                # we need some other basic calibration data
+                cal = Calibrator(hal)
+                bad_syn, _ = cal.get_bad_syns()
                 # use all-1 taps, except bad synapses
-                bad_syn, _ = net_builder.determine_bad_syns()
                 taps = np.zeros((Y, X))
                 taps[::2, ::2] = ~bad_syn[SY_loc:SY_loc + SY, 
                                           SX_loc:SX_loc + SX]
@@ -192,7 +200,10 @@ def estimate_bias_twiddles(args):
 
         # compute mean of valid entries, use it for any invalid entries
         mean_diff = np.mean(offset_diff[~np.isnan(offset_diff)])
-        offset_diff[np.isnan(offset_diff)] = mean_diff
+
+        # NOTE: this is now done in a smarter way by Calibrator.extrapolate_bias_twiddles()
+        # offset_diff[np.isnan(offset_diff)] = mean_diff
+
         all_fout_diffs[bias] = offset_diff
 
     # make plots
