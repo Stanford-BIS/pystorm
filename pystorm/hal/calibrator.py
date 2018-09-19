@@ -1030,7 +1030,7 @@ class Calibrator(object):
 
         # write user's overrides over default DAC settings
         dacs = DAC_DEFAULTS
-        for dac, value in user_dacs.items()
+        for dac, value in user_dacs.items():
             dacs[dac] = value
 
         # diffusor spread: empirical observations with standard taps
