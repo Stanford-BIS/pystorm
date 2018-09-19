@@ -6,7 +6,24 @@ from pystorm.hal.run_control import RunControl
 from copy import copy
 
 class PoolSpec(object):
+    """PoolSpec is the set of parameters to a Pool object.
 
+    It's an input to many Calibrator functions, and can be used to create a Pool
+    via Network.create_pool_from_spec() 
+    Parameters
+    ==========
+    label (string, default None): an optional descriptive name
+    YX ((Y, X) tuple, default None): the number of rows and columns in the pool
+    loc_yx ((y, x) tuple, default None): the row and column location of the pool
+    D (int, default None): the dimensionality of the pool
+    TPM (NxD array, default None): the tap-point matrix
+    gain_divisors (N-long array, default 1):
+        Pick from 1, 2, 3, 4
+    biases (N-long array, default 0)
+        Pick from {-3, 3}
+    diffusor_cuts_yx (list): 
+    fmax (number, default None): The maximum input and decoded firing rate
+    """
     def __init__(self,
             label=None, 
             YX=None, loc_yx=None, 
@@ -14,11 +31,6 @@ class PoolSpec(object):
             gain_divisors=1, biases=0, 
             diffusor_cuts_yx={},
             fmax=None):
-        """PoolSpec is the set of parameters to a Pool object.
-        It's an input to many Calibrator functions, and can be used to create a Pool
-        via Network.create_pool_from_spec() 
-        """
-
         self.label = label
         self.YX = YX
         self.Y, self.X = YX
@@ -37,9 +49,11 @@ class PoolSpec(object):
         elif TPM is not None and D is None:
             self.D = TPM.shape[1]
         elif TPM is not None and D is not None:
-            raise ValueError("Both TPM and D specified, but do not agree: "
-                    + str(D) + " vs " + str(TPM.shape[1]))
-            self.D = D
+            if D != TPM.shape[1]:
+                raise ValueError("Both TPM and D specified, but do not agree: "
+                        + str(D) + " vs " + str(TPM.shape[1]))
+            else:
+                self.D = D
 
     def check_specified(self, required_pars):
         """Check if the PoolSpec has parameters required specified"""
