@@ -999,7 +999,8 @@ class Calibrator(object):
     def optimize_yield(self, ps_orig, dacs={},
             fmax_safety_margin=.85, 
             bias_twiddle_policy='greedy_flat', 
-            offset_source='calibration_db'):
+            offset_source='calibration_db',
+            validate=True):
         """Runs experiments on the supplied patch of neurons to optimize NEF-style neuron yield
         (number of neurons with intercepts (-bias/gain) in [-1, 1])
 
@@ -1016,14 +1017,19 @@ class Calibrator(object):
             run_sweep : run a new experiment for this exact pool
                 configuration (could be more accurate)
             can also specify twiddle offsets directly as 7xN array
-        fmax_safety_margin : 
+        fmax_safety_margin (float in [0, 1]): 
             safety_margin (float, default .85) : fmax margin (fudge factor) 
             to allow for decode mixing in optimize_fmax()
-        bias_twiddle_policy : 
+        bias_twiddle_policy (string) : 
             policy used to pick between multiple achievable 'good' offset values.
             See optimize_bias_twiddles().
+        validate (bool) :
+            Whether or not to run a second validation experiment with the optimized twiddles.
+            If True, the returned encoders and offsets are the results of the validation,
+            if False, they are the expected encoders and offsets post-optimization
  
         Returns:
+        =======
             ps : PoolSpec filled in with parameters that improve yield
                 fills in these parameters not fixed by the user:
                     TPM, fmax, diffusor_cuts_yx
@@ -1034,7 +1040,6 @@ class Calibrator(object):
             dbg : {'before' : (encs, offsets at biases=3),
                    'expected' : (encs, offsets expected from optimization)}
                    'pool_tw_offsets' : pool twiddle offset values that were used
-        =======
         """
 
         ps = ps_orig.copy()
@@ -1084,18 +1089,12 @@ class Calibrator(object):
                 _, offsets = run_bias_exp(bias, ps)
                 raw_offsets[bias_idx, :] = offsets
 
-            pickle.dump(raw_offsets, open('test_raw_offsets.pck', 'wb'))
-
             pool_tw_offsets= raw_offsets.copy()
             orig_offsets_at_0 = raw_offsets[3, :]
             for bias_idx, bias in enumerate([-3, -2, -1, 0, 1, 2, 3]):
                  pool_tw_offsets[bias_idx, :] -= orig_offsets_at_0
 
-            pickle.dump(pool_tw_offsets, open('test_pool_tw_offsets_pre_extrapolation.pck', 'wb'))
-
             pool_tw_offsets = Calibrator.extrapolate_bias_twiddles(pool_tw_offsets)
-
-            pickle.dump(pool_tw_offsets, open('test_pool_tw_offsets.pck', 'wb'))
 
         # user directly specifies offsets
         elif isinstance(offset_source, np.ndarray) and offset_source.shape == (7, N):
@@ -1114,7 +1113,11 @@ class Calibrator(object):
         ps.biases = opt_biases
 
         # validate optimization by running again
-        encs_val, offsets_val = run_bias_exp(opt_biases, ps)
+        if validate:
+            encs_val, offsets_val = run_bias_exp(opt_biases, ps)
+        else:
+            encs_val = encs_at_b3
+            offsets_val = opt_offsets
 
         dbg = {
             'pool_tw_offsets' : pool_tw_offsets,
