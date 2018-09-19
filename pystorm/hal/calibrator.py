@@ -1107,7 +1107,7 @@ class Calibrator(object):
 
         DAC_values = self.set_DACs_for_yield(ps, dacs)
 
-        if 'DAC_SOMA_REF' != 1024:
+        if DAC_values['DAC_SOMA_REF'] != 1024:
             raise RuntimeWarning("encoder estimation may be poor if the neurons saturate. " + 
                 "Recommend DAC_SOMA_REF = 1024 to avoid saturation")
 
