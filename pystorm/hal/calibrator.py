@@ -43,7 +43,7 @@ class PoolSpec(object):
             YX=None, loc_yx=None, 
             D=None, TPM=None, 
             gain_divisors=1, biases=0, 
-            diffusor_cuts_yx={},
+            diffusor_cuts_yx=[],
             fmax=None):
         self.label = label
         self.YX = YX
