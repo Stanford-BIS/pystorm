@@ -2,7 +2,7 @@ import argparse
 import numpy as np
 from pystorm.hal import HAL
 from pystorm.hal.net_builder import NetBuilder
-from pystorm.hal.calibrator import Calibrator
+from pystorm.hal.calibrator import Calibrator, PoolSpec
 from utils.file_io import load_txt_data, set_data_dir
 import pickle
 
@@ -143,10 +143,8 @@ def estimate_bias_twiddles(args):
                 hal = HAL()
 
                 # set up NetBuilder, we're going to make a basic pool
-                net_builder = NetBuilder(hal)
-
-                # we need some other basic calibration data
                 cal = Calibrator(hal)
+
                 bad_syn, _ = cal.get_bad_syns()
                 # use all-1 taps, except bad synapses
                 taps = np.zeros((Y, X))
@@ -154,31 +152,19 @@ def estimate_bias_twiddles(args):
                                           SX_loc:SX_loc + SX]
                 tap_matrix = taps.reshape((N, 1))
                 NetBuilder.make_taps_even(tap_matrix)
-
-
-                net = net_builder.create_single_pool_net(Y, X, tap_matrix, biases=bias, loc_yx=(Y_loc, X_loc))
-                pool = net.get_pools()[0]
-                print(net.get_inputs())
-                inp = net.get_inputs()[0]
-
-                hal.map(net)
+                
+                # set up PoolSpec
+                ps = PoolSpec(YX=(Y, X), loc_yx=(Y_loc, X_loc), TPM=tap_matrix, biases=bias)
 
                 # broad diffusor
-                hal.set_DAC_value('DAC_DIFF_G', 64)
-                hal.set_DAC_value('DAC_DIFF_R', 1024)
-
                 # don't want saturation, min t_ref
-                hal.set_DAC_value('DAC_SOMA_REF', 1024)
-
-                # some crazy guys might saturate, but you won't overwhelm the USB
-                #hal.set_DAC_value('DAC_SOMA_REF', 10)
+                dacs = dict(DAC_DIFF_G=64, DAC_DIFF_R=1024, DAC_SOMA_REF=1024)
 
                 # stress the safety margin: we want as many neurons to fire as possible
-                safe_fmaxes = net_builder.determine_safe_fmaxes(safety_margin=.95)
-                FMAX = safe_fmaxes[pool]
+                ps.fmax = cal.optimize_fmax(ps, safety_margin=.95)
 
                 est_encs, est_offsets, insufficient_samples, debug = \
-                    net_builder.determine_encoders_and_offsets(pool, inp, FMAX, num_sample_angles=1)
+                    cal.get_encoders_and_offsets(ps, dacs=dacs, num_sample_angles=3)
                 bias_offsets[Y_loc:Y_loc + Y, 
                               X_loc:X_loc + X] = est_offsets.reshape((Y, X))
 
