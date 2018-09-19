@@ -1010,6 +1010,34 @@ class Calibrator(object):
 
         return tap_matrix, syn_yx_tap_matrix
 
+    def set_DACs_for_yield(self, ps, user_dacs={}):
+        """Given PoolSpec and user's overrides, return some reasonable DAC settings"""
+        ps.check_specified('D')
+
+        # write user's overrides over default DAC settings
+        dacs = DAC_DEFAULTS
+        for dac, value in user_dacs.items()
+            dacs[dac] = value
+
+        # diffusor spread: empirical observations with standard taps
+        if 'DAC_DIFF_G' not in user_dacs and 'DAC_DIFF_R' not in user_dacs:
+            if ps.D == 1:
+                dacs['DAC_DIFF_G'] = 1024
+                dacs['DAC_DIFF_R'] = 1024
+            if ps.D == 2:
+                dacs['DAC_DIFF_G'] = 1024
+                dacs['DAC_DIFF_R'] = 100
+            else: # this is a guess, haven't tried yet
+                dacs['DAC_DIFF_G'] = 1024
+                dacs['DAC_DIFF_R'] = 200
+
+        # soma refractory: want relu-like
+        if 'DAC_SOMA_REF' not in user_dacs:
+            dacs['DAC_SOMA_REF'] = 1024
+
+        # other defaults should be fine
+        return dacs
+
     def optimize_yield(self, ps_orig, dacs={},
             fmax_safety_margin=.85, 
             bias_twiddle_policy='greedy_flat', 
@@ -1018,7 +1046,7 @@ class Calibrator(object):
         """Runs experiments on the supplied patch of neurons to optimize NEF-style neuron yield
         (number of neurons with intercepts (-bias/gain) in [-1, 1])
 
-        uses the current DAC values
+        dac values not specified by the user are free parameters
 
         Parameters:
         ===========
@@ -1044,11 +1072,14 @@ class Calibrator(object):
  
         Returns:
         =======
-            ps : PoolSpec filled in with parameters that improve yield
+            ps : (PoolSpec object)
+                Filled-in version of ps_orig with parameters that improve yield
                 fills in these parameters not fixed by the user:
                     TPM, fmax, diffusor_cuts_yx
                 always fills in biases
                 No policy for gains, leaves at default=1
+            DAC_values : ({dac_id : value})
+                recommended DAC settings where note overridden by dacs
             est_encs, est_offsets : (NxD and len N arrays, Hz)
                 estimated encoders and offsets
             dbg : {'before' : (encs, offsets at biases=3),
@@ -1056,15 +1087,15 @@ class Calibrator(object):
                    'pool_tw_offsets' : pool twiddle offset values that were used
         """
 
+        ps_orig.check_specified(['YX', 'loc_yx', 'D'])
         ps = ps_orig.copy()
         N = ps.X * ps.Y
 
-        # capture these DAC values and use them throughout
-        DAC_values = {dac_name:self.hal.get_DAC_value(dac_name) 
-                            for dac_name in DAC_DEFAULTS}
-        # use the user's explicit overrides
-        for dac, value in dacs.items():
-            DAC_values[dac] = value
+        DAC_values = self.set_DACs_for_yield(ps, dacs)
+
+        if 'DAC_SOMA_REF' != 1024:
+            raise RuntimeWarning("encoder estimation may be poor if the neurons saturate. " + 
+                "Recommend DAC_SOMA_REF = 1024 to avoid saturation")
 
         # create tap points
         if ps.TPM is None:
@@ -1138,6 +1169,6 @@ class Calibrator(object):
             'before' : (encs_at_b3, offsets_at_b3),
             'expected' : (encs_at_b3, opt_offsets)}
 
-        return ps, encs_val, offsets_val, dbg
+        return ps, DAC_values, encs_val, offsets_val, dbg
 
 
