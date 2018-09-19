@@ -10,19 +10,33 @@ class PoolSpec(object):
 
     It's an input to many Calibrator functions, and can be used to create a Pool
     via Network.create_pool_from_spec() 
+    
     Parameters
     ==========
-    label (string, default None): an optional descriptive name
-    YX ((Y, X) tuple, default None): the number of rows and columns in the pool
-    loc_yx ((y, x) tuple, default None): the row and column location of the pool
-    D (int, default None): the dimensionality of the pool
-    TPM (NxD array, default None): the tap-point matrix
-    gain_divisors (N-long array, default 1):
-        Pick from 1, 2, 3, 4
-    biases (N-long array, default 0)
-        Pick from {-3, 3}
-    diffusor_cuts_yx (list): 
-    fmax (number, default None): The maximum input and decoded firing rate
+    label (string, default None) : 
+        an optional descriptive name
+    YX ((Y, X) tuple, default None) : 
+        the number of rows and columns in the pool
+    loc_yx ((y, x) tuple, default None) : 
+        the row and column location of the pool 
+    D (int, default None): 
+        the dimensionality of the pool
+    TPM (NxD int array, default None) : 
+        the tap-point matrix
+        encoder-like shape, but with entries in {-1, 0, 1}
+    gain_divisors (N-long int array, default 1) : 
+        Divisor on the current that a neuron receives
+        Pick from {1, 2, 3, 4}
+    biases (N-long int array, default 0) :
+        Adds a proportionate current to the neurons' input currents
+        Pick from {-3, -2, -1, 0, 1, 2, 3}
+    diffusor_cuts_yx (list of (y, x, (direction in {'left', 'right', 'down', 'up'})) : 
+        Where you want diffusor cuts to be drawn,
+        (e.g. "right of neuron y, x")
+        Note that the diffusor can only be cut at the 4x4 tile resolution, 
+        the user's desired cuts will be rounded to this resolution
+    fmax (number, default None) : 
+        The highest input frequency
     """
     def __init__(self,
             label=None, 
