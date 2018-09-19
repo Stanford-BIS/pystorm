@@ -65,7 +65,7 @@ class PoolSpec(object):
         elif TPM is not None and D is not None:
             if D != TPM.shape[1]:
                 raise ValueError("Both TPM and D specified, but do not agree: "
-                        + str(D) + " vs " + str(TPM.shape[1]))
+                                 + str(D) + " vs " + str(TPM.shape[1]))
             else:
                 self.D = D
 
@@ -78,6 +78,7 @@ class PoolSpec(object):
         return copy(self)
 
 class Calibrator(object):
+    """Finds the hardware settings that bring circuits into their useful range"""
 
     def __init__(self, hal): 
         self.hal = hal
@@ -110,7 +111,6 @@ class Calibrator(object):
         # look up high bias synapses
         high_bias = self.get_basic_calibration(
             'synapse', 'high_bias_magnitude', return_as_numpy=True)
-
         # look up pulse widths
         curr_DAC_SYN_PD = self.hal.get_DAC_value('DAC_SYN_PD')
         pulse_widths = self.get_basic_calibration(
@@ -1030,7 +1030,7 @@ class Calibrator(object):
 
         # write user's overrides over default DAC settings
         dacs = DAC_DEFAULTS
-        for dac, value in user_dacs.items()
+        for dac, value in user_dacs.items():
             dacs[dac] = value
 
         # diffusor spread: empirical observations with standard taps
@@ -1107,7 +1107,7 @@ class Calibrator(object):
 
         DAC_values = self.set_DACs_for_yield(ps, dacs)
 
-        if 'DAC_SOMA_REF' != 1024:
+        if DAC_values['DAC_SOMA_REF'] != 1024:
             raise RuntimeWarning("encoder estimation may be poor if the neurons saturate. " + 
                 "Recommend DAC_SOMA_REF = 1024 to avoid saturation")
 
@@ -1184,5 +1184,3 @@ class Calibrator(object):
             'expected' : (encs_at_b3, opt_offsets)}
 
         return ps, DAC_values, encs_val, offsets_val, dbg
-
-
