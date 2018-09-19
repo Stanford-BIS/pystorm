@@ -499,7 +499,7 @@ class HAL:
             for y in range(cuts.shape[0]):
                 for x in range(cuts.shape[1]):
                     if cuts[y, x]:
-                        self.HAL.set_diffusor(y, x, direction, 'broken')
+                        self.set_diffusor(y, x, direction, 'broken')
 
         # enable somas inside pool
         # remember, x_min/x_max are tile units, 16 neurons per tile
@@ -559,8 +559,8 @@ class HAL:
         logger.info("HAL: clearing queued-up outputs")
         self.driver.ClearOutputs()
 
-        # voodoo sleep, (wait for everything to go in)
-        sleep(2)
+        ## voodoo sleep, (wait for everything to go in)
+        sleep(.1)
     
     def get_driver_state(self):
         return self.driver.GetState(CORE_ID)

@@ -113,7 +113,7 @@ class Network(object):
         else:
             x, y = xy
 
-        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps, diffusor_cuts_yx=None)
+        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps, diffusor_cuts_yx=diffusor_cuts_yx)
         self.pools.append(p)
         return p
 

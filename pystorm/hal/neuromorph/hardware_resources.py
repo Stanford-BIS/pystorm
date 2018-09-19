@@ -176,7 +176,7 @@ class Neurons(Resource):
         self.y = y
         self.x = x
         self.gain_divisors = gain_divisors
-        self.diffusor_cuts_yx = None
+        self.diffusor_cuts_yx = diffusor_cuts_yx
         self.biases = biases
         self.N = y * x
 

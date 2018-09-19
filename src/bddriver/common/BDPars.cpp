@@ -154,7 +154,7 @@ BDPars::BDPars() {
   // Then LPF leak multiplies by 8X to get 20.
   dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10}; // roughly 6.25fA to 6.25pA
   dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024}; // roughly 1pA to 1nA
-  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 500}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 1024}; // roughly 1pA to 1nA
   dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 2}; // roughly 250fA to 250pA 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10}; // roughly 1pA to 1nA
 

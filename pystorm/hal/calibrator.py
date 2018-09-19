@@ -3,6 +3,7 @@ import pandas as pd
 from pystorm.hal import DAC_DEFAULTS, data_utils
 from pystorm.hal.net_builder import NetBuilder
 from pystorm.hal.run_control import RunControl
+from copy import copy
 
 class PoolSpec(object):
 
@@ -45,6 +46,8 @@ class PoolSpec(object):
         for par_name in required_pars:
             if getattr(self, par_name) is None:
                 raise ValueError("required parameter " + par_name + " is not defined in PoolSpec")
+    def copy(self):
+        return copy(self)
 
 class Calibrator(object):
 
@@ -157,7 +160,9 @@ class Calibrator(object):
                 return_as_numpy=True)
 
         if extrapolate:
+            all_offsets = all_offsets.reshape((7, 64**2))
             all_offsets = Calibrator.extrapolate_bias_twiddles(all_offsets)
+            all_offsets = all_offsets.reshape((7, 64, 64))
 
         return all_offsets
 
@@ -305,6 +310,10 @@ class Calibrator(object):
                     Divides the space of intercepts into bins, iterate through neurons, 
                     choosing the offset that puts the neuron in the bin with the 
                     fewest neurons in it currently. 
+                'avoid edges' : Tries to achieve a flat distribution, not including upper/lower 5% of the range.
+                    A mixture of 'center' and 'greedy_flat'.
+                    Meant to achieve mostly flat intercept distribution, 
+                    but without sacrificing yield.
 
         Returns:
         ========
@@ -393,6 +402,9 @@ class Calibrator(object):
                 good[n] = nrn_is_good
 
             bin_counts = np.histogram(-new_offsets / gains, bin_edges)
+
+        elif policy == 'avoid_edges':
+            raise NotImplementedError("avoid_edges isn't done yet")
             
         elif policy == 'greedy_flat':
             # divide space of intercepts into bins, iterate through neurons, 
@@ -503,7 +515,8 @@ class Calibrator(object):
         Inputs:
         =======
         ps : (PoolSpec object)
-            required pars: YX, loc_yx, TPM, gain_divisors, biases, diffusor_cuts_yx, fmax
+            required pars: YX, loc_yx, TPM, fmax
+            relevant pars: gain_divisors, biases, diffusor_cuts_yx, 
 
         Returns:
         =======
@@ -521,7 +534,7 @@ class Calibrator(object):
             enough points to perform the fit accurately
         """
 
-        required_pars = ['YX', 'loc_yx', 'TPM', 'gain_divisors', 'biases', 'diffusor_cuts_yx', 'fmax']
+        required_pars = ['YX', 'loc_yx', 'TPM', 'fmax']
         ps.check_specified(required_pars)
 
         SAMPLE_FUDGE = 2 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
@@ -537,9 +550,7 @@ class Calibrator(object):
         approx_enc = Calibrator.get_approx_encoders(ps.TPM, ps.Y, ps.X, lam)
 
         nb = NetBuilder(self.hal)
-        net = nb.create_single_pool_net(ps.Y, ps.X, loc_yx=(ps.loc_y, ps.loc_x), 
-            tap_matrix=ps.TPM, 
-            biases=ps.biases, gain_divs=ps.gain_divisors)
+        net = nb.create_single_pool_net_from_spec(ps)
         pool = net.get_pools()[0]
         inp = net.get_inputs()[0]
 
@@ -622,7 +633,8 @@ class Calibrator(object):
         est_encs (NxD array) : encoder estimates
         est_offsets (N array) : offset estimates
         ps : (PoolSpec object)
-            required pars: YX, loc_yx, TPM, gain_divisors, biases, diffusor_cuts_yx, fmax
+            required pars: YX, loc_yx, TPM, fmax
+            relevant pars: gain_divisors, biases, diffusor_cuts_yx, 
         sample_pts (SxD array) : points to sample in the input space
 
         Returns:
@@ -632,15 +644,14 @@ class Calibrator(object):
         meas_rates (SxN array) : firing rates of each neuron at each sample_pt
         est_rates (SxN array) : what the est_encoders/offsets predicted
         """ 
+        ps.check_specified(['YX', 'loc_yx', 'TPM', 'fmax'])
 
         HOLD_TIME = 1 # seconds
         LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds
 
         # set up run controller to help us do sweeps
         nb = NetBuilder(self.hal)
-        net = nb.create_single_pool_net(ps.Y, ps.X, loc_yx=(ps.loc_y, ps.loc_x), 
-            tap_matrix=ps.TPM, 
-            biases=ps.biases, gain_divs=ps.gain_divisors)
+        net = nb.create_single_pool_net_from_spec(ps)
         pool = net.get_pools()[0]
         inp = net.get_inputs()[0]
 
@@ -678,12 +689,19 @@ class Calibrator(object):
         return np.linalg.norm(encoders, axis=1)
 
     @staticmethod
-    def get_good_mask(encoders, offsets):
-        """get mask for 'good' neurons (intercept in [-1, 1] range)"""
+    def get_intercepts(encoders, offsets):
+        """get neurons' intercepts"""
         gains = Calibrator.get_gains(encoders)
         intercepts = -offsets / gains
         good_mask = (intercepts < 1) & (intercepts > -1)
+        return intercepts, good_mask
+
+    @staticmethod
+    def get_good_mask(encoders, offsets):
+        """get mask for 'good' neurons (intercept in [-1, 1] range)"""
+        _, good_mask = Calibrator.get_intercepts(encoders, offsets)
         return good_mask
+
 
     @staticmethod
     def plot_neuron_yield_cone(encoders, offsets, good, old_encs_offsets_and_vals=None, ax=None, xylim=None, title=None, figsize=(15, 15)):
@@ -978,7 +996,7 @@ class Calibrator(object):
 
         return tap_matrix, syn_yx_tap_matrix
 
-    def optimize_yield(self, ps_orig,
+    def optimize_yield(self, ps_orig, dacs={},
             fmax_safety_margin=.85, 
             bias_twiddle_policy='greedy_flat', 
             offset_source='calibration_db'):
@@ -991,12 +1009,13 @@ class Calibrator(object):
         ===========
         ps_orig : (PoolSpec object)
             required pars: YX, loc_yx, D
-        offset_source : (string {'calibration_db', 'new_sweep'}
+        offset_source : (string {'calibration_db', 'new_sweep'}, or 7xN array)
             where to get the effect of the bias twiddle bits from
             calibration_db : stored calibration db values
                 (measured for whole chip in standard setup)
-            new_sweep : run a new experiment for this exact pool
+            run_sweep : run a new experiment for this exact pool
                 configuration (could be more accurate)
+            can also specify twiddle offsets directly as 7xN array
         fmax_safety_margin : 
             safety_margin (float, default .85) : fmax margin (fudge factor) 
             to allow for decode mixing in optimize_fmax()
@@ -1014,18 +1033,23 @@ class Calibrator(object):
                 estimated encoders and offsets
             dbg : {'before' : (encs, offsets at biases=3),
                    'expected' : (encs, offsets expected from optimization)}
+                   'pool_tw_offsets' : pool twiddle offset values that were used
         =======
         """
 
         ps = ps_orig.copy()
+        N = ps.X * ps.Y
 
         # capture these DAC values and use them throughout
-        orig_DAC_values = {dac_name:self.hal.get_DAC_values(dac_name) 
+        DAC_values = {dac_name:self.hal.get_DAC_value(dac_name) 
                             for dac_name in DAC_DEFAULTS}
+        # use the user's explicit overrides
+        for dac, value in dacs.items():
+            DAC_values[dac] = value
 
         # create tap points
         if ps.TPM is None:
-            ps.TPM = self.create_optimized_yx_taps(ps)
+            ps.TPM, _ = self.create_optimized_yx_taps(ps)
 
         # find safe fmax
         if ps.fmax is None:
@@ -1033,8 +1057,7 @@ class Calibrator(object):
 
         # if D == 1, cut diffusor down the middle
         if ps.D == 1 and ps.diffusor_cuts_yx is not None:
-            ps.diffusor_cuts_yx = NetBuilder.get_cut_points_to_break_pool_in_half(
-                                                ps.loc_y, ps.loc_x, ps.Y, ps.X)
+            ps.diffusor_cuts_yx = NetBuilder.get_diff_cuts_to_break_pool_in_half(ps.Y, ps.X)
         
         # get encs and offsets for our network, at a given bias
         def run_bias_exp(bias, main_ps):
@@ -1044,31 +1067,46 @@ class Calibrator(object):
 
             # run experiment
             encs, offs, _, _ = self.get_encoders_and_offsets(
-                    ps, dacs=orig_DAC_values, num_sample_angles=3, solver='scipy_opt')
+                    ps, dacs=DAC_values, num_sample_angles=3, solver='scipy_opt')
             return encs, offs
 
         # get twiddle offsets (shouldn't depend on exact network configuration)
         # get offsets over bias from cal_db
         if offset_source == 'calibration_db':
-            all_tw_offsets= self.get_all_bias_twiddles(extrapolate=True)
-            pool_tw_offsets= Calibrator.crop_calibration_to_pool(all_tw_offs, ps)
+            all_tw_offsets = self.get_all_bias_twiddles(extrapolate=True)
+            pool_tw_offsets = Calibrator.crop_calibration_to_pool(all_tw_offsets, ps)
+            pool_tw_offsets = pool_tw_offsets.reshape((7, N))
         # or run a new experiment to get them
-        elif offset_source == 'run_experiment':
+        elif offset_source == 'run_sweep':
+            import pickle
+            raw_offsets = np.zeros((7, N))
             for bias_idx, bias in enumerate([-3, -2, -1, 0, 1, 2, 3]):
-                raw_offsets= np.zeros((7, N))
-                _, raw_offsets[bias_idx, :], run_bias_exp(bias, ps)
+                _, offsets = run_bias_exp(bias, ps)
+                raw_offsets[bias_idx, :] = offsets
 
-            pool_tw_offsets= raw_offs.copy()
+            pickle.dump(raw_offsets, open('test_raw_offsets.pck', 'wb'))
+
+            pool_tw_offsets= raw_offsets.copy()
             orig_offsets_at_0 = raw_offsets[3, :]
             for bias_idx, bias in enumerate([-3, -2, -1, 0, 1, 2, 3]):
                  pool_tw_offsets[bias_idx, :] -= orig_offsets_at_0
+
+            pickle.dump(pool_tw_offsets, open('test_pool_tw_offsets_pre_extrapolation.pck', 'wb'))
+
+            pool_tw_offsets = Calibrator.extrapolate_bias_twiddles(pool_tw_offsets)
+
+            pickle.dump(pool_tw_offsets, open('test_pool_tw_offsets.pck', 'wb'))
+
+        # user directly specifies offsets
+        elif isinstance(offset_source, np.ndarray) and offset_source.shape == (7, N):
+            pool_tw_offsets = offset_source
         else:
             raise ValueError("unknown offset_source '" + offset_source + "'")
 
         # now get the offset values FOR THIS PARTICULAR NETWORK, at biases=3
         encs_at_b3, offsets_at_b3 = run_bias_exp(3, ps)
 
-        opt_biases, opt_offsets, good_mask, intercept_hist = \
+        opt_biases, opt_offsets, _, _, _ = \
             Calibrator.optimize_bias_twiddles(
                 encs_at_b3, offsets_at_b3, pool_tw_offsets, policy=bias_twiddle_policy)
 
@@ -1076,9 +1114,10 @@ class Calibrator(object):
         ps.biases = opt_biases
 
         # validate optimization by running again
-        encs_val, offsets_val = run_bias_exp(opt_bias, ps)
+        encs_val, offsets_val = run_bias_exp(opt_biases, ps)
 
         dbg = {
+            'pool_tw_offsets' : pool_tw_offsets,
             'before' : (encs_at_b3, offsets_at_b3),
             'expected' : (encs_at_b3, opt_offsets)}
 

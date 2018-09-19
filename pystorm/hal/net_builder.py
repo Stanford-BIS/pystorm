@@ -29,10 +29,11 @@ class NetBuilder(object):
             decoders=decoders, 
             biases=ps.biases,
             gain_divs=ps.gain_divisors,
-            loc_yx=ps.loc_yx)
+            loc_yx=ps.loc_yx,
+            diffusor_cuts_yx=ps.diffusor_cuts_yx)
 
     def create_single_pool_net(self, Y, X, tap_matrix=None, decoders=None, 
-            biases=0, gain_divs=1, loc_yx=(0, 0)):
+            biases=0, gain_divs=1, loc_yx=(0, 0), diffusor_cuts_yx=None):
         """Creates a Network with a single Pool
         
         Inputs:
@@ -81,7 +82,10 @@ class NetBuilder(object):
 
         # decoders are initially zero
         # we remap them later (without touching the rest of the network) using HAL.remap_weights()
-        net.pool = net.create_pool("p1", tap_spec, biases=biases, gain_divisors=gain_divs, xy=(X, Y), user_xy_loc=(loc_yx[1], loc_yx[0]))
+        net.pool = net.create_pool("p1", tap_spec, 
+                biases=biases, gain_divisors=gain_divs, 
+                xy=(X, Y), user_xy_loc=(loc_yx[1], loc_yx[0]),
+                diffusor_cuts_yx=diffusor_cuts_yx)
 
         if Dout > 0:
             b1 = net.create_bucket("b1", Dout)
@@ -317,11 +321,11 @@ class NetBuilder(object):
         return tap_matrix
 
     @staticmethod
-    def get_cut_points_to_break_pool_in_half(height, width):
+    def get_diff_cuts_to_break_pool_in_half(height, width):
         x = width // 2
         cut_yxs = []
         for y in range(0, height, 4):
-            cut_yxs.append((y, x + 1, 'left', 'broken'))
+            cut_yxs.append((y, x + 1, 'left'))
         return cut_yxs
 
     def break_pool_in_half(self, pool):
@@ -342,9 +346,9 @@ class NetBuilder(object):
             raise ValueError("supplied pool was not in the current network")
             
         loc_y, loc_x = pool.mapped_yx
-        cut_yxs = NetBuilder.get_cut_points_to_break_pool_in_half(loc_y, loc_x, pool.height, pool.width)
-        for y, x in cut_yxs:
-            self.hal.set_diffusor(y + loc_y, x + loc_x, 'left', 'broken')
+        cut_yxs = NetBuilder.get_diff_cuts_to_break_pool_in_half(pool.height, pool.width)
+        for y, x, direction in cut_yxs:
+            self.hal.set_diffusor(y + loc_y, x + loc_x, direction, 'broken')
 
     def open_all_diff_cuts(self):
         """Opens all the diffusor cuts (no current passes)
