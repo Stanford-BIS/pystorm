@@ -21,6 +21,7 @@ namespace driverpars {
   constexpr unsigned int READ_SIZE = READ_FIFO_DEPTH / 2;
 
   constexpr unsigned int READ_LAG_WARNING_SIZE = 8 * READ_SIZE; // warning emitted when running 8 buffers behind or more
+  constexpr unsigned int READ_FULL_WARNING_SIZE = static_cast<unsigned int>(READ_SIZE * .8);
 
   constexpr unsigned int BD_STATE_TRAFFIC_DRAIN_US = 
     1 * ms;  // timing assumption: this long after shutting off traffic, bd will be inactive
