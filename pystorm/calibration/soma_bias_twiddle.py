@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from pystorm.hal import HAL
 from pystorm.hal.net_builder import NetBuilder
+from pystorm.hal.calibrator import Calibrator, PoolSpec
 from utils.file_io import load_txt_data, set_data_dir
 import pickle
 
@@ -54,8 +55,12 @@ def estimate_bias_twiddles(args):
 
     The bias recorded is the difference between the output firing rate for 
     the current twiddle value, and the output firing rate at twiddle=0. 
-    For neurons that didn't fire at all for a given bias level, biases are estimated
-    based on the global averages.
+    For neurons that didn't fire at all for a given bias level, NaNs are recorded
+
+    READ THIS: you probably want to access this calibration through 
+    Calibrator.get_all_bias_twiddles or Calibrator.get_pool_bias_twiddles(),
+    this will package the data in a convenient form, and give you the option to fill 
+    in the NaN entries with reasonable guesses.
 
     The common use case for this calibration is to determine how to set twiddles to maximize
     "neuron yield", the set of neurons where |g / b| > 1:
@@ -95,7 +100,7 @@ def estimate_bias_twiddles(args):
     ~~~~~~~~~~~~~~~~
 
     The bias value recorded by this calibration is in the same units as that returned
-    by NetBuilder.determine_encoders_and_offsets()'s offsets (b in the above equations). 
+    by Calibrator.get_encoders_and_offsets()'s offsets (b in the above equations). 
     Given the encoders and offsets taken at bias twiddle = 0, b, as well as the output
     of this calibration, b(tw), it is straightforward to optimize optimize the following:
 
@@ -138,39 +143,28 @@ def estimate_bias_twiddles(args):
                 hal = HAL()
 
                 # set up NetBuilder, we're going to make a basic pool
-                net_builder = NetBuilder(hal)
+                cal = Calibrator(hal)
+
+                bad_syn, _ = cal.get_bad_syns()
                 # use all-1 taps, except bad synapses
-                bad_syn, _ = net_builder.determine_bad_syns()
                 taps = np.zeros((Y, X))
                 taps[::2, ::2] = ~bad_syn[SY_loc:SY_loc + SY, 
                                           SX_loc:SX_loc + SX]
                 tap_matrix = taps.reshape((N, 1))
                 NetBuilder.make_taps_even(tap_matrix)
-
-
-                net = net_builder.create_single_pool_net(Y, X, tap_matrix, biases=bias, loc_yx=(Y_loc, X_loc))
-                pool = net.get_pools()[0]
-                print(net.get_inputs())
-                inp = net.get_inputs()[0]
-
-                hal.map(net)
+                
+                # set up PoolSpec
+                ps = PoolSpec(YX=(Y, X), loc_yx=(Y_loc, X_loc), TPM=tap_matrix, biases=bias)
 
                 # broad diffusor
-                hal.set_DAC_value('DAC_DIFF_G', 64)
-                hal.set_DAC_value('DAC_DIFF_R', 1024)
-
                 # don't want saturation, min t_ref
-                hal.set_DAC_value('DAC_SOMA_REF', 1024)
-
-                # some crazy guys might saturate, but you won't overwhelm the USB
-                #hal.set_DAC_value('DAC_SOMA_REF', 10)
+                dacs = dict(DAC_DIFF_G=64, DAC_DIFF_R=1024, DAC_SOMA_REF=1024)
 
                 # stress the safety margin: we want as many neurons to fire as possible
-                safe_fmaxes = net_builder.determine_safe_fmaxes(safety_margin=.95)
-                FMAX = safe_fmaxes[pool]
+                ps.fmax = cal.optimize_fmax(ps, safety_margin=.95)
 
                 est_encs, est_offsets, insufficient_samples, debug = \
-                    net_builder.determine_encoders_and_offsets(pool, inp, FMAX, num_sample_angles=1)
+                    cal.get_encoders_and_offsets(ps, dacs=dacs, num_sample_angles=3)
                 bias_offsets[Y_loc:Y_loc + Y, 
                               X_loc:X_loc + X] = est_offsets.reshape((Y, X))
 
@@ -192,7 +186,10 @@ def estimate_bias_twiddles(args):
 
         # compute mean of valid entries, use it for any invalid entries
         mean_diff = np.mean(offset_diff[~np.isnan(offset_diff)])
-        offset_diff[np.isnan(offset_diff)] = mean_diff
+
+        # NOTE: this is now done in a smarter way by Calibrator.extrapolate_bias_twiddles()
+        # offset_diff[np.isnan(offset_diff)] = mean_diff
+
         all_fout_diffs[bias] = offset_diff
 
     # make plots

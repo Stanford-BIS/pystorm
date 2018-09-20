@@ -26,7 +26,7 @@ class Pool(GraphObject):
     """
     def __init__(self, label, tap_spec, x, y, 
             gain_divisors=1, biases=0, user_xy_loc=(None, None),
-            allow_weird_taps=False):
+            allow_weird_taps=False, diffusor_cuts_yx=None):
         super(Pool, self).__init__(label)
         self.label = label
 
@@ -35,6 +35,7 @@ class Pool(GraphObject):
         self.user_xy_loc = user_xy_loc
         self.gain_divisors = gain_divisors
         self.biases = biases
+        self.diffusor_cuts_yx = diffusor_cuts_yx
 
         # create tap list from tap matrix, if necessary
         if isinstance(tap_spec, tuple):
@@ -147,13 +148,17 @@ class Pool(GraphObject):
             self._tap_matrix = Pool.tap_list_to_matrix(self.tap_list, self.n_neurons)
         return self._tap_matrix
 
-    @property
-    def syn_use_counts_matrix(self):
-        used_by_dims = np.sum(np.abs(self.tap_matrix), axis=1) # used by any dim
+    @staticmethod
+    def syn_use_counts_from_TPM(tap_matrix, height, width):
+        used_by_dims = np.sum(np.abs(tap_matrix), axis=1) # used by any dim
         # shaped H//2, 2 , W//2, 2, D
-        syn_blocks_used = used_by_dims.reshape((self.height//2, 2, self.width//2, 2)) 
+        syn_blocks_used = used_by_dims.reshape((height//2, 2, width//2, 2)) 
         syn_use_counts = np.sum(syn_blocks_used, axis=(1, 3))
         return syn_use_counts
+
+    @property
+    def syn_use_counts_matrix(self):
+        return Pool.syn_use_counts_from_TPM(self.tap_matrix, self.height, self.width)
 
     @property
     def encoders(self):
@@ -168,7 +173,7 @@ class Pool(GraphObject):
     def create_intrinsic_resources(self):
         # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
         self._append_resource("TATTapPoint", hwr.TATTapPoint(self.n_neurons, self.tap_list))
-        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, self.user_xy_loc))
+        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, self.user_xy_loc, diffusor_cuts_yx=self.diffusor_cuts_yx))
 
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
 
@@ -188,6 +193,10 @@ class Pool(GraphObject):
         return neurons.x_loc, neurons.y_loc
 
     @property
+    def mapped_yx(self):
+        return self.mapped_xy[::-1]
+
+    @property
     def width(self):
         return self.x
 
@@ -195,4 +204,6 @@ class Pool(GraphObject):
     def height(self):
         return self.y
 
-
+    @property
+    def is_mapped(self):
+        re

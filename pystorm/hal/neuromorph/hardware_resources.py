@@ -168,7 +168,7 @@ class Neurons(Resource):
 
     pool_yx_to_aer = None
 
-    def __init__(self, y, x, gain_divisors, biases, xy_loc=(None, None)):
+    def __init__(self, y, x, gain_divisors, biases, xy_loc=(None, None), diffusor_cuts_yx=None):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
@@ -176,6 +176,7 @@ class Neurons(Resource):
         self.y = y
         self.x = x
         self.gain_divisors = gain_divisors
+        self.diffusor_cuts_yx = diffusor_cuts_yx
         self.biases = biases
         self.N = y * x
 

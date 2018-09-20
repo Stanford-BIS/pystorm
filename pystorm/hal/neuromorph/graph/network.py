@@ -72,8 +72,18 @@ class Network(object):
         assert x*y == n_neurons
         return x, y
 
+    def create_pool_from_spec(self, ps, allow_weird_taps=False):
+        ps.check_specified(['label', 'TPM'])
+        self.create_pool(ps.label, ps.TPM, ps.gain_divisors, ps.biases, 
+            ps.YX[::-1], (ps.loc_X, ps.loc_Y), 
+            allow_weird_taps=allow_weird_taps,
+            diffusor_cuts_yx=ps.diffusor_cuts_yx)
+        
     def create_pool(self, label, taps, 
-            gain_divisors=1, biases=0, xy=None, user_xy_loc=(None,None), allow_weird_taps=False):
+            gain_divisors=1, biases=0, 
+            xy=None, user_xy_loc=(None,None), 
+            diffusor_cuts_yx=None, 
+            allow_weird_taps=False):
         """Adds a Pool object to the network.
         
         Parameters
@@ -103,7 +113,7 @@ class Network(object):
         else:
             x, y = xy
 
-        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps)
+        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps, diffusor_cuts_yx=diffusor_cuts_yx)
         self.pools.append(p)
         return p
 
