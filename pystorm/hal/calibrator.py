@@ -1094,8 +1094,10 @@ class Calibrator(object):
                 No policy for gains, leaves at default=1
             DAC_values : ({dac_id : value})
                 recommended DAC settings where note overridden by dacs
-            est_encs, est_offsets : (NxD and len N arrays, Hz)
-                estimated encoders and offsets
+            est_encs : (NxD and len N arrays, Hz)
+                estimated encoders
+            est_offsets : (NxD and len N arrays, Hz)
+                estimated offsets
             dbg : {'before' : (encs, offsets at biases=3),
                    'expected' : (encs, offsets expected from optimization)}
                    'pool_tw_offsets' : pool twiddle offset values that were used

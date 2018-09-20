@@ -560,7 +560,7 @@ class HAL:
         self.driver.ClearOutputs()
 
         ## voodoo sleep, (wait for everything to go in)
-        sleep(.1)
+        sleep(1.0)
     
     def get_driver_state(self):
         return self.driver.GetState(CORE_ID)

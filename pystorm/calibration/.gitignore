@@ -1,3 +1,2 @@
 scratch.*
-data/check_spikegen_rates/
-data/syn_pulse_extender/
+data/*
