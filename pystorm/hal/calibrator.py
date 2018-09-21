@@ -4,6 +4,7 @@ from pystorm.hal import DAC_DEFAULTS, data_utils
 from pystorm.hal.net_builder import NetBuilder
 from pystorm.hal.run_control import RunControl
 from copy import copy
+import time
 
 class PoolSpec(object):
     """PoolSpec is the set of parameters to a Pool object.
@@ -504,7 +505,7 @@ class Calibrator(object):
 
         return tw_vals, new_offsets, good, bin_counts, dbg
 
-    def get_encoders_and_offsets(self, ps, num_sample_angles=3, solver='scipy_opt', dacs={}):
+    def get_encoders_and_offsets(self, ps, num_sample_angles=3, sample_pts=None, solver='scipy_opt', dacs={}):
         """Estimate the gains and biases of each neuron in the network
 
         An exhaustive (O(2**D)) scanning of the input space is not necessary.
@@ -545,6 +546,20 @@ class Calibrator(object):
         ps : (PoolSpec object)
             required pars: YX, loc_yx, TPM, fmax
             relevant pars: gain_divisors, biases, diffusor_cuts_yx, 
+        num_sample_angles : (int, default 3)
+            how many times to tighten the angle when sampling tuning curves
+        sample_pts : (NxD array, default None)
+            manual override for tuning curve sampling points, forgoes the iterative algorithm
+            might be faster in some situtations (when N ~ 2**D)
+        solver : (string, {'scipy_opt', 'LS'}, default 'scipy_opt')
+            how to solve for tuning curves.  
+                scipy_opt : 
+                    nonlinear least squares via scipy.leastsq, 
+                    doesn't discard any points, fits the RELU
+                LS : 
+                    straight up least squares fit of the plane 
+                    beyond neuron bifurcation. fired/not fired discrimination
+                    must not have false positives for this to perform well
 
         Returns:
         =======
@@ -565,7 +580,7 @@ class Calibrator(object):
         required_pars = ['YX', 'loc_yx', 'TPM', 'fmax']
         ps.check_specified(required_pars)
 
-        SAMPLE_FUDGE = 2 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
+        SAMPLE_FUDGE = 1 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
         SAMPLE_ANGLES = [np.pi / 2**i for i in range(2, num_sample_angles+2)]
         HOLD_TIME = 1 # seconds
         BASELINE_TIME = 1 # seconds
@@ -586,59 +601,65 @@ class Calibrator(object):
 
         for dac, value in dacs.items():
             self.hal.set_DAC_value(dac, value)
+        # let the DACs settle down
+        time.sleep(.2)
 
         # set up run controller to help us do sweeps
         run = RunControl(self.hal, net)
 
-        done = False
-        unsolved_encs = approx_enc
-        all_sample_pts = None
-        all_spikes = None
+        if sample_pts is None:
+            done = False
+            unsolved_encs = approx_enc
+            all_sample_pts = None
+            all_spikes = None
 
-        for sample_angle in SAMPLE_ANGLES:
-            # generate sample points around unsolved_encs
-            num_samples_per = (pool.dimensions + 1) * SAMPLE_FUDGE
-            sample_pts, unique_encs = Calibrator.get_sample_points_around_encs(unsolved_encs, sample_angle, num_samples_per)
+            for sample_angle in SAMPLE_ANGLES:
+                # generate sample points around unsolved_encs
+                sample_pts, unique_encs = Calibrator.get_sample_points_around_encs(unsolved_encs, sample_angle, SAMPLE_FUDGE)
 
-            # the input sweep of those sample_pts
-            print("running sample sweep at sample_angle =", sample_angle, "rad")
-            print("  taking", sample_pts.shape[0], "sample points for", unique_encs.shape[0], "unique encs")
-            print("  will run for", HOLD_TIME * sample_pts.shape[0] / 60, "min.")
-            tnow = self.hal.get_time()
-            times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
-            times_w_end = np.arange(sample_pts.shape[0] + 1) * HOLD_TIME * 1e9 + tnow + .1e9
-            sample_freqs = sample_pts * ps.fmax
-            input_vals = {inp: (times, sample_freqs)}
-            start_time = times[0]
-            end_time = times[-1] + HOLD_TIME * 1e9
-            _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                            start_time=start_time, end_time=end_time, rel_time=False)
-            spikes, spike_bin_times = spikes_and_bin_times
+                # the input sweep of those sample_pts
+                print("running sample sweep at sample_angle =", sample_angle, "rad")
+                print("  taking", sample_pts.shape[0], "sample points for", unique_encs.shape[0], "unique encs")
+                print("  will run for", HOLD_TIME * sample_pts.shape[0] / 60, "min.")
+                tnow = self.hal.get_time()
+                times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
+                times_w_end = np.arange(sample_pts.shape[0] + 1) * HOLD_TIME * 1e9 + tnow + .1e9
+                sample_freqs = sample_pts * ps.fmax
+                input_vals = {inp: (times, sample_freqs)}
+                start_time = times[0]
+                end_time = times[-1] + HOLD_TIME * 1e9
+                _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+                                                start_time=start_time, end_time=end_time, rel_time=False)
+                spikes, spike_bin_times = spikes_and_bin_times
 
-            # each input sweep adds to the dataset that goes into the solver
-            # that means that we re-solve for all neurons each sample
-            # could make sense because more data is collected each time,
-            # but adds potentially unecessary processing time
-            if all_sample_pts is None:
-                all_sample_pts = sample_pts
-            else:
-                all_sample_pts = np.vstack((all_sample_pts, sample_pts))
+                # each input sweep adds to the dataset that goes into the solver
+                # that means that we re-solve for all neurons each sample
+                # could make sense because more data is collected each time,
+                # but adds potentially unecessary processing time
+                if all_sample_pts is None:
+                    all_sample_pts = sample_pts
+                else:
+                    all_sample_pts = np.vstack((all_sample_pts, sample_pts))
 
-            #print("doing spike processing")
-            discard_frac = LPF_DISCARD_TIME / HOLD_TIME
-            spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, times_w_end, init_discard_frac=discard_frac)
-            if all_spikes is None:
-                all_spikes = spike_rates
-            else:
-                all_spikes = np.vstack((all_spikes, spike_rates))
+                #print("doing spike processing")
+                discard_frac = LPF_DISCARD_TIME / HOLD_TIME
+                spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, times_w_end, init_discard_frac=discard_frac)
+                if all_spikes is None:
+                    all_spikes = spike_rates
+                else:
+                    all_spikes = np.vstack((all_spikes, spike_rates))
 
-            #print("estimating encoders")
-            est_encs, est_offsets, mean_residuals, insufficient_samples = \
-                Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver=solver)
+                #print("estimating encoders")
+                est_encs, est_offsets, mean_residuals, insufficient_samples = \
+                    Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver=solver)
 
-            # whittle away at set of neurons we still need more data for
-            unsolved_encs = approx_enc[insufficient_samples]
-            print(np.sum(insufficient_samples), "neurons still need more points")
+                # whittle away at set of neurons we still need more data for
+                unsolved_encs = approx_enc[insufficient_samples]
+                print(np.sum(insufficient_samples), "neurons still need more points")
+                
+        # user manually specified sample points
+        else:
+            pass
 
         # neurons without an estimated offset after trying tightest SAMPLE_ANGLE are assumed
         # to have offset < sqrt(D), we have given up on them
@@ -687,6 +708,8 @@ class Calibrator(object):
 
         for dac, value in dacs.items():
             self.hal.set_DAC_value(dac, value)
+        # let the DACs settle down
+        time.sleep(.2)
 
         run = RunControl(self.hal, net)
 
@@ -779,6 +802,39 @@ class Calibrator(object):
                     ax.plot([g0, g1], [o0, o1], c=cmap[vidx])
 
     @staticmethod
+    def plot_encs_yx(opt_encs, opt_ps):
+
+        import matplotlib.pyplot as plt
+
+        D = opt_encs.shape[1]
+        fig, ax = plt.subplots(1, D, figsize=(3*D, 3))
+        for d in range(D):
+            thr_encs = opt_encs[:, d].copy()
+            thr_encs[np.isnan(thr_encs)] = 0
+            im = ax[d].imshow(thr_encs.reshape(opt_ps.Y, opt_ps.X), vmin=-800, vmax=800)
+            #if d == D-1:
+            #    plt.colorbar(im, ax=ax[d])
+            
+            pos_taps = []
+            neg_taps = []
+            for x in range(opt_ps.X):
+                for y in range(opt_ps.Y):
+                    n = y * opt_ps.X + x
+                    xsyn = x
+                    if (y // 2) % 2 == 1:
+                        xsyn += 1
+                    if opt_ps.TPM[n, d] == 1:
+                        pos_taps.append([y, xsyn])
+                    if opt_ps.TPM[n, d] == -1:
+                        neg_taps.append([y, xsyn])
+            pos_taps = np.array(pos_taps)
+            neg_taps = np.array(neg_taps)
+            if len(pos_taps) > 0:
+                ax[d].scatter(pos_taps[:, 1], pos_taps[:, 0], marker='+', c='r')
+            if len(neg_taps) > 0:
+                ax[d].scatter(neg_taps[:, 1], neg_taps[:, 0], marker='+', c='cyan')
+
+    @staticmethod
     def get_approx_encoders(tap_list_or_matrix, pooly, poolx, lam):
         """from a tap_list or tap_matrix, infer approximate encoders
         See get_encoders_and_offsets for more detail.
@@ -807,7 +863,7 @@ class Calibrator(object):
 
         # approximate diffusor kernel
         def approx_decay_fn(d, lam):
-            return (1 - lam) * np.exp(-d / lam)
+            return (1 / lam) * np.exp(-d / lam)
 
         # fill in kernel
         kernel_x, kernel_y = (poolx * 2 - 1, pooly * 2 - 1)
@@ -863,46 +919,71 @@ class Calibrator(object):
             unique_encs = np.unique(thresh_enc, axis=0)
             num_unique, _ = unique_encs.shape
 
-            def get_point_angle_away(pt, angle):
+            def eliminate_projections(base_vect, neighbors):
+                """eliminate <neighbors> projections on base_vect"""
+                if len(neighbors) == 1:
+                    proj = np.dot(neighbors[0], np.dot(neighbors[0], base_vect))
+                    base_vect -= proj
+                    assert(np.abs(np.dot(neighbors[0], base_vect)) < 1e-10)
+                elif len(neighbors) > 1:
+                    to_elim = np.vstack(neighbors)
+                    U, S, VT = np.linalg.svd(to_elim)
+                    VpT = VT[:len(neighbors), :]
+                    proj = np.dot(VpT.T, np.dot(VpT, base_vect))
+                    base_vect -= proj
+                    assert(np.sum(np.abs(np.dot(to_elim, base_vect))) < 1e-10)
+
+            def get_points_angle_away(pt, angle):
                 # 1. generate random point
-                # 2. remove projection onto original point 
-                #    (get random point orthogonal to original)
+                # 2. remove projection onto original point, and other already selected points 
+                #    (get random point orthogonal to current set of points)
                 # 3. add back scaled amount of original point that gives desired angle
+                # 4. use that point, and its opposite
+
+                chosen_pts = []
+                chosen_neg_pts = []
+
                 dims = len(pt)
                 pt_norm = np.linalg.norm(pt)
-                if pt_norm > 0:
+                if pt_norm > .0001: # make sure point we're working with isn't (0, 0)
+
                     unit_pt = pt / pt_norm
+                    chosen_pts.append(unit_pt)
 
-                    # 1. 
-                    rand_pt = np.random.randn(dims)
-                    rand_pt /= np.linalg.norm(rand_pt)
+                    for pt_idx in range(dims - 1): # generate (dims - 1) points
 
-                    # 2. 
-                    proj = unit_pt * np.dot(unit_pt, rand_pt)
-                    rand_orthog_pt = rand_pt - proj
-                    rand_orthog_pt /= np.linalg.norm(rand_orthog_pt)
-                    assert(np.abs(np.dot(rand_orthog_pt, unit_pt)) <= .0001)
+                        # 1. 
+                        rand_pt = np.random.randn(dims)
+                        rand_pt /= np.linalg.norm(rand_pt)
 
-                    # 3. 
-                    perp_component = np.cos(angle) * rand_orthog_pt
-                    pll_component = np.sin(angle) * unit_pt
-                    angle_away_pt = perp_component + pll_component
-                    return angle_away_pt
+                        # 2. 
+                        eliminate_projections(rand_pt, chosen_pts)
+                        rand_orthog_pt = rand_pt / np.linalg.norm(rand_pt)
+
+                        # 3.
+                        perp_component = np.cos(angle) * rand_orthog_pt
+                        pll_component = np.sin(angle) * unit_pt
+                        chosen_pts.append(perp_component + pll_component)
+                        chosen_neg_pts.append(-perp_component + pll_component)
+
+                    return chosen_pts + chosen_neg_pts
                 else:
-                    return np.zeros_like(pt)
+                    return False
 
-            sample_points = np.zeros((num_unique * num_samples_per, dimensions))
+            sample_points = []
             for n in range(num_unique):
-                sample_points[num_samples_per * n, :] = unique_encs[n] # use thresholded enc as middle point
-                for pt_idx in range(num_samples_per - 1): # create D more points around this point
-                    unit_vect_angle_away = get_point_angle_away(unique_encs[n], angle_away)
-                    # scale unit vector up to unit cube
-                    longest_comp = np.max(np.abs(unit_vect_angle_away)) 
-                    if longest_comp > 0:
-                        scaled_angle_away = unit_vect_angle_away / longest_comp
-                    else:
-                        scaled_angle_away = np.zeros_like(unit_vect_angle_away)
-                    sample_points[num_samples_per * n + pt_idx] = scaled_angle_away
+                for extra_samples in range(num_samples_per):
+                    angle_away_pts = get_points_angle_away(unique_encs[n], angle_away)
+                    if angle_away_pts is not False:
+                        sample_points += angle_away_pts
+                        # scale unit vector up to unit cube
+                        #longest_comp = np.max(np.abs(unit_vect_angle_away)) 
+                        #if longest_comp > 0:
+                        #    scaled_angle_away = unit_vect_angle_away / longest_comp
+                        #else:
+                        #    scaled_angle_away = np.zeros_like(unit_vect_angle_away)
+                        #sample_points.append(scaled_angle_away)
+            sample_points = np.array(sample_points)
 
             return sample_points, unique_encs
 
@@ -1056,6 +1137,7 @@ class Calibrator(object):
             fmax_safety_margin=.85, 
             bias_twiddle_policy='greedy_flat', 
             offset_source='calibration_db',
+            get_encs_kwargs={},
             validate=True):
         """Runs experiments on the supplied patch of neurons to optimize NEF-style neuron yield
         (number of neurons with intercepts (-bias/gain) in [-1, 1])
@@ -1073,16 +1155,19 @@ class Calibrator(object):
             run_sweep : run a new experiment for this exact pool
                 configuration (could be more accurate)
             can also specify twiddle offsets directly as 7xN array
-        fmax_safety_margin (float in [0, 1]): 
+        fmax_safety_margin : (float in [0, 1])
             safety_margin (float, default .85) : fmax margin (fudge factor) 
             to allow for decode mixing in optimize_fmax()
         bias_twiddle_policy (string) : 
             policy used to pick between multiple achievable 'good' offset values.
             See optimize_bias_twiddles().
-        validate (bool) :
+        validate : (bool)
             Whether or not to run a second validation experiment with the optimized twiddles.
             If True, the returned encoders and offsets are the results of the validation,
             if False, they are the expected encoders and offsets post-optimization
+        get_encs_kwargs : (dict)
+            kwargs to pass to get_encoders_and_offsets()
+            
  
         Returns:
         =======
@@ -1132,9 +1217,9 @@ class Calibrator(object):
             ps.biases = bias
 
             # run experiment
-            encs, offs, _, _ = self.get_encoders_and_offsets(
-                    ps, dacs=DAC_values, num_sample_angles=3, solver='scipy_opt')
-            return encs, offs
+            encs, offs, _, dbg = self.get_encoders_and_offsets(
+                    ps, dacs=DAC_values, **get_encs_kwargs)
+            return encs, offs, dbg
 
         # get twiddle offsets (shouldn't depend on exact network configuration)
         # get offsets over bias from cal_db
@@ -1147,7 +1232,7 @@ class Calibrator(object):
             import pickle
             raw_offsets = np.zeros((7, N))
             for bias_idx, bias in enumerate([-3, -2, -1, 0, 1, 2, 3]):
-                _, offsets = run_bias_exp(bias, ps)
+                _, offsets, _ = run_bias_exp(bias, ps)
                 raw_offsets[bias_idx, :] = offsets
 
             pool_tw_offsets= raw_offsets.copy()
@@ -1164,7 +1249,7 @@ class Calibrator(object):
             raise ValueError("unknown offset_source '" + offset_source + "'")
 
         # now get the offset values FOR THIS PARTICULAR NETWORK, at biases=3
-        encs_at_b3, offsets_at_b3 = run_bias_exp(3, ps)
+        encs_at_b3, offsets_at_b3, bias_exp_dbg = run_bias_exp(3, ps)
 
         opt_biases, opt_offsets, _, _, _ = \
             Calibrator.optimize_bias_twiddles(
@@ -1175,7 +1260,7 @@ class Calibrator(object):
 
         # validate optimization by running again
         if validate:
-            encs_val, offsets_val = run_bias_exp(opt_biases, ps)
+            encs_val, offsets_val, bias_exp_dbg = run_bias_exp(opt_biases, ps)
         else:
             encs_val = encs_at_b3
             offsets_val = opt_offsets
@@ -1183,6 +1268,8 @@ class Calibrator(object):
         dbg = {
             'pool_tw_offsets' : pool_tw_offsets,
             'before' : (encs_at_b3, offsets_at_b3),
-            'expected' : (encs_at_b3, opt_offsets)}
+            'expected' : (encs_at_b3, opt_offsets),
+            'sample_pts' : bias_exp_dbg['all_sample_pts'],
+            'spikes' : bias_exp_dbg['all_spikes']}
 
         return ps, DAC_values, encs_val, offsets_val, dbg

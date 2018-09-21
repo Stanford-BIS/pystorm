@@ -752,7 +752,7 @@ class TATTapPoint(Resource):
                 self.signs.append(bin_sign(s))
                 logger.debug("HWR: x %d  y %d", syn_x, syn_y)
                 if t_idx % 2 == 1:
-                    stop = 1*(t_idx == self.Ks[-1] - 1)
+                    stop = 1*(t_idx == len(dim_taps) - 1)
                     self.stops.append(stop)
         self.contents = bddriver.Driver.PackTATSpikeWords(
             self.tap_xs, self.tap_ys, self.signs, self.stops)
