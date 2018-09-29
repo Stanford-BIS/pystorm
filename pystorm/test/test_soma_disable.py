@@ -48,20 +48,18 @@ def plot_spike_data(spike_rates):
     axs[0].set_title("linear scale")
     axs[1].set_title("log scale (0s clipped)")
     axs[2].set_title("zero/nonzero rates")
-    
+
     axs[3].plot(spike_rates.flatten(), 'o')
     axs[3].set_xlabel("neuron index")
     return fig, axs
 
-def run_test():
-    """Runs the test"""
+def build_pool_spec():
     TPM = np.zeros((Y, X))
     TPM[::2, ::2] = 1
     if np.sum(TPM)%2 == 1:
         y_idx, x_idx = np.nonzero(TPM)
         TPM[y_idx[-1], x_idx[-1]] = 0
     TPM = TPM.reshape((-1, 1))
-
     ps = PoolSpec(
         label="pool",
         YX=(10, 10), loc_yx=(0, 0),
@@ -69,6 +67,11 @@ def run_test():
         biases=3, gain_divisors=1,
         TPM=TPM,
     )
+    return ps
+
+def test_soma_disable():
+    """Runs the test"""
+    ps = build_pool_spec()
     hal = HAL()
     net_builder = NetBuilder(hal)
     calibrator = Calibrator(hal)
@@ -80,15 +83,14 @@ def run_test():
     spike_rates = run_spikes_test(net, run_control)
     fig, _ = plot_spike_data(spike_rates)
     fig.suptitle("before disabling somas")
-    
-    ########### Play with disabling somas ###########
+
+    ########### disable somas ###########
     threshold = np.sort(spike_rates)[int(DISABLE_THRESHOLD*X*Y)]
     y_idxs, x_idxs = np.nonzero(spike_rates.reshape((Y, X)) > threshold)
     for y_idx, x_idx in zip(y_idxs, x_idxs):
         hal.driver.DisableSomaXY(0, x_idx, y_idx)
-    hal.driver.Flush()
     hal.flush()
-    ########### Play with disabling somas ###########
+    ########### disable somas ###########
 
     spike_rates = run_spikes_test(net, run_control)
     fig, _ = plot_spike_data(spike_rates)
@@ -97,4 +99,4 @@ def run_test():
     plt.show()
 
 if __name__ == "__main__":
-    run_test()
+    test_soma_disable()
