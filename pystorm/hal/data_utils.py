@@ -20,7 +20,7 @@ def bin_to_spk_times(bins, bin_times):
     spk_times = np.sort(np.array(spk_times))
     return spk_times
 
-def bins_to_rates(counts, orig_bin_times, desired_bin_edges, init_discard_frac=0):
+def bins_to_rates(counts, orig_bin_times, desired_bin_edges, init_discard_frac=0, discard_idxs=None):
     """Re-bins the input counts, divides by the duration of each bin
     to obtain rates. 
 
@@ -66,6 +66,12 @@ def bins_to_rates(counts, orig_bin_times, desired_bin_edges, init_discard_frac=0
 
         summed_counts = np.sum(counts[start_bin_idx:end_bin_idx], axis=0)
         rates[t_idx] = summed_counts / (tbin / 1e9)
+
+    # discard some bins if requested
+    if discard_idxs is not None:
+        discard_mask = np.zeros((rates.shape[0],), dtype=bool)
+        discard_mask[discard_idxs] = True
+        rates = rates[~discard_mask]        
 
     return rates
 
