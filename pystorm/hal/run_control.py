@@ -86,7 +86,7 @@ class RunControl(object):
                 self.HAL.enable_spike_recording(flush=False)
             if get_outputs:
                 self.HAL.enable_output_recording(flush=False)
-            self.HAL.start_traffic(flush=True)
+            self.HAL.start_traffic(flush=False)
 
         def enqueue_input_vals(input_vals, offset_ns):
             """Queue up input sequence in hardware"""
