@@ -452,13 +452,6 @@ void Driver::Stop() {
 
 void Driver::Flush() {
 
-    // Call phantom DAC to push two other words into BD to
-    // circumvent the synchronizer bug
-    BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
-    for(unsigned int _core_id = 0; _core_id < kBDPars_.NumCores; _core_id ++){
-        SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
-        SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
-    }
 
   // pushes a special ep_code
 
@@ -481,23 +474,42 @@ void Driver::Flush() {
   // then SetMem(x) is guaranteed to occur before SetMem(y)
   // and the traffic of SendSpikes(a) is interleaved with SendSpikes(b) as necessary
 
-  // send the timed traffic first (it's more important, I guess)
+
+  // sequenced traffic first, many sequenced commands are treated as "ASAP"
   
-  // sort first
+  while (!sequenced_queue_.empty()) {
+    enc_buf_in_->Push(std::move(sequenced_queue_.front()));
+    sequenced_queue_.pop();
+  }
+
+  // now send the timed traffic 
+  
+  // sort times
   std::sort(timed_queue_.begin(), timed_queue_.end()); // (operator< is defined for EncInput)
   // now reset curr_sequence_num_ so it doesn't overflow
   curr_sequence_num_ = 0;
 
   auto from_queue = std::make_unique<std::vector<EncInput>>();
   from_queue->swap(timed_queue_);
+
   enc_buf_in_->Push(std::move(from_queue));
 
-  // then send the sequenced traffic
-  
+
+  // now send two extra words
+  // Call phantom DAC to push two other words into BD to
+  // circumvent the synchronizer bug
+
+  BDWord word = PackWord<DACWord>({{DACWord::DAC_VALUE, 1}, {DACWord::DAC_TO_ADC_CONN, 0}});
+  for(unsigned int _core_id = 0; _core_id < kBDPars_.NumCores; _core_id ++){
+      SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
+      SetBDRegister(_core_id, bdpars::BDHornEP::DAC_UNUSED, word, false);
+  }
   while (!sequenced_queue_.empty()) {
     enc_buf_in_->Push(std::move(sequenced_queue_.front()));
     sequenced_queue_.pop();
   }
+
+  // then the encoder flush codes (so it knows to pad up and finish the USB frame)
 
   EncInput flush;
   flush.FPGA_ep_code = EncInput::kFlushCode;
