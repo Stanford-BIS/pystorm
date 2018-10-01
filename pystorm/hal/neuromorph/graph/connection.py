@@ -10,7 +10,7 @@ class Connection(object):
         self.dest.in_conns.append(self)
 
     def __repr__(self):
-        return "Connection " + self.label
+        return "Connection " + self.label + " from " + self.src.label + " to " + self.dest.label
 
     def __gt__(self, other_obj):
         return self.label > other_obj.label

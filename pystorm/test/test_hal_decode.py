@@ -5,6 +5,10 @@ import time
 from pystorm.hal import HAL
 HAL = HAL()
 
+from pystorm.hal import DAC_DEFAULTS, data_utils
+from pystorm.hal.run_control import RunControl
+from pystorm.hal.net_builder import NetBuilder
+
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
@@ -15,8 +19,8 @@ np.random.seed(0)
 # pool size parameters
 
 K = 8
-width = 8
-height = 8
+width = 16
+height = 16
 width_height = (width, height)
 N = width * height
 
@@ -111,7 +115,7 @@ decoders = np.zeros((Dout, N))
 #decoders = np.ones((Dout, N)) * .2 # sanity check: is accumulator mapping correctly?
 
 i1 = net.create_input("i1", Din)
-p1 = net.create_pool("p1", tap_matrix)
+p1 = net.create_pool("p1", tap_matrix, biases=-3)
 b1 = net.create_bucket("b1", Dout)
 o1 = net.create_output("o1", Dout)
 
@@ -129,172 +133,31 @@ HAL.map(net)
 ###########################################
 # compute sweep bins
 
-def get_sweep_bins_starting_now(training_hold_time, total_training_points):
+FUDGE = 2
+curr_time = HAL.get_time()
+times = np.arange(0, total_training_points) * training_hold_time * 1e9 + curr_time + FUDGE * 1e9
+times_w_end = np.hstack((times, times[-1] + training_hold_time * 1e9))
+vals = np.array(stim_rates).T
+input_vals = {i1 : (times, vals)}
 
-    fudge = .5
-    fudge_ns = fudge * 1e9
+rc = RunControl(HAL, net)
 
-    duration = training_hold_time * total_training_points
-    duration_ns = duration * 1e9
+_, spikes_and_bin_times = rc.run_input_sweep(input_vals, get_raw_spikes=True, end_time=times_w_end[-1], rel_time=False)
+spikes, spike_bin_times = spikes_and_bin_times
+A = data_utils.bins_to_rates(spikes[p1], spike_bin_times, times_w_end, init_discard_frac=.2)
+A = A.T
 
-    start_time = HAL.get_time() + fudge_ns
-    end_time = start_time + duration_ns
-    bin_time_boundaries = np.round(np.linspace(start_time, end_time, total_training_points + 1)).astype(int)
+plt.figure()
+x = np.linspace(-1, 1, total_training_points)
+plt.plot(x, A.T)
+    
+plt.axis([-1, 1, 0, 1000])
+plt.savefig("hal_tuning_curves.pdf")
 
-    return duration, bin_time_boundaries
-
-duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, total_training_points)
-
-###########################################
-# call HAL.set_input_rate() to program SGs for each bin/dim
-
-# have to do this before set_input_rates, so we don't get stalled
-HAL.start_traffic(flush=False)
-HAL.enable_spike_recording(flush=False)
-HAL.enable_output_recording(flush=True)
-
-# clear spikes before trial
-spikes = HAL.get_spikes()
-print(len(spikes), "spikes before trial")
-
-
-def do_sweep(bin_time_boundaries):
-    last_bin_start = None
-    for bin_idx in range(len(stim_rates[0])):
-        bin_start = bin_time_boundaries[bin_idx]
-        if last_bin_start is None:
-            pass
-        else:
-            if bin_start < last_bin_start:
-                print("last_bin_start", last_bin_start, "vs bin_start", bin_start)
-                assert(False)
-        last_bin_start = bin_start
-
-        for d in range(Din):
-            r = stim_rates[d][bin_idx]
-
-            #print("at", bin_start, "d", d, "is", r)
-            HAL.set_input_rate(i1, d, r, time=bin_start, flush=True)
-
-do_sweep(bin_time_boundaries)
-
-###########################################
-# sleep during the training sweep
-
-# turn on spikes
-print("starting training:", duration, "seconds")
-
-time.sleep(duration + 1)
-
-print("training over")
-
-# should be unecessary
-HAL.stop_traffic(flush=False)
-HAL.disable_spike_recording(flush=False)
-HAL.disable_output_recording(flush=True)
-
-###########################################
-# collect results
-# NOTE: we could just set the upstream time resolution to whatever hold_time is
-# this would make the FPGA do the binning for us
-
-def filter_spikes(spikes):
-    # start by filtering into pool -> neuron -> (times, cts)
-    # cts is unecessary, but gives same format as filter_tags
-    times_and_cts = {}
-    for t, p, n in spikes:
-        if p not in times_and_cts:
-            times_and_cts[p] = {}
-        if n not in times_and_cts[p]:
-            times_and_cts[p][n] = []
-        times_and_cts[p][n].append((t, 1))
-    return times_and_cts
-
-def filter_tags(tags):
-    times_and_cts = {}
-    for t, output_id, dim, ct in tags:
-        if output_id not in times_and_cts:
-            times_and_cts[output_id] = {}
-        if dim not in times_and_cts[output_id]:
-            times_and_cts[output_id][dim] = []
-        times_and_cts[output_id][dim].append((t, ct))
-    return times_and_cts
-
-def filter_one_dim_raw_tags(tag_cts, times, tag_id_filt, obj):
-    tag_cts = np.array(tag_cts)
-
-    cts = tag_cts % (1 << 9)
-    tags = (tag_cts >> 9) % (1 << 11)
-
-    times_and_cts = {}
-    times_and_cts[obj] = {}
-    times_and_cts[obj][0] = []
-    for t, tag_id, ct in zip(times, tags, cts):
-        if tag_id == tag_id_filt:
-            if ct > 255:
-                signed_ct = ct - 512
-            else:
-                signed_ct = ct
-            #if abs(signed_ct) > 1:
-            #    print("big signed ct", signed_ct)
-            times_and_cts[obj][0].append((t, signed_ct))
-    return times_and_cts
-
-            
-def do_binning(times_and_cts, bin_time_boundaries):
-
-    n_bins = len(bin_time_boundaries) - 1
-
-    # initialize A matrices
-    As = {}
-    for obj in times_and_cts:
-        if isinstance(obj, graph.Pool):
-            max_idx = obj.n_neurons
-        elif isinstance(obj, graph.Output):
-            max_idx = obj.dimensions
-        As[obj] = np.zeros((max_idx, n_bins)).astype(int)
-
-    # bin spikes, filling in A
-    for obj in times_and_cts:
-        for n in times_and_cts[obj]:
-            #print("binning spikes in pool", p.label, ", neuron", n)            
-            this_neuron_times_and_cts = np.array(times_and_cts[obj][n])
-            this_neuron_times = this_neuron_times_and_cts[:,0]
-            this_neuron_cts = this_neuron_times_and_cts[:,1]
-            binned_cts = np.histogram(this_neuron_times, bin_time_boundaries, weights=this_neuron_cts)[0]
-            #print(binned_cts)
-            As[obj][n, :] = binned_cts
-    return As
-
-#print((HAL.driver.GetOutputQueueCounts())) # debug: see what we got
-
-# call HAL to get spikes
-# remember these are corrupted because of the output weirdness
-# the "noise" fortunately seems to be relatively unbiased, and we
-# can use the spikes directly to create a decoder
-spikes = HAL.get_spikes()
-
-# pull out A for our pool, plot it
-filtered_times = filter_spikes(spikes)
-As = do_binning(filtered_times, bin_time_boundaries)
-if p1 in As:
-    A = As[p1]
-    print('total count in bounds, in exp duration:', np.sum(As[p1]))
-
-    plt.figure()
-    plt.plot(A.T)
-    plt.savefig("hal_tuning_curves.pdf")
-
-print("got", len(spikes), "spikes")
+print("got", np.sum(A), "spikes")
 
 outputs = HAL.get_outputs()
 print("got outputs, doing binning")
-filtered_outputs = filter_tags(outputs)
-binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
-
-#print(len(outputs)) # nonzero if SF is working
-#print(binned_outputs[o1])
-print("got", np.sum(binned_outputs[o1]), "tags from filters. Should be 0 during training (if decoders are 0)")
 
 ###########################################
 # divide A and y into training and test sets
@@ -303,8 +166,8 @@ print("got", np.sum(binned_outputs[o1]), "tags from filters. Should be 0 during 
 # there's some kind of boundary effect
 # this helps the training except on the first and last points
 # making the training_hold_time longer also seems to help
-ignore_pre = 2
-ignore_post = 1
+ignore_pre = 0
+ignore_post = 0
 
 total_stim_points = len(stim_rates[0])
 valid_stim_points = total_stim_points - ignore_pre - ignore_post
@@ -315,7 +178,6 @@ train_idxs = np.linspace(ignore_pre, total_stim_points - ignore_post, num_train_
 train_idxs = [i in train_idxs for i in range(total_stim_points)]
 test_idxs  = [not ti for ti in train_idxs]
 
-print(A.shape)
 A_train = A[:, train_idxs]
 A_test  = A[:, test_idxs]
 
@@ -369,8 +231,6 @@ best_rmse = rmse(best_yhat, ytest)
 impl_yhat = np.dot(A_test.T, impl_d)
 impl_rmse = rmse(impl_yhat, ytest)
 
-assert(impl_rmse < fmax * TOL)
-
 plt.figure()
 plt.hist(impl_d, bins=40)
 plt.title("decoder distribution")
@@ -410,6 +270,7 @@ else:
     plt.ylabel("output rate")
     plt.savefig("hal_decode.pdf")
 
+assert(impl_rmse < fmax * TOL)
 
 #########################################
 # set decode weights, call HAL.remap_weights()
@@ -421,49 +282,19 @@ decoder_conn.reassign_weights(impl_d.T)
 print("remapping weights")
 HAL.remap_weights()
 
-duration, bin_time_boundaries = get_sweep_bins_starting_now(training_hold_time, total_training_points)
+FUDGE = 2
+curr_time = HAL.get_time()
+times = np.arange(0, total_training_points) * training_hold_time * 1e9 + curr_time + FUDGE * 1e9
+times_w_end = np.hstack((times, times[-1] + training_hold_time * 1e9))
+vals = np.array(stim_rates).T
+input_vals = {i1 : (times, vals)}
 
-# clear spikes before trial
-spikes = HAL.get_spikes()
-print(len(spikes), "spikes before trial")
+rc = RunControl(HAL, net)
 
-HAL.start_traffic(flush=False)
-HAL.enable_spike_recording(flush=False)
-HAL.enable_output_recording(flush=True)
-
-do_sweep(bin_time_boundaries)
-
-###########################################
-# sleep during the testing sweep
-
-# turn on spikes
-print("starting testing:", duration, "seconds")
-
-time.sleep(duration + 1) 
-
-print("testing over")
-
-###########################################
-# check accumulator decode
-
-spikes = HAL.get_spikes()
-outputs = HAL.get_outputs()
-print("output shape", outputs.shape)
-raw_tag_cts, raw_tag_ct_times = HAL.driver.RecvTags(0)
-
-print("got outputs, doing binning")
-filtered_outputs = filter_tags(outputs)
-binned_outputs = do_binning(filtered_outputs, bin_time_boundaries)
-acc_decode = binned_outputs[o1]
-
-print("got", np.sum(binned_outputs[o1]), "tags from filters. Should be nonzero for testing")
-
-
-###########################################
-# sanity check, compare get_outputs to raw tags from Driver
-#filtered_raw_tags = filter_one_dim_raw_tags(raw_tag_cts, raw_tag_ct_times, 0, o1)
-#binned_raw_tags = do_binning(filtered_raw_tags, bin_time_boundaries)
-#raw_decode = binned_raw_tags[o1]
+outputs_and_bin_times, _ = rc.run_input_sweep(input_vals, get_raw_spikes=False, end_time=times_w_end[-1], rel_time=False)
+tags, tag_bin_times = outputs_and_bin_times
+yhat = data_utils.bins_to_rates(tags[o1], tag_bin_times, times_w_end, init_discard_frac=.2)
+yhat = yhat.flatten()
 
 ###########################################
 # plot decode
@@ -474,11 +305,8 @@ if Din == 1 and Dout == 1:
     #yhat2 = raw_decode[0][2:-2].flatten()
     plot_x = stim_rates_1d
     ytgt = (np.array(y_rates).T).flatten()
-    yhat = acc_decode[0].flatten()
     #yhat2 = raw_decode[0].flatten()
     test_rmse = rmse(ytgt, yhat)
-    print("rmse for accumulator decode:", test_rmse)
-    assert(test_rmse <= 1.5 * impl_rmse) # we want the training RMSE to be similar to the test RMSE
     plt.figure()
     plt.plot(plot_x, ytgt, color='b')
     plt.plot(plot_x, yhat, color='r')
@@ -489,23 +317,10 @@ if Din == 1 and Dout == 1:
     plt.xlabel("input rate")
     plt.ylabel("output rate")
     plt.savefig("hal_acc_decode.pdf")
+    print("rmse for accumulator decode:", test_rmse)
+    assert(test_rmse <= 1.5 * impl_rmse) # we want the training RMSE to be similar to the test RMSE
 else:
     assert(False and "need to make plot for Din/Dout > 1")
 
-###########################################
-# sanity check, plot tuning curves during testing
-
-# pull out A for our pool, plot it
-filtered_times = filter_spikes(spikes)
-As = do_binning(filtered_times, bin_time_boundaries)
-if p1 in As:
-    A = As[p1]
-    print('total count in bounds, in exp duration:', np.sum(As[p1]))
-
-    plt.figure()
-    plt.plot(A.T)
-    plt.savefig("hal_testing_tuning_curves.pdf")
-
-print("got", len(spikes), "spikes")
 
 print("* Done")

@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <pybind11/numpy.h>
 #include <pybind11/stl_bind.h>
 #include <pybind11/functional.h>
 
@@ -222,15 +223,15 @@ void bind_unknown_unknown(std::function< py::module &(std::string const &namespa
 
     cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars &>(), py::arg(""));
 
-    cl.def_readonly("NumCores", &pystorm::bddriver::bdpars::BDPars::NumCores);
-    cl.def_readonly("DnEPFPGARegOffset", &pystorm::bddriver::bdpars::BDPars::DnEPFPGARegOffset);
-    cl.def_readonly("DnEPFPGANumReg", &pystorm::bddriver::bdpars::BDPars::DnEPFPGANumReg);
-    cl.def_readonly("DnEPFPGAChannelOffset", &pystorm::bddriver::bdpars::BDPars::DnEPFPGAChannelOffset);
-    cl.def_readonly("DnEPFPGANumChan", &pystorm::bddriver::bdpars::BDPars::DnEPFPGANumChan);
-    cl.def_readonly("DnEPFPGABitsPerReg", &pystorm::bddriver::bdpars::BDPars::DnEPFPGABitsPerReg);
-    cl.def_readonly("DnEPFPGABitsPerChannel", &pystorm::bddriver::bdpars::BDPars::DnEPFPGABitsPerChannel);
-    cl.def_readonly("DnWordsPerFrame", &pystorm::bddriver::bdpars::BDPars::DnWordsPerFrame);
-    cl.def_readonly("DnTimeUnitsPerHB", &pystorm::bddriver::bdpars::BDPars::DnTimeUnitsPerHB);
+    cl.def_readonly_static("NumCores", &pystorm::bddriver::bdpars::BDPars::NumCores);
+    cl.def_readonly_static("DnEPFPGARegOffset", &pystorm::bddriver::bdpars::BDPars::DnEPFPGARegOffset);
+    cl.def_readonly_static("DnEPFPGANumReg", &pystorm::bddriver::bdpars::BDPars::DnEPFPGANumReg);
+    cl.def_readonly_static("DnEPFPGAChannelOffset", &pystorm::bddriver::bdpars::BDPars::DnEPFPGAChannelOffset);
+    cl.def_readonly_static("DnEPFPGANumChan", &pystorm::bddriver::bdpars::BDPars::DnEPFPGANumChan);
+    cl.def_readonly_static("DnEPFPGABitsPerReg", &pystorm::bddriver::bdpars::BDPars::DnEPFPGABitsPerReg);
+    cl.def_readonly_static("DnEPFPGABitsPerChannel", &pystorm::bddriver::bdpars::BDPars::DnEPFPGABitsPerChannel);
+    cl.def_readonly_static("DnWordsPerFrame", &pystorm::bddriver::bdpars::BDPars::DnWordsPerFrame);
+    cl.def_readonly_static("DnTimeUnitsPerHB", &pystorm::bddriver::bdpars::BDPars::DnTimeUnitsPerHB);
     cl.def_readwrite("Dn_EP_size_", &pystorm::bddriver::bdpars::BDPars::Dn_EP_size_);
     cl.def_readwrite("Up_EP_size_", &pystorm::bddriver::bdpars::BDPars::Up_EP_size_);
     cl.def_readwrite("mem_info_", &pystorm::bddriver::bdpars::BDPars::mem_info_);
@@ -249,6 +250,7 @@ void bind_unknown_unknown(std::function< py::module &(std::string const &namespa
     cl.def("BDHornEPIsMem", (bool (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::bdpars::BDPars::BDHornEPIsMem, "C++: pystorm::bddriver::bdpars::BDPars::BDHornEPIsMem(pystorm::bddriver::bdpars::BDHornEP) const --> bool", py::arg("ep"));
     cl.def("BDHornEPIsReg", (bool (pystorm::bddriver::bdpars::BDPars::*)(pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::bdpars::BDPars::BDHornEPIsReg, "C++: pystorm::bddriver::bdpars::BDPars::BDHornEPIsReg(pystorm::bddriver::bdpars::BDHornEP) const --> bool", py::arg("ep"));
     cl.def("GetBDRegs", (class std::vector<pystorm::bddriver::bdpars::BDHornEP, class std::allocator<pystorm::bddriver::bdpars::BDHornEP> > (pystorm::bddriver::bdpars::BDPars::*)() const) &pystorm::bddriver::bdpars::BDPars::GetBDRegs, "C++: pystorm::bddriver::bdpars::BDPars::GetBDRegs() const --> class std::vector<pystorm::bddriver::bdpars::BDHornEP, class std::allocator<pystorm::bddriver::bdpars::BDHornEP> >");
+    cl.def("GetDACDefaultCount", &pystorm::bddriver::bdpars::BDPars::GetDACDefaultCount, "", py::arg("dac_signal_id"));
     cl.def("GetMemAERAddr", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(unsigned int) const) &pystorm::bddriver::bdpars::BDPars::GetMemAERAddr, "Given flat xy_addr (addr scan along x then y) config memory (16-neuron tile) address, get AER address", py::arg("xy_addr"));
     cl.def("GetMemAERAddr", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(unsigned int, unsigned int) const) &pystorm::bddriver::bdpars::BDPars::GetMemAERAddr, "Given x, y config memory (16-neuron tile) address, get AER address", py::arg("x"), py::arg("y"));
     cl.def("GetSynAERAddr", (unsigned int (pystorm::bddriver::bdpars::BDPars::*)(unsigned int) const) &pystorm::bddriver::bdpars::BDPars::GetSynAERAddr, "Given flat xy_addr (addr scan along x then y) synapse address, get AER address", py::arg("xy_addr"));
@@ -265,6 +267,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
   { // pystorm::bddriver::BDState file: line:24
     py::class_<pystorm::bddriver::BDState> cl(M("pystorm::bddriver"), "BDState", "Keeps track of currently set register values, toggle states, memory values, etc.\n\n Also encodes timing assumptions: e.g. as soon as the traffic toggles are turned\n off in software, it is not necessarily safe to start programming memories:\n there is some amount of time that we must wait for the traffic to drain completely.\n the length of this delay is kept in DriverPars, and is used by BDState to implement\n an interface that the driver can use to block until it is safe.");
     cl.def(py::init<const class pystorm::bddriver::bdpars::BDPars *>(), py::arg("bd_pars"));
+
+    cl.def("CompareTo", &pystorm::bddriver::BDState::CompareTo, "compare to another BDState obj", py::arg("state_to_compare"));
 
     cl.def(py::init<const class pystorm::bddriver::BDState &>(), py::arg(""));
 
@@ -304,6 +308,8 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def_readwrite("CloseDiffusorAllCuts", &pystorm::bddriver::Driver::CloseDiffusorAllCuts);
 
     // XY versions of calls, added manually
+    cl.def("OpenDiffusorCutXY", &pystorm::bddriver::Driver::OpenDiffusorCutXY);
+    cl.def("CloseDiffusorCutXY", &pystorm::bddriver::Driver::CloseDiffusorCutXY);
     cl.def("EnableSomaXY", &Driver::EnableSomaXY);
     cl.def("DisableSomaXY", &Driver::DisableSomaXY);
     cl.def("SetSomaGainXY", &Driver::SetSomaGainXY);
@@ -408,7 +414,7 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
 // >>>>>>> f7d42f3c8293ed86c00606d8956e473b4b7407c2
 
     // manually added
-    cl.def_readonly_static("BDPars", &pystorm::bddriver::Driver::BDPars_);
+    cl.def_readonly_static("BDPars", &pystorm::bddriver::Driver::kBDPars_);
 
     cl.def("GetDACScaling", &pystorm::bddriver::Driver::GetDACScaling, "", py::arg("dac_signal_id"));
     cl.def("GetDACUnitCurrent", &pystorm::bddriver::Driver::GetDACUnitCurrent, "", py::arg("dac_signal_id"));
@@ -467,6 +473,46 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikes", &Driver::RecvSpikes, "Receive a stream of spikes\n\nC++: pystorm::bddriver::Driver::RecvSpikes(unsigned int) --> struct std::pair<class std::vector<unsigned long, class std::allocator<unsigned long> >, class std::vector<unsigned long, class std::allocator<unsigned long> > >", py::arg("core_id"));
     cl.def("RecvXYSpikes", &Driver::RecvXYSpikes, "Receive a stream of spikes in XY address space (Y msb, X lsb)", py::arg("core_id"));
     cl.def("RecvXYSpikesSeconds", &Driver::RecvXYSpikesSeconds, "Receive a stream of spikes in XY address space (Y msb, X lsb), times as float seconds", py::arg("core_id"));
+
+    // fancy call, converts raw array data to numpy arrays (without copy, is extremely fast)
+    cl.def("RecvBinnedSpikes", 
+        [](Driver &d, unsigned int core_id, unsigned int bin_time_ns) {
+            uint32_t* binned_spikes;
+            uint64_t* bin_times;
+            unsigned int num_bins;
+            unsigned int num_neurons;
+            std::tie(binned_spikes, bin_times, num_bins, num_neurons) = 
+                d.RecvBinnedSpikes(core_id, bin_time_ns);
+
+            py::capsule free_binned_spikes_when_done(binned_spikes, [](void *f) {
+                uint32_t *binned_spikes = reinterpret_cast<uint32_t *>(f);
+                delete[] binned_spikes; 
+            });
+
+            auto binned_spikes_arr = py::array_t<uint32_t>(
+                std::vector<ptrdiff_t>{num_bins, num_neurons},
+                std::vector<ptrdiff_t>{num_neurons*4, 4},
+                binned_spikes,
+                free_binned_spikes_when_done
+            );
+
+            py::capsule free_bin_times_when_done(bin_times, [](void *f) {
+                uint64_t *bin_times = reinterpret_cast<uint64_t *>(f);
+                delete[] bin_times; 
+            });
+
+            auto bin_times_arr = py::array_t<uint64_t>(
+                std::vector<ptrdiff_t>{num_bins},
+                std::vector<ptrdiff_t>{8},
+                bin_times,
+                free_bin_times_when_done
+            );
+
+            std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {binned_spikes_arr, bin_times_arr};
+            return to_return;
+        }, 
+        py::return_value_policy::take_ownership, "Receive a series of binned spike counts in XY address space (Y msb, X lsb), binned along bin_time_ns", py::arg("core_id"), py::arg("bin_time_ns"));
+
     cl.def("SendSpikes", &Driver::SendSpikes, "Send a stream of spikes to neurons\n\nC++: pystorm::bddriver::Driver::SendSpikes(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("spikes"), py::arg("times"), py::arg("flush")=true);
     cl.def("SendTags", &Driver::SendTags, "Send a stream of tags\n\nC++: pystorm::bddriver::Driver::SendTags(unsigned int, const class std::vector<unsigned long, class std::allocator<unsigned long> > &, const class std::vector<unsigned long, class std::allocator<unsigned long> >, bool) --> void", py::arg("core_id"), py::arg("tags"), py::arg("times")=std::vector<BDTime>(), py::arg("flush")=true);
     cl.def("RecvXYSpikesMasked", &pystorm::bddriver::Driver::RecvXYSpikesMasked, "Similar to `RecvXYSpikes`, but provides masked data", py::arg("core_id"));
@@ -490,6 +536,46 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvSpikeFilterStates", &Driver::RecvSpikeFilterStates, "Get FPGA SpikeFilter outputs",
         py::arg("core_id"), py::arg("timeout_us"));
 
+
+    // fancy call that arranges SpikeFilterStates as a numpy array
+    cl.def("RecvSpikeFilterStatesArray",
+        [](Driver &d, unsigned int core_id, unsigned int num_tag_streams) {
+            uint32_t* tag_arr;
+            uint64_t* bin_times;
+            unsigned int num_bins;
+            unsigned int num_tag_streams_out;
+            std::tie(tag_arr, bin_times, num_bins, num_tag_streams_out) = 
+                d.RecvSpikeFilterStatesArray(core_id, num_tag_streams);
+
+            py::capsule free_tag_arr_when_done(tag_arr, [](void *f) {
+                uint32_t *tag_arr = reinterpret_cast<uint32_t *>(f);
+                delete[] tag_arr; 
+            });
+
+            auto tag_np_arr = py::array_t<uint32_t>(
+                std::vector<ptrdiff_t>{num_bins, num_tag_streams_out},
+                std::vector<ptrdiff_t>{num_tag_streams_out*4, 4},
+                tag_arr,
+                free_tag_arr_when_done);
+
+            py::capsule free_bin_times_when_done(bin_times, [](void *f) {
+                uint64_t *bin_times = reinterpret_cast<uint64_t *>(f);
+                delete[] bin_times; 
+            });
+
+            auto bin_times_np_arr = py::array_t<uint64_t>(
+                std::vector<ptrdiff_t>{num_bins},
+                std::vector<ptrdiff_t>{8},
+                bin_times,
+                free_bin_times_when_done
+            );
+
+            std::tuple<py::array_t<uint32_t>, py::array_t<uint64_t>> to_return = {tag_np_arr, bin_times_np_arr};
+            return to_return;
+        }, 
+        py::return_value_policy::take_ownership, "Receive spike filter states organized as np array. Unlike the similar RecvBinnedSpikes call, the binning resolution is not selectable, and must be controlled by setting the upstream HB interval", py::arg("core_id"), py::arg("num_tag_streams"));
+
+
     cl.def("SetSpikeFilterDebug",&Driver::SetSpikeFilterDebug, "enable or disable dumping of raw tags entering spike filter", 
         py::arg("core_id"), py::arg("en"));
 
@@ -497,6 +583,9 @@ void bind_unknown_unknown_2(std::function< py::module &(std::string const &names
     cl.def("RecvTags", &Driver::RecvTags, "Receive a stream of tags\n receive from both tag output leaves, the Acc and TAT", py::arg("core_id"), py::arg("timeout_us")=1000);
     cl.def("RecvUnpackedTags", &Driver::RecvUnpackedTags, "Receive unpacked tags from both tag output leaves, the Acc and TAT\nreturns {counts, tags, routes, times}", py::arg("core_id"), py::arg("timeout_us")=1000);
     cl.def("GetOutputQueueCounts", &Driver::GetOutputQueueCounts, "Returns the total number of elements in each output queue");
+
+    // added manually
+    cl.def("GetHWID", &Driver::GetHWID, "Returns the unique hardware identifier for the comm hardware");
 
     cl.def("GetRegState", (const struct std::pair<const unsigned long, bool> (pystorm::bddriver::Driver::*)(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const) &pystorm::bddriver::Driver::GetRegState, "Get register contents by name.\n\nC++: pystorm::bddriver::Driver::GetRegState(unsigned int, pystorm::bddriver::bdpars::BDHornEP) const --> const struct std::pair<const unsigned long, bool>", py::arg("core_id"), py::arg("reg_id"));
     cl.def("GetMemState", (const class std::vector<unsigned long, class std::allocator<unsigned long> > * (pystorm::bddriver::Driver::*)(pystorm::bddriver::bdpars::BDMemId, unsigned int) const) &pystorm::bddriver::Driver::GetMemState, "Get software state of memory contents: this DOES NOT dump the memory.\n\nC++: pystorm::bddriver::Driver::GetMemState(pystorm::bddriver::bdpars::BDMemId, unsigned int) const --> const class std::vector<unsigned long, class std::allocator<unsigned long> > *", py::return_value_policy::automatic, py::arg("mem_id"), py::arg("core_id"));

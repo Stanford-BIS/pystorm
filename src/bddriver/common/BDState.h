@@ -74,6 +74,8 @@ class BDState {
   // only private so we can get to it in the == operator function
   const bdpars::BDPars *bd_pars_;
 
+  bool CompareTo(const BDState & other_state_obj) const;
+
  private:
 
   // register contents

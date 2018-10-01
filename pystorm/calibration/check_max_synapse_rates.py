@@ -3,7 +3,7 @@
 For each synapse:
 Set up the Tag Action Table to send +1 and -1 spikes to an individual synapse for each input spike
 generated from one of the FPGA's spike generators.
-Send a high rate to the synapse, well above its possible max input consumption rate
+Send a high rate to the synapse, well above its maximum possible input consumption rate
 The input -> fifo -> tat -> synapse path will quickly back up
 and, due to the datapath operation,  the rate of overflows will match the synapse's consumption
 rate
@@ -24,7 +24,7 @@ from pystorm.PyDriver import bddriver as bd
 HAL = HAL()
 
 from utils.exp import clear_overflows, compute_spike_gen_rates
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 
 np.set_printoptions(precision=2)
 
@@ -58,9 +58,7 @@ MAX_RATE = 100000 # maximum rate to test
 
 SPIKE_GEN_RATES = compute_spike_gen_rates(MIN_RATE, MAX_RATE, SPIKE_GEN_TIME_UNIT_NS)
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""

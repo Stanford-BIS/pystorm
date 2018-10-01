@@ -254,23 +254,24 @@ enum class DiffusorCutLocationId { NORTH_LEFT, NORTH_RIGHT, WEST_TOP, WEST_BOTTO
 /// The enums refer to particular hardware elements or concepts, such as the name of a memory,
 /// register, or a particular type of programming word.
 /// BDPars is fully public, but Driver only has a const reference.
+
 class BDPars {
 
  public:
   // misc constants
-  const unsigned int NumCores               = 2;
-  const unsigned int TimingRoute            = 31;
-  const unsigned int DnEPFPGARegOffset      = 64;
-  const unsigned int DnEPFPGANumReg         = 33; // including NOP reg
-  const unsigned int DnEPFPGAChannelOffset  = 112;
-  const unsigned int DnEPFPGANumChan        = 2;
+  static constexpr unsigned int NumNeurons             = 4096;
+  static constexpr unsigned int NumSynapses            = 1024;
+  static constexpr unsigned int NumCores               = 2;
+  static constexpr unsigned int TimingRoute            = 31;
+  static constexpr unsigned int DnEPFPGARegOffset      = 128; //was 64
+  static constexpr unsigned int DnEPFPGANumReg         = 64; //was 33
+  static constexpr unsigned int DnEPFPGAChannelOffset  = 192; //was 112
+  static constexpr unsigned int DnEPFPGANumChan        = 2;
+  static constexpr unsigned int DnEPFPGABitsPerReg     = 16;
+  static constexpr unsigned int DnEPFPGABitsPerChannel = 16;
+  static constexpr unsigned int DnWordsPerFrame        = 256; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
+  static constexpr unsigned int DnTimeUnitsPerHB       = 1; // Send FPGA downstream heartbeat every <this many time units>
   
-  const unsigned int DnEPFPGABitsPerReg     = 16;
-  const unsigned int DnEPFPGABitsPerChannel = 16;
-
-  const unsigned int DnWordsPerFrame        = 256; // FPGAIO words per USB frame XXX same as OKComm's WRITE_SIZE*4, should get from here
-  const unsigned int DnTimeUnitsPerHB       = 1; // Send FPGA downstream heartbeat every <this many time units>
-
   // downstream endpoint info
   std::unordered_map<uint8_t , unsigned int> Dn_EP_size_;
 
@@ -282,6 +283,7 @@ class BDPars {
   
   // DAC info
   std::unordered_map<BDHornEP, DACInfo, EnumClassHash> dac_info_;
+  unsigned int GetDACDefaultCount(BDHornEP signal_id) { return dac_info_.at(signal_id).default_count; };
 
   // maps for AER address translation
   std::array<unsigned int, 4096> soma_xy_to_aer_;
@@ -418,6 +420,7 @@ class BDPars {
   template <int D>
   void InitAERToXY(std::array<unsigned int, (1<<D)> &aer_to_xy, std::array<unsigned int, (1<<D)> &xy_to_aer);
 };
+
 
 } // bdpars
 } // bddriver

@@ -7,7 +7,7 @@ class Input(GraphObject):
         self.dimensions = dimensions
 
     def __repr__(self):
-        return "Input " + self.label
+        return "Input " + self.label + ". dimensions = " + str(self.dimensions)
 
     def get_num_dimensions(self):
         return self.dimensions

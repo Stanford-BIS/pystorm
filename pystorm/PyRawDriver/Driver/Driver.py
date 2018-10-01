@@ -8,6 +8,10 @@ from .ConfigMemory import ConfigMemory
 from ..Utils import ByteUtils
 #import FUNNEL
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 __dac_list__ = {HORN.DAC_DIFF_G, HORN.DAC_SYN_INH, HORN.DAC_SYN_PU, HORN.DAC_UNUSED, HORN.DAC_DIFF_R,
                 HORN.DAC_SOMA_OFFSET, HORN.DAC_SYN_LK, HORN.DAC_SYN_DC, HORN.DAC_SYN_PD, HORN.DAC_ADC_2, HORN.DAC_ADC_1,
                 HORN.DAC_SOMA_REF, HORN.DAC_SYN_EXC}
@@ -57,13 +61,13 @@ class Driver(ConfigMemory):
             word_list = (word_list, )
         out_bytes = self.__make_byte_array__(word_list)
         if self.__dbg__:
-            print(ByteUtils.PrettyPrintBytearray(out_bytes, grouping=4, downstream=True))
+            logger.debug(ByteUtils.PrettyPrintBytearray(out_bytes, grouping=4, downstream=True))
         else:
             ret_code = self.dev.WriteToBlockPipeIn(self.EP_DN, self.BLOCK_SIZE, out_bytes)
             if ret_code < 0:
-                print("*ERROR*: OK Write Failure - '%s'" % ok.ErrorNames[ret_code])
+                logger.critical("OK Write Failure - '%s'" % ok.ErrorNames[ret_code])
             #else:
-            #    print("*INFO*: OK Write successful [%d bytes]" % ret_code)
+            #    logger.info("OK Write successful [%d bytes]" % ret_code)
 
     def SendBDWords(self, horn_id, payload_list):
         bd_data = [self.__create_bd_word__(HORN.CreateInputWord(horn_id, _buf)) for _buf in payload_list]
@@ -81,7 +85,7 @@ class Driver(ConfigMemory):
     def ReceiveWords(self):
         out_buf = bytearray(self.BLOCK_SIZE)
         if self.__dbg__:
-            print("*INFO*: Reading from BD disabled")
+            logger.info("Reading from BD disabled")
         else:
             self.dev.ReadFromPipeOut(self.EP_UP, out_buf)
         return out_buf

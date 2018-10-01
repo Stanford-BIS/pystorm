@@ -71,6 +71,11 @@ void CommBDModel::StopStreaming() {
   if (thread_.joinable()) thread_.join();
 }
 
+std::string CommBDModel::GetHWID() {
+  cout << "Setting CommBDModel Unique ID to BDModel_ID" << endl;
+  return "BDModel_ID";
+}
+
 }  // comm namespace
 }  // bddriver namespace
 }  // pystorm namespace

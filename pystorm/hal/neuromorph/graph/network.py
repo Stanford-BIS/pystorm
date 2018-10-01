@@ -1,5 +1,9 @@
-import numpy as np
 from numbers import Number
+import logging
+import numpy as np
+
+import pystorm.hal.neuromorph.core as core
+
 from . import bucket
 from . import pool
 from . import input
@@ -7,7 +11,8 @@ from . import output
 from . import connection
 
 import pystorm.hal.neuromorph.hardware_resources as hwr
-import pystorm.hal.neuromorph.core as core
+logger = logging.getLogger(__name__)
+
 n_core = core
 
 #new dependancies for multi-core mapping
@@ -41,7 +46,7 @@ class Network(object):
         return "Network " + self.label
 
     def get_label(self):
-        return label
+        return self.label
 
     def get_buckets(self):
         return self.buckets
@@ -65,7 +70,7 @@ class Network(object):
     @staticmethod
     def _flat_to_rectangle(n_neurons):
         """find the squarest rectangle to fit n_neurons
-        
+
         Returns the x and y dimensions of the rectangle
         """
         assert isinstance(n_neurons, (int, np.integer))
@@ -76,33 +81,48 @@ class Network(object):
         assert x*y == n_neurons
         return x, y
 
-    def create_pool(self, label, encoders, gain_divisors=1, biases=0, xy=None):
+    def create_pool_from_spec(self, ps, allow_weird_taps=False):
+        ps.check_specified(['label', 'TPM'])
+        self.create_pool(ps.label, ps.TPM, ps.gain_divisors, ps.biases,
+                         ps.YX[::-1], (ps.loc_X, ps.loc_Y),
+                         allow_weird_taps=allow_weird_taps,
+                         diffusor_cuts_yx=ps.diffusor_cuts_yx)
+
+    def create_pool(self, label, taps,
+                    gain_divisors=1, biases=0,
+                    xy=None, user_xy_loc=(None, None),
+                    diffusor_cuts_yx=None,
+                    allow_weird_taps=False):
         """Adds a Pool object to the network.
-        
+
         Parameters
         ----------
         label: string
             name of pool
-        encoders:
-            encoder matrix (pre-diffuser), size neurons-by-dimensions.
-            Elements must be in {-1, 0, 1}.
-            Implicitly describes pool dimensionality and number of neurons.
+        taps:
+            Two options:
+            1. encoder matrix (pre-diffuser), size neurons-by-dimensions.
+               Elements must be in {-1, 0, 1}.
+               Implicitly describes pool dimensionality and number of neurons.
+            2. sparse tap list (N, [[tap dim 0 list], ... , [tap dim D-1 list]]) the equivalent tap list
+               [tap dim d list] has elements (neuron idx, tap sign) where tap sign is in {-1, 1}
         xy: tuple: (int, int)
             user-specified x, y shape. x * y must match encoder shape
+        allow_weird_taps : bool (default False)
+            suppress check for whether tap points are used multiple times
         """
-        if isinstance(encoders, tuple):
-            n_neurons, tap_list = encoders
-            dimensions = len(tap_list)
-        else:
-            n_neurons, dimensions = encoders.shape
 
-        # if xy
+        # need to infer number of neurons to get a x, y shape
         if xy is None:
+            if isinstance(taps, tuple):
+                n_neurons, _ = taps
+            else:
+                n_neurons, _ = taps.shape
             x, y = self._flat_to_rectangle(n_neurons)
         else:
             x, y = xy
 
-        p = pool.Pool(label, encoders, x, y, gain_divisors, biases)
+        p = pool.Pool(label, taps, x, y, gain_divisors, biases, user_xy_loc, allow_weird_taps=allow_weird_taps, diffusor_cuts_yx=diffusor_cuts_yx)
         self.pools.append(p)
         return p
 
@@ -114,7 +134,8 @@ class Network(object):
     def create_connection(self, label, src, dest, weights):
         """Add a connection to the network"""
         if weights is not None and not isinstance(dest, bucket.Bucket):
-            print("connection weights are only used when the destination node is a Bucket")
+            logger.error(
+                "connection weights are only used when the destination node is a Bucket")
             raise NotImplementedError
         if isinstance(weights, Number):
             weights = np.array([[weights]])
@@ -317,13 +338,33 @@ class Network(object):
         filtered_spk_times = []
         for core_id, spk_id, spk_time in zip(core_ids, spk_ids, spk_times):
             if spk_id not in self.spk_to_pool_nrn_idx[core_id]:
-                print("WARNING: translate_spikes: got out-of-bounds spike from neuron id (probably sticky bits)", spk_id)
+                logger.warning(
+                    "translate_spikes: got out-of-bounds spike from neuron id %d" +
+                    " (probably sticky bits)", spk_id)
             else:
                 pool_id, nrn_idx = self.spk_to_pool_nrn_idx[core_id][spk_id]
                 pool_ids.append(pool_id)
                 nrn_idxs.append(nrn_idx)
                 filtered_spk_times.append(spk_time)
         return pool_ids, nrn_idxs, filtered_spk_times
+
+    def translate_binned_spikes(self, binned_spikes):
+        pool_bins = {}
+
+        for pool in self.pools:
+            pool_bins[pool] = np.zeros((binned_spikes.shape[0], pool.n_neurons), dtype=int)
+
+        # can take list-of-lists or normal array
+        binned_2d = binned_spikes.reshape((len(binned_spikes), 64, 64))
+
+        for pool in pool_bins:
+            xloc, yloc = pool.mapped_xy
+            width = pool.x
+            height = pool.y
+
+            pool_bins[pool] = binned_2d[:, yloc:yloc+height, xloc:xloc+width].reshape((binned_spikes.shape[0], pool.n_neurons))
+
+        return pool_bins
 
     def translate_tags(self, core_ids, filt_idxs, filt_states):
         # for now, working in count mode
@@ -335,16 +376,36 @@ class Network(object):
             else:
                 to_append = f
 
-            if abs(to_append) < 1000:
+            if abs(to_append) < 10000:
                 counts.append(to_append)
             else:
-                print("WARNING: discarding absurdly large tag filter value (probably sticky bits, or abuse of tag filter)")
+                logger.warning(
+                    "discarding absurdly large tag filter value " +
+                    "(probably sticky bits, or abuse of tag filter)")
                 counts.append(0)
 
         outputs = [self.spike_filter_idx_to_output[core_id][filt_idx][0] for core_id, filt_idx in zip(core_ids, filt_idxs)]
         dims = [self.spike_filter_idx_to_output[core_id][filt_idx][1] for core_id, filt_idx in zip(core_ids, filt_idxs)]
 
         return outputs, dims, counts
+
+    def translate_tag_array(self, tag_array):
+        signed_tag_array = tag_array.view('int32')
+        n_idx = tag_array > 2**26-1
+        if np.any(n_idx):
+            signed_tag_array[n_idx] -= 2**27
+        s_idx = signed_tag_array > 10000
+        if np.any(s_idx):
+            logger.warning(
+                "discarding absurdly large tag filter value " +
+                "(probably sticky bits, or abuse of tag filter)")
+            signed_tag_array[s_idx] = 0
+        sub_array_dict = {}
+        for filt_idx in range(tag_array.shape[1]):
+            output_id, dim = self.spike_filter_idx_to_output[filt_idx]
+            if dim == 0:
+                sub_array_dict[output_id] = signed_tag_array[:, filt_idx:filt_idx + output_id.dimensions]
+        return sub_array_dict
 
     def map(self, core_parameters, keep_pool_mapping=False, verbose=False, num_cores=1, spread=1,  map_reqs=None, req_strength = 1000):
         """Create Resources and map them to a Core
@@ -366,7 +427,9 @@ class Network(object):
             if self.cores is not None:
                 premapped_neuron_array = [self.cores[i].neuron_array for i in range(0, num_cores)]
             else:
-                print("  WARNING: keep_pool_mapping=True used before map_network() was called at least once. Ignoring.")
+                logger.warning(
+                    "  keep_pool_mapping=True used before map_network() " +
+                    "was called at least once. Ignoring.")
                 premapped_neuron_array = None
         else:
             premapped_neuron_array = None
@@ -704,6 +767,3 @@ class Network(object):
         if len(to_check_next) == 0:
             return graph_tuples
         return self.group_network(graph_tuples, to_check_next, index, index_dict)
-
-
-

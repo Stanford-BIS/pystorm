@@ -8,6 +8,7 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+//#include <string>
 
 #include "common/MutexBuffer.h"
 
@@ -79,6 +80,9 @@ class Comm {
 
   /// Returns the write buffer
   virtual MutexBuffer<COMMWord>* getWriteBuffer() = 0;
+
+  /// Returns a unique identifier of the attached communications hardware
+  virtual std::string GetHWID() = 0;
 };
 
 }  // comm namespace

@@ -14,6 +14,9 @@ SLOP_TIME = 0.2 # time for traffic to flush
 RUN_TIME_NS = int(RUN_TIME*1E9)
 SLOP_TIME_NS = int(SLOP_TIME*1E9)
 
+# import logging
+# logging.basicConfig(level=logging.DEBUG)
+
 def test_hal_io():
     """Perform the test"""
 
@@ -38,6 +41,7 @@ def test_hal_io():
     binned_tags = hal.get_outputs()
 
     nonzero_idx = np.nonzero(binned_tags[:, 3])[0]
+    assert len(nonzero_idx) > 0, ("Expected output tags, but no output tags received")
     binned_tags = binned_tags[nonzero_idx]
     measured_time = (binned_tags[-1, 0] - binned_tags[0, 0])/1e9
     total_tags = np.sum(binned_tags[:, 3])

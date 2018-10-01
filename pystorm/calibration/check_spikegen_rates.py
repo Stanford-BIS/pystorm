@@ -1,11 +1,10 @@
-"""Check the accuracy of the input rates
+"""Check the accuracy of the spike generator input rates
 
 Set up the following traffic flow:
 spike generator -> accumulator (weight 1) -> fpga -> pc
 
 Vary the input spike rates and measure the output spike rates
 """
-import os
 import time
 import argparse
 import numpy as np
@@ -16,7 +15,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph # to describe HAL/neuromorph network
 from pystorm.PyDriver import bddriver as bd # expose Driver functions directly for debug (cool!)
 
-from utils.file_io import load_txt_data
+from utils.file_io import load_txt_data, set_data_dir
 
 HAL = HAL()
 
@@ -34,9 +33,7 @@ TGT_RATE_MAX = 700000
 
 FLOAT_TOL = 0.000001 # for handling floating to integer comparisons
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 def parse_args():
     """Parse command line arguments"""
@@ -151,7 +148,7 @@ def plot_rates(rates, measured_rates):
 
     fig.savefig(DATA_DIR + "input_rates.pdf")
 
-def check_input_rates(parsed_args):
+def check_spikegen_rates(parsed_args):
     """Perform the test"""
     use_saved_data = parsed_args.use_saved_data
     if use_saved_data:
@@ -185,4 +182,4 @@ def check_input_rates(parsed_args):
     plt.show()
 
 if __name__ == "__main__":
-    check_input_rates(parse_args())
+    check_spikegen_rates(parse_args())

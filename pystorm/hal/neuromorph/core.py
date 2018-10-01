@@ -2,6 +2,9 @@ import numpy as np
 import rectpack # for NeuronAllocator
 from pystorm.PyDriver import bddriver as bd
 import sys
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Core(object):
     """Represents a braindrop/brainstorm core
@@ -119,7 +122,7 @@ class NeuronAllocator(object):
         pid: int
             id(pool)
         """
-        #print("added", pid, "at", px, ",", py)
+        logger.debug("added", pid, "at", px, ",", py)
         self.packer.add_rect(px, py, rid=pid)
 
     def allocate(self, calling_pid):
@@ -135,11 +138,10 @@ class NeuronAllocator(object):
         pid: id(pool)
         """
         if not self.pack_called:
-            #print("called allocate")
             self.packer.pack()
             for rect in self.packer.rect_list():
                 _, x, y, w, h, pid = rect
-                #print(x, y, w, h, pid)
+                logger.debug(x, y, w, h, pid)
                 self.alloc_results[pid] = (y, x, h, w)
             self.pack_called = True
 
@@ -227,7 +229,7 @@ class MMAllocator(MemAllocator):
     def allocate_pool_dec(self, D):
 
         if D > self.shape[1]:
-            print("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
+            logger.critical("FAILED ALLOCATION. TRYING TO ALLOCATE DECODER WITH TOO MANY DIMS")
             assert False
 
         # can fit in the current mem row, just increment xpos when done
@@ -368,7 +370,7 @@ class TAT(object):
         return self.alloc.allocate(size)
 
     def assign(self, data, start):
-        #print("assign called:", type(data), data)
+        logger.debug("assign called: {} {}".format(str(type(data)), data))
         self.mem.assign_1d_block(data, start)
 
     def __str__(self):
@@ -465,7 +467,15 @@ class NeuronArray(object):
         # filled in assign
         self.gain_divisors = np.ones((self.y, self.x), dtype='int')
         self.biases = np.zeros((self.y, self.x), dtype='int')
+        self.diffusor_cuts = dict(left = np.zeros((self.y, self.x), dtype='bool'),
+                                  up = np.zeros((self.y, self.x), dtype='bool'),
+                                  right = np.zeros((self.y, self.x), dtype='bool'),
+                                  down = np.zeros((self.y, self.x), dtype='bool'))
         self.nrns_used = np.zeros((self.y, self.x), dtype='int')
+
+        # whether the user is supplying xy locations for all pools 
+        # or whether the rectpacker is used
+        self.user_specified_alloc = False
 
     def add_pool(self, pool):
         self.alloc.add_pool(pool.py, pool.px, id(pool))
@@ -476,7 +486,16 @@ class NeuronArray(object):
         Returns the start coordinates of the pool in units of minimum pool size
         """
         # coordinates and dimensions in units of minimum pool size
-        py, px, pw, ph = self.alloc.allocate(id(pool))
+        if pool.x_loc is None and pool.y_loc is None:
+            assert(not self.user_specified_alloc and "either specify xy for all pools or none")
+            py, px, pw, ph = self.alloc.allocate(id(pool))
+        else:
+            self.user_specified_alloc = True
+            py = pool.y_loc // self.pool_size_y
+            px = pool.x_loc // self.pool_size_x
+            pw = pool.x // self.pool_size_x
+            ph = pool.y // self.pool_size_y
+
         #print("in NeuronArray allocate for", id(pool))
         #print(py, px, ph, pw)
         self.pool_allocations[pool] = dict(py=py, px=px, pw=pw, ph=ph)
@@ -484,10 +503,11 @@ class NeuronArray(object):
     
     def assign(self, pool):
         if pool not in self.pool_allocations:
-            print("ERROR: did not find supplied pool in core.neuron_array.pool_allocations.")
-            print("  You are probably using neuromorph.map_resources_to_core with a premapped_neuron_aray argument")
-            print("  If this is the case, the network you are mapping is probably different than")
-            print("  the one that was used to map the core that premapped_neuron_array came from")
+            logger.critical(
+                "did not find supplied pool in core.neuron_array.pool_allocations.\n"+
+                "  You are probably using neuromorph.map_resources_to_core with a premapped_neuron_aray argument\n"+
+                "  If this is the case, the network you are mapping is probably different than\n"+
+                "  the one that was used to map the core that premapped_neuron_array came from\n")
             assert(False)
 
         alloc = self.pool_allocations[pool]
@@ -504,6 +524,9 @@ class NeuronArray(object):
                 assert(self.nrns_used[abs_idx] == 0)
                 self.nrns_used[abs_idx] = 1
 
+        if pool.diffusor_cuts_yx is not None:
+            for y, x, direction in pool.diffusor_cuts_yx:
+                self.diffusor_cuts[direction][y + y_loc, x + x_loc] = True
 
 class FPGASpikeFilters(object):
 

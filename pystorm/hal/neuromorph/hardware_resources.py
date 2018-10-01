@@ -2,8 +2,10 @@
 from abc import ABC, abstractmethod, abstractproperty
 import numpy as np
 from pystorm.PyDriver import bddriver
+import logging
+logger = logging.getLogger(__name__)
 
-HOME_ROUTE = 224 # that's -32
+HOME_ROUTE = 224 # -32, for braindrizzle
 
 class ResourceConnection(object):
     """ResourceConnection connects two resources, allows slicing"""
@@ -178,7 +180,7 @@ class Neurons(Resource):
 
     pool_yx_to_aer = None
 
-    def __init__(self, y, x, gain_divisors, biases):
+    def __init__(self, y, x, gain_divisors, biases, xy_loc=(None, None), diffusor_cuts_yx=None):
         super().__init__(
             [TATTapPoint], [MMWeights, Sink],
             sliceable_in=False, sliceable_out=False,
@@ -186,6 +188,7 @@ class Neurons(Resource):
         self.y = y
         self.x = x
         self.gain_divisors = gain_divisors
+        self.diffusor_cuts_yx = diffusor_cuts_yx
         self.biases = biases
         self.N = y * x
 
@@ -196,10 +199,9 @@ class Neurons(Resource):
 
         # allocate
         # y and x locations in units of minimum pool x and y dimensions
+        self.x_loc, self.y_loc = xy_loc # user can specify (for all pools only)
         self.py_loc = None
         self.px_loc = None
-        self.y_loc = None
-        self.x_loc = None
 
         # posttranslate
         self.PAT_contents = None
@@ -240,7 +242,7 @@ class Neurons(Resource):
     def allocate(self, core):
         """neuron array allocation"""
         self.py_loc, self.px_loc = core.neuron_array.allocate(self)
-        #print("pool alloced to", self.py_loc, ",", self.px_loc)
+        logger.debug("pool alloced to {}, {}".format(self.py_loc, self.px_loc))
         self.y_loc = self.py_loc * core.NeuronArray_pool_size_y
         self.x_loc = self.px_loc * core.NeuronArray_pool_size_x
 
@@ -269,19 +271,21 @@ class Neurons(Resource):
                         (bddriver.PATWord.MM_ADDRESS_LO, MMAX),
                         (bddriver.PATWord.MM_ADDRESS_HI, MMAY_prog)])
         elif len(self.conns_out) > 1:
-            print("ERROR: pool had", len(self.conns_out), "output connections")
+            logger.critical("pool had", len(self.conns_out), "output connections")
             assert(False and "Neurons can have only one output connection")
 
     def assign(self, core):
         """PAT assignment"""
-        #print("pool at", self.px_loc, ",", self.py_loc)
+        logger.debug("pool at {}, {}".format(self.px_loc, self.py_loc))
         if len(self.conns_out) == 1:
             for py_idx in range(self.py):
                 for px_idx in range(self.px):
                     aer_pool_addr_bits = Neurons.pool_yx_to_aer[
                         py_idx + self.py_loc, px_idx + self.px_loc]
                     to_assign = self.PAT_contents[py_idx, px_idx]
-                    #print("assigning for sub addr", px_idx, ",", py_idx, "at", aer_pool_addr_bits)
+                    logger.debug(
+                        "assigning for sub addr {}, {} at {}".format(
+                            px_idx, py_idx, aer_pool_addr_bits))
                     core.PAT.assign(to_assign, aer_pool_addr_bits)
 
         core.neuron_array.assign(self)
@@ -330,13 +334,11 @@ class MMWeights(Resource):
 
         # this is the threshold value we should use (and scale the user weights by, in this case)
         _, thr_vals = AMBuckets.thr_idxs_vals(max_abs_row_weights, core)
-        #print("thr vals")
-        #print(thr_vals)
 
         W = (user_W.T * thr_vals).T
         W = np.round(W) # XXX other ways to do this, possibly better to round probabilistically
 
-        #print("thrs:", thr_vals, "W:", W)
+        logger.debug("thrs: {} W: {}".format(thr_vals, W))
         W = dec2onesc(W, core.max_weight_value)
 
         return W
@@ -348,7 +350,6 @@ class MMWeights(Resource):
             max_conns_in=1, max_conns_out=1)
 
         self.user_W = W
-        #print("XXX init'ing MMWeights, user_W=", self.user_W, " ", id(self.user_W))
 
         # do caching based on object id of W, object id of self
         MMWeights.forward_cache[id(self)] = id(W)
@@ -398,7 +399,7 @@ class MMWeights(Resource):
             self.is_dec = isinstance(self.conns_in[0].src, Neurons)
         else:
             self.is_dec = False
-            print("Warning: in pretranslate, odd situation: MMWeights with no input connection")
+            logger.warning("in pretranslate, odd situation: MMWeights with no input connection")
 
         # generate slice indexing
         if self.is_dec: # can chop up decoders into NeuronArray_pool_size-column chunks
@@ -447,8 +448,8 @@ class MMWeights(Resource):
                     y = yx // core.NeuronArray_width
                     x = yx  % core.NeuronArray_width
                     MMWeights.yx_to_aer[y, x] = aer_sub_addr
-                #print("aer-xy conversion table:")
-                #print(MMweights.yx_to_aer)
+                logger.debug("aer-xy conversion table:")
+                logger.debug(MMWeights.yx_to_aer)
 
             # init with zeros, there are potentially unused entries for the "edge" neurons
             self.W_slices = [np.zeros((self.dimensions_out, self.slice_width)).astype(int)
@@ -456,9 +457,6 @@ class MMWeights(Resource):
 
             # iterate over neurons in y,x address order (matrix indexing order)
             yx_nrn_idx = 0
-
-            #print("prog W")
-            #print(self.programmed_W)
 
             for y in range(self.conns_in[0].src.y):
                 for x in range(self.conns_in[0].src.x):
@@ -475,10 +473,10 @@ class MMWeights(Resource):
                     self.W_slices[slice_idx][:, aer_sub_idx] = self.programmed_W[:, yx_nrn_idx]
                     yx_nrn_idx += 1
 
-                    #print("yx_nrn_idx", yx_nrn_idx)
-                    #print("suby", suby)
-                    #print("subx", subx)
-                    #print("aer_sub_idx", aer_sub_idx)
+                    logger.debug("yx_nrn_idx %d", yx_nrn_idx)
+                    logger.debug("suby %d", suby)
+                    logger.debug("subx %d", subx)
+                    logger.debug("aer_sub_idx %d", aer_sub_idx)
 
 
         else:
@@ -524,7 +522,9 @@ class AMBuckets(Resource):
         # To have well-defined behavior, with threshold = 64, the weights
         # must be in [-64, 64]
         # this is equivalent to restricting the user weights to be in [-1, 1]
-        assert np.max(max_abs_row_weights) <= 1
+        assert np.max(max_abs_row_weights) <= 1, (
+            "max abs(weight) must be <= 1 but max abs(weight)={:f}".format(
+            np.max(max_abs_row_weights)))
 
         # compute all possible hardware threshold vals (64, 128, 256, ...)
         all_thr_vals = np.array(
@@ -676,17 +676,14 @@ class TATAccumulator(Resource):
         core.TAT0.assign(self.contents, self.start_addr)
 
 class TATTapPoint(Resource):
-    def __init__(self, encoders_or_taps):
+    def __init__(self, num_neurons, taps):
         super().__init__([AMBuckets, Source, TATFanout], [Neurons],
                          sliceable_in=True, sliceable_out=False, max_conns_out=1)
 
         # tap_and_signs is a list of lists of tuples. There is one list of tuples per dimension.
-        if isinstance(encoders_or_taps, tuple):
-            self.N, self.taps_and_signs = encoders_or_taps
-            self.D = len(self.taps_and_signs)
-        else:
-            self.N, self.D = encoders_or_taps.shape
-            self.taps_and_signs = self.encoders_to_taps(encoders_or_taps)
+        self.N = num_neurons
+        self.taps_and_signs = taps
+        self.D = len(self.taps_and_signs)
 
         self.Ks = [len(el) for el in self.taps_and_signs] # num taps for each dim
 
@@ -707,30 +704,6 @@ class TATTapPoint(Resource):
         # posttranslate
         self.mapped_taps = None
         self.contents = None
-
-    def encoders_to_taps(self, M):
-        """encoder entries should be in {-1, 0, 1}
-        converts this representation to the sparse representation used by TATTapPoint
-        """
-        nrns = M.shape[0]
-        dims = M.shape[1]
-
-        taps_and_signs = [[] for d in range(dims)]
-        for d in range(dims):
-            for n in range(nrns):
-                entry = M[n, d]
-                assert entry in [-1, 0, 1], (
-                    "weights to a pool must be in -1, 0, 1 (encoders implemented as tap points!)")
-                if entry != 0:
-                    t = n
-                    s = int(entry)
-                    taps_and_signs[d].append((t, s))
-
-        #print("matrix:")
-        #print(M)
-        #print("taps and signs:")
-        #print(taps_and_signs)
-        return taps_and_signs
 
     @property
     def dimensions_out(self):
@@ -789,9 +762,9 @@ class TATTapPoint(Resource):
                 self.tap_ys.append(syn_y)
                 self.tap_xs.append(syn_x)
                 self.signs.append(bin_sign(s))
-                #print("HWR: x", syn_x, "y", syn_y)
+                logger.debug("HWR: x %d  y %d", syn_x, syn_y)
                 if t_idx % 2 == 1:
-                    stop = 1*(t_idx == self.Ks[-1] - 1)
+                    stop = 1*(t_idx == len(dim_taps) - 1)
                     self.stops.append(stop)
         self.contents = bddriver.Driver.PackTATSpikeWords(
             self.tap_xs, self.tap_ys, self.signs, self.stops)
@@ -882,7 +855,7 @@ class TATFanout(Resource):
     def allocate(self, core):
         self.start_addr = core.TAT1.allocate(self.size)
         self.in_tags = self.start_addr + self.start_offsets + core.TAT_size
-        #print("IN TAGS", self.in_tags)
+        #logger.debug("IN TAGS", self.in_tags)
 
     def posttranslate(self, core):
 

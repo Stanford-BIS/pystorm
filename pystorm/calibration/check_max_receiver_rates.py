@@ -1,7 +1,7 @@
 """Test the receiver's max throughput by sending spikes to synapes
 
 Synapses can only take in spike at up to a certain rate
-Test the max rates first with calibration and then use the max rate info to drive
+Test the max synapse rates first with calibration and then use the max rate info to drive
 the receiver with as much traffic as possible
 """
 import os
@@ -14,7 +14,7 @@ from pystorm.hal import HAL
 from pystorm.hal.neuromorph import graph
 from pystorm.PyDriver import bddriver as bd
 
-from utils.file_io import load_pickle_data, save_pickle_data
+from utils.file_io import load_pickle_data, save_pickle_data, set_data_dir
 from utils.exp import clear_overflows, compute_spike_gen_rates
 HAL = HAL()
 
@@ -34,9 +34,7 @@ SLOT_TEST_N_RATES = 20
 SLOT_TEST_MIN_RATE = 8000
 MAX_TAT_ENTRIES = 2048
 
-DATA_DIR = "./data/" + os.path.basename(__file__)[:-3] + "/"
-if not os.path.isdir(DATA_DIR):
-    os.makedirs(DATA_DIR, exist_ok=True)
+DATA_DIR = set_data_dir(__file__)
 
 SYN_MAX_RATE_FILE = DATA_DIR + "max_rates.txt"
 SYN_MAX_RATE_FRAC = 1.00
@@ -570,7 +568,7 @@ def plot_test_slots(recv_data, test_slots_data):
                   "Estimated Max Input Rate {:.1f} Mspks/s".format(max_rate*1E-6))
     fig.savefig(DATA_DIR + "test_slots.pdf")
 
-def check_max_input_spike_rates(parsed_args):
+def check_max_receiver_rates(parsed_args):
     """Run the test"""
     use_saved_data = parsed_args.use_saved_data
     test_set = parsed_args.test_set
@@ -616,4 +614,4 @@ def check_max_input_spike_rates(parsed_args):
     plt.show()
 
 if __name__ == "__main__":
-    check_max_input_spike_rates(parse_args())
+    check_max_receiver_rates(parse_args())

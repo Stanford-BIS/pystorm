@@ -52,6 +52,9 @@ class CommSoft : public Comm, EmulatorClientIfc {
 
   MutexBuffer<COMMWord>* getWriteBuffer() { return m_write_buffer; }
 
+  /// Create getter function for HW ID, which in the case of the OK, is a serial number
+  std::string GetHWID();
+
   // EmulatorCallbackIfc interface
 
   ///

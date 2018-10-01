@@ -1,11 +1,17 @@
 """Provides the hardware abstraction layer"""
 from time import sleep
+import time
 import numpy as np
 import pystorm
 import os
 from pystorm.PyDriver import bddriver as bd
 from pystorm.hal.neuromorph.core import Core
 from pystorm.hal.neuromorph.core_pars import CORE_PARAMETERS
+
+from pystorm.hal.cal_db import CalibrationDB
+import logging
+
+logger = logging.getLogger(__name__)
 
 DIFFUSOR_NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
 DIFFUSOR_NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
@@ -24,6 +30,19 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 
 #CORE_ID = 1 # hardcoded for now
 NUM_CORES = 2 # hardcoded for now (indexed 0 -> NUM_CORES-1)
+
+_bdp = bd.bdpars.BDPars()
+DAC_DEFAULTS = dict(
+    DAC_SYN_EXC     = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_EXC),
+    DAC_SYN_DC      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_DC),
+    DAC_SYN_INH     = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_INH),
+    DAC_SYN_LK      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_LK),
+    DAC_SYN_PD      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_PD),
+    DAC_SYN_PU      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SYN_PU),
+    DAC_DIFF_G      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_DIFF_G),
+    DAC_DIFF_R      = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_DIFF_R),
+    DAC_SOMA_REF    = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SOMA_REF),
+    DAC_SOMA_OFFSET = _bdp.GetDACDefaultCount(bd.bdpars.BDHornEP.DAC_SOMA_OFFSET),)
 
 class Singleton:
     """Decorator class ensuring that at most one instance of a decorated class exists"""
@@ -58,6 +77,14 @@ class HAL:
         else:
             self.driver = bd.Driver()
 
+        # init calibration DB
+        cal_db_fname_prefix = "/".join(
+            pystorm.__file__.split('/')[:-2])+"/pystorm/calibration/data/pystorm_cal_db/cal_db"
+        self.cdb = CalibrationDB(cal_db_fname_prefix)
+        self.chip_activation = None
+        self.chip_name = None
+
+        # init FPGA from bitfile
         okfile = "/".join(
             pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/BZ_host_core.rbf"
         self.driver.SetOKBitFile(okfile)
@@ -73,7 +100,7 @@ class HAL:
         self.init_hardware()
 
     def init_hardware(self):
-        print("HAL: clearing hardware state")
+        logger.info("HAL: clearing hardware state")
 
         # stop spikes before resetting
         #self.stop_all_inputs()
@@ -87,12 +114,12 @@ class HAL:
         # excitatory/8 - DC/16 is the height of the excitatory synapse pulse
         # DC/16 - inhibitory/128 is the height of the inhibitory synapse pulse
         for core in range(0, NUM_CORES): 
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_EXC     , 512) # excitatory level, scaled 1/8
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_DC      , 544) # DC baseline level, scaled 1/16
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_INH     , 512) # inhibitory level, scaled 1/128
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_EXC     , DAC_DEFAULTS['DAC_SYN_EXC']) # excitatory level, scaled 1/8
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_DC      , DAC_DEFAULTS['DAC_SYN_DC']) # DC baseline level, scaled 1/16
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_INH     , DAC_DEFAULTS['DAC_SYN_INH']) # inhibitory level, scaled 1/128
 
             # 1/DAC_SYN_LK ~ synaptic time constant, 10 is around .1 ms
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_LK      , 10)
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_LK      , DAC_DEFAULTS['DAC_SYN_LK'])
 
             # synapse pulse extender rise time/fall time
             # 1/DAC_SYN_PD ~ synapse PE fall time 
@@ -101,21 +128,21 @@ class HAL:
             # making the rise longer doesn't have much of a practical purpose
             # when saturated, fall time/rise time is the peak on/off duty cycle (proportionate to synaptic strength)
             # be careful setting these too small, you don't want to saturate the synapse
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PD      , 80)
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SYN_PU      , 1024)
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , DAC_DEFAULTS['DAC_SYN_PD'])
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , DAC_DEFAULTS['DAC_SYN_PU'])
 
-            # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
-            # lower ratio is more spread out
+            # DAC_DIFF_R / DAC_DIFF_G ratio sets diffusor spread,
+            # larger (smaller) ratio ~ more (less) spread out
             # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_DIFF_G      , 1024)
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_DIFF_R      , 500)
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , DAC_DEFAULTS['DAC_DIFF_G'])
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , DAC_DEFAULTS['DAC_DIFF_R'])
 
             # 1/DAC_SOMA_REF ~ soma refractory period, 10 is around 1 ms
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SOMA_REF    , 10)
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_REF    , DAC_DEFAULTS['DAC_SOMA_REF'])
 
             # DAC_SOMA_OFFSET scales the bias twiddle bits
             # Ben says that increasing this beyond 10 could cause badness
-            self.driver.SetDACCount(core , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , 2)
+            self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SOMA_OFFSET , DAC_DEFAULTS['DAC_SOMA_OFFSET'])
 
         self.driver.SetTimeUnitLen(self.downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(self.upstream_ns) # 1 ms upstream resolution/tag binning
@@ -125,14 +152,16 @@ class HAL:
 
         Parameters
         ==========
-        downstream_ns: Controls the fineness of when the FPGA can inject inputs to BD.
-                       Also controls the time resolution of the FPGA tag stream generators
-                       (set_input_rates() periods will be a multiple of this).
-        upstream_ns: Controls the period of upstream heartbeats from the FPGA.
-                     Every upstream_ns, the FPGA reports the current time.
-                     The Driver uses the most recent HB to timestamp upstream traffic.
-                     Also controls the period with which the FPGA emits filtered outputs.
-                     get_outputs() will have a new entry every upstream_ns.
+        downstream_ns: int (optional)
+            Controls the fineness of when the FPGA can inject inputs to BD.
+            Also controls the time resolution of the FPGA tag stream generators
+            (set_input_rates() periods will be a multiple of this).
+        upstream_ns: int (optional)
+            Controls the period of upstream heartbeats from the FPGA.
+            Every upstream_ns, the FPGA reports the current time.
+            The Driver uses the most recent HB to timestamp upstream traffic.
+            Also controls the period with which the FPGA emits filtered outputs.
+            get_outputs() will have a new entry every upstream_ns.
         """
         self.driver.SetTimeUnitLen(downstream_ns) # 10 us downstream resolution
         self.driver.SetTimePerUpHB(upstream_ns) # 1 ms upstream resolution/tag binning
@@ -143,6 +172,7 @@ class HAL:
         self.stop_hardware()
 
     def get_time(self):
+        """Returns the time in nanoseconds"""
         return self.driver.GetFPGATime()
 
     def reset_time(self):
@@ -151,9 +181,7 @@ class HAL:
     def start_hardware(self):
         """Starts the driver"""
         comm_state = self.driver.Start()
-        if comm_state < 0:
-            print("Comm failed to init fully, exiting")
-            exit(0)
+        assert comm_state >= 0, "Comm failed to init"
 
     def stop_hardware(self):
         """Stops the driver"""
@@ -257,11 +285,56 @@ class HAL:
 
         return np.array([times, outputs, dims, counts]).T
 
+    def get_binned_spikes(self, bin_time_ns):
+        """Returns all the pending spikes gathered since this was last called.
+        Returns one numpy array per pool. Highest performance if binning is ultimately desired.
+
+        Inputs:
+        ======
+        bin_time_ns: binning interval. All spikes currently-queued in the driver will be placed in a bin. 
+                     Be cautious calling this multiple times in sucession, bins will not be aligned.
+                     Using upstream time resolution equal to binning interval is recommended, and avoids
+                     this issue (although bins may still overlap, they will align)
+
+        Output:
+        =======
+        Data format: tuple(dict of numpy arrays, array of bin times): 
+            ({pool0id:[[bin0 data], ..., [binN data]], ..., poolNid:[[bin0 data], ..., [binN data]]}, 
+             [bin0 time, ..., binN time])
+        Timestamps are in nanoseconds
+        """
+        import time
+
+        binned_spikes, bin_times = self.driver.RecvBinnedSpikes(CORE_ID, bin_time_ns)
+
+        trans_spikes = self.last_mapped_network.translate_binned_spikes(binned_spikes)
+
+        return trans_spikes, bin_times
+
+    def get_array_outputs(self):
+        """Returns all binned output tags gathered since this was last called, 
+        Each Output is associated with an array of values, indexed by time bin index and dimension
+
+        Whether or not you get return values is enabled/disabled by
+        enable/disable_output_recording()
+
+        Binning interval is controlled by set_time_resolution()'s upstream_ns parameter.
+
+        Outputs:
+        =======
+        Data format: tuple({output_id : (np.array of values indexed [time_bin_idx, dimension])}, 
+            (np.array of time bin values for all output_ids))
+        Timestamps are in nanoseconds
+        """
+        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
+        tag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(CORE_ID, N_SF)
+        return self.last_mapped_network.translate_tag_array(tag_arr), bin_times
+
     def get_spikes(self):
         """Returns all the pending spikes gathered since this was last called.
 
         Data format: numpy array: [(timestamp, pool_id, neuron_index), ...]
-        Timestamps are in microseconds
+        Timestamps are in nanoseconds
         """
         core_ids = []
         spk_ids = []
@@ -302,7 +375,7 @@ class HAL:
         rate: int
             desired tag rate for the Input/dimension in Hz
         time: int (default=0)
-            time to send inputs, in microseconds. 0 means immediately
+            time to send inputs, in nanoseconds. 0 means immediately
         flush: bool (default true)
             whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
@@ -323,10 +396,10 @@ class HAL:
         inputs: list of Input object
         dims : list of ints
             dimensions within each Input object to send to
-        rates: list of ints
+        rates: list of ints (or floats, which will be rounded)
             desired tag rate for each Input/dimension in Hz
-        time: int (default=0)
-            time to send inputs, in microseconds. 0 means immediately
+        time: int (or float, which will be rounded) (default=0)
+            time to send inputs, in nanoseconds. 0 means immediately
         flush: bool (default true)
             whether to flush the inputs through the driver immediately.
             If you're making several calls, it may be advantageous to only flush
@@ -335,7 +408,10 @@ class HAL:
         WARNING: If <flush> is True, calling this will block traffic until the max <time>
         provided has passed!
         """
-        assert len(inputs) == len(dims) == len(rates)
+        if not (len(inputs) == len(dims) == len(rates)):
+            raise ValueError("inputs, dims, and rates all have to be the same length")
+        if not isinstance(inputs[0], pystorm.hal.neuromorph.graph.Input):
+            raise ValueError("inputs have to be of type neuromorph.graph.Input")
 
         for inp in inputs:
             gen_idxs = [
@@ -344,6 +420,7 @@ class HAL:
                 inp.generator_out_tags[dim] for dim in dims]
 
             self.driver.SetSpikeGeneratorRates(inp.core_id, gen_idxs, out_tags, rates, time, flush)
+        # self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, np.round(rates).astype(int), int(time), flush)
 
 
     ##############################################################################
@@ -371,7 +448,7 @@ class HAL:
         map_reqs: list of (graph_obj, core) tuples of objects that need to be on a specific core, in order of priority (first to last)
         req_strength: a positive integer that determines how strongly METIS takes map_reqs into account (default 1000)
         """
-        print("HAL: doing logical mapping")
+        logger.info("HAL: doing logical mapping")
 
         # should eventually get CORE_PARAMETERS from the driver itself (BDPars)
         core = network.map(CORE_PARAMETERS, keep_pool_mapping=remap, verbose=verbose, num_cores = num_cores, spread = spread, map_reqs = map_reqs, req_strength = req_strength)
@@ -380,21 +457,21 @@ class HAL:
         self.last_mapped_cores = core
 
         # implement core objects, calling driver
-        print("HAL: programming mapping results to hardware")
+        logger.info("HAL: programming mapping results to hardware")
         self.implement_core()
 
     def dump_core(self):
         for core in range(0, NUM_CORES):
-            print("PAT")
-            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.PAT))
-            print("TAT0")
-            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT0)[0:10])
-            print("TAT1")
-            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT1)[0:10])
-            print("AM")
-            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.AM)[0:10])
-            print("MM")
-            print(self.driver.DumpMem(core, bd.bdpars.BDMemId.MM)[0:10])
+            logger.info("PAT")
+            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
+            logger.info("TAT0")
+            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
+            logger.info("TAT1")
+            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
+            logger.info("AM")
+            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
+            logger.info("MM")
+            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
@@ -512,11 +589,207 @@ class HAL:
             self.driver.SetSpikeFilterIncrementConst(core_id, 1)
 
         # remove any evidence of old network in driver queues
-        print("HAL: clearing queued-up outputs")
+        logger.info("HAL: clearing queued-up outputs")
         self.driver.ClearOutputs()
 
-        # voodoo sleep, (wait for everything to go in)
-        sleep(2)
+        ## voodoo sleep, (wait for everything to go in)
+        sleep(1.0)
+    
+    def get_driver_state(self):
+        return self.driver.GetState(CORE_ID)
+
+    def DAC_name_to_handle(self, dac_name):
+        name_to_handle = {
+            'DAC_SYN_EXC'     : bd.bdpars.BDHornEP.DAC_SYN_EXC,
+            'DAC_SYN_DC'      : bd.bdpars.BDHornEP.DAC_SYN_DC,
+            'DAC_SYN_INH'     : bd.bdpars.BDHornEP.DAC_SYN_INH,
+            'DAC_SYN_LK'      : bd.bdpars.BDHornEP.DAC_SYN_LK,
+            'DAC_SYN_PD'      : bd.bdpars.BDHornEP.DAC_SYN_PD,
+            'DAC_SYN_PU'      : bd.bdpars.BDHornEP.DAC_SYN_PU,
+            'DAC_DIFF_G'      : bd.bdpars.BDHornEP.DAC_DIFF_G,
+            'DAC_DIFF_R'      : bd.bdpars.BDHornEP.DAC_DIFF_R,
+            'DAC_SOMA_REF'    : bd.bdpars.BDHornEP.DAC_SOMA_REF,
+            'DAC_SOMA_OFFSET' : bd.bdpars.BDHornEP.DAC_SOMA_OFFSET,
+        }
+        if dac_name not in name_to_handle:
+            raise ValueError("supplied bad dac_name: " + dac_name +
+                ". Name must be one of " + str(name_to_handle.keys()))
+        handle = name_to_handle[dac_name]
+        return handle
+
+    def set_DAC_value(self, dac_name, value):
+        self.driver.SetDACCount(CORE_ID , self.DAC_name_to_handle(dac_name), value) 
+
+    def get_DAC_value(self, dac_name):
+        return self.driver.GetDACCurrentCount(CORE_ID , self.DAC_name_to_handle(dac_name)) 
+
+    def set_diffusor(self, y, x, direction, state):
+        """open or close the diffusor near neuron y, x
+
+        the diffusor can only be cut at the 4x4 tile boundaries, so the call
+        rounds the requested x,y to this resolution
+
+        Parameters:
+        ==========
+        y, x (ints) : location of neuron around which to set the diffusor
+        direction (string, {'up', 'right', 'down', 'left'}) : which side to open/close
+        state (string, {'broken', 'joined'}) : what to do to the diffusor
+        """
+
+        NORTH_LEFT = bd.bdpars.DiffusorCutLocationId.NORTH_LEFT
+        NORTH_RIGHT = bd.bdpars.DiffusorCutLocationId.NORTH_RIGHT
+        WEST_TOP = bd.bdpars.DiffusorCutLocationId.WEST_TOP
+        WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
+
+        ty = y // 4
+        tx = x // 4
+        if direction == 'down':
+            ty += 1
+            sides = (NORTH_LEFT, NORTH_RIGHT)
+        elif direction == 'right':
+            tx += 1
+            sides = (WEST_TOP, WEST_BOTTOM)
+        elif direction == 'up':
+            sides = (NORTH_LEFT, NORTH_RIGHT)
+        elif direction == 'left':
+            sides = (WEST_TOP, WEST_BOTTOM)
+        else:
+            raise ValueError("direction must be in {'up', 'right', 'down', 'left'}")
+
+        if state == 'broken':
+            for side in sides:
+                self.driver.OpenDiffusorCutXY(CORE_ID, tx, ty, side)
+                #print('open', tx, ty, side)
+        elif state == 'joined':
+            for side in sides:
+                self.driver.CloseDiffusorCutXY(CORE_ID, tx, ty, side)
+                #print('close', tx, ty, side)
+        else:
+            raise ValueError("state must be in {'joined', 'broken'}")
+        
+    def get_unique_chip_activation(self):
+        """measure chip activity under controlled conditions, creating a unique identifier
+
+        returns
+        -------
+        4096-element unit vector, representing which neurons spike under controlled conditions
+        """
+
+        # DO NOT MODIFY ANY PARAMETERS (or anything in this function, really)
+        # will invalidate old activations that key CalibrationDB
+
+        WIDTH = 64
+        HEIGHT = 64
+        N = WIDTH * HEIGHT
+        TCOLLECT = .5 # how long to measure spikes
+
+        DAC_SETTINGS = { 
+            'DAC_SYN_EXC'     : 512,
+            'DAC_SYN_DC'      : 544,
+            'DAC_SYN_INH'     : 512,
+            'DAC_SYN_LK'      : 10,
+            'DAC_SYN_PD'      : 40,
+            'DAC_SYN_PU'      : 1024,
+            'DAC_DIFF_G'      : 1024,
+            'DAC_DIFF_R'      : 500,
+            'DAC_SOMA_REF'    : 1,
+            'DAC_SOMA_OFFSET' : 2}
+        GAIN_DIV = 1
+        BIAS = -3
+
+        # turn on 1/4 of synapses (all on has too high bias)
+        taps = [[]] 
+        for x in range(0,WIDTH,4):
+            for y in range(0,HEIGHT,4):
+                n_idx = y * WIDTH + x
+                taps[0].append((n_idx, 1)) # sign doesn't matter, we're not sending input
+        taps = (N, taps) 
+
+        # map network
+        from pystorm.hal.neuromorph import graph
+        net =  graph.Network("net")
+        pool = net.create_pool("pool", taps, biases=BIAS, gain_divisors=GAIN_DIV, allow_weird_taps=True)
+        self.map(net)
+
+        # overwrite DAC
+        for dac in DAC_SETTINGS:
+            self.set_DAC_value(dac, DAC_SETTINGS[dac])
+
+        # collect data
+        self.start_traffic(flush=False)
+        self.enable_spike_recording(flush=True)
+
+        start_time = self.get_time()
+
+        sleep(TCOLLECT * 1.1) # fudge to make sure we don't turn it off too early
+
+        self.stop_traffic(flush=False)
+        self.disable_spike_recording(flush=True)
+
+        spikes = self.get_spikes()
+
+        cts = np.zeros((N,), dtype=int)
+        for t, p, n in spikes:
+            # discard p, just one pool
+            if t > start_time and t < start_time + TCOLLECT * 1e9:
+                cts[n] += 1
+
+        # turn the cts into a unit vector representing 
+        # if each neuron fired (1) or didn't fire (-1)
+        act = (cts > 0) * 2 - 1
+        act = act / np.linalg.norm(act)
+        self.chip_activation = act
+        return act
+
+    def get_calibration_db(self):
+        """returns CalibrationDB object"""
+        return self.cdb
+
+    def get_calibration_obj_types(self):
+        """Returns the calibration objects and types data structure"""
+        return self.cdb.CAL_TYPES
+
+    def get_calibration(self, cal_obj, cal_type, return_as_numpy=False):
+        """Get calibration values for attached chip
+
+        Parameters
+        ----------
+        cal_obj: Name of thing being calibrated (e.g "soma" or "synapse")
+        cal_type: Calibration name
+
+        Returns
+        -------
+        pandas dataframe with calibration data
+            Dataframe may still be empty if data has not been collected but chip is known
+        """
+        if self.chip_activation is None:
+            self.get_unique_chip_activation()
+        self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
+        return self.cdb.get_calibration(self.chip_name, cal_obj, cal_type, return_as_numpy)
+
+    def add_calibration(self, cal_obj, cal_type, cal_data):
+        """Add calibration values for attached chip
+
+        Will raise a ValueError if called for previously-un-registered chip
+
+        Parameters
+        ----------
+        cal_obj: Name of thing being calibrated (e.g "soma" or "synapse")
+        cal_type: Calibration name
+        cal_data: Calibration data of appropriate length for cal_obj
+
+        Returns
+        -------
+        pandas dataframe with calibration data or None if chip not in DB.
+            Dataframe may still be empty if data has not been collected but chip is known
+        """
+        if self.chip_activation is None:
+            self.get_unique_chip_activation()
+        self.chip_name, sims = self.cdb.find_chip(self.chip_activation)
+        if self.chip_name is None:
+            raise ValueError("HAL.add_calibration called for previously unknown chip")
+        else:
+            self.cdb.add_calibration(self.chip_name, cal_obj, cal_type, cal_data)
 
 def parse_hal_binned_tags(hal_binned_tags):
     """Parses the tag information from the output of HAL

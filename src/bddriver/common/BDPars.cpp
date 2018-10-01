@@ -8,6 +8,19 @@ namespace pystorm {
 namespace bddriver {
 namespace bdpars {
 
+constexpr unsigned int BDPars::NumNeurons;
+constexpr unsigned int BDPars::NumSynapses;
+constexpr unsigned int BDPars::NumCores;
+constexpr unsigned int BDPars::TimingRoute;
+constexpr unsigned int BDPars::DnEPFPGARegOffset;
+constexpr unsigned int BDPars::DnEPFPGANumReg;
+constexpr unsigned int BDPars::DnEPFPGAChannelOffset;
+constexpr unsigned int BDPars::DnEPFPGANumChan;
+constexpr unsigned int BDPars::DnEPFPGABitsPerReg;
+constexpr unsigned int BDPars::DnEPFPGABitsPerChannel;
+constexpr unsigned int BDPars::DnWordsPerFrame;
+constexpr unsigned int BDPars::DnTimeUnitsPerHB;
+
 // clang-format off
 
 std::unordered_map<ConfigSomaID, std::vector<unsigned int>> BDPars::config_soma_mem_ = {
@@ -137,13 +150,13 @@ BDPars::BDPars() {
   dac_info_[BDHornEP::DAC_SYN_DC]      = {16 , 544};             // 34 * 16 = 544
   dac_info_[BDHornEP::DAC_SYN_INH]     = {128, (34 - 30) * 128}; // (34 - 30) * 128 = 512
   dac_info_[BDHornEP::DAC_SYN_PU]      = {1  , 1024}; // roughly 1pA to 1nA
-  dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 22}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_SYN_PD]      = {1  , 40}; // roughly 1pA to 1nA
   // DAC output is scaled by 160.
   // Then LPF leak multiplies by 8X to get 20.
   dac_info_[BDHornEP::DAC_SYN_LK]      = {160, 10}; // roughly 6.25fA to 6.25pA
   dac_info_[BDHornEP::DAC_DIFF_G]      = {1  , 1024}; // roughly 1pA to 1nA
-  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 512}; // roughly 1pA to 1nA
-  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 1}; // roughly 250fA to 250pA 
+  dac_info_[BDHornEP::DAC_DIFF_R]      = {1  , 1024}; // roughly 1pA to 1nA
+  dac_info_[BDHornEP::DAC_SOMA_OFFSET] = {4  , 2}; // roughly 250fA to 250pA 
   dac_info_[BDHornEP::DAC_SOMA_REF]    = {1  , 10}; // roughly 1pA to 1nA
 
   //Init maps for AER address translation

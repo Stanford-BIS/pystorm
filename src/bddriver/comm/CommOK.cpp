@@ -1,6 +1,7 @@
 #include "CommOK.h"
 #include <chrono>
 #include <iostream>
+//#include <string>
 
 using namespace std::chrono_literals;
 
@@ -157,6 +158,13 @@ int CommOK::ReadFromDevice() {
     }
     return num_bytes;
 }
+
+
+std::string CommOK::GetHWID() {
+  cout << "Received FPGA Serial Number: " << m_devInfo.serialNumber << endl;
+  return m_devInfo.serialNumber;
+}
+
 
 bool CommOK::InitializeFPGA(const std::string bitfile, const std::string serial) {
     if (okCFrontPanel::NoError != dev.OpenBySerial(serial)) {

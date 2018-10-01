@@ -75,6 +75,11 @@ void CommSoft::StopStreaming() {
   m_emulator->Stop();
 }
 
+std::string CommSoft::GetHWID() {
+  cout << "Setting CommSoft Unique ID to Soft_ID" << endl;
+  return "Soft_ID";
+}
+
 void CommSoft::ReadCallback(std::unique_ptr<EmulatorCallbackData> cb) {
   std::unique_ptr<std::vector<COMMWord>> vecOfCWS(new std::vector<COMMWord>(*(cb->buf)));
 

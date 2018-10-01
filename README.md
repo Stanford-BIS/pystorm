@@ -31,9 +31,9 @@ Beyond the default cmake options, our CMakeLists.txt files use following options
 
 For example,
 
-`cmake -DPYTHON_EXECUTABLE=/path/to/python -DCMAKE_BUILD_TYPE=Release -DBD_COMM_TYPE=MODEL ..`
+`cmake -DPYTHON_EXECUTABLE=/path/to/python -DCMAKE_BUILD_TYPE=Release -DBD_COMM_TYPE=OPALKELLY ..`
 
-tells cmake to use the python interpreter at `/path/to/python`, to make a `Release` type build, and to use the `MODEL` of braindrop as the communication type.
+tells cmake to use the python interpreter at `/path/to/python`, to make a `Release` type build, and to use the `OPALKELLY` communication type.
 
 ## cmake Build Options
 
