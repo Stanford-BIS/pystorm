@@ -979,7 +979,7 @@ std::tuple<uint32_t*, uint64_t*, unsigned int, unsigned int> RecvSpikeFilterStat
   /// Useful for debugging FPGA issues
   std::vector<std::pair<uint8_t, unsigned int>> GetOutputQueueCounts() {
     std::vector<std::pair<uint8_t, unsigned int>> retvals;
-    for(uint8_t c = 0; c < bd_pars_->NumCores; c++){
+    for(uint8_t c = 0; c < kBDPars_.NumCores; c++){
       for (auto& ep_buf : dec_bufs_out_[c]) {
         retvals.push_back({ep_buf.first, ep_buf.second->TotalSize()});
       }

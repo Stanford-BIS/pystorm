@@ -25,11 +25,7 @@ void Decoder::RunOnce() {
   std::unique_ptr<std::vector<DecInput>> popped_vect = in_buf_->Pop(timeout_us_);
 
   if (in_buf_->TotalSize() > driverpars::READ_LAG_WARNING_SIZE) { 
-<<<<<<< HEAD
-    // cout << "WARNING: Decoder running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
-=======
     cout << "WARNING: bddriver::Decoder (upstream data processing) running " << in_buf_->TotalSize() / driverpars::READ_SIZE << " comm reads behind." << endl;
->>>>>>> master
   }
 
   if (popped_vect->size() > 0) {
@@ -171,6 +167,7 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
     if (!had_nop_this_block) {
       bytes_used += driverpars::READ_BLOCK_SIZE;
     }
+  }
   }
 
   //cout << "decoder processed " << words_processed * 4 << " bytes" << endl;
