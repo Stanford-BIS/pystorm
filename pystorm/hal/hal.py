@@ -122,8 +122,8 @@ class HAL:
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PD      , DAC_DEFAULTS['DAC_SYN_PD'])
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_SYN_PU      , DAC_DEFAULTS['DAC_SYN_PU'])
 
-        # the ratio of DAC_DIFF_G / DAC_DIFF_R controls the diffusor spread
-        # lower ratio is more spread out
+        # DAC_DIFF_R / DAC_DIFF_G ratio sets diffusor spread,
+        # larger (smaller) ratio ~ more (less) spread out
         # R ~ conductance of the "sideways" resistors, G ~ conductance of the "downwards" resistors
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_G      , DAC_DEFAULTS['DAC_DIFF_G'])
         self.driver.SetDACCount(CORE_ID , bd.bdpars.BDHornEP.DAC_DIFF_R      , DAC_DEFAULTS['DAC_DIFF_R'])

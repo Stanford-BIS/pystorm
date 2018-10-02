@@ -1,16 +1,16 @@
-import numpy as np
 from numbers import Number
+import logging
+import numpy as np
+
+import pystorm.hal.neuromorph.core as core
+
 from . import bucket
 from . import pool
 from . import input
 from . import output
 from . import connection
 
-import logging
-
 logger = logging.getLogger(__name__)
-
-import pystorm.hal.neuromorph.core as core
 
 n_core = core
 
@@ -37,7 +37,7 @@ class Network(object):
         return "Network " + self.label
 
     def get_label(self):
-        return label
+        return self.label
 
     def get_buckets(self):
         return self.buckets
@@ -61,7 +61,7 @@ class Network(object):
     @staticmethod
     def _flat_to_rectangle(n_neurons):
         """find the squarest rectangle to fit n_neurons
-        
+
         Returns the x and y dimensions of the rectangle
         """
         assert isinstance(n_neurons, (int, np.integer))
@@ -74,18 +74,18 @@ class Network(object):
 
     def create_pool_from_spec(self, ps, allow_weird_taps=False):
         ps.check_specified(['label', 'TPM'])
-        self.create_pool(ps.label, ps.TPM, ps.gain_divisors, ps.biases, 
-            ps.YX[::-1], (ps.loc_X, ps.loc_Y), 
-            allow_weird_taps=allow_weird_taps,
-            diffusor_cuts_yx=ps.diffusor_cuts_yx)
-        
-    def create_pool(self, label, taps, 
-            gain_divisors=1, biases=0, 
-            xy=None, user_xy_loc=(None,None), 
-            diffusor_cuts_yx=None, 
-            allow_weird_taps=False):
+        self.create_pool(ps.label, ps.TPM, ps.gain_divisors, ps.biases,
+                         ps.YX[::-1], (ps.loc_X, ps.loc_Y),
+                         allow_weird_taps=allow_weird_taps,
+                         diffusor_cuts_yx=ps.diffusor_cuts_yx)
+
+    def create_pool(self, label, taps,
+                    gain_divisors=1, biases=0,
+                    xy=None, user_xy_loc=(None, None),
+                    diffusor_cuts_yx=None,
+                    allow_weird_taps=False):
         """Adds a Pool object to the network.
-        
+
         Parameters
         ----------
         label: string
@@ -202,7 +202,7 @@ class Network(object):
         logger.info("finished allocate")
 
         if premapped_neuron_array is not None:
-            assert(isinstance(premapped_neuron_array, n_core.NeuronArray))
+            assert isinstance(premapped_neuron_array, n_core.NeuronArray)
             core.NeuronArray = premapped_neuron_array
             logger.info("  replaced core.neuron_array with premapped_neuron_array")
 
@@ -221,7 +221,7 @@ class Network(object):
         if logger.getEffectiveLevel() <= logging.DEBUG:
             fname = "mapped_core.txt"
             np.set_printoptions(threshold=np.nan)
-            logger.debug("mapping results written to {}".format(fname))
+            logger.debug("mapping results written to %s", fname)
             with open(fname, "w") as f:
                 f.write(str(core))
 
@@ -236,7 +236,7 @@ class Network(object):
             xmin, ymin = pool.mapped_xy
             for y in range(pool.height):
                 for x in range(pool.width):
-                    spk_idx = (ymin + y) * self.core.NeuronArray_width + xmin + x 
+                    spk_idx = (ymin + y) * self.core.NeuronArray_width + xmin + x
                     pool_nrn_idx = y * pool.width + x
                     self.spk_to_pool_nrn_idx[spk_idx] = (pool, pool_nrn_idx)
 
@@ -247,8 +247,8 @@ class Network(object):
         for spk_id, spk_time in zip(spk_ids, spk_times):
             if spk_id not in self.spk_to_pool_nrn_idx:
                 logger.warning(
-                    "translate_spikes: got out-of-bounds spike from neuron id {}".format(spk_id) +
-                    " (probably sticky bits)")
+                    "translate_spikes: got out-of-bounds spike from neuron id %d" +
+                    " (probably sticky bits)", spk_id)
             else:
                 pool_id, nrn_idx = self.spk_to_pool_nrn_idx[spk_id]
                 pool_ids.append(pool_id)
@@ -260,7 +260,7 @@ class Network(object):
         pool_bins = {}
 
         for pool in self.pools:
-            pool_bins[pool] = np.zeros((binned_spikes.shape[0], pool.n_neurons), dtype=int) 
+            pool_bins[pool] = np.zeros((binned_spikes.shape[0], pool.n_neurons), dtype=int)
 
         # can take list-of-lists or normal array
         binned_2d = binned_spikes.reshape((len(binned_spikes), 64, 64))
@@ -288,7 +288,7 @@ class Network(object):
                 counts.append(to_append)
             else:
                 logger.warning(
-                    "discarding absurdly large tag filter value " + 
+                    "discarding absurdly large tag filter value " +
                     "(probably sticky bits, or abuse of tag filter)")
                 counts.append(0)
 
@@ -298,11 +298,21 @@ class Network(object):
         return outputs, dims, counts
 
     def translate_tag_array(self, tag_array):
+        signed_tag_array = tag_array.view('int32')
+        n_idx = tag_array > 2**26-1
+        if np.any(n_idx):
+            signed_tag_array[n_idx] -= 2**27
+        s_idx = signed_tag_array > 10000
+        if np.any(s_idx):
+            logger.warning(
+                "discarding absurdly large tag filter value " +
+                "(probably sticky bits, or abuse of tag filter)")
+            signed_tag_array[s_idx] = 0
         sub_array_dict = {}
         for filt_idx in range(tag_array.shape[1]):
             output_id, dim = self.spike_filter_idx_to_output[filt_idx]
             if dim == 0:
-                sub_array_dict[output_id] = tag_array[:, filt_idx:filt_idx + output_id.dimensions]
+                sub_array_dict[output_id] = signed_tag_array[:, filt_idx:filt_idx + output_id.dimensions]
         return sub_array_dict
 
     def map(self, core_parameters, keep_pool_mapping=False, verbose=False):
@@ -343,5 +353,3 @@ class Network(object):
         self.create_output_translators()
 
         return self.core
-
-
