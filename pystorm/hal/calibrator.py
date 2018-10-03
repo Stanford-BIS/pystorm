@@ -1307,6 +1307,10 @@ class Calibrator(object):
                 estimated encoders
             est_offsets : (NxD and len N arrays, Hz)
                 estimated offsets
+            std_encs : (like est_encs)
+                bootstrapped stds for est_encs
+            std_offsets : (like est_offsets)
+                bootstrapped stds for est_offsets
             dbg : {'before' : (encs, offsets at biases=3),
                    'expected' : (encs, offsets expected from optimization)}
                    'pool_tw_offsets' : pool twiddle offset values that were used
