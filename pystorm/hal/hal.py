@@ -29,7 +29,7 @@ DIFFUSOR_WEST_BOTTOM = bd.bdpars.DiffusorCutLocationId.WEST_BOTTOM
 #   original intent.
 
 #CORE_ID = 1 # hardcoded for now
-NUM_CORES = 2 # hardcoded for now (indexed 0 -> NUM_CORES-1)
+NUM_CORES = 1 # hardcoded for now (indexed 0 -> NUM_CORES-1)
 
 _bdp = bd.bdpars.BDPars()
 DAC_DEFAULTS = dict(
@@ -85,8 +85,14 @@ class HAL:
         self.chip_name = None
 
         # init FPGA from bitfile
-        okfile = "/".join(
-            pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/BZ_host_core.rbf"
+        if (NUM_CORES > 1):
+            okfile = "/".join(
+                pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/BZ_host_core.rbf"
+            print("using multicore bitfile")
+        else:
+            okfile = "/".join(
+                pystorm.__file__.split('/')[:-2])+"/FPGA/quartus/output_files/OKCoreBD.rbf"
+            print("using single core bitfile")
         self.driver.SetOKBitFile(okfile)
         self.start_hardware()
 

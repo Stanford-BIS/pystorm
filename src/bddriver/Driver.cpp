@@ -237,7 +237,6 @@ void Driver::ResetBD() {
   // XXX this is only guaranteed to work after bring-up.
   // There's no simple way to enforce this timing if the downstream traffic flow is blocked.
   for (unsigned int i = 0; i < kBDPars_.NumCores; i++) {
-
     BDWord pReset_1_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 1}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_1 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 1}});
     BDWord pReset_0_sReset_0 = PackWord<FPGABDReset>({{FPGABDReset::PRESET, 0}, {FPGABDReset::SRESET, 0}});
@@ -258,6 +257,8 @@ void Driver::ResetBD() {
 
     std::this_thread::sleep_for(std::chrono::microseconds(delay_us));
   }
+
+  cout << "ResetBD done" <<endl;
 }
 
 void Driver::IssuePushWords(int core_id) {
@@ -354,7 +355,9 @@ void Driver::InitFPGA() {
     SetSpikeFilterDecayConst(i, 0, false);
     SetNumSpikeFilters(i, 0);
   }
-  
+
+  cout << "InitFPGA done" << endl;
+
 }
 
 void Driver::InitBD() {
@@ -366,10 +369,8 @@ void Driver::InitBD() {
   cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
 
-// <<<<<<< HEAD
 //   for (unsigned int i = 0; i < kBDPars_.NumCores; i++) { //REPLACE (TEMP FIX)
 //     cout << "InitBD: Core " << i << endl;
-// =======
   for (unsigned int i = 0; i < kBDPars_.NumCores; i++) {
     // turn off traffic
     cout << "InitBD: disabling traffic flow" << endl;
