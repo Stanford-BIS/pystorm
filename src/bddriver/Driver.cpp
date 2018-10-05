@@ -355,7 +355,6 @@ void Driver::InitFPGA() {
     SetNumSpikeFilters(i, 0);
   }
   
-
 }
 
 void Driver::InitBD() {
