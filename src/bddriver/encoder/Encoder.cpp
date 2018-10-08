@@ -69,7 +69,6 @@ inline void Encoder::PadNopsAndFlush() {
   // construct FPGA nop word
   uint8_t nop_code = bd_pars_->DnEPCodeFor(bdpars::FPGARegEP::NOP);
   BDWord nop = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, 0}, {FPGAIO::EP_CODE, nop_code}, {FPGAIO::ROUTE, bd_pars_->TimingRoute}});
-
   // push nops
   for (unsigned int i = 0; i < to_complete_block / 4; i++) { // 4 words per nop, so / 4
     PushWord(nop);
@@ -127,7 +126,6 @@ void Encoder::Encode(const std::unique_ptr<std::vector<EncInput>> inputs) {
       //    5b      7b      20b
       // [ route | code | payload ]
       uint32_t FPGA_encoded = PackWord<FPGAIO>({{FPGAIO::PAYLOAD, payload}, {FPGAIO::EP_CODE, FPGA_ep_code}, {FPGAIO::ROUTE, route}});
-
       // if it's been more than DnTimeUnitsPerHB since we last sent a HB, 
       // package the event's time into a spike
       if (time - last_HB_sent_at_ >= bd_pars_->DnTimeUnitsPerHB) {

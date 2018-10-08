@@ -261,7 +261,7 @@ class BDPars {
   // misc constants
   static constexpr unsigned int NumNeurons             = 4096;
   static constexpr unsigned int NumSynapses            = 1024;
-  static constexpr unsigned int NumCores               = 2;
+  static constexpr unsigned int NumCores               = 1; //for now... :)
   static constexpr unsigned int TimingRoute            = 31;
   static constexpr unsigned int DnEPFPGARegOffset      = 128; //was 64
   static constexpr unsigned int DnEPFPGANumReg         = 64; //was 33

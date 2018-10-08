@@ -301,6 +301,10 @@ uint64_t PackWord(const std::initializer_list<std::pair<T, uint64_t> > & fields)
     uint64_t val = field_and_val.second;
 
     // make sure the user isn't packing too large a value into the field
+    cout << "val:" << endl;
+    cout << val << endl;
+    cout << "width:" << endl;
+    cout << FieldWidth(field) << endl;
     assert(val <= (static_cast<uint64_t>(1) << FieldWidth(field)) - 1);
     // make sure that the user isn't trying to set a hardcoded field
     assert(FieldHCVal(field) == 0);
