@@ -365,6 +365,8 @@ void Driver::InitBD() {
   // TODO: perhaps separate this out, eventually
   InitFPGA();
 
+
+
   // BD hard reset
   cout << "InitBD: BD reset cycle" << endl;
   ResetBD();
