@@ -311,7 +311,8 @@ class HAL:
         """
         import time
 
-        binned_spikes, bin_times = self.driver.RecvBinnedSpikes(CORE_ID, bin_time_ns)
+        for core in range(0, NUM_CORES):
+            binned_spikes, bin_times = self.driver.RecvBinnedSpikes(core, bin_time_ns)
 
         trans_spikes = self.last_mapped_network.translate_binned_spikes(binned_spikes)
 
@@ -333,7 +334,8 @@ class HAL:
         Timestamps are in nanoseconds
         """
         N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
-        tag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(CORE_ID, N_SF)
+        for core in range(0, NUM_CORES):
+            theag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(core, N_SF)
         return self.last_mapped_network.translate_tag_array(tag_arr), bin_times
 
     def get_spikes(self):
@@ -425,7 +427,7 @@ class HAL:
             out_tags = [
                 inp.generator_out_tags[dim] for dim in dims]
 
-            self.driver.SetSpikeGeneratorRates(inp.core_id, gen_idxs, out_tags, rates, time, flush)
+            self.driver.SetSpikeGeneratorRates(inp.core_id, gen_idxs, out_tags, np.round(rates).astype(int), int(time), flush)
         # self.driver.SetSpikeGeneratorRates(CORE_ID, gen_idxs, out_tags, np.round(rates).astype(int), int(time), flush)
 
 
@@ -469,15 +471,15 @@ class HAL:
     def dump_core(self):
         for core in range(0, NUM_CORES):
             logger.info("PAT")
-            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.PAT))
+            logger.info(self.driver.DumpMem(core, bd.bdpars.BDMemId.PAT))
             logger.info("TAT0")
-            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT0)[0:10])
+            logger.info(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT0)[0:10])
             logger.info("TAT1")
-            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.TAT1)[0:10])
+            logger.info(self.driver.DumpMem(core, bd.bdpars.BDMemId.TAT1)[0:10])
             logger.info("AM")
-            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.AM)[0:10])
+            logger.info(self.driver.DumpMem(core, bd.bdpars.BDMemId.AM)[0:10])
             logger.info("MM")
-            logger.info(self.driver.DumpMem(CORE_ID, bd.bdpars.BDMemId.MM)[0:10])
+            logger.info(self.driver.DumpMem(core, bd.bdpars.BDMemId.MM)[0:10])
 
     def implement_core(self):
         """Implements a core that resulted from map_network. This is called by map and remap_weights"""
