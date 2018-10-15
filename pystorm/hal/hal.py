@@ -333,9 +333,10 @@ class HAL:
             (np.array of time bin values for all output_ids))
         Timestamps are in nanoseconds
         """
-        N_SF = self.last_mapped_core.FPGASpikeFilters.filters_used
+        
         for core in range(0, NUM_CORES):
-            theag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(core, N_SF)
+            N_SF = self.last_mapped_cores[core].FPGASpikeFilters.filters_used
+            tag_arr, bin_times = self.driver.RecvSpikeFilterStatesArray(core, N_SF)
         return self.last_mapped_network.translate_tag_array(tag_arr), bin_times
 
     def get_spikes(self):
