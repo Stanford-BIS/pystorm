@@ -1,3 +1,6 @@
+`ifndef PC_PACKER
+`define PC_PACKER
+
 `include "../lib/Interfaces.svh"
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
@@ -95,3 +98,4 @@ ChannelMerge packed_merge_root(PC_out, temp_merge, Global_packed, clk, reset);
 
 endmodule
 
+`endif

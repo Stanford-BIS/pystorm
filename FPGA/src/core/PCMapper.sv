@@ -1,3 +1,6 @@
+`ifndef PC_MAPPER
+`define PC_MAPPER
+
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
 `include "../lib/Interfaces.svh"
@@ -159,3 +162,5 @@ end
 endgenerate
 
 endmodule
+
+`endif

@@ -32,10 +32,16 @@ void Decoder::RunOnce() {
     Decode(std::move(popped_vect));
 
     // push to each output vector
+    cout << "outputs:" <<endl;
+    cout << decoded_outputs_.size() << endl;
     for (auto& core_out : decoded_outputs_) {
       uint8_t core = core_out.first;
+      cout << "core:" <<endl;
+      cout << int(core) << endl;
       for (auto& it : core_out.second){
         uint8_t ep_code = it.first;
+        cout << "ep:" <<endl;
+        cout << int(ep_code) <<endl;
         std::unique_ptr<std::vector<DecOutput>> &vvect = it.second;
         out_bufs_[core].at(ep_code)->Push(std::move(vvect));
       }
@@ -172,13 +178,13 @@ void Decoder::Decode(std::unique_ptr<std::vector<DecInput>> input) {
 
   //cout << "decoder processed " << words_processed * 4 << " bytes" << endl;
 
-  if (!had_nop_block && !had_nop) {
-    cout << "WARNING: bddriver::Decoder::Decode: read was full of data. Out of upstream throughput. Probable data loss" << endl;
-    cout << "  " << bytes_used << " bytes used in frame out of " << driverpars::READ_SIZE << endl;
-  } else if (bytes_used > driverpars::READ_FULL_WARNING_SIZE) {
-    cout << "WARNING: bddriver::Decoder::Decode: read was nearly full of data. Operating very close to upstream throughput limit, but probably OK" << endl;
-    cout << "  " << bytes_used << " bytes used in frame out of " << driverpars::READ_SIZE << endl;
-  }
+  // if (!had_nop_block && !had_nop) {
+  //   cout << "WARNING: bddriver::Decoder::Decode: read was full of data. Out of upstream throughput. Probable data loss" << endl;
+  //   cout << "  " << bytes_used << " bytes used in frame out of " << driverpars::READ_SIZE << endl;
+  // } else if (bytes_used > driverpars::READ_FULL_WARNING_SIZE) {
+  //   cout << "WARNING: bddriver::Decoder::Decode: read was nearly full of data. Operating very close to upstream throughput limit, but probably OK" << endl;
+  //   cout << "  " << bytes_used << " bytes used in frame out of " << driverpars::READ_SIZE << endl;
+  // }
 }
 
 }  // bddriver

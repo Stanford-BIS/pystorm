@@ -1,3 +1,6 @@
+`ifndef PC_PARSER
+`define PC_PARSER
+
 `include "../lib/Interfaces.svh"
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
@@ -178,3 +181,5 @@ always_comb
     PC_in.a = 0;
 
 endmodule
+
+`endif

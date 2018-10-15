@@ -1,3 +1,6 @@
+`ifndef FPGA_SER
+`define FPGA_SER
+
 `include "../lib/Channel.svh"
 `include "../lib/ChannelUtil.svh"
 `include "../lib/Interfaces.svh"
@@ -112,3 +115,5 @@ assign PC_out_packed.a = PC_out.a;
 ChannelMerge coded_merge(PC_out_packed, SF_coded, HB_coded, clk, reset);
 
 endmodule
+
+`endif

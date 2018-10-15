@@ -1,3 +1,6 @@
+`ifndef TIME_MGR
+`define TIME_MGR
+
 `include "../lib/Interfaces.svh" 
 `include "../lib/Channel.svh"
 `include "TimeUnitPulser.sv"
@@ -77,3 +80,5 @@ always_comb
     next_stall_dn = 0;
 
 endmodule
+
+`endif
