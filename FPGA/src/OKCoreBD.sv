@@ -92,14 +92,14 @@ assign PC_downstream.v = OK_downstream.v;
 assign PC_downstream.d = {code_down, data_down};
 assign OK_downstream.a = PC_downstream.a;
 
-// truncate route from core to send into OKIfc
-logic [NOKroute-1:0] GO_HOME_rt_truncated;
-assign GO_HOME_rt_truncated = {GO_HOME_rt[NPCroute-1], GO_HOME_rt[NOKroute-2:0]};
+// // truncate route from core to send into OKIfc
+// logic [NOKroute-1:0] GO_HOME_rt_truncated;
+// assign GO_HOME_rt_truncated = {GO_HOME_rt[NPCroute-1], GO_HOME_rt[NOKroute-2:0]};
 
 // discard route (set to GO_HOME_rt) coming out of core, going to OKIfc
 assign {code_up, data_up} = PC_upstream.d;
 assign OK_upstream.v = PC_upstream.v;
-assign OK_upstream.d = {GO_HOME_rt_truncated, code_up, data_up};
+assign OK_upstream.d = {5'b0, code_up, data_up};
 assign PC_upstream.a = OK_upstream.a;
 
 // channels between core design and BD ifc
