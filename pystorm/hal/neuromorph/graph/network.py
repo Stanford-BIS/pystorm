@@ -402,7 +402,7 @@ class Network(object):
             signed_tag_array[s_idx] = 0
         sub_array_dict = {}
         for filt_idx in range(tag_array.shape[1]):
-            output_id, dim = self.spike_filter_idx_to_output[filt_idx]
+            output_id, dim = self.spike_filter_idx_to_output[0][filt_idx] #HARDCODED CORE ZERO: FIX AFTER TESTING
             if dim == 0:
                 sub_array_dict[output_id] = signed_tag_array[:, filt_idx:filt_idx + output_id.dimensions]
         return sub_array_dict
