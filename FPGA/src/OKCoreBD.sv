@@ -97,7 +97,7 @@ assign OK_downstream.a = PC_downstream.a;
 // assign GO_HOME_rt_truncated = {GO_HOME_rt[NPCroute-1], GO_HOME_rt[NOKroute-2:0]};
 
 // discard route (set to GO_HOME_rt) coming out of core, going to OKIfc
-assign {code_up, data_up} = PC_upstream.d;
+assign {route_up, code_up, data_up} = PC_upstream.d;
 assign OK_upstream.v = PC_upstream.v;
 assign OK_upstream.d = {5'b0, code_up, data_up};
 assign PC_upstream.a = OK_upstream.a;
