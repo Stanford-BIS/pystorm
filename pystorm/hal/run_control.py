@@ -52,7 +52,7 @@ class RunControl(object):
         rel_time : (bool)
             If true, interprets and returns times relative to the current FPGA time
             If false interprets and returns times relative to the time since the FPGA started
-        toggle_driver_traffic (bool, default False) : calls HAL.start_hardware and 
+        toggle_driver_traffic (bool, default False) : calls HAL.start_hardware and
             HAL.stop_hardware before and after the sweep, toggling the Driver's run state
 
         Returns:
@@ -65,6 +65,7 @@ class RunControl(object):
             Uses hardware binning interval to bin spikes (HAL.upstream_ns)
         """
 
+        _ = self.HAL.get_overflow_counts() # clear overflow counter
         if self.HAL.last_mapped_network != self.net:
             raise RuntimeError("Trying to run un-mapped network. Run map first.")
 
@@ -147,7 +148,7 @@ class RunControl(object):
 
             return (windowed_outputs, output_bin_times), (windowed_spikes, spike_bin_times)
 
-        if toggle_driver_traffic: 
+        if toggle_driver_traffic:
             raise NotImplementedError("toggle_driver_traffic not currently supported")
             self.HAL.start_hardware()
 
@@ -160,17 +161,22 @@ class RunControl(object):
         enqueue_input_vals(input_vals, offset_ns) # no flush yet
         self.HAL.flush()
 
-        if rel_time: 
+        if rel_time:
             sleeptime = (end_time + TFUDGE_NS) / 1e9
         else:
             sleeptime = (end_time - now_ns + TFUDGE_NS) / 1e9
-            
+
         time.sleep(sleeptime + TFUDGE * 2)
 
         outputs, spikes = end_sweep(get_raw_spikes, get_outputs, start_time, end_time, offset_ns)
 
+
         if toggle_driver_traffic:
             raise NotImplementedError("toggle_driver_traffic not currently supported")
             self.HAL.stop_hardware()
+
+        overflow_post = self.HAL.get_overflow_counts()
+        if overflow_post > 0:
+            logger.warning("Overflows detected during sweep: Results may be corrupted!")
 
         return outputs, spikes

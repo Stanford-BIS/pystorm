@@ -90,6 +90,23 @@ class Calibrator(object):
         # the HAL calls will be deprecated for calls here
         return self.hal.get_calibration(cal_obj, cal_type, return_as_numpy=return_as_numpy)
 
+    def get_slow_syns(self, pulse_attrition=.05):
+
+        # look up pulse widths
+        curr_DAC_SYN_PD = self.hal.get_DAC_value('DAC_SYN_PD')
+        pulse_widths = self.get_basic_calibration(
+            'synapse', 'pulse_width_dac_' + str(curr_DAC_SYN_PD), return_as_numpy=True)
+
+        # disable synapses below attrition point
+        pwflat = pulse_widths.flatten()
+        fmaxes = 1 / pwflat
+        order = np.argsort(fmaxes)
+        cutoff_idx = order[int(pulse_attrition * len(fmaxes))]
+        fmax = fmaxes[cutoff_idx] # absolute max possible fmax
+        slow_pulse = fmaxes <= fmax
+
+        return slow_pulse
+
     def get_bad_syns(self, pulse_attrition=.05):
         """Looks at synapse-related calibration data, discards synapses that have 
         high bias offset contributions and very slow synapses. 
@@ -108,27 +125,18 @@ class Calibrator(object):
                 {'pulse widths',
                  'pulse widths w/o high_bias syns'}
         """
+        # look up pulse widths
+        slow_pulse = self.get_slow_syns(pulse_attrition=pulse_attrition)
 
         # look up high bias synapses
         high_bias = self.get_basic_calibration(
             'synapse', 'high_bias_magnitude', return_as_numpy=True)
-        # look up pulse widths
-        curr_DAC_SYN_PD = self.hal.get_DAC_value('DAC_SYN_PD')
-        pulse_widths = self.get_basic_calibration(
-            'synapse', 'pulse_width_dac_' + str(curr_DAC_SYN_PD), return_as_numpy=True)
 
-        # disable synapses below attrition point
-        pwflat = pulse_widths.flatten()
-        fmaxes = 1 / pwflat
-        order = np.argsort(fmaxes)
-        cutoff_idx = order[int(pulse_attrition * len(fmaxes))]
-        fmax = fmaxes[cutoff_idx] # absolute max possible fmax
-        slow_pulse = fmaxes <= fmax
         slow_pulse = slow_pulse.reshape(high_bias.shape)
 
         all_bad_syn = slow_pulse | high_bias
 
-        dbg = {'pulse_widths': pulse_widths, 'slow_pulse':slow_pulse, 'high_bias': high_bias}
+        dbg = {'slow_pulse':slow_pulse, 'high_bias': high_bias}
         
         return all_bad_syn, dbg
 
@@ -505,7 +513,11 @@ class Calibrator(object):
 
         return tw_vals, new_offsets, good, bin_counts, dbg
 
-    def get_encoders_and_offsets(self, ps, num_sample_angles=3, sample_pts=None, solver='scipy_opt', dacs={}):
+    def get_encoders_and_offsets(self, ps, dacs={}, 
+        num_sample_angles=3, do_opposites=True, sample_pts=None, 
+        solver='scipy_opt', 
+        bin_time=1, discard_time=.2, 
+        bootstrap_bin_time=.05, num_bootstraps=20):
         """Estimate the gains and biases of each neuron in the network
 
         An exhaustive (O(2**D)) scanning of the input space is not necessary.
@@ -580,11 +592,8 @@ class Calibrator(object):
         required_pars = ['YX', 'loc_yx', 'TPM', 'fmax']
         ps.check_specified(required_pars)
 
-        SAMPLE_FUDGE = 1 # sample (D + 1) * SAMPLE_FUDGE pts per middle point
-        SAMPLE_ANGLES = [np.pi / 2**i for i in range(2, num_sample_angles+2)]
-        HOLD_TIME = 1 # seconds
-        BASELINE_TIME = 1 # seconds
-        LPF_DISCARD_TIME = HOLD_TIME / 2 # seconds
+        # 60, 30, 15, etc
+        SAMPLE_ANGLES = [2 * np.pi / 3 * 1/2**i for i in range(0, num_sample_angles)]
 
         # estimate "middle points" for each neuron
         # first just compute approximate encoders based on exponential decays
@@ -607,68 +616,106 @@ class Calibrator(object):
         # set up run controller to help us do sweeps
         run = RunControl(self.hal, net)
 
-        if sample_pts is None:
-            done = False
-            unsolved_encs = approx_enc
-            all_sample_pts = None
-            all_spikes = None
+        unsolved_encs = approx_enc
+        all_sample_pts = None
+        all_spikes = None
+        all_sanity_spikes = None
 
-            for sample_angle in SAMPLE_ANGLES:
-                # generate sample points around unsolved_encs
-                sample_pts, unique_encs = Calibrator.get_sample_points_around_encs(unsolved_encs, sample_angle, SAMPLE_FUDGE)
+        for sample_angle in SAMPLE_ANGLES:
 
-                # the input sweep of those sample_pts
-                print("running sample sweep at sample_angle =", sample_angle, "rad")
-                print("  taking", sample_pts.shape[0], "sample points for", unique_encs.shape[0], "unique encs")
-                print("  will run for", HOLD_TIME * sample_pts.shape[0] / 60, "min.")
-                tnow = self.hal.get_time()
-                times = np.arange(sample_pts.shape[0]) * HOLD_TIME * 1e9 + tnow + .1e9
-                times_w_end = np.arange(sample_pts.shape[0] + 1) * HOLD_TIME * 1e9 + tnow + .1e9
-                sample_freqs = sample_pts * ps.fmax
-                input_vals = {inp: (times, sample_freqs)}
-                start_time = times[0]
-                end_time = times[-1] + HOLD_TIME * 1e9
-                _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
-                                                start_time=start_time, end_time=end_time, rel_time=False)
-                spikes, spike_bin_times = spikes_and_bin_times
+            # generate sample points around unsolved_encs
+            sample_pts, unique_encs = Calibrator.get_sample_points_around_encs(
+                    unsolved_encs, sample_angle, do_opposites=do_opposites)
 
-                # each input sweep adds to the dataset that goes into the solver
-                # that means that we re-solve for all neurons each sample
-                # could make sense because more data is collected each time,
-                # but adds potentially unecessary processing time
-                if all_sample_pts is None:
-                    all_sample_pts = sample_pts
-                else:
-                    all_sample_pts = np.vstack((all_sample_pts, sample_pts))
+            # the input sweep of those sample_pts
+            print("running sample sweep at sample_angle =", sample_angle, "rad")
+            print("  taking", sample_pts.shape[0], "sample points for", unique_encs.shape[0], "unique encs")
+            print("  will run for", bin_time * sample_pts.shape[0] / 60, "min.")
+            tnow = self.hal.get_time()
+            times = np.arange(sample_pts.shape[0]) * bin_time * 1e9 + tnow + .1e9
+            sample_freqs = sample_pts * ps.fmax
+            input_vals = {inp: (times, sample_freqs)}
+            start_time = times[0]
+            end_time = times[-1] + bin_time * 1e9
+            times_w_end = np.hstack((times, [end_time]))
+            _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+                                            start_time=start_time, end_time=end_time, rel_time=False)
+            spikes, spike_bin_times = spikes_and_bin_times
 
-                #print("doing spike processing")
-                discard_frac = LPF_DISCARD_TIME / HOLD_TIME
-                spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, times_w_end, init_discard_frac=discard_frac)
-                if all_spikes is None:
-                    all_spikes = spike_rates
-                else:
-                    all_spikes = np.vstack((all_spikes, spike_rates))
+            # each input sweep adds to the dataset that goes into the solver
+            # that means that we re-solve for all neurons each sample
+            # could make sense because more data is collected each time,
+            # but adds potentially unecessary processing time
+            if all_sample_pts is None:
+                all_sample_pts = sample_pts
+            else:
+                all_sample_pts = np.vstack((all_sample_pts, sample_pts))
 
-                #print("estimating encoders")
-                est_encs, est_offsets, mean_residuals, insufficient_samples = \
-                    Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, all_spikes, solver=solver)
+            #print("doing spike processing")
+            discard_frac = discard_time / bin_time
 
-                # whittle away at set of neurons we still need more data for
-                unsolved_encs = approx_enc[insufficient_samples]
-                print(np.sum(insufficient_samples), "neurons still need more points")
-                
-        # user manually specified sample points
-        else:
-            pass
+            # compute bins for bootstrap samples
+            num_bs_bins = int(np.ceil((bin_time - discard_time) / bootstrap_bin_time))
+            bs_data_times = np.linspace(discard_time, bin_time, num_bs_bins + 1)[:-1]
+            bs_base_times = np.hstack(([0], bs_data_times))
+
+            # num_bs_bins = 3
+            # |    |1|2|3|    | | | |     | | | |
+            # 0    0 0 0 1    1 1 1 2     2 2 2
+
+            num_pts =  sample_pts.shape[0]
+            bs_bin_times = np.zeros((len(bs_base_times) * num_pts + 1,))
+            for pt_idx in range(num_pts):
+                bs_bin_times[pt_idx * len(bs_base_times) : 
+                             (pt_idx + 1) * len(bs_base_times)] = \
+                                (bs_base_times + pt_idx * bin_time) * 1e9
+            bs_bin_times += start_time
+            bs_bin_times[-1] = end_time
+            discard_idxs = np.arange(0, num_pts) * len(bs_base_times)
+
+            # bin finely according to bootstrap bins, discarding discard bins
+            spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, bs_bin_times,
+                                                   discard_idxs=discard_idxs)
+
+            sanity_spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, 
+                                                          times_w_end)
+            assert(spike_rates.shape == (sample_pts.shape[0] * num_bs_bins, pool.n_neurons))
+
+            if all_spikes is None:
+                all_spikes = spike_rates
+            else:
+                all_spikes = np.vstack((all_spikes, spike_rates))
+
+            if all_sanity_spikes is None:
+                all_sanity_spikes = sanity_spike_rates
+            else:
+                all_sanity_spikes = np.vstack((all_sanity_spikes, sanity_spike_rates))
+
+            # reshape to make creating bootstrap sets easier
+            num_samples = all_sample_pts.shape[0]
+            all_spikes_bs = all_spikes.reshape(
+                (num_samples, num_bs_bins, pool.n_neurons))
+
+            # create bootstrap sets, do estimation for each
+            print("running", num_bootstraps, "bootstraps")
+            mean_encs, mean_offsets, std_encs, std_offsets, all_insufficient = \
+                Calibrator.bootstrap_estimate_encs(all_sample_pts, all_spikes_bs, num_bootstraps, 
+                                                   solver=solver)
+            
+            sanity_encs, sanity_offsets, _, insufficient = \
+                Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, all_sanity_spikes)
+
+            # whittle away at set of neurons we still need more data for
+            unsolved_encs = approx_enc[all_insufficient]
+            print(np.sum(all_insufficient), "neurons still need more points")
 
         # neurons without an estimated offset after trying tightest SAMPLE_ANGLE are assumed
         # to have offset < sqrt(D), we have given up on them
 
-        debug = {'mean_residuals': mean_residuals,
-                 'all_sample_pts': all_sample_pts,
-                 'all_spikes': all_spikes}
+        debug = {'all_sample_pts': all_sample_pts,
+                 'all_spikes': all_sanity_spikes}
         
-        return est_encs, est_offsets, insufficient_samples, debug
+        return sanity_encs, sanity_offsets, std_encs, std_offsets, all_insufficient, debug
                 
     def validate_est_encs(self, est_encs, est_offsets, ps, sample_pts, dacs={}):
         """Validate the output of get_encoders_and_offsets
@@ -802,24 +849,36 @@ class Calibrator(object):
                     ax.plot([g0, g1], [o0, o1], c=cmap[vidx])
 
     @staticmethod
-    def plot_encs_yx(opt_encs, opt_ps):
+    def plot_encs_yx(opt_encs, opt_ps, figheight=4, plotlog=True):
 
         import matplotlib.pyplot as plt
 
         D = opt_encs.shape[1]
-        fig, ax = plt.subplots(1, D, figsize=(3*D, 3))
+        Y = opt_ps.Y
+        X = opt_ps.X
+
+        fig, ax = plt.subplots(1, D+1, figsize=(figheight*D, figheight), gridspec_kw={'width_ratios':[20]*D + [1]})
         for d in range(D):
             thr_encs = opt_encs[:, d].copy()
             thr_encs[np.isnan(thr_encs)] = 0
-            im = ax[d].imshow(thr_encs.reshape(opt_ps.Y, opt_ps.X), vmin=-800, vmax=800)
-            #if d == D-1:
-            #    plt.colorbar(im, ax=ax[d])
+            
+            log_encs = thr_encs.copy()
+            log_encs[log_encs > 0] = np.log(log_encs[log_encs > 0] + 1)
+            log_encs[log_encs < 0] = -np.log(-log_encs[log_encs < 0] + 1)
+            
+            if plotlog:
+                im = ax[d].imshow(log_encs.reshape(Y, X), vmin=-np.log(800), vmax=np.log(800))
+            else:
+                im = ax[d].imshow(thr_encs.reshape(Y, X), vmin=-800, vmax=800)
+            
+            if d == D-1:
+                plt.colorbar(im, cax=ax[d+1])
             
             pos_taps = []
             neg_taps = []
-            for x in range(opt_ps.X):
-                for y in range(opt_ps.Y):
-                    n = y * opt_ps.X + x
+            for x in range(X):
+                for y in range(Y):
+                    n = y * X + x
                     xsyn = x
                     if (y // 2) % 2 == 1:
                         xsyn += 1
@@ -833,6 +892,9 @@ class Calibrator(object):
                 ax[d].scatter(pos_taps[:, 1], pos_taps[:, 0], marker='+', c='r')
             if len(neg_taps) > 0:
                 ax[d].scatter(neg_taps[:, 1], neg_taps[:, 0], marker='+', c='cyan')
+                
+        plt.tight_layout(w_pad=.05, h_pad=.05)
+
 
     @staticmethod
     def get_approx_encoders(tap_list_or_matrix, pooly, poolx, lam):
@@ -887,7 +949,7 @@ class Calibrator(object):
 
 
     @staticmethod
-    def get_sample_points_around_encs(approx_enc, angle_away, num_samples_per):
+    def get_sample_points_around_encs(approx_enc, angle_away, do_opposites=False):
         """from a set of approximate encoders, derive sample points that can be used 
         to determine the actual encoders
         See get_encoders_and_offsets for more detail.
@@ -895,17 +957,21 @@ class Calibrator(object):
         dimensions = approx_enc.shape[1]
 
         if dimensions == 1:
+            num_samples_per = 4
             # take a different approach for D == 1
             # there can only be 2 unique encs
             unique_encs = np.array([[1], [-1]])
 
             sample_points = np.zeros((2 * num_samples_per,))
-            min_val = np.sin(angle_away)
+            min_val = np.cos(angle_away)
             max_val = 1
             sample_points[:num_samples_per] = np.linspace(min_val, max_val, num_samples_per)
             sample_points[num_samples_per:] = np.linspace(-min_val, -max_val, num_samples_per)
 
-            return sample_points.reshape((num_samples_per * 2, 1)), unique_encs
+            # add 0
+            sample_points = np.hstack((sample_points, [0]))
+
+            return sample_points.reshape((num_samples_per * 2 + 1, 1)), unique_encs
 
         else:
             # do thresholding/ceil'ing
@@ -961,29 +1027,43 @@ class Calibrator(object):
                         rand_orthog_pt = rand_pt / np.linalg.norm(rand_pt)
 
                         # 3.
-                        perp_component = np.cos(angle) * rand_orthog_pt
-                        pll_component = np.sin(angle) * unit_pt
+                        perp_component = np.sin(angle) * rand_orthog_pt
+                        pll_component = np.cos(angle) * unit_pt
                         chosen_pts.append(perp_component + pll_component)
                         chosen_neg_pts.append(-perp_component + pll_component)
 
-                    return chosen_pts + chosen_neg_pts
+                    if do_opposites:
+                        return chosen_pts + chosen_neg_pts
+                    else: 
+                        return chosen_pts
                 else:
                     return False
 
             sample_points = []
             for n in range(num_unique):
-                for extra_samples in range(num_samples_per):
-                    angle_away_pts = get_points_angle_away(unique_encs[n], angle_away)
-                    if angle_away_pts is not False:
-                        sample_points += angle_away_pts
-                        # scale unit vector up to unit cube
-                        #longest_comp = np.max(np.abs(unit_vect_angle_away)) 
-                        #if longest_comp > 0:
-                        #    scaled_angle_away = unit_vect_angle_away / longest_comp
-                        #else:
-                        #    scaled_angle_away = np.zeros_like(unit_vect_angle_away)
-                        #sample_points.append(scaled_angle_away)
+                angle_away_pts = get_points_angle_away(unique_encs[n], angle_away)
+                if angle_away_pts is not False:
+                    sample_points += angle_away_pts
+                    # scale unit vector up to unit cube
+                    #longest_comp = np.max(np.abs(unit_vect_angle_away)) 
+                    #if longest_comp > 0:
+                    #    scaled_angle_away = unit_vect_angle_away / longest_comp
+                    #else:
+                    #    scaled_angle_away = np.zeros_like(unit_vect_angle_away)
+                    #sample_points.append(scaled_angle_away)
             sample_points = np.array(sample_points)
+
+            # add standard basis vectors
+            # helps avoid some innacuracy when there are very few
+            # unique encoder estimates
+            std_basis_vects = np.zeros((2*dimensions, dimensions))
+            for d in range(dimensions):
+                std_basis_vects[2*d, d] = 1
+                std_basis_vects[2*d+1, d] = -1
+
+            sample_points = np.vstack((sample_points, 
+                                       std_basis_vects, 
+                                       np.zeros((1, dimensions))))
 
             return sample_points, unique_encs
 
@@ -1086,6 +1166,50 @@ class Calibrator(object):
 
         return est_encs, est_offsets, mean_residuals, insufficient_samples
 
+    @staticmethod
+    def bootstrap_estimate_encs(all_sample_pts, all_spikes_bs, num_bootstraps,
+                                solver='scipy_opt', fired_tolerance=35):
+        num_samples, num_bs_bins, num_neurons = all_spikes_bs.shape
+
+        bs_encs = []
+        bs_offsets = []
+        all_insufficient = np.ones((num_neurons,), dtype=bool)
+        for bootstrap_idx in range(num_bootstraps):
+            #print("bootstrap", bootstrap_idx)
+        
+            # bootstrapped data set to run fit on
+            bs_spikes = np.zeros((num_samples, num_neurons))
+            for sample_idx in range(num_samples):
+
+                # effectively sampling w/ replacement
+                bs_bin_idxs = np.random.randint(num_bs_bins, size=(num_bs_bins,))
+
+                # XXX not sure if I should take different bs samples for each nrn
+                # probably should keep it this way. Neurons are time-correlated
+                # because of synapse, probably best to preserve that
+                bs_bins = all_spikes_bs[sample_idx, bs_bin_idxs, :]
+                bs_spikes[sample_idx, :] = np.mean(bs_bins, axis=0)
+
+            # run bootstrap through solver
+            est_encs, est_offsets, _, insufficient_samples = \
+                Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, bs_spikes, solver=solver, fired_tolerance=fired_tolerance)
+
+            all_insufficient = all_insufficient & insufficient_samples
+            bs_encs.append(est_encs)
+            bs_offsets.append(est_offsets)
+
+        # now compute stats on resulting encoders
+        bs_encs = np.array(bs_encs)
+        bs_offsets = np.array(bs_offsets)
+
+        mean_encs = np.nanmean(bs_encs, axis=0)
+        std_encs = np.nanstd(bs_encs, axis=0)
+        mean_offsets = np.nanmean(bs_offsets, axis=0)
+        std_offsets = np.nanstd(bs_offsets, axis=0)
+
+        return mean_encs, mean_offsets, std_encs, std_offsets, all_insufficient
+
+
     def create_optimized_yx_taps(self, ps):
         LY, LX = ps.loc_yx
         Y, X = ps.YX
@@ -1183,6 +1307,10 @@ class Calibrator(object):
                 estimated encoders
             est_offsets : (NxD and len N arrays, Hz)
                 estimated offsets
+            std_encs : (like est_encs)
+                bootstrapped stds for est_encs
+            std_offsets : (like est_offsets)
+                bootstrapped stds for est_offsets
             dbg : {'before' : (encs, offsets at biases=3),
                    'expected' : (encs, offsets expected from optimization)}
                    'pool_tw_offsets' : pool twiddle offset values that were used
@@ -1217,9 +1345,9 @@ class Calibrator(object):
             ps.biases = bias
 
             # run experiment
-            encs, offs, _, dbg = self.get_encoders_and_offsets(
+            encs, offs, std_encs, std_offs, _, dbg = self.get_encoders_and_offsets(
                     ps, dacs=DAC_values, **get_encs_kwargs)
-            return encs, offs, dbg
+            return encs, offs, std_encs, std_offs, dbg
 
         # get twiddle offsets (shouldn't depend on exact network configuration)
         # get offsets over bias from cal_db
@@ -1232,7 +1360,7 @@ class Calibrator(object):
             import pickle
             raw_offsets = np.zeros((7, N))
             for bias_idx, bias in enumerate([-3, -2, -1, 0, 1, 2, 3]):
-                _, offsets, _ = run_bias_exp(bias, ps)
+                _, offsets, _, _, _ = run_bias_exp(bias, ps)
                 raw_offsets[bias_idx, :] = offsets
 
             pool_tw_offsets= raw_offsets.copy()
@@ -1249,7 +1377,7 @@ class Calibrator(object):
             raise ValueError("unknown offset_source '" + offset_source + "'")
 
         # now get the offset values FOR THIS PARTICULAR NETWORK, at biases=3
-        encs_at_b3, offsets_at_b3, bias_exp_dbg = run_bias_exp(3, ps)
+        encs_at_b3, offsets_at_b3, std_encs, std_offsets, bias_exp_dbg = run_bias_exp(3, ps)
 
         opt_biases, opt_offsets, _, _, _ = \
             Calibrator.optimize_bias_twiddles(
@@ -1260,7 +1388,7 @@ class Calibrator(object):
 
         # validate optimization by running again
         if validate:
-            encs_val, offsets_val, bias_exp_dbg = run_bias_exp(opt_biases, ps)
+            encs_val, offsets_val, _, _, bias_exp_dbg = run_bias_exp(opt_biases, ps)
         else:
             encs_val = encs_at_b3
             offsets_val = opt_offsets
@@ -1272,4 +1400,4 @@ class Calibrator(object):
             'sample_pts' : bias_exp_dbg['all_sample_pts'],
             'spikes' : bias_exp_dbg['all_spikes']}
 
-        return ps, DAC_values, encs_val, offsets_val, dbg
+        return ps, DAC_values, encs_val, offsets_val, std_encs, std_offsets, dbg

@@ -173,7 +173,8 @@ class Pool(GraphObject):
     def create_intrinsic_resources(self):
         # unlike other GraphObjects, pool has two intrinsic resources (that are always connected)
         self._append_resource("TATTapPoint", hwr.TATTapPoint(self.n_neurons, self.tap_list))
-        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, self.user_xy_loc, diffusor_cuts_yx=self.diffusor_cuts_yx))
+        self._append_resource("Neurons", hwr.Neurons(self.y, self.x, self.gain_divisors, self.biases, 
+                              xy_loc=self.user_xy_loc, diffusor_cuts_yx=self.diffusor_cuts_yx))
 
         self._get_resource("TATTapPoint").connect(self._get_resource("Neurons"))
 
