@@ -5,45 +5,48 @@ from pystorm.hal.net_builder import NetBuilder
 from pystorm.hal.run_control import RunControl
 from copy import copy
 import time
+import os
+
+from pystorm.calibration.utils.file_io import setup_save_dir
 
 class PoolSpec(object):
     """PoolSpec is the set of parameters to a Pool object.
 
     It's an input to many Calibrator functions, and can be used to create a Pool
-    via Network.create_pool_from_spec() 
-    
+    via Network.create_pool_from_spec()
+
     Parameters
     ==========
-    label (string, default None) : 
+    label (string, default None) :
         an optional descriptive name
-    YX ((Y, X) tuple, default None) : 
+    YX ((Y, X) tuple, default None) :
         the number of rows and columns in the pool
-    loc_yx ((y, x) tuple, default None) : 
-        the row and column location of the pool 
-    D (int, default None): 
+    loc_yx ((y, x) tuple, default None) :
+        the row and column location of the pool
+    D (int, default None):
         the dimensionality of the pool
-    TPM (NxD int array, default None) : 
+    TPM (NxD int array, default None) :
         the tap-point matrix
         encoder-like shape, but with entries in {-1, 0, 1}
-    gain_divisors (N-long int array, default 1) : 
+    gain_divisors (N-long int array, default 1) :
         Divisor on the current that a neuron receives
         Pick from {1, 2, 3, 4}
     biases (N-long int array, default 0) :
         Adds a proportionate current to the neurons' input currents
         Pick from {-3, -2, -1, 0, 1, 2, 3}
-    diffusor_cuts_yx (list of (y, x, (direction in {'left', 'right', 'down', 'up'})) : 
+    diffusor_cuts_yx (list of (y, x, (direction in {'left', 'right', 'down', 'up'})) :
         Where you want diffusor cuts to be drawn,
         (e.g. "right of neuron y, x")
-        Note that the diffusor can only be cut at the 4x4 tile resolution, 
+        Note that the diffusor can only be cut at the 4x4 tile resolution,
         the user's desired cuts will be rounded to this resolution
-    fmax (number, default None) : 
+    fmax (number, default None) :
         The highest input frequency
     """
     def __init__(self,
-            label=None, 
-            YX=None, loc_yx=None, 
-            D=None, TPM=None, 
-            gain_divisors=1, biases=0, 
+            label=None,
+            YX=None, loc_yx=None,
+            D=None, TPM=None,
+            gain_divisors=1, biases=0,
             diffusor_cuts_yx=[],
             fmax=None):
         self.label = label
@@ -78,10 +81,42 @@ class PoolSpec(object):
     def copy(self):
         return copy(self)
 
+class Calibration:
+    """Characterizes the chip's physical parameters
+
+    Parameters
+    ----------
+    name: string, name of calibration
+        used to set up data and figures directories
+    subdir: string
+        subdirectory to append to data and figure directories
+    """
+    def __init__(self, name, subdir=""):
+        abs_path = os.path.abspath(name)
+        self.data_dir = os.path.split(abs_path)[0]+"/data/"+os.path.splitext(name)[0]+"/"+subdir
+        self.fig_dir = os.path.split(abs_path)[0]+"/figures/"+os.path.splitext(name)[0]+"/"+subdir
+        setup_save_dir(self.data_dir)
+        setup_save_dir(self.fig_dir)
+
+    def run(self):
+        """Collect chip data"""
+        raise NotImplementedError
+
+    def save_data(self):
+        """Save the data collected during calibration"""
+        raise NotImplementedError
+
+    def load_data(self):
+        """Load the data collected during calibration"""
+        raise NotImplementedError
+
+    def plot_data(self):
+        raise NotImplementedError
+
 class Calibrator(object):
     """Finds the hardware settings that bring circuits into their useful range"""
 
-    def __init__(self, hal): 
+    def __init__(self, hal):
         self.hal = hal
 
     def get_basic_calibration(self, cal_obj, cal_type, return_as_numpy=False):
@@ -108,8 +143,8 @@ class Calibrator(object):
         return slow_pulse
 
     def get_bad_syns(self, pulse_attrition=.05):
-        """Looks at synapse-related calibration data, discards synapses that have 
-        high bias offset contributions and very slow synapses. 
+        """Looks at synapse-related calibration data, discards synapses that have
+        high bias offset contributions and very slow synapses.
 
         Uses the current value of DAC_SYN_PD when retrieving the synaptic delay calibration.
 
@@ -121,7 +156,7 @@ class Calibrator(object):
         Returns:
         =======
         ((width, height) array of bools for which synapses are bad, debug_info)
-            debug info is dict with keys 
+            debug info is dict with keys
                 {'pulse widths',
                  'pulse widths w/o high_bias syns'}
         """
@@ -137,7 +172,7 @@ class Calibrator(object):
         all_bad_syn = slow_pulse | high_bias
 
         dbg = {'slow_pulse':slow_pulse, 'high_bias': high_bias}
-        
+
         return all_bad_syn, dbg
 
     @staticmethod
@@ -146,7 +181,7 @@ class Calibrator(object):
         if not isinstance(cal_array, np.ndarray):
             raise ValueError("cal_array is not numpy array, is ", str(type(cal_array)))
         if not cal_array.shape[-2:] in [(32, 32), (64, 64)]:
-            raise ValueError("cal_array has weird shape: " + str(cal_array.shape) + 
+            raise ValueError("cal_array has weird shape: " + str(cal_array.shape) +
                 "expect one of: (64, 64), (32, 32), " +
                 "(N, 64, 64), (N, 32, 32), " +
                 "where N is the number of channels in the calibration")
@@ -193,7 +228,7 @@ class Calibrator(object):
         all_offsets = np.zeros((7, 64, 64))
         for i, p, b in zip([0, 1, 2, 4, 5, 6], ['n']*3 + ['p']*3, [3, 2, 1, 1, 2, 3]):
             all_offsets[i] = self.hal.get_calibration(
-                'soma', 'bias_twiddle_' + p + str(b) + '_dac_' + str(curr_DAC_SOMA_OFFSET), 
+                'soma', 'bias_twiddle_' + p + str(b) + '_dac_' + str(curr_DAC_SOMA_OFFSET),
                 return_as_numpy=True)
 
         if extrapolate:
@@ -219,7 +254,7 @@ class Calibrator(object):
         Returns:
         =======
         all_offsets_est (7xN float array, Hz) :
-            same thing with NaNs filled in 
+            same thing with NaNs filled in
         """
 
         _, N = all_offsets.shape
@@ -242,19 +277,19 @@ class Calibrator(object):
                 if biggest > 0 and biggest_arg > 3:
                     est_slope_p[n] = biggest / idx_to_mag(biggest_arg)
                     highest_sample_p[n] = idx_to_mag(biggest_arg)
-                    
+
                 smallest = np.min(valid_off)
                 smallest_arg = np.argmin(valid_off)
                 if smallest < 0 and smallest_arg < 3:
                     est_slope_n[n] = smallest / idx_to_mag(smallest_arg)
                     highest_sample_n[n] = idx_to_mag(smallest_arg)
-                    
+
         # compute global mean offsets
         means = []
         for bias_level in range(7):
             bias_offsets = all_offsets[bias_level, :]
             means.append(np.mean(bias_offsets[~np.isnan(bias_offsets)]))
-            
+
         # weight estimated slopes and global means together to fill in data
         all_offsets_est = all_offsets.copy()
         for n in range(N):
@@ -304,14 +339,14 @@ class Calibrator(object):
         # for each pool, figure out which tap points it uses
         # align that set within the global pulse_widths data
         # figure out what the slowest allowed fmax is of all of them
-        pool_pulse_widths = pulse_widths[ps.loc_y//2 : (ps.loc_y + ps.Y)//2, 
+        pool_pulse_widths = pulse_widths[ps.loc_y//2 : (ps.loc_y + ps.Y)//2,
                                          ps.loc_x//2 : (ps.loc_x + ps.X)//2]
 
         #syns_used = Pool.syn_use_count_from_TPM(ps.TPM, ps.Y, ps.X) >= 1
         # XXX above requires circular import, fn inlined for now
         used_by_dims = np.sum(np.abs(ps.TPM), axis=1) # used by any dim
         # shaped H//2, 2 , W//2, 2, D
-        syn_blocks_used = used_by_dims.reshape((ps.Y//2, 2, ps.X//2, 2)) 
+        syn_blocks_used = used_by_dims.reshape((ps.Y//2, 2, ps.X//2, 2))
         syns_used = np.sum(syn_blocks_used, axis=(1, 3)) >= 1
 
         used_pw = pool_pulse_widths[syns_used]
@@ -321,15 +356,15 @@ class Calibrator(object):
 
     @staticmethod
     def optimize_bias_twiddles(encoders, offsets_at_b3, pool_tw_offsets, policy='greedy_flat'):
-        """Given the measured encoders and offsets of a pool, and the set of changes in 
+        """Given the measured encoders and offsets of a pool, and the set of changes in
         firing rates for each twiddle value relative to twiddle 0, determine the offsets that
-        result in optimal neuron yield. 
+        result in optimal neuron yield.
 
         Parameters:
         ==========
-        encoders (NxD array, Hz) : 
+        encoders (NxD array, Hz) :
             estimated gain * encoders for the pool
-        offsets_at_b3 (len N array, Hz) : 
+        offsets_at_b3 (len N array, Hz) :
             estimated offsets for the pool WHEN EACH BIAS TWIDDLE IS SET TO +3
             (these first two parameters are the returns of get_encoders_and_offsets())
         pool_tw_offsets (7xN array, Hz) :
@@ -340,29 +375,29 @@ class Calibrator(object):
                 'random' : Choose from possible offsets uniformly randomly
                 'center' : Tries to achieve an intercept distribution peaked in the center.
                     Also good if trying to get the highest possible yield (because
-                    estimates of gains/biases might be slightly off, and neurons that we try 
+                    estimates of gains/biases might be slightly off, and neurons that we try
                     to place near the edge of the intercept range might actually fall outside)
                     Choose the offset closest to 0.
-                'greedy_flat' : Tries to achieve a flat intercept distribution. 
-                    Divides the space of intercepts into bins, iterate through neurons, 
-                    choosing the offset that puts the neuron in the bin with the 
-                    fewest neurons in it currently. 
+                'greedy_flat' : Tries to achieve a flat intercept distribution.
+                    Divides the space of intercepts into bins, iterate through neurons,
+                    choosing the offset that puts the neuron in the bin with the
+                    fewest neurons in it currently.
                 'avoid edges' : Tries to achieve a flat distribution, not including upper/lower 5% of the range.
                     A mixture of 'center' and 'greedy_flat'.
-                    Meant to achieve mostly flat intercept distribution, 
+                    Meant to achieve mostly flat intercept distribution,
                     but without sacrificing yield.
 
         Returns:
         ========
         tw_vals, new_offsets, good, bin_counts, dbg
 
-        tw_vals (len N int array, {-3, -2, 1, 0, 1, 2, 3}) : 
+        tw_vals (len N int array, {-3, -2, 1, 0, 1, 2, 3}) :
             twiddle values returned by the optimization
-        new_offsets (len N float array, units Hz) : 
+        new_offsets (len N float array, units Hz) :
             expected offsets after twiddling for each neuron
         good : (len N bool array) :
             good/bad flag for each neuron post-twiddling
-        bin_counts (array of ints): 
+        bin_counts (array of ints):
             histogram of intercepts post-twiddling, bins evenly spaced in [-1, 1]
         """
 
@@ -397,7 +432,7 @@ class Calibrator(object):
                         bias_idx = good_options_idxs[np.random.randint(len(good_options_idxs))]
                         nrn_is_good = True
                     else:
-                        # we might be firing all the time, or we might be straddling the 
+                        # we might be firing all the time, or we might be straddling the
                         # 'good' range with our intercept options,
                         # pick the closest, err high
                         bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
@@ -424,7 +459,7 @@ class Calibrator(object):
                         bias_idx = good_options_idxs[np.argmin(np.abs(good_options))]
                         nrn_is_good = True
                     else:
-                        # we might be firing all the time, or we might be straddling the 
+                        # we might be firing all the time, or we might be straddling the
                         # 'good' range with our intercept options,
                         # pick the closest, err high
                         bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
@@ -442,9 +477,9 @@ class Calibrator(object):
 
         elif policy == 'avoid_edges':
             raise NotImplementedError("avoid_edges isn't done yet")
-            
+
         elif policy == 'greedy_flat':
-            # divide space of intercepts into bins, iterate through neurons, 
+            # divide space of intercepts into bins, iterate through neurons,
             # take the DAC setting that puts neuron in the least-currently-filled bin
 
             # f(x) = 0 = f'(x) = x * e_unit * g + b (intercept = x condition)
@@ -467,10 +502,10 @@ class Calibrator(object):
 
                         # idx to the smallest of those counts
                         # also the idx to the good_options_idxs that produces it
-                        best_good_option_idx = np.argmin(option_bin_counts) 
-                        
+                        best_good_option_idx = np.argmin(option_bin_counts)
+
                         # bin idx to increment
-                        best_bin_idx = option_bin_idxs[best_good_option_idx] 
+                        best_bin_idx = option_bin_idxs[best_good_option_idx]
 
                         bin_counts[best_bin_idx] += 1
 
@@ -478,7 +513,7 @@ class Calibrator(object):
                         nrn_is_good = True
 
                     else:
-                        # we might be firing all the time, or we might be straddling the 
+                        # we might be firing all the time, or we might be straddling the
                         # 'good' range with our intercept options,
                         # pick the closest, err high
                         bias_idx = (np.arange(BIAS_LEVELS)[offset_options[:, n] > 0])[0]
@@ -491,7 +526,7 @@ class Calibrator(object):
                 tw_assignments[n] = bias_idx
                 new_offsets[n] = offset_options[bias_idx, n]
                 good[n] = nrn_is_good
-            
+
         elif policy == 'flat':
             # consider all possible DAC settings across all neurons simulatenously
             # choose the settings that achieve the flattest possible intercept distribution
@@ -508,28 +543,28 @@ class Calibrator(object):
         tw_vals = np.zeros(tw_assignments.shape, dtype=int)
         for n in range(N_NEURONS):
             tw_vals[n] = tw_idx_to_val(tw_assignments[n])
-            
+
         dbg = {'options' : intercept_options}
 
         return tw_vals, new_offsets, good, bin_counts, dbg
 
-    def get_encoders_and_offsets(self, ps, dacs={}, 
-        num_sample_angles=3, do_opposites=True, sample_pts=None, 
-        solver='scipy_opt', 
-        bin_time=1, discard_time=.2, 
+    def get_encoders_and_offsets(self, ps, dacs={},
+        num_sample_angles=3, do_opposites=True, sample_pts=None,
+        solver='scipy_opt',
+        bin_time=1, discard_time=.2,
         bootstrap_bin_time=.05, num_bootstraps=20):
         """Estimate the gains and biases of each neuron in the network
 
         An exhaustive (O(2**D)) scanning of the input space is not necessary.
 
-        For each neuron, we need (D+1) data points where the neuron is firing. 
+        For each neuron, we need (D+1) data points where the neuron is firing.
         Assuming that the neuron hasn't saturated (we set the refractory period to the minimum),
         with these points, we can fit a plane whose parameters are the effective encoders and offsets.
 
-        Selecting the (D+1) points for each neurons is achieved by guessing at the encoder of 
+        Selecting the (D+1) points for each neurons is achieved by guessing at the encoder of
         each neuron by looking at its surrounding tap points. The polarities of these tap points
         will be used for the middle point (e.g. [-1, 1, 0, 0, 1, 1] for some neuron in a 6D pool).
-        Points within some angle of this point are sampled to obtain the other D points. 
+        Points within some angle of this point are sampled to obtain the other D points.
 
         Data collection proceeds in iterations. All neurons are sampled simultaneously (in case the D+1 points
         for one neuron actually cause some other to fire--this extra data helps the fitting).
@@ -538,9 +573,9 @@ class Calibrator(object):
             - If the neuron does not fire at its "middle" point, it's assumed that it won't ever fire.
             - If it does, and the other D points also induced firing, then it's OK to proceed to the fitting.
         If the middle point induces firing, but not all D extra points did, another set of points
-        are sampled at a tighter angle for each unsatisfied neuron. 
-        After some number of iterations, if there are still unsatisfied neurons, 
-        their responses must be really "wedged" into a corner of the input space. 
+        are sampled at a tighter angle for each unsatisfied neuron.
+        After some number of iterations, if there are still unsatisfied neurons,
+        their responses must be really "wedged" into a corner of the input space.
         We assume the encoder is the "middle" point, and the offset is the shortest projection
         of any point that did induce firing onto the middle point.
 
@@ -548,8 +583,8 @@ class Calibrator(object):
         The returned offsets will be in the range [-sqrt(D), sqrt(D)].
 
         Fitting yields a plane of the form: dot(a, x) + b, a is the effective encoder, b is the offset.
-        Fitting is performed by least-squares: 
-            min||X*A - fout|| 
+        Fitting is performed by least-squares:
+            min||X*A - fout||
             where A are the encoders, X are the sample points, fout are the observed firing rates
             rows of X and fout are extracted from the overall dataset where fout_i > 0
 
@@ -557,19 +592,19 @@ class Calibrator(object):
         =======
         ps : (PoolSpec object)
             required pars: YX, loc_yx, TPM, fmax
-            relevant pars: gain_divisors, biases, diffusor_cuts_yx, 
+            relevant pars: gain_divisors, biases, diffusor_cuts_yx,
         num_sample_angles : (int, default 3)
             how many times to tighten the angle when sampling tuning curves
         sample_pts : (NxD array, default None)
             manual override for tuning curve sampling points, forgoes the iterative algorithm
             might be faster in some situtations (when N ~ 2**D)
         solver : (string, {'scipy_opt', 'LS'}, default 'scipy_opt')
-            how to solve for tuning curves.  
-                scipy_opt : 
-                    nonlinear least squares via scipy.leastsq, 
+            how to solve for tuning curves.
+                scipy_opt :
+                    nonlinear least squares via scipy.leastsq,
                     doesn't discard any points, fits the RELU
-                LS : 
-                    straight up least squares fit of the plane 
+                LS :
+                    straight up least squares fit of the plane
                     beyond neuron bifurcation. fired/not fired discrimination
                     must not have false positives for this to perform well
 
@@ -638,7 +673,7 @@ class Calibrator(object):
             start_time = times[0]
             end_time = times[-1] + bin_time * 1e9
             times_w_end = np.hstack((times, [end_time]))
-            _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+            _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False,
                                             start_time=start_time, end_time=end_time, rel_time=False)
             spikes, spike_bin_times = spikes_and_bin_times
 
@@ -666,7 +701,7 @@ class Calibrator(object):
             num_pts =  sample_pts.shape[0]
             bs_bin_times = np.zeros((len(bs_base_times) * num_pts + 1,))
             for pt_idx in range(num_pts):
-                bs_bin_times[pt_idx * len(bs_base_times) : 
+                bs_bin_times[pt_idx * len(bs_base_times) :
                              (pt_idx + 1) * len(bs_base_times)] = \
                                 (bs_base_times + pt_idx * bin_time) * 1e9
             bs_bin_times += start_time
@@ -677,7 +712,7 @@ class Calibrator(object):
             spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, bs_bin_times,
                                                    discard_idxs=discard_idxs)
 
-            sanity_spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times, 
+            sanity_spike_rates = data_utils.bins_to_rates(spikes[pool], spike_bin_times,
                                                           times_w_end)
             assert(spike_rates.shape == (sample_pts.shape[0] * num_bs_bins, pool.n_neurons))
 
@@ -699,9 +734,9 @@ class Calibrator(object):
             # create bootstrap sets, do estimation for each
             print("running", num_bootstraps, "bootstraps")
             mean_encs, mean_offsets, std_encs, std_offsets, all_insufficient = \
-                Calibrator.bootstrap_estimate_encs(all_sample_pts, all_spikes_bs, num_bootstraps, 
+                Calibrator.bootstrap_estimate_encs(all_sample_pts, all_spikes_bs, num_bootstraps,
                                                    solver=solver)
-            
+
             sanity_encs, sanity_offsets, _, insufficient = \
                 Calibrator.estimate_encs_from_tuning_curves(all_sample_pts, all_sanity_spikes)
 
@@ -714,13 +749,13 @@ class Calibrator(object):
 
         debug = {'all_sample_pts': all_sample_pts,
                  'all_spikes': all_sanity_spikes}
-        
+
         return sanity_encs, sanity_offsets, std_encs, std_offsets, all_insufficient, debug
-                
+
     def validate_est_encs(self, est_encs, est_offsets, ps, sample_pts, dacs={}):
         """Validate the output of get_encoders_and_offsets
 
-        Samples neuron firing rates at supplied sample_pts, compares to 
+        Samples neuron firing rates at supplied sample_pts, compares to
         est_encs * sample_pts + est_offsets, to directly assess predictive
         quality of est_encs and est_offsets.
 
@@ -730,7 +765,7 @@ class Calibrator(object):
         est_offsets (N array) : offset estimates
         ps : (PoolSpec object)
             required pars: YX, loc_yx, TPM, fmax
-            relevant pars: gain_divisors, biases, diffusor_cuts_yx, 
+            relevant pars: gain_divisors, biases, diffusor_cuts_yx,
         sample_pts (SxD array) : points to sample in the input space
 
         Returns:
@@ -739,7 +774,7 @@ class Calibrator(object):
         rmse_err (float) : RMSE firing rate error
         meas_rates (SxN array) : firing rates of each neuron at each sample_pt
         est_rates (SxN array) : what the est_encoders/offsets predicted
-        """ 
+        """
         ps.check_specified(['YX', 'loc_yx', 'TPM', 'fmax'])
 
         HOLD_TIME = 1 # seconds
@@ -769,7 +804,7 @@ class Calibrator(object):
 
         input_vals = {inp: (times, sample_freqs)}
 
-        _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False, 
+        _, spikes_and_bin_times = run.run_input_sweep(input_vals, get_raw_spikes=True, get_outputs=False,
                                         start_time=start_time, end_time=end_time, rel_time=False)
         print("done sweeping")
         spikes, spike_bin_times = spikes_and_bin_times
@@ -780,7 +815,7 @@ class Calibrator(object):
 
         RMSE = np.sqrt(np.mean((est_A.flatten() - meas_A.flatten())**2))
         return RMSE, meas_A, est_A
-        
+
     @staticmethod
     def get_gains(encoders):
         """compute effective gains from encoders"""
@@ -861,19 +896,19 @@ class Calibrator(object):
         for d in range(D):
             thr_encs = opt_encs[:, d].copy()
             thr_encs[np.isnan(thr_encs)] = 0
-            
+
             log_encs = thr_encs.copy()
             log_encs[log_encs > 0] = np.log(log_encs[log_encs > 0] + 1)
             log_encs[log_encs < 0] = -np.log(-log_encs[log_encs < 0] + 1)
-            
+
             if plotlog:
                 im = ax[d].imshow(log_encs.reshape(Y, X), vmin=-np.log(800), vmax=np.log(800))
             else:
                 im = ax[d].imshow(thr_encs.reshape(Y, X), vmin=-800, vmax=800)
-            
+
             if d == D-1:
                 plt.colorbar(im, cax=ax[d+1])
-            
+
             pos_taps = []
             neg_taps = []
             for x in range(X):
@@ -892,7 +927,7 @@ class Calibrator(object):
                 ax[d].scatter(pos_taps[:, 1], pos_taps[:, 0], marker='+', c='r')
             if len(neg_taps) > 0:
                 ax[d].scatter(neg_taps[:, 1], neg_taps[:, 0], marker='+', c='cyan')
-                
+
         plt.tight_layout(w_pad=.05, h_pad=.05)
 
 
@@ -908,7 +943,7 @@ class Calibrator(object):
             dimensions = len(tap_list_or_matrix)
             tap_matrix = np.zeros((dimensions, pooly, poolx), dtype=int)
             # user may have specified tap list or tap matrix
-            
+
             for dim_idx, dim_taps in enumerate(tap_list_or_matrix):
                 for tap_idx, tap_sign in dim_taps:
                     tap_y = tap_idx // poolx
@@ -950,7 +985,7 @@ class Calibrator(object):
 
     @staticmethod
     def get_sample_points_around_encs(approx_enc, angle_away, do_opposites=False):
-        """from a set of approximate encoders, derive sample points that can be used 
+        """from a set of approximate encoders, derive sample points that can be used
         to determine the actual encoders
         See get_encoders_and_offsets for more detail.
         """
@@ -1001,7 +1036,7 @@ class Calibrator(object):
 
             def get_points_angle_away(pt, angle):
                 # 1. generate random point
-                # 2. remove projection onto original point, and other already selected points 
+                # 2. remove projection onto original point, and other already selected points
                 #    (get random point orthogonal to current set of points)
                 # 3. add back scaled amount of original point that gives desired angle
                 # 4. use that point, and its opposite
@@ -1018,11 +1053,11 @@ class Calibrator(object):
 
                     for pt_idx in range(dims - 1): # generate (dims - 1) points
 
-                        # 1. 
+                        # 1.
                         rand_pt = np.random.randn(dims)
                         rand_pt /= np.linalg.norm(rand_pt)
 
-                        # 2. 
+                        # 2.
                         eliminate_projections(rand_pt, chosen_pts)
                         rand_orthog_pt = rand_pt / np.linalg.norm(rand_pt)
 
@@ -1034,7 +1069,7 @@ class Calibrator(object):
 
                     if do_opposites:
                         return chosen_pts + chosen_neg_pts
-                    else: 
+                    else:
                         return chosen_pts
                 else:
                     return False
@@ -1045,7 +1080,7 @@ class Calibrator(object):
                 if angle_away_pts is not False:
                     sample_points += angle_away_pts
                     # scale unit vector up to unit cube
-                    #longest_comp = np.max(np.abs(unit_vect_angle_away)) 
+                    #longest_comp = np.max(np.abs(unit_vect_angle_away))
                     #if longest_comp > 0:
                     #    scaled_angle_away = unit_vect_angle_away / longest_comp
                     #else:
@@ -1061,8 +1096,8 @@ class Calibrator(object):
                 std_basis_vects[2*d, d] = 1
                 std_basis_vects[2*d+1, d] = -1
 
-            sample_points = np.vstack((sample_points, 
-                                       std_basis_vects, 
+            sample_points = np.vstack((sample_points,
+                                       std_basis_vects,
                                        np.zeros((1, dimensions))))
 
             return sample_points, unique_encs
@@ -1071,13 +1106,13 @@ class Calibrator(object):
     @staticmethod
     def estimate_encs_from_tuning_curves(sample_pts, firing_rates, fired_tolerance=35, solver='scipy_opt'):
         """Given firing_rates collected at sample_pts, infer the encoders
-        and offsets of each neuron. 
+        and offsets of each neuron.
 
         Inputs:
         ======
         sample_pts (SxD array) : input values used to collect data
         firing_rates (SxN array) : firing rates at those input values
-        fired_tolerance (tup(float, float)) : 
+        fired_tolerance (tup(float, float)) :
             firing_rates > fired_tolerance are considered "on"
         solver (string) : how to solve for encoders
             LS (fit plane only, don't use "didn't fire" pts)
@@ -1119,7 +1154,7 @@ class Calibrator(object):
                     sample_pts_with_ones[:, :dims] = sample_pts_on
 
                     # do LS fit
-                    # min||sample_pts_on*A - firing_rates_on|| 
+                    # min||sample_pts_on*A - firing_rates_on||
                     #         Sx(D+1)   *   (D+1)x1   ~   Sx1
                     # S*x = f
                     # S.T*S*x = S.T*f
@@ -1143,7 +1178,7 @@ class Calibrator(object):
                     from scipy.optimize import leastsq
 
                     def resp_func(x, p):
-                        return np.maximum(0, np.dot(x, p[:dims]) + p[dims])                        
+                        return np.maximum(0, np.dot(x, p[:dims]) + p[dims])
                     def get_min_func(x, y):
                         return lambda p : y - resp_func(x, p)
 
@@ -1152,9 +1187,9 @@ class Calibrator(object):
                     est_encs[n, :] = popt[:dims]
                     est_offsets[n] = popt[dims]
                     mean_residuals[n] = 0 # unsupported
-                    
+
                 else:
-                    raise ValueError("unsupported solver: " + solver + 
+                    raise ValueError("unsupported solver: " + solver +
                         ". Choose from 'LS' or 'scipy_opt'")
 
             # not enough samples to estimate encoder
@@ -1176,7 +1211,7 @@ class Calibrator(object):
         all_insufficient = np.ones((num_neurons,), dtype=bool)
         for bootstrap_idx in range(num_bootstraps):
             #print("bootstrap", bootstrap_idx)
-        
+
             # bootstrapped data set to run fit on
             bs_spikes = np.zeros((num_samples, num_neurons))
             for sample_idx in range(num_samples):
@@ -1258,8 +1293,8 @@ class Calibrator(object):
         return dacs
 
     def optimize_yield(self, ps_orig, dacs={},
-            fmax_safety_margin=.85, 
-            bias_twiddle_policy='greedy_flat', 
+            fmax_safety_margin=.85,
+            bias_twiddle_policy='greedy_flat',
             offset_source='calibration_db',
             get_encs_kwargs={},
             validate=True):
@@ -1280,9 +1315,9 @@ class Calibrator(object):
                 configuration (could be more accurate)
             can also specify twiddle offsets directly as 7xN array
         fmax_safety_margin : (float in [0, 1])
-            safety_margin (float, default .85) : fmax margin (fudge factor) 
+            safety_margin (float, default .85) : fmax margin (fudge factor)
             to allow for decode mixing in optimize_fmax()
-        bias_twiddle_policy (string) : 
+        bias_twiddle_policy (string) :
             policy used to pick between multiple achievable 'good' offset values.
             See optimize_bias_twiddles().
         validate : (bool)
@@ -1291,8 +1326,8 @@ class Calibrator(object):
             if False, they are the expected encoders and offsets post-optimization
         get_encs_kwargs : (dict)
             kwargs to pass to get_encoders_and_offsets()
-            
- 
+
+
         Returns:
         =======
             ps : (PoolSpec object)
@@ -1323,7 +1358,7 @@ class Calibrator(object):
         DAC_values = self.set_DACs_for_yield(ps, dacs)
 
         if DAC_values['DAC_SOMA_REF'] != 1024:
-            raise RuntimeWarning("encoder estimation may be poor if the neurons saturate. " + 
+            raise RuntimeWarning("encoder estimation may be poor if the neurons saturate. " +
                 "Recommend DAC_SOMA_REF = 1024 to avoid saturation")
 
         # create tap points
@@ -1337,7 +1372,7 @@ class Calibrator(object):
         # if D == 1, cut diffusor down the middle
         if ps.D == 1 and ps.diffusor_cuts_yx is not None:
             ps.diffusor_cuts_yx = NetBuilder.get_diff_cuts_to_break_pool_in_half(ps.Y, ps.X)
-        
+
         # get encs and offsets for our network, at a given bias
         def run_bias_exp(bias, main_ps):
             # copy ps, write in bias we want to test

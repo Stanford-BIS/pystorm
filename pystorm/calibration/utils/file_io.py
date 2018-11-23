@@ -40,6 +40,11 @@ def save_pickle_data(fname, data):
     with open(fname, "wb") as pickle_file:
         pickle.dump(data, pickle_file)
 
+def setup_save_dir(dirname):
+    """Setup a directory for saving data or figures"""
+    if not os.path.isdir(dirname):
+        os.makedirs(dirname, exist_ok=True)
+
 def set_data_dir(fname, subdir=""):
     """Sets up a data directory for a given filename"""
     data_dir = "./data/" + os.path.basename(fname)[:-3] + "/"
