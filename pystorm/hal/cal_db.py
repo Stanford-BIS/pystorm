@@ -3,7 +3,7 @@ import pandas as pd
 import sys
 
 class CalibrationDB(object):
-    
+
     def __init__(self, fname_base):
         """
         Basically a container for a dict of pandas dataframes.
@@ -12,24 +12,18 @@ class CalibrationDB(object):
         """
         self.fname_base = fname_base
 
-        self.SYNAPSE_CALS = [
-            'tau_dac_1', 
-            'tau_dac_2', 
-            'tau_dac_4', 
-            'tau_dac_8', 
-            'tau_dac_16', 
-            'high_bias_magnitude',
-            ]
+        self.SYNAPSE_CALS = ['tau_dac_' + str(i) for i in range(1, 17)]
+        self.SYNAPSE_CALS += ['high_bias_magnitude']
         self.SYNAPSE_CALS += ["pulse_width_dac_" + str(i) for i in range(20, 41)]
 
         self.SOMA_CALS = [
             ]
-        self.SOMA_CALS += ['bias_twiddle_' + sign + str(bias) + '_dac_' + str(dac) 
+        self.SOMA_CALS += ['bias_twiddle_' + sign + str(bias) + '_dac_' + str(dac)
                            for sign in ('p', 'n')
-                           for bias in range(1,4)
+                           for bias in range(1, 4)
                            for dac in (1, 2, 4)]
 
-        self.CAL_TYPES = {'synapse': self.SYNAPSE_CALS, 
+        self.CAL_TYPES = {'synapse': self.SYNAPSE_CALS,
                           'soma': self.SOMA_CALS}
 
         # TODO, should probably inherit these parameters somehow
@@ -37,7 +31,7 @@ class CalibrationDB(object):
         self.SOMA_YX = 64
         self.SYNAPSE_YX = 32
 
-        self.CAL_SIZES = {'synapse': (self.SYNAPSE_YX, self.SYNAPSE_YX), 
+        self.CAL_SIZES = {'synapse': (self.SYNAPSE_YX, self.SYNAPSE_YX),
                           'soma': (self.SOMA_YX, self.SOMA_YX)}
 
         # enforce structure of constants
@@ -57,8 +51,8 @@ class CalibrationDB(object):
         # dict of DFs keyed by cal_objs, e.g. "soma", "synapse"
         # self.cals[cal_obj] is a pandas DF with multilevel indexing indexed [chip, y, x]
         # to get a single data element: self.cals[cal_obj][cal_type][chip][obj_idx]
-        #   NOTE, the above works (maybe isn't fast) for viewing data, 
-        #   but to assign data correctly, you need to do: 
+        #   NOTE, the above works (maybe isn't fast) for viewing data,
+        #   but to assign data correctly, you need to do:
         #   self.cals[cal_obj].loc[(chip, yidx, xidx), cal_type] = blah
         #     also note that slicing in .loc is tricky, see below
         # examples:
@@ -93,7 +87,7 @@ class CalibrationDB(object):
                 self.activations = df
             else:
                 df = pd.read_csv(fname, index_col=[0, 1, 2])
-                self.cals[cal_obj] = df 
+                self.cals[cal_obj] = df
         except FileNotFoundError:
             pass # this is OK, we'll just create them later
         except:
@@ -141,7 +135,7 @@ class CalibrationDB(object):
             chip_activation = self.activations[chip]
             sims.append(np.dot(chip_activation, activation))
         return sims
-        
+
     def find_chip(self, activation):
         """Given an activation, determine whether activation matches any previously-seen chip
         Returns
@@ -164,7 +158,7 @@ class CalibrationDB(object):
         elif len(match_chips) == 1:
             return match_chips[0], sims
         else:
-            errstr = " ".join(["activation matched >1 following chips", str(match_chips), 
+            errstr = " ".join(["activation matched >1 following chips", str(match_chips),
                 "inner products:", str(sims),"exiting"])
             raise ValueError(errstr)
 
@@ -176,7 +170,7 @@ class CalibrationDB(object):
 
         if matching_chip is None:
             if chip in self.activations.columns:
-                raise ValueError("Chip name already in database, but activation didn't match." + 
+                raise ValueError("Chip name already in database, but activation didn't match." +
                     'Possible false negative. Highest inner product was' + str(np.max(sims)))
             else:
                 self.activations[chip] = activation
@@ -195,7 +189,7 @@ class CalibrationDB(object):
             raise ValueError(errstr)
 
         if cal_type not in self.CAL_TYPES[cal_obj]:
-            errstr = " ".join(["check_cal_pars(): you supplied calibration type", cal_type, 
+            errstr = " ".join(["check_cal_pars(): you supplied calibration type", cal_type,
                   "which isn't known to CalibrationDB.",
                   "All calibrations must be added to self.CAL_TYPES[" + cal_obj + "]",
                   "supported calibration types for this object (" + cal_obj + "):", str(self.CAL_TYPES[cal_obj])])
@@ -218,7 +212,7 @@ class CalibrationDB(object):
         values: Set of values to enter into calibration DB
                 if value_indices is None, must have as many entries as there are objects
                 (e.g. 4096 or 1024 for somas or synapses)
-        indices: Set of indices to use for less-than-full length entries. 
+        indices: Set of indices to use for less-than-full length entries.
                  Can be y,x or flat index, can be out-of-order.
         """
         self.check_cal_pars(chip, cal_obj, cal_type)
@@ -230,7 +224,7 @@ class CalibrationDB(object):
             dimy, dimx = self.CAL_SIZES[cal_obj]
             cal_size = dimy * dimx
             if len(flat_values) != cal_size:
-                errstr = " ".join(["add_calibration(): values for", cal_obj, "must have", 
+                errstr = " ".join(["add_calibration(): values for", cal_obj, "must have",
                         str(cal_size), "entries, exiting"])
                 raise ValueError(errstr)
 
@@ -247,7 +241,6 @@ class CalibrationDB(object):
 
         if commit_now:
             self.write_to_file(cal_obj)
-            
 
     def get_calibration(self, chip, cal_obj, cal_type, return_as_numpy=False):
         """Get a copy of the calibration DF for a particular calibration
