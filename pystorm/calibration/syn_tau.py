@@ -153,7 +153,7 @@ def end_collection(HAL):
     HAL.disable_spike_recording(flush=True)
     #print("done collecting data")
 
-    binned_spikes, _ = HAL.get_binned_spikes(UPSTREAM_RES_NS)
+    binned_spikes, _ = HAL.get_binned_spikes(HAL.upstream_ns)
 
     # transpose everything, since that's how the script originally worked
     pool_id = next(iter(binned_spikes)) # there's only one pool
@@ -168,11 +168,11 @@ def end_collection_bin_spikes(HAL, start_time, end_time):
 
     HAL.stop_traffic(flush=False)
     HAL.disable_spike_recording(flush=True)
-    #print("done collecting data")
+    print("done collecting data")
 
-    #starttime = time.time()
-    binned_spikes, bin_times = HAL.get_binned_spikes(UPSTREAM_RES_NS)
-    #print("getting spikes took", time.time() - starttime)
+    starttime = time.time()
+    binned_spikes, bin_times = HAL.get_binned_spikes(HAL.upstream_ns)
+    print("getting spikes took", time.time() - starttime)
 
     start_idx = np.searchsorted(bin_times, start_time)
     end_idx = np.searchsorted(bin_times, end_time)
