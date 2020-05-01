@@ -151,7 +151,7 @@ def end_collection(HAL):
 
     HAL.stop_traffic(flush=False)
     HAL.disable_spike_recording(flush=True)
-    #print("done collecting data")
+    print("done collecting data")
 
     binned_spikes, _ = HAL.get_binned_spikes(HAL.upstream_ns)
 
@@ -257,6 +257,7 @@ def process_baseline(f0, fhigh, fmax):
 def run_tau_exp(HAL, num_trials, syn_lk):
     all_binned_spikes = {}
     all_linear = {}
+    big_sleep=0.5 # give the driver more time to catch up:
     for syn_y, syn_x in [(0,0), (0,1), (1,0), (1,1)]:
         
         syn_idx = syn_y * 2 + syn_x
@@ -273,12 +274,16 @@ def run_tau_exp(HAL, num_trials, syn_lk):
 
         nrn_cts_f0 = end_collection(HAL)
 
+        time.sleep(big_sleep)
+
         # f(.5 * FMAX)
         HAL.set_input_rate(inp, 0, FMAX // 2, time=0) 
         start_collection(HAL)
 
         time.sleep(TBASELINE)
         nrn_cts_fhigh = end_collection(HAL)
+
+        time.sleep(big_sleep)
 
         HAL.set_input_rate(inp, 0, 0, time=0) 
         time.sleep(.1)
@@ -289,6 +294,8 @@ def run_tau_exp(HAL, num_trials, syn_lk):
 
         time.sleep(TBASELINE)
         nrn_cts_fmax = end_collection(HAL)
+
+        time.sleep(big_sleep)
 
         HAL.set_input_rate(inp, 0, 0, time=0) 
         time.sleep(.1)
@@ -320,6 +327,8 @@ def run_tau_exp(HAL, num_trials, syn_lk):
             print('end_s', end_ns / 1e9)
 
             binned_spikes = end_collection_bin_spikes(HAL, start_ns, end_ns)
+            time.sleep(big_sleep)
+
             all_binned_spikes[(syn_y, syn_x)].append(binned_spikes)
 
     return all_binned_spikes, all_linear
@@ -330,7 +339,9 @@ def run_tau_exp(HAL, num_trials, syn_lk):
 def collapse_multitrial(As):
     A = np.zeros_like(As[0])
     for A_single in As:
-        A += A_single
+        temp = np.zeros_like(A)
+        temp[:A_single.shape[0], :A_single.shape[1]] = A_single
+        A += temp
     return A
 
 def get_syn_responses(A, linear):
