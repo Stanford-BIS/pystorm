@@ -257,7 +257,7 @@ def process_baseline(f0, fhigh, fmax):
 def run_tau_exp(HAL, num_trials, syn_lk):
     all_binned_spikes = {}
     all_linear = {}
-    big_sleep=0.5 # give the driver more time to catch up:
+    big_sleep=5 # give the driver more time to catch up:
     for syn_y, syn_x in [(0,0), (0,1), (1,0), (1,1)]:
         
         syn_idx = syn_y * 2 + syn_x
@@ -362,6 +362,8 @@ def combine_quadrant_responses(S_yxs, syn_yxs):
     Sall_yx = np.zeros((TILES_Y * 2, TILES_X * 2, S_yxs[0].shape[2]))
     for syn_yx, S_yx in zip(syn_yxs, S_yxs):
         syn_y, syn_x = syn_yx
+        temp = np.zeros_like(Sall_yx[syn_y::2, syn_x::2, :])
+        temp[:S_yx.shape[0], :S_yx.shape[1]] = S_yx
         Sall_yx[syn_y::2, syn_x::2, :] = S_yx
     return Sall_yx
 
