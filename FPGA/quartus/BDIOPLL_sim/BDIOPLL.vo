@@ -1,24 +1,24 @@
 //IP Functional Simulation Model
-//VERSION_BEGIN 17.0 cbx_mgl 2017:04:19:10:26:36:SJ cbx_simgen 2017:04:19:09:17:27:SJ  VERSION_END
+//VERSION_BEGIN 19.1 cbx_mgl 2019:09:22:09:26:20:SJ cbx_simgen 2019:09:22:08:02:34:SJ  VERSION_END
 // synthesis VERILOG_INPUT_VERSION VERILOG_2001
 // altera message_off 10463
 
 
 
-// Copyright (C) 2017  Intel Corporation. All rights reserved.
+// Copyright (C) 2019  Intel Corporation. All rights reserved.
 // Your use of Intel Corporation's design tools, logic functions 
-// and other software and tools, and its AMPP partner logic 
+// and other software and tools, and any partner logic 
 // functions, and any output files from any of the foregoing 
 // (including device programming or simulation files), and any 
 // associated documentation or information are expressly subject 
 // to the terms and conditions of the Intel Program License 
 // Subscription Agreement, the Intel Quartus Prime License Agreement,
-// the Intel MegaCore Function License Agreement, or other 
-// applicable license agreement, including, without limitation, 
-// that your use is for the sole purpose of programming logic 
-// devices manufactured by Intel and sold by Intel or its 
-// authorized distributors.  Please refer to the applicable 
-// agreement for further details.
+// the Intel FPGA IP License Agreement, or other applicable license
+// agreement, including, without limitation, that your use is for
+// the sole purpose of programming logic devices manufactured by
+// Intel and sold by Intel or its authorized distributors.  Please
+// refer to the applicable agreement for further details, at
+// https://fpgasoftware.intel.com/eula.
 
 // You may only use these simulation model output files for simulation
 // purposes and expressly not for synthesis or any other purposes (in which
@@ -202,7 +202,7 @@ module  BDIOPLL
 		bdiopll_altera_pll_altera_pll_i_1557.data_rate = 0,
 		bdiopll_altera_pll_altera_pll_i_1557.deserialization_factor = 4,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle0 = 50,
-		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle1 = 50,
+		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle1 = 90,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle10 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle11 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle12 = 50,
@@ -211,7 +211,7 @@ module  BDIOPLL
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle15 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle16 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle17 = 50,
-		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle2 = 50,
+		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle2 = 90,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle3 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle4 = 50,
 		bdiopll_altera_pll_altera_pll_i_1557.duty_cycle5 = 50,
