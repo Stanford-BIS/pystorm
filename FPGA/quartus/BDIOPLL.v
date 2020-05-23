@@ -86,7 +86,7 @@ endmodule
 // Retrieval info: 	<generic name="gui_phase_shift1" value="0" />
 // Retrieval info: 	<generic name="gui_phase_shift_deg1" value="0.0" />
 // Retrieval info: 	<generic name="gui_actual_phase_shift1" value="0" />
-// Retrieval info: 	<generic name="gui_duty_cycle1" value="90" />
+// Retrieval info: 	<generic name="gui_duty_cycle1" value="10" />
 // Retrieval info: 	<generic name="gui_cascade_counter2" value="false" />
 // Retrieval info: 	<generic name="gui_output_clock_frequency2" value="10.0" />
 // Retrieval info: 	<generic name="gui_divide_factor_c2" value="1" />
@@ -95,7 +95,7 @@ endmodule
 // Retrieval info: 	<generic name="gui_phase_shift2" value="-4000" />
 // Retrieval info: 	<generic name="gui_phase_shift_deg2" value="0.0" />
 // Retrieval info: 	<generic name="gui_actual_phase_shift2" value="0" />
-// Retrieval info: 	<generic name="gui_duty_cycle2" value="90" />
+// Retrieval info: 	<generic name="gui_duty_cycle2" value="10" />
 // Retrieval info: 	<generic name="gui_cascade_counter3" value="false" />
 // Retrieval info: 	<generic name="gui_output_clock_frequency3" value="100.0" />
 // Retrieval info: 	<generic name="gui_divide_factor_c3" value="1" />
